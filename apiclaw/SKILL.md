@@ -1,18 +1,17 @@
 ---
 name: apiclaw
 description: >
-  Product-level entry point and FAQ for the APIClaw data platform.
-  Use ONLY for product-level questions that are NOT about analyzing a specific
-  commerce surface (Amazon, etc.): what is APIClaw, what markets/domains it covers,
-  credit pricing, account setup, authentication, SDK/integration, comparison with
-  other commerce data providers, platform roadmap.
-  Use when user asks: what is APIClaw, how do I sign up, how much does it cost,
-  what's a credit, how to authenticate, SDK integration help, supported markets,
-  is APIClaw better than X.
-  NOT for: any question naming a specific commerce surface (Amazon, etc.) and asking
-  "what analysis can I do" or "do an analysis" — those belong to the domain-specific
-  fallback (amazon-analysis for Amazon) or a specialized amazon-* skill, even when
-  the user names APIClaw by name.
+  API endpoint reference for the APIClaw data platform. Provides the 12
+  endpoints (categories, markets, products, competitors, realtime ASIN,
+  AI review analysis, raw reviews, price band, brand, history), their
+  inputs/outputs, credit costs, parameter quirks, Quick Start (auth,
+  base URL), and the Local Review Toolkit (Map/Reduce for raw reviews).
+  Use when the user asks about the API itself — which endpoints exist,
+  how to call them, field schemas, credit cost per call, parameter quirks,
+  how to authenticate, or how the Local Review Toolkit works.
+  Use when user asks: what endpoints does APIClaw have, how do I call
+  /products/search, fields returned by reviews/analysis, credit cost per
+  call, how the Local Review Toolkit works, how to get started.
   Requires APICLAW_API_KEY.
 metadata:
   version: "1.1.3"

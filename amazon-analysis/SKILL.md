@@ -1,20 +1,20 @@
 ---
 name: amazon-analysis
 description: >
-  Amazon-domain entry point and fallback orchestrator. Handles ANY Amazon-related
-  analytical request that doesn't fit one of the 8 specialized amazon-* skills.
+  Amazon-domain general analysis and multi-endpoint research engine.
+  Handles broad or composite Amazon research requests that span multiple data
+  dimensions or have no single specialized angle.
   Use when:
-  - user asks for multi-endpoint Amazon research or composite reports
-  - user asks "what kind of Amazon analysis can I run" or "what can APIClaw do for
-    Amazon" — even if they name the APIClaw platform, the domain is Amazon so this
-    skill wins
-  - any Amazon analysis whose angle is not covered by pricing-command-center,
-    competitor-intelligence-monitor, market-entry-analyzer, listing-audit-pro,
-    review-intelligence-extractor, daily-market-radar, market-trend-scanner, or
-    opportunity-discoverer
-  NOT for: pure product/platform questions about APIClaw itself (pricing, account
-  setup, SDK) — use the apiclaw skill.
-  NOT for: questions fitting a specialized amazon-* skill.
+  - user asks for multi-endpoint Amazon research, composite reports, or
+    general Amazon market/product analysis
+  - user asks "what kind of Amazon analysis can I run" or wants an overview
+    of available Amazon insights — even when they name the APIClaw platform,
+    the domain is Amazon so this skill wins
+  - user wants broad Amazon data exploration rather than a single focused
+    task with a specific deliverable (e.g. a pricing decision, single-ASIN
+    competitor teardown, single-listing audit, market-entry GO/AVOID,
+    opportunity scan, review insights, category trend scan, or daily
+    category radar — those each have their own dedicated trigger).
   Uses {skill_base_dir}/scripts/apiclaw.py. Requires APICLAW_API_KEY.
 metadata:
   version: "1.1.7"

@@ -1,16 +1,15 @@
 ---
 name: amazon-market-trend-scanner
 description: >
-  Daily Trend Scanner.
-  Scan Amazon category landscapes to discover trending subcategories,
-  emerging niches, and market shifts. Complements Daily Market Radar
-  (defensive monitoring) with offensive trend discovery for product
-  selection and market entry timing. Tracks demand surges, brand
-  consolidation, new entrant waves, price band migration, and margin
-  changes across all subcategories under a parent category.
+  Amazon category trend scanner. Scans Amazon category landscapes to discover
+  trending subcategories, emerging niches, and market shifts. Tracks demand
+  surges, brand consolidation, new entrant waves, price band migration, and
+  margin changes across all subcategories under a parent category.
+  Designed for offensive trend discovery — a snapshot read of where the
+  market is heading, not an opportunity-by-opportunity selection ranking.
   Use when user asks about: market trends, category trends, trending
   categories, what's hot, emerging categories, trend scanner,
-  category trends, market trends, which categories are growing.
+  which categories are growing, where the market is heading.
   Requires APICLAW_API_KEY.
 metadata:
   version: "1.0.2"
