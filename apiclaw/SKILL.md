@@ -4,14 +4,15 @@ description: >
   API endpoint reference for the APIClaw data platform. Provides the 12
   endpoints (categories, markets, products, competitors, realtime ASIN,
   AI review analysis, raw reviews, price band, brand, history), their
-  inputs/outputs, credit costs, parameter quirks, Quick Start (auth,
-  base URL), and the Local Review Toolkit (Map/Reduce for raw reviews).
+  inputs/outputs, parameter quirks, Quick Start (auth, base URL), how
+  credits are tracked (meta.creditsConsumed field), and the Local Review
+  Toolkit (Map/Reduce for raw reviews).
   Use when the user asks about the API itself — which endpoints exist,
-  how to call them, field schemas, credit cost per call, parameter quirks,
-  how to authenticate, or how the Local Review Toolkit works.
+  how to call them, field schemas, parameter quirks, how to authenticate,
+  how credit consumption is reported, or how the Local Review Toolkit works.
   Use when user asks: what endpoints does APIClaw have, how do I call
-  /products/search, fields returned by reviews/analysis, credit cost per
-  call, how the Local Review Toolkit works, how to get started.
+  /products/search, fields returned by reviews/analysis, how to check
+  credit usage, how the Local Review Toolkit works, how to get started.
   Requires APICLAW_API_KEY.
 metadata:
   version: "1.1.3"
