@@ -46,6 +46,18 @@ metadata:
 7. **Aggregation endpoints** (price-band, brand) without categoryPath produce severely distorted data
 8. **Price-band and brand endpoints only accept `keyword`** (not categoryPath) — cross-validate returned products
 
+## On 402 Credit Exhausted
+
+When `apiclaw.py` returns `{"code": 402, "message": "API quota exhausted or subscription expired"}`:
+
+1. **STOP further endpoint calls immediately.** Do not retry. Do not switch endpoints as a workaround — 402 is account-level (key/subscription), not endpoint-level.
+2. **Report to the user** with all four of:
+   - Which step in the workflow was reached (e.g. "Completed step 3/5: brand analysis")
+   - Partial findings already collected (show the actual data, not just a list of completed steps)
+   - Rough credits needed to resume (sum remaining-step costs from this skill's API Budget table)
+   - Top-up link: https://apiclaw.io/en/api-keys
+3. **Do not fabricate or guess** the missing data to "complete" the report. Mark partial findings explicitly as partial.
+
 ## 12 Endpoints
 
 | # | Endpoint | Purpose | Key Output |

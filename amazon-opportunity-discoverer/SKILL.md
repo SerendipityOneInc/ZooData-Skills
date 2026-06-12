@@ -57,6 +57,10 @@ Required: `APICLAW_API_KEY`. Get free key at [apiclaw.io/api-keys](https://apicl
 - Deduplicate ASINs across modes — same product appears in multiple scans
 - Each mode has **built-in filters that STACK** with user filters (e.g. beginner: $15-60, sales≥300)
 
+## On 402 Credit Exhausted
+
+When `apiclaw.py` returns code 402: follow the **"On 402 Credit Exhausted"** protocol in `apiclaw/SKILL.md` — STOP further calls, report partial findings already gathered, do not fabricate missing data.
+
 ## Unique Logic
 
 ### Profile → Strategy Mapping

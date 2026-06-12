@@ -45,6 +45,10 @@ Required: `APICLAW_API_KEY`. Get free key at [apiclaw.io/api-keys](https://apicl
 - ASIN-specific endpoints don't need `--category`; keyword-based ones do
 - **Category auto-detection**: categoryPath is auto-detected from target ASIN. If `category_source` in output is `inferred_from_search`, confirm with user
 
+## On 402 Credit Exhausted
+
+When `apiclaw.py` returns code 402: follow the **"On 402 Credit Exhausted"** protocol in `apiclaw/SKILL.md` — STOP further calls, report partial findings already gathered, do not fabricate missing data.
+
 ## 11 Analysis Dimensions
 `painPoints` · `issues` · `positives` · `improvements` · `buyingFactors` · `keywords` · `userProfiles` · `scenarios` · `usageTimes` · `usageLocations` · `behaviors`
 

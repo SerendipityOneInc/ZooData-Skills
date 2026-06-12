@@ -63,6 +63,10 @@ Brand queries MUST also include confirmed `--category`.
       - **Small-sample rule (reviewCount<50)**: demote single-mention items 📊→🔍; NEVER attach table-level or section-header 📊 when any row inside is 🔍; suppress "🔴 Critical" verdicts on count=1
       - **Scope**: fallback replaces ONLY the `/reviews/analysis` aggregation. This skill's primary workflow outputs (competitor metrics, brand ranking, pricing, etc.) remain valid — do not re-run them.
 
+## On 402 Credit Exhausted
+
+When `apiclaw.py` returns code 402: follow the **"On 402 Credit Exhausted"** protocol in `apiclaw/SKILL.md` — STOP further calls, report partial findings already gathered, do not fabricate missing data.
+
 ## Mode Selection
 
 - **Full Scan** (~28-35 credits): First run, no baseline.json, explicit request, or weekly refresh

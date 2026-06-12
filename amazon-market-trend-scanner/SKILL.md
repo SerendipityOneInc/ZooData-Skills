@@ -48,6 +48,10 @@ Required: 1+ category paths or keywords. Optional: scan depth, metric preference
 3. **Use API fields directly**: revenue=`sampleAvgMonthlyRevenue`, sales=`monthlySalesFloor`
 4. **Key metrics per subcategory**: sampleAvgMonthlySales, sampleNewSkuRate, topBrandSalesRate, sampleAvgPrice, sampleAPlusRate, totalSkuCount, sampleFbaRate
 
+## On 402 Credit Exhausted
+
+When `apiclaw.py` returns code 402: follow the **"On 402 Credit Exhausted"** protocol in `apiclaw/SKILL.md` — STOP further calls, report partial findings already gathered, do not fabricate missing data.
+
 ## Mode 1: Full Scan
 
 1. `categories --keyword "{keyword}"` → resolve category path
