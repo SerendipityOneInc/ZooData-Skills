@@ -177,7 +177,7 @@ def api_call(endpoint: str, params: dict) -> dict:
                     endpoint, actual_params)
             elif status == 402:
                 return _error_result(402, "API quota exhausted or subscription expired",
-                    "Check your plan at https://apiclaw.io/en/api-keys or provide a new Key",
+                    "Top up credits at https://apiclaw.io/en/pricing (or switch to a different key — manage keys at https://apiclaw.io/en/api-keys)",
                     endpoint, actual_params)
             elif status == 429:
                 # Switch to longer retry strategy for rate limits

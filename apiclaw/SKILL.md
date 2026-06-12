@@ -55,7 +55,7 @@ When `apiclaw.py` returns `{"code": 402, "message": "API quota exhausted or subs
    - Which step in the workflow was reached (e.g. "Completed step 3/5: brand analysis")
    - Partial findings already collected (show the actual data, not just a list of completed steps)
    - Rough credits needed to resume (sum remaining-step costs from this skill's API Budget table)
-   - Top-up link: https://apiclaw.io/en/api-keys
+   - Top-up link: https://apiclaw.io/en/pricing
 3. **Do not fabricate or guess** the missing data to "complete" the report. Mark partial findings explicitly as partial.
 
 ## 12 Endpoints
