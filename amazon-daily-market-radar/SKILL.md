@@ -11,7 +11,7 @@ description: >
   it once, get an alert digest every day.
   Use when the user wants ongoing OPERATIONAL daily monitoring of their
   products and the surrounding market — a "what changed since yesterday"
-  digest, not a one-shot focused teardown of named competitors.
+  digest delivered automatically every day.
   Use when user asks: what changed in my category today, daily category
   briefing, set up daily monitoring, emerging brands alert, BSR shifts
   daily, stockout signals, set-it-and-forget-it market watch.

@@ -9,11 +9,8 @@ description: >
     general Amazon market/product analysis
   - user asks "what kind of Amazon analysis can I run" or wants an overview
     of available Amazon insights
-  - user wants broad Amazon data exploration rather than a single focused
-    task with a specific deliverable (e.g. a pricing decision, single-ASIN
-    competitor teardown, single-listing audit, market-entry GO/AVOID,
-    opportunity scan, review insights, category trend scan, or daily
-    category radar — those each have their own dedicated trigger).
+  - user wants broad Amazon data exploration with no single specific
+    deliverable in mind
   Uses {skill_base_dir}/scripts/apiclaw.py. Requires APICLAW_API_KEY.
 metadata:
   version: "1.1.7"

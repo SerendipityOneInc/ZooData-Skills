@@ -7,8 +7,8 @@ description: >
   pricing/review/inventory breakdown) OR sustained per-competitor monitoring
   with alerts (Quick Check: 5-10 credits, realtime polling, baseline diff).
   Input: keyword, ASIN(s), or brand — whatever identifies the competitor set
-  to analyze. Output is per-competitor analytical insight, not a daily
-  market-wide change digest.
+  to analyze. Output is per-competitor analytical insight tied to that
+  specific set.
   Use when the user wants focused analysis on identified competitors:
   a one-shot teardown or an ongoing per-competitor watch.
   Use when user asks: analyze competitor B07XXX, battle card for ASIN Y,
