@@ -8,8 +8,7 @@ description: >
   - user asks for multi-endpoint Amazon research, composite reports, or
     general Amazon market/product analysis
   - user asks "what kind of Amazon analysis can I run" or wants an overview
-    of available Amazon insights — even when they name the APIClaw platform,
-    the domain is Amazon so this skill wins
+    of available Amazon insights
   - user wants broad Amazon data exploration rather than a single focused
     task with a specific deliverable (e.g. a pricing decision, single-ASIN
     competitor teardown, single-listing audit, market-entry GO/AVOID,
