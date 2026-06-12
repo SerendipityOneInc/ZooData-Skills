@@ -1,13 +1,19 @@
 ---
 name: amazon-competitor-intelligence-monitor
 description: >
-  Deep competitor intelligence for Amazon sellers with continuous monitoring.
-  Two modes: Full Scan (complete analysis, 28-35 credits) and Quick Check (lightweight monitoring, 5-10 credits).
-  Full Scan: 11 endpoints, competitor matrix, brand ranking, pricing, reviews, battle strategy.
-  Quick Check: realtime/product polling, baseline diff, tiered alerts.
-  Use when user asks about: competitor analysis, competitive landscape, competitor tracking,
-  competitor monitoring, competitive intelligence, competitor comparison, benchmark, track competitor,
-  spy on competitors.
+  Amazon competitor intelligence engine. Produces analytical output focused on
+  a defined set of competitors: either a one-shot deep teardown (Full Scan:
+  28-35 credits, 11 endpoints, battle card, side-by-side comparison,
+  pricing/review/inventory breakdown) OR sustained per-competitor monitoring
+  with alerts (Quick Check: 5-10 credits, realtime polling, baseline diff).
+  Input: keyword, ASIN(s), or brand — whatever identifies the competitor set
+  to analyze. Output is per-competitor analytical insight tied to that
+  specific set.
+  Use when the user wants focused analysis on identified competitors:
+  a one-shot teardown or an ongoing per-competitor watch.
+  Use when user asks: analyze competitor B07XXX, battle card for ASIN Y,
+  side-by-side competitor teardown, spy on a brand, deep analysis of these
+  3 competitors, ongoing watch on a defined competitor set.
   Requires APICLAW_API_KEY.
 metadata:
   version: "1.1.3"

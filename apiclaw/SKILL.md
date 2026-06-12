@@ -1,16 +1,18 @@
 ---
 name: apiclaw
 description: >
-  General overview, 12 API endpoints.
-  AI-powered commerce data infrastructure with 200M+ Amazon products.
-  Endpoints: category browsing, market metrics, product search,
-  competitor lookup, realtime ASIN detail, AI review analysis,
-  live raw reviews (with local Map/Reduce toolkit fallback),
-  price band overview/detail, brand overview/detail, and product history.
-  Use when user asks: what APIClaw can do, available API endpoints,
-  how to get started, API capabilities overview, credit usage, or
-  general commerce data questions. For deep Amazon product selection
-  strategies and analysis workflows, use the Amazon-analysis-skill instead.
+  API endpoint reference for the APIClaw data platform. Provides the 12
+  endpoints (categories, markets, products, competitors, realtime ASIN,
+  AI review analysis, raw reviews, price band, brand, history), their
+  inputs/outputs, parameter quirks, Quick Start (auth, base URL), how
+  credits are tracked (meta.creditsConsumed field), and the Local Review
+  Toolkit (Map/Reduce for raw reviews).
+  Use when the user asks about the API itself — which endpoints exist,
+  how to call them, field schemas, parameter quirks, how to authenticate,
+  how credit consumption is reported, or how the Local Review Toolkit works.
+  Use when user asks: what endpoints does APIClaw have, how do I call
+  /products/search, fields returned by reviews/analysis, how to check
+  credit usage, how the Local Review Toolkit works, how to get started.
   Requires APICLAW_API_KEY.
 metadata:
   version: "1.1.3"

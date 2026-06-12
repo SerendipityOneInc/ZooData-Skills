@@ -1,15 +1,17 @@
 ---
 name: amazon-analysis
 description: >
-  Full-Spectrum Research & Seller Intelligence.
-  Amazon seller data analysis tool. Features: market research, product selection, competitor analysis, ASIN evaluation, pricing reference, category research.
-  Use when user asks about: Amazon market research, product selection, ASIN analysis,
-  category research, general Amazon analysis, what should I sell on Amazon,
-  Amazon data analysis, multi-endpoint Amazon research, or composite analysis pipelines
-  (reports, opportunity scans) that span multiple APIClaw endpoints.
-  For deep specialized workflows (pricing strategy, competitor monitoring, market entry,
-  listing audit, review insights), use the corresponding specialized skill instead.
-  Uses {skill_base_dir}/scripts/apiclaw.py to call APIClaw API, requires APICLAW_API_KEY.
+  Amazon-domain general analysis and multi-endpoint research engine.
+  Handles broad or composite Amazon research requests that span multiple data
+  dimensions or have no single specialized angle.
+  Use when:
+  - user asks for multi-endpoint Amazon research, composite reports, or
+    general Amazon market/product analysis
+  - user asks "what kind of Amazon analysis can I run" or wants an overview
+    of available Amazon insights
+  - user wants broad Amazon data exploration with no single specific
+    deliverable in mind
+  Uses {skill_base_dir}/scripts/apiclaw.py. Requires APICLAW_API_KEY.
 metadata:
   version: "1.1.7"
   author: SerendipityOneInc

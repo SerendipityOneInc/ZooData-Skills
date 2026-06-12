@@ -1,14 +1,20 @@
 ---
 name: amazon-daily-market-radar
 description: >
-  Automated daily market monitoring and alert system for Amazon sellers.
-  Tracks price changes, new competitors, BSR movements, review spikes,
-  stock-out signals, and market shifts. Designed for unattended agent automation.
-  Uses all 11 APIClaw API endpoints with cross-validation.
-  Use when user asks about: daily monitoring, market alerts, track competitors,
-  price monitoring, BSR tracking, market changes, daily briefing, market watch,
-  competitor alerts, review monitoring, stock alerts, market dashboard,
-  daily report, market updates, what changed today.
+  Automated daily Amazon market digest. Given the user's own ASINs (1-10) and
+  any competitor ASINs they want included (up to 20), produces a daily
+  change-detection briefing on Amazon: price moves, BSR shifts, new entrants
+  in the surrounding category, review wave detection, stockout signals. Output is
+  a triaged alert dashboard (RED/YELLOW/GREEN) comparing today against
+  yesterday's snapshot.
+  Designed for unattended scheduled automation (cron-style daily run) — set
+  it once, get an alert digest every day.
+  Use when the user wants ongoing OPERATIONAL daily monitoring of their
+  products and the surrounding market — a "what changed since yesterday"
+  digest delivered automatically every day.
+  Use when user asks: what changed in my category today, daily category
+  briefing, set up daily monitoring, emerging brands alert, BSR shifts
+  daily, stockout signals, set-it-and-forget-it market watch.
   Requires APICLAW_API_KEY.
 metadata:
   version: "1.0.3"
