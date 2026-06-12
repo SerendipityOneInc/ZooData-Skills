@@ -51,6 +51,10 @@ On first interaction, tell user: "Give me your ASIN(s). I support single or batc
 - FBA fees from products/search are estimates — verify with Amazon FBA calculator
 - Aggregation endpoints without categoryPath produce severely distorted data
 
+## On 401 Invalid Key
+
+When `apiclaw.py` returns code 401: follow the **"On 401 Invalid Key"** protocol in `apiclaw/SKILL.md` — STOP further calls, tell the user the key was rejected and direct them to api-keys, do not fabricate missing data.
+
 ## On 402 Credit Exhausted
 
 When `apiclaw.py` returns code 402: follow the **"On 402 Credit Exhausted"** protocol in `apiclaw/SKILL.md` — STOP further calls, report partial findings already gathered, do not fabricate missing data.

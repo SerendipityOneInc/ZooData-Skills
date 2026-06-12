@@ -46,6 +46,17 @@ metadata:
 7. **Aggregation endpoints** (price-band, brand) without categoryPath produce severely distorted data
 8. **Price-band and brand endpoints only accept `keyword`** (not categoryPath) — cross-validate returned products
 
+## On 401 Invalid Key
+
+When `apiclaw.py` returns `{"code": 401, "message": "API Key invalid or expired"}`:
+
+1. **STOP further endpoint calls immediately.** Do not retry — a rejected key won't be accepted on a second try; every subsequent call will return 401 too.
+2. **Report to the user**:
+   - The `APICLAW_API_KEY` in use was rejected (likely invalid, revoked, or expired)
+   - If any partial findings were collected before the failure, show them and mark as partial
+   - Fix at https://apiclaw.io/en/api-keys (verify the key, regenerate if needed)
+3. **Do not fabricate or guess** the data the failed calls would have returned.
+
 ## On 402 Credit Exhausted
 
 When `apiclaw.py` returns `{"code": 402, "message": "API quota exhausted or subscription expired"}`:

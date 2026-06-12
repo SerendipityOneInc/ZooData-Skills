@@ -57,6 +57,10 @@ Required: `APICLAW_API_KEY`. Get free key at [apiclaw.io/api-keys](https://apicl
      - **Scope**: fallback replaces ONLY the `/reviews/analysis` aggregation. This skill's primary workflow outputs (GO/CAUTION/AVOID verdict, market size, brand/price analysis) remain valid — do not re-run them.
 - Aggregation endpoints without categoryPath produce severely distorted data
 
+## On 401 Invalid Key
+
+When `apiclaw.py` returns code 401: follow the **"On 401 Invalid Key"** protocol in `apiclaw/SKILL.md` — STOP further calls, tell the user the key was rejected and direct them to api-keys, do not fabricate missing data.
+
 ## On 402 Credit Exhausted
 
 When `apiclaw.py` returns code 402: follow the **"On 402 Credit Exhausted"** protocol in `apiclaw/SKILL.md` — STOP further calls, report partial findings already gathered, do not fabricate missing data.

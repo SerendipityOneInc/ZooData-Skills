@@ -62,6 +62,10 @@ Collect in ONE message: ✅ my_asins (1-10) | 💡 competitor_asins (up to 20) |
       - **Scope**: fallback replaces ONLY the `/reviews/analysis` aggregation. This skill's primary workflow outputs (price/BSR/sales deltas, alerts, watchlist baseline) remain valid — do not re-run them.
 5. **Aggregation without categoryPath**: severely distorted data
 
+## On 401 Invalid Key
+
+When `apiclaw.py` returns code 401: follow the **"On 401 Invalid Key"** protocol in `apiclaw/SKILL.md` — STOP further calls, tell the user the key was rejected and direct them to api-keys, do not fabricate missing data.
+
 ## On 402 Credit Exhausted
 
 When `apiclaw.py` returns code 402: follow the **"On 402 Credit Exhausted"** protocol in `apiclaw/SKILL.md` — STOP further calls, report partial findings already gathered, do not fabricate missing data.

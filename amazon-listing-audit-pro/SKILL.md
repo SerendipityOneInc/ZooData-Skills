@@ -62,6 +62,10 @@ Required: my_asin. Optional: keyword, category. Category is auto-detected from A
       - **Scope**: fallback replaces ONLY the `/reviews/analysis` aggregation. This skill's primary workflow outputs (8-dimension audit scores, title/bullet/A+ checks, category-leader benchmarks) remain valid — do not re-run them.
 5. **Sales null fallback**: Monthly sales ≈ 300,000 / BSR^0.65, tag 🔍
 
+## On 401 Invalid Key
+
+When `apiclaw.py` returns code 401: follow the **"On 401 Invalid Key"** protocol in `apiclaw/SKILL.md` — STOP further calls, tell the user the key was rejected and direct them to api-keys, do not fabricate missing data.
+
 ## On 402 Credit Exhausted
 
 When `apiclaw.py` returns code 402: follow the **"On 402 Credit Exhausted"** protocol in `apiclaw/SKILL.md` — STOP further calls, report partial findings already gathered, do not fabricate missing data.
