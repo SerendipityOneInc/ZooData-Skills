@@ -48,6 +48,29 @@ metadata:
 7. **Aggregation endpoints** (price-band, brand) without categoryPath produce severely distorted data
 8. **Price-band and brand endpoints only accept `keyword`** (not categoryPath) — cross-validate returned products
 
+## On 401 Invalid Key
+
+When `apiclaw.py` returns `{"code": 401, "message": "API Key invalid or expired"}`:
+
+1. **STOP further endpoint calls immediately.** Do not retry — a rejected key won't be accepted on a second try; every subsequent call will return 401 too.
+2. **Report to the user**:
+   - The `APICLAW_API_KEY` in use was rejected (likely invalid, revoked, or expired)
+   - If any partial findings were collected before the failure, show them and mark as partial
+   - Fix at https://apiclaw.io/en/api-keys (verify the key, regenerate if needed)
+3. **Do not fabricate or guess** the data the failed calls would have returned.
+
+## On 402 Credit Exhausted
+
+When `apiclaw.py` returns `{"code": 402, "message": "API quota exhausted or subscription expired"}`:
+
+1. **STOP further endpoint calls immediately.** Do not retry. Do not switch endpoints as a workaround — 402 is account-level (key/subscription), not endpoint-level.
+2. **Report to the user** with all four of:
+   - Which step in the workflow was reached (e.g. "Completed step 3/5: brand analysis")
+   - Partial findings already collected (show the actual data, not just a list of completed steps)
+   - Rough credits needed to resume (sum remaining-step costs from this skill's API Budget table)
+   - Top-up link: https://apiclaw.io/en/pricing
+3. **Do not fabricate or guess** the missing data to "complete" the report. Mark partial findings explicitly as partial.
+
 ## 12 Endpoints
 
 | # | Endpoint | Purpose | Key Output |

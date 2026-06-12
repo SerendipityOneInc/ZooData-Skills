@@ -61,6 +61,14 @@ User provides: keyword, category, ASIN, or brand — depending on intent. Use in
 8. **history empty**: try oldest-listed ASINs first, up to 3 rounds of different ASINs before giving up
 9. **Sales null fallback**: Monthly sales ≈ 300,000 / BSR^0.65
 
+## On 401 Invalid Key
+
+When `apiclaw.py` returns code 401: follow the **"On 401 Invalid Key"** protocol in `apiclaw/SKILL.md` — STOP further calls, tell the user the key was rejected and direct them to api-keys, do not fabricate missing data.
+
+## On 402 Credit Exhausted
+
+When `apiclaw.py` returns code 402: follow the **"On 402 Credit Exhausted"** protocol in `apiclaw/SKILL.md` — STOP further calls, report partial findings already gathered, do not fabricate missing data.
+
 ## 14 Product Selection Modes
 
 | Mode | One-line Description |
