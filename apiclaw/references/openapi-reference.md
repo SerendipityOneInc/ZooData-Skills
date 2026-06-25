@@ -1,6 +1,6 @@
 # APIClaw API Quick Reference
 
-> Concise field reference for all 11 endpoints. Load when you need exact parameter/field names.
+> Concise field reference for the currently documented Amazon commerce and keyword-intelligence endpoints. Load when you need exact parameter/field names.
 >
 > **OpenAPI Spec (live)**: https://apiclaw.io/api/v1/openapi-spec
 
@@ -31,7 +31,7 @@ Response: `categoryId`, `categoryName`, `categoryPath`, `hasChildren`, `isRoot`,
 | categoryKeyword | String | Keyword match across levels |
 | topN | **String** | `"3"` / `"5"` / `"10"` / `"20"` ⚠️ must be string |
 | newProductPeriod | **String** | `"1"` / `"3"` / `"6"` / `"12"` ⚠️ must be string |
-| sampleType | String | `by_sale_100` / `by_bsr_100` / `avg` |
+| sampleType | String | `bySale100` / `byBsr100` / `avg` |
 | dateRange | String | default `30d` |
 | pageSize | Integer | default 20 |
 | sortBy | String | default `sampleAvgMonthlySales` |
@@ -292,7 +292,177 @@ TaggedReview vs RealtimeReview: `reviews/search` uses snapshot data with AI tags
 
 ---
 
+## Keyword Intelligence Endpoints
+
+These endpoints were live-validated against the current OpenAPI surface.
+
+Tool-surface note:
+- API documentation and live endpoint availability do not guarantee that the current agent session exposes matching callable tools
+- For skill execution, verify the live tool surface first; use this file for parameter and field confirmation after that
+
+## 12. /openapi/v2/keywords/detail
+
+| Parameter | Type | Required | Note |
+|-----------|------|----------|------|
+| keyword | String | **Yes** | Keyword to inspect |
+| date | String | **Yes** | Lookup date `YYYY-MM-DD`; resolves to the nearest available weekly snapshot at or before that date |
+| marketplace | String | No | Marketplace code, default `US` |
+
+⚠️ Live behavior: `success: true` may still return `data: null` when no matching weekly snapshot record is available for that keyword.
+
+**Response:** Single keyword snapshot object **or `null`**.
+
+Key fields: `estimateSearchCountWeekly`, `abaRank`, `abaTop3ClickShareRate`, `abaTop3ConversionShareRate`,
+`marketCharacteristics`, `totalSkuCnt`, `brandCount`, `organicSkuCount`, `adCampaignCount`, `adCount`,
+`periodStartDate`, `periodEndDate`, `observedAt`
+
+---
+
+## 13. /openapi/v2/keywords/trend
+
+| Parameter | Type | Required | Note |
+|-----------|------|----------|------|
+| keyword | String | **Yes** | Keyword to inspect |
+| dateFrom | String | **Yes** | Start date `YYYY-MM-DD` |
+| dateTo | String | **Yes** | End date `YYYY-MM-DD` |
+| marketplace | String | No | Marketplace code, default `US` |
+
+**Response:** Array of weekly-granularity trend points across the requested date range.
+
+Interpretation note:
+- `keywords/trend` is weekly series data; do not compare it to daily SERP observations as if they were the same grain
+
+Key fields: `observedAt`, `periodStartDate`, `periodEndDate`, `estimateSearchCount`,
+`estimateSearchChangeCount`, `estimateSearchChangeRate`, `abaRank`, `prevAbaRank`,
+`prevEstimateSearchCount`, `rankChangeCount`
+
+---
+
+## 14. /openapi/v2/keywords/extends
+
+| Parameter | Type | Required | Note |
+|-----------|------|----------|------|
+| query | String | **Yes** | Seed keyword |
+| date | String | **Yes** | Lookup date `YYYY-MM-DD`; resolves to the nearest available weekly snapshot at or before that date |
+| marketplace | String | No | Marketplace code, default `US` |
+| page | Integer | No | default 1 |
+| pageSize | Integer | No | default 20, max 100 |
+| queryType | String | No | `phrase` / `fuzzy` (default `phrase`) |
+| sortBy | String | No | `relevanceScore` / `estimateSearchCount` / `abaRank` / `observedAt` / `keyword` |
+| sortOrder | String | No | `asc` / `desc` |
+
+⚠️ Uses `query`, NOT `keyword`.
+⚠️ Live behavior: empty `data: []` is a normal success case.
+
+**Response:** Array of expansion keywords.
+
+Key fields per item: `term` (expanded keyword), `seedKeyword`, `relevanceScore`,
+`estimateSearchCountWeekly`, `abaRank`, `marketCharacteristics`, `brandCount`,
+`organicSkuCount`, `adCount`, `periodStartDate`, `periodEndDate`, `observedAt`
+
+Additional market-structure fields may appear on each item, including `totalSkuCnt`,
+`observedSkuCount`, `titleDensity`, `organicRolloverRate`, `amazonChoiceSkuCount`,
+`sponsoredProductSkuCount`, `sponsoredBrandSkuCount`, `sponsoredBrandVideoSkuCount`,
+`sponsoredRecommendSkuCount`, `adCampaignCount`, `top48OrganicSkuAvgPrice`,
+`top48OrganicSkuAvgRating`, `top48OrganicSkuAvgRatingsTotal`, and
+`top48OrganicSkuAvgRecentSaleCnt`.
+
+---
+
+## 15. /openapi/v2/keywords/search-results
+
+| Parameter | Type | Required | Note |
+|-----------|------|----------|------|
+| keyword | String | **Yes** | Keyword to inspect |
+| date | String | **Yes** | Daily snapshot lookup date `YYYY-MM-DD` |
+| marketplace | String | No | Marketplace code, default `US` |
+| page | Integer | No | default 1 |
+| pageSize | Integer | No | default 20, max 100 |
+| exploreTypes | Array\<String\> | No | `ORG` / `SP` / `SB` / `SBV` / `SPR` |
+| sortBy | String | No | `absolutePosition` / `estimateImpressionPoint` / `observedAt` / `price` / `rating` / `ratingCount` / `recentSales` / `asin` / `title` |
+| sortOrder | String | No | `asc` / `desc` |
+
+⚠️ This endpoint behaves like a daily-observation feed exposed through a recent sliding ~7-day window, not a long-retention historical snapshot archive.
+⚠️ Use this endpoint as the primary source for "what products are currently showing on the keyword SERP/page 1" because it already returns listing-level product fields.
+⚠️ Do not replace it with `products/search` when the question is about observed Amazon keyword SERP composition or ordering.
+⚠️ When analyzing this endpoint, separate `exploreType` at least into `ORG` and sponsored placements instead of collapsing all rows together.
+
+**Response:** Array of SERP products with absolute positions.
+
+Key fields from live response: `exploreType`, `absolutePosition`, `pageIndex`, `pagePosition`, `asin`,
+`title`, `brand`, `price`, `currency`, `link`, `imageLink`, `rating`, `ratingCount`, `recentSales`,
+`hasVideo`, `estimateImpressionPoint`, `keywordTotalEstimateImpressionPoint`
+
+Interpretation rule:
+- `keywords/search-results` = observed keyword SERP snapshot
+- It can answer page-1 product mix, brand mix, ad vs organic composition, and visible price band questions
+- If you also use `products/search`, present it as a broader catalog supplement, not as the same thing
+
+---
+
+## 16. /openapi/v2/keywords/competitor-product-keywords
+
+| Parameter | Type | Required | Note |
+|-----------|------|----------|------|
+| asin | String | **Yes** | Target ASIN |
+| date | String | **Yes** | Daily snapshot lookup date `YYYY-MM-DD` |
+| marketplace | String | No | Marketplace code, default `US` |
+| page | Integer | No | default 1 |
+| pageSize | Integer | No | default 20, max 100 |
+| exploreTypes | Array\<String\> | No | `ORG` / `SP` / `SB` / `SBV` / `SPR` |
+| keywordContains | String | No | Optional substring filter on returned keywords |
+| sortBy | String | No | `estimateImpressionPoint` / `absolutePosition` / `avgPosition` / `keywordEstimateSearchCount` / `keywordAbaRank` / `observedAt` / `keyword` |
+| sortOrder | String | No | `asc` / `desc` |
+
+**Response:** Array of keyword rows for an ASIN.
+
+Key fields from live response: `exploreType`, `absolutePosition`, `pageIndex`, `pagePosition`, `asin`,
+`keyword`, `estimateImpressionPoint`, `asinTotalEstimateImpressionPoint`, `avgPosition`,
+`daysCoverageRate`, `observationCount`, `keywordEstimateSearchCount`,
+`keywordEstimateSearchGrowthCount`, `keywordEstimateSearchCountChangeRate`, `keywordAbaRank`,
+`keywordAbaRankChangeCount`, `trafficShare`
+
+⚠️ Live validation indicates this endpoint also behaves like a daily-observation feed exposed through a recent sliding ~7-day window.
+⚠️ In skill workflows, this endpoint is a reverse-ASIN source endpoint, not a substitute for `keywords/search-results` when the question is about visible page-1 product composition.
+
+---
+
+## 17. /openapi/v2/keywords/product-traffic-terms
+
+| Parameter | Type | Required | Note |
+|-----------|------|----------|------|
+| asin | String | **Yes** | Target ASIN |
+| date | String | **Yes** | Daily snapshot lookup date `YYYY-MM-DD` |
+| marketplace | String | No | Marketplace code, default `US` |
+| page | Integer | No | default 1 |
+| pageSize | Integer | No | default 20, max 100 |
+| exploreTypes | Array\<String\> | No | `ORG` / `SP` / `SB` / `SBV` / `SPR` |
+| keywordContains | String | No | Optional substring filter on returned keywords |
+| sortBy | String | No | `estimateImpressionPoint` / `absolutePosition` / `avgPosition` / `keywordEstimateSearchCount` / `keywordAbaRank` / `observedAt` / `keyword` |
+| sortOrder | String | No | `asc` / `desc` |
+
+⚠️ Live validation showed the same item shape as `keywords/competitor-product-keywords`; do not assume
+the semantic label implies a different wire schema.
+⚠️ Live validation indicates this endpoint also behaves like a daily-observation feed exposed through a recent sliding ~7-day window.
+⚠️ In skill workflows, this endpoint is a reverse-ASIN source endpoint, not a substitute for `keywords/search-results` when the question is about visible page-1 product composition.
+
+**Response:** Array of keyword rows for an ASIN.
+
+Key fields from live response: `exploreType`, `absolutePosition`, `pageIndex`, `pagePosition`, `asin`,
+`keyword`, `estimateImpressionPoint`, `asinTotalEstimateImpressionPoint`, `avgPosition`,
+`daysCoverageRate`, `observationCount`, `keywordEstimateSearchCount`,
+`keywordEstimateSearchGrowthCount`, `keywordEstimateSearchCountChangeRate`, `keywordAbaRank`,
+`keywordAbaRankChangeCount`, `trafficShare`
+
+---
+
 ## Shared Product Object (products/search, competitors & brand-detail sampleProducts)
+
+Boundary note:
+- `products/search` is a query against APIClaw's product-database snapshot
+- It is useful for broader catalog analysis such as market winners, sales distribution, price bands, and variant concentration
+- It does NOT represent Amazon live keyword SERP ordering
+- Do not describe `products/search` output as "Amazon search results" or "Amazon首页结果" unless you are explicitly talking about the APIClaw product database rather than the observed Amazon keyword SERP
 
 | Field | Type | Note |
 |-------|------|------|

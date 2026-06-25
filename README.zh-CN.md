@@ -37,7 +37,7 @@
 
 ## 技能概览
 
-本仓库包含 **10 个 Agent 技能**，分为两个层级：
+本仓库包含 **11 个 Agent 技能**，分为两个层级：
 
 **🏗️ 基础层** — 数据接入与全方位分析：
 
@@ -45,6 +45,7 @@
 |------|------|------|------|----------|
 | 📦 [`apiclaw/`](apiclaw/) | 直接调用全部 11 个 API 端点 | 关键词/品类/ASIN/品牌 | 原始 API 数据 + 字段映射文档 | 所有其他 skill 的底层依赖 |
 | 🎯 [`amazon-analysis/`](amazon-analysis/) | 13 种选品模式 + 市场/竞品/ASIN/定价/品类研究 | 关键词/品类/ASIN + 意图 | 分析发现、Top 产品、深度报告、置信度标签 | report/opportunity 复合命令一键跑完 |
+| 🔎 [`amazon-keywords/`](amazon-keywords/) | 基于 6 个关键词接口的关键词 intelligence 工作流 | 种子词、目标词、ASIN 或 ASIN + 关键词 | 拓词分层、单词判定、反查流量词、异动解释 | 专门覆盖拓词、反查 ASIN、关键词监控 |
 
 **⚡ 专项层** — 面向特定工作流的专用技能：
 
@@ -72,6 +73,7 @@ npx skills add SerendipityOneInc/APIClaw-Skills
 **🏗️ 基础层：**
 - **APIClaw** — 数据层概览，11 个 API 接口，快速集成
 - **Amazon Analysis** — 13 种选品模式，市场验证，竞品情报
+- **Amazon Keyword Intelligence** — 拓词、反查 ASIN、关键词监控
 
 **⚡ 专项层：**
 - **Amazon Competitor Intelligence Monitor** — 双模式竞品情报与三级告警
@@ -169,6 +171,17 @@ python amazon-analysis/scripts/apiclaw.py products --keyword "wireless earbuds" 
 │   │   └── scenarios-listing.md            # Listing 撰写与优化
 │   └── scripts/
 │       └── apiclaw.py                      # CLI 工具 — 8 个子命令，13 种预设模式
+│
+├── amazon-keywords/                      # 关键词 intelligence 与流量分析
+│   ├── SKILL.md
+│   ├── README.md
+│   └── references/
+│       ├── reference.md                    # 关键词接口与字段参考
+│       ├── execution-guide.md              # 执行与监控规则
+│       ├── scenarios-expand.md             # 关键词拓词
+│       ├── scenarios-keyword-analysis.md   # 单关键词分析
+│       ├── scenarios-reverse-asin.md       # 关键词反查
+│       └── scenarios-keyword-traffic-diagnosis.md # 关键词流量异动诊断
 │
 ├── amazon-competitor-intelligence-monitor/  # 竞品情报监控
 │   ├── SKILL.md

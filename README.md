@@ -40,7 +40,7 @@ https://github.com/user-attachments/assets/305a161b-7a53-49b8-afdc-4469a4fbf361
 
 ## Skills Overview
 
-This repo contains **10 agent skills** organized in two tiers:
+This repo contains **11 agent skills** organized in two tiers:
 
 **🏗️ Foundation** — data access and full-spectrum analysis:
 
@@ -48,6 +48,7 @@ This repo contains **10 agent skills** organized in two tiers:
 |-------|-------------|-------|--------|---------------|
 | 📦 [`apiclaw/`](apiclaw/) | Direct access to all 11 API endpoints — categories, markets, products, competitors, realtime, reviews, price bands, brands, history | Keyword, category, ASIN, or brand | Raw API data with field mapping and quirk documentation | Complete API reference — every other skill builds on this |
 | 🎯 [`amazon-analysis/`](amazon-analysis/) | 13 built-in selection modes + market research, competitor analysis, ASIN evaluation, pricing, category research | Keyword/category/ASIN + intent | Analysis findings, top products, ASIN deep dives, confidence-tagged insights | Composite commands (`report`, `opportunity`) run multi-endpoint pipelines in one shot |
+| 🔎 [`amazon-keywords/`](amazon-keywords/) | Keyword intelligence workflows built on 6 keyword endpoints | Seed keyword, target keyword, ASIN, or ASIN + keyword | Expansion tiers, single-keyword verdicts, reverse-ASIN traffic terms, anomaly explanations | Dedicated flows for keyword expansion, reverse ASIN, and keyword monitoring |
 
 **⚡ Specialized** — purpose-built for specific workflows:
 
@@ -75,6 +76,7 @@ You'll be prompted to select which skills to install:
 **🏗️ Foundation:**
 - **APIClaw — Amazon Commerce Data, 11 Endpoints**
 - **Amazon Analysis — Full-Spectrum Research & Seller Intelligence**
+- **Amazon Keyword Intelligence — Expansion, Reverse ASIN & Monitoring**
 
 **⚡ Specialized:**
 - **Amazon Competitor Intelligence Monitor** — Dual-mode competitive intelligence with tiered alerts
@@ -172,6 +174,17 @@ The `products/search` endpoint supports 13 preset modes for different research s
 │   │   └── scenarios-listing.md            # Listing writing, optimization
 │   └── scripts/
 │       └── apiclaw.py                      # CLI — 8 subcommands, 13 preset modes
+│
+├── amazon-keywords/                      # Keyword intelligence & traffic analysis
+│   ├── SKILL.md
+│   ├── README.md
+│   └── references/
+│       ├── reference.md                    # Keyword endpoint reference
+│       ├── execution-guide.md              # Execution and monitoring rules
+│       ├── scenarios-expand.md             # Keyword expansion
+│       ├── scenarios-keyword-analysis.md   # Single-keyword evaluation
+│       ├── scenarios-reverse-asin.md       # Reverse ASIN analysis
+│       └── scenarios-keyword-traffic-diagnosis.md # Keyword traffic anomaly diagnosis
 │
 ├── amazon-competitor-intelligence-monitor/  # Competitor intelligence & monitoring
 │   ├── SKILL.md
