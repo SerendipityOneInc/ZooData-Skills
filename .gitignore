@@ -31,3 +31,9 @@ config.json
 **/monitor-data/
 **/scan-data/
 **/data/
+
+# Local skill installs (npx skills add creates these — kept for Codex / OpenCode /
+# other agent-skills consumers reading from the project, but never commit them:
+# the canonical source is the repo root, .agents/skills/* are byte-identical copies)
+.agents/skills/
+skills-lock.json
