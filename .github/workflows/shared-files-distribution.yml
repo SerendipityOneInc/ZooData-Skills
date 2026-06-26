@@ -4,9 +4,9 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'apiclaw/scripts/apiclaw.py'
+      - 'zoodata/scripts/zoodata.py'
       - 'scripts/**'
-      - 'amazon-*/scripts/apiclaw.py'
+      - 'amazon-*/scripts/zoodata.py'
   workflow_dispatch:
 
 permissions:
@@ -23,21 +23,29 @@ jobs:
         with:
           python-version: '3.11'
 
-      # Verify all copies are in sync with the canonical source
+      # Verify all copies are in sync with the canonical source.
+      # Keep SKIP_SKILLS aligned with scripts/sync-scripts.sh — doc-only skills
+      # do not embed the CLI script and would otherwise fail the missing-file check.
       - name: Verify scripts are in sync
         run: |
           shopt -s nullglob
+          SKIP_SKILLS=("amazon-keywords")
           found=0
           for skill_dir in amazon-*/; do
+            skill_name="${skill_dir%/}"
+            if [[ " ${SKIP_SKILLS[*]} " == *" $skill_name "* ]]; then
+              echo "Skipping doc-only skill: $skill_name"
+              continue
+            fi
             found=1
-            target="${skill_dir}scripts/apiclaw.py"
+            target="${skill_dir}scripts/zoodata.py"
             if [[ ! -f "$target" ]]; then
               echo "::error::Missing copy file: $target"
               echo "Run: bash scripts/sync-scripts.sh"
               exit 1
             fi
-            if ! diff -q apiclaw/scripts/apiclaw.py "$target" &>/dev/null; then
-              echo "::error::$target does not match apiclaw/scripts/apiclaw.py"
+            if ! diff -q zoodata/scripts/zoodata.py "$target" &>/dev/null; then
+              echo "::error::$target does not match zoodata/scripts/zoodata.py"
               echo "Run: bash scripts/sync-scripts.sh"
               exit 1
             fi
@@ -49,4 +57,4 @@ jobs:
 
       # CLI smoke test against the canonical source
       - name: CLI smoke test
-        run: python apiclaw/scripts/apiclaw.py --help
+        run: python zoodata/scripts/zoodata.py --help

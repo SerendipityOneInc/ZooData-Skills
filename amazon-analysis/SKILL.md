@@ -11,15 +11,15 @@ description: >
     of available Amazon insights
   - user wants broad Amazon data exploration with no single specific
     deliverable in mind
-  Uses {skill_base_dir}/scripts/apiclaw.py. Requires APICLAW_API_KEY.
+  Uses {skill_base_dir}/scripts/zoodata.py. Requires ZOODATA_API_KEY.
 metadata:
   version: "1.1.7"
   author: SerendipityOneInc
-  homepage: https://github.com/SerendipityOneInc/APIClaw-Skills
-  openclaw: {"requires": {"env": ["APICLAW_API_KEY"]}, "primaryEnv": "APICLAW_API_KEY"}
+  homepage: https://github.com/SerendipityOneInc/ZooData-Skills
+  openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}
 ---
 
-# APIClaw — Amazon Seller Data Analysis
+# ZooData — Amazon Seller Data Analysis
 
 > AI-powered Amazon product research. Respond in user's language.
 
@@ -27,13 +27,13 @@ metadata:
 
 | File | Purpose |
 |------|---------|
-| `{skill_base_dir}/scripts/apiclaw.py` | **Execute** for all API calls (run `--help` for params) |
+| `{skill_base_dir}/scripts/zoodata.py` | **Execute** for all API calls (run `--help` for params) |
 | `{skill_base_dir}/references/reference.md` | Load when you need exact field names or filter details |
 
 
 ## Credential
 
-Required: `APICLAW_API_KEY`. Get free key at [apiclaw.io/api-keys](https://apiclaw.io/en/api-keys). Stored in `{skill_base_dir}/config.json` in skill root.
+Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zoodata.ai/en/api-keys). Stored in `{skill_base_dir}/config.json` in skill root.
 
 ## Input
 
@@ -47,13 +47,13 @@ User provides: keyword, category, ASIN, or brand — depending on intent. Use in
 4. **reviews/analysis**: needs 50+ reviews per ASIN; try category mode first (single call returns all dimensions), ASIN mode only if category call fails. Filter by `labelType` client-side from the `consumerInsights` array. Fallback chain when sample is insufficient:
    1. **Lightweight**: `realtime/product` ratingBreakdown — only star distribution, no themes
    2. **Full 11-dim insights** — bypass `/reviews/analysis` entirely:
-      a. `apiclaw.py reviews-raw --asin X` → fetch up to 100 raw reviews (10 credits, ~60s)
-      b. For each review: render Map prompt via `apiclaw.py review-tag-prompt --review '<json>'`
+      a. `zoodata.py reviews-raw --asin X` → fetch up to 100 raw reviews (10 credits, ~60s)
+      b. For each review: render Map prompt via `zoodata.py review-tag-prompt --review '<json>'`
          and have your own LLM produce JSON tags (sentiment + 11 dimensions)
       c. Collect candidate phrases per dimension; for each dimension render
-         Reduce prompt via `apiclaw.py review-reduce-prompt --label-type X --candidates '[...]'`
+         Reduce prompt via `zoodata.py review-reduce-prompt --label-type X --candidates '[...]'`
          and have your LLM produce semantic clusters
-      d. `apiclaw.py review-aggregate --reviews R --tagged T --clusters C`
+      d. `zoodata.py review-aggregate --reviews R --tagged T --clusters C`
          → consumerInsights output compatible with `/reviews/analysis`
 5. **Aggregation without categoryPath**: produces severely distorted data
 6. **Check the `data` shape before indexing**: many search/list endpoints return `.data` as an array, so use `.data[0]` for the first record in those cases; some commands return non-array payloads inside `data`
@@ -63,11 +63,11 @@ User provides: keyword, category, ASIN, or brand — depending on intent. Use in
 
 ## On 401 Invalid Key
 
-When `apiclaw.py` returns code 401: follow the **"On 401 Invalid Key"** protocol in `apiclaw/SKILL.md` — STOP further calls, tell the user the key was rejected and direct them to api-keys, do not fabricate missing data.
+When `zoodata.py` returns code 401: follow the **"On 401 Invalid Key"** protocol in `zoodata/SKILL.md` — STOP further calls, tell the user the key was rejected and direct them to api-keys, do not fabricate missing data.
 
 ## On 402 Credit Exhausted
 
-When `apiclaw.py` returns code 402: follow the **"On 402 Credit Exhausted"** protocol in `apiclaw/SKILL.md` — STOP further calls, report partial findings already gathered, do not fabricate missing data.
+When `zoodata.py` returns code 402: follow the **"On 402 Credit Exhausted"** protocol in `zoodata/SKILL.md` — STOP further calls, report partial findings already gathered, do not fabricate missing data.
 
 ## 14 Product Selection Modes
 
@@ -135,7 +135,7 @@ Output language MUST match the user's input language. If the user asks in Chines
 
 ### Disclaimer (required, at the top of every report)
 
-> Data is based on APIClaw API sampling as of [date]. Monthly sales (`monthlySalesFloor`) are lower-bound estimates. This analysis is for reference only and should not be the sole basis for business decisions. Validate with additional sources before acting.
+> Data is based on ZooData API sampling as of [date]. Monthly sales (`monthlySalesFloor`) are lower-bound estimates. This analysis is for reference only and should not be the sole basis for business decisions. Validate with additional sources before acting.
 
 ### Confidence Labels (required, tag EVERY conclusion)
 

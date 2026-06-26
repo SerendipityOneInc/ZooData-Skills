@@ -18,8 +18,8 @@
 | 10 | `products/brand-detail` | Per-brand SKU/sales/revenue/share ranking | Step 1d |
 | 11 | `products/history` | 30-day price/BSR/sales trend for Top 3 | Step 5 |
 
-Base URL: `https://api.apiclaw.io/openapi/v2`
-Auth: `Bearer $APICLAW_API_KEY`
+Base URL: `https://api.zoodata.ai/openapi/v2`
+Auth: `Bearer $ZOODATA_API_KEY`
 Method: All POST with JSON body
 All endpoints return: `{success, data, error, meta}` with `meta.creditsRemaining`
 

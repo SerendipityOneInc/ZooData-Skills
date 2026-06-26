@@ -25,21 +25,21 @@
 
 ```bash
 # Step 1: Confirm category
-python3 scripts/apiclaw.py categories --keyword "pet toys"
+python3 scripts/zoodata.py categories --keyword "pet toys"
 
 # Step 2: Market conditions
-python3 scripts/apiclaw.py market --category "Pet Supplies,Dogs,Toys" --topn 10
+python3 scripts/zoodata.py market --category "Pet Supplies,Dogs,Toys" --topn 10
 
 # Step 3: Run 2-3 modes based on user profile
 # Beginner → beginner + high-demand-low-barrier
-python3 scripts/apiclaw.py products --keyword "pet toys" --mode beginner --page-size 20
-python3 scripts/apiclaw.py products --keyword "pet toys" --mode high-demand-low-barrier --page-size 20
+python3 scripts/zoodata.py products --keyword "pet toys" --mode beginner --page-size 20
+python3 scripts/zoodata.py products --keyword "pet toys" --mode high-demand-low-barrier --page-size 20
 
 # Step 4: Brand landscape check
-python3 scripts/apiclaw.py brand-overview --keyword "pet toys"
+python3 scripts/zoodata.py brand-overview --keyword "pet toys"
 
 # Step 5: Price band opportunity scan
-python3 scripts/apiclaw.py price-band-overview --keyword "pet toys"
+python3 scripts/zoodata.py price-band-overview --keyword "pet toys"
 
 # Step 6: AI weighted scoring → Top 5 recommendation
 ```
@@ -82,7 +82,7 @@ python3 scripts/apiclaw.py price-band-overview --keyword "pet toys"
 > Trigger: "Are there Chinese sellers who succeeded" / "Chinese sellers cases" / "Chinese sellers"
 
 ```bash
-python3 scripts/apiclaw.py competitors --keyword "wireless earbuds" --page-size 50
+python3 scripts/zoodata.py competitors --keyword "wireless earbuds" --page-size 50
 # → Filter results by buyBoxSellerCountryCode field
 ```
 
@@ -132,30 +132,30 @@ python3 scripts/apiclaw.py competitors --keyword "wireless earbuds" --page-size 
 
 ```bash
 # Step 1: Category resolution
-python3 scripts/apiclaw.py categories --keyword "yoga mat"
+python3 scripts/zoodata.py categories --keyword "yoga mat"
 
 # Step 2: Market aggregate
-python3 scripts/apiclaw.py market --category "Sports & Outdoors,Exercise & Fitness,Yoga,Yoga Mats" --topn 10
+python3 scripts/zoodata.py market --category "Sports & Outdoors,Exercise & Fitness,Yoga,Yoga Mats" --topn 10
 
 # Step 3: Product landscape
-python3 scripts/apiclaw.py products --keyword "yoga mat" --category "Sports & Outdoors,Exercise & Fitness,Yoga,Yoga Mats" --page-size 30
+python3 scripts/zoodata.py products --keyword "yoga mat" --category "Sports & Outdoors,Exercise & Fitness,Yoga,Yoga Mats" --page-size 30
 
 # Step 4: Price band analysis
-python3 scripts/apiclaw.py price-band-overview --keyword "yoga mat"
-python3 scripts/apiclaw.py price-band-detail --keyword "yoga mat" --price-min 20 --price-max 40
+python3 scripts/zoodata.py price-band-overview --keyword "yoga mat"
+python3 scripts/zoodata.py price-band-detail --keyword "yoga mat" --price-min 20 --price-max 40
 
 # Step 5: Brand landscape
-python3 scripts/apiclaw.py brand-overview --keyword "yoga mat"
-python3 scripts/apiclaw.py brand-detail --keyword "yoga mat" --brand "TopBrand"
+python3 scripts/zoodata.py brand-overview --keyword "yoga mat"
+python3 scripts/zoodata.py brand-detail --keyword "yoga mat" --brand "TopBrand"
 
 # Step 6: Realtime deep dive on top ASINs
-python3 scripts/apiclaw.py product --asin B09XXXXX
+python3 scripts/zoodata.py product --asin B09XXXXX
 
 # Step 7: Historical validation
-python3 scripts/apiclaw.py history --asin B09XXXXX --period 90d
+python3 scripts/zoodata.py history --asin B09XXXXX --period 90d
 
 # Step 8: Consumer insights
-python3 scripts/apiclaw.py analyze --category "Sports & Outdoors,Exercise & Fitness,Yoga,Yoga Mats" --period 90d
+python3 scripts/zoodata.py analyze --category "Sports & Outdoors,Exercise & Fitness,Yoga,Yoga Mats" --period 90d
 ```
 
 **Cross-validation checks:**

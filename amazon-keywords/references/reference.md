@@ -20,12 +20,12 @@ exposed in the current session.
 
 | HTTP endpoint path | Draft callable tool name |
 |----------|--------------------------|
-| `/openapi/v2/keywords/detail` | `mcp__apiclaw.openapi_v2_keyword_detail` |
-| `/openapi/v2/keywords/trend` | `mcp__apiclaw.openapi_v2_keyword_trend` |
-| `/openapi/v2/keywords/extends` | `mcp__apiclaw.openapi_v2_keyword_extends` |
-| `/openapi/v2/keywords/search-results` | `mcp__apiclaw.openapi_v2_keyword_search_results` |
-| `/openapi/v2/keywords/competitor-product-keywords` | `mcp__apiclaw.openapi_v2_keyword_competitor_product_keywords` |
-| `/openapi/v2/keywords/product-traffic-terms` | `mcp__apiclaw.openapi_v2_keyword_product_traffic_terms` |
+| `/openapi/v2/keywords/detail` | `mcp__zoodata.openapi_v2_keyword_detail` |
+| `/openapi/v2/keywords/trend` | `mcp__zoodata.openapi_v2_keyword_trend` |
+| `/openapi/v2/keywords/extends` | `mcp__zoodata.openapi_v2_keyword_extends` |
+| `/openapi/v2/keywords/search-results` | `mcp__zoodata.openapi_v2_keyword_search_results` |
+| `/openapi/v2/keywords/competitor-product-keywords` | `mcp__zoodata.openapi_v2_keyword_competitor_product_keywords` |
+| `/openapi/v2/keywords/product-traffic-terms` | `mcp__zoodata.openapi_v2_keyword_product_traffic_terms` |
 
 Tool selection rules:
 - Use the full callable tool name, not a shortened alias
@@ -63,7 +63,7 @@ Tool selection rules:
 
 - `webtools_search` is a crawler / web retrieval utility, not a keyword-intelligence endpoint
 - Do not use `webtools_search` as a substitute for `/openapi/v2/keywords/detail`, `/trend`, `/extends`, or `/search-results`
-- Use it only when the task is genuinely about web collection or when you need an explicitly labeled supplementary source outside the APIClaw keyword endpoints
+- Use it only when the task is genuinely about web collection or when you need an explicitly labeled supplementary source outside the ZooData keyword endpoints
 
 ## Capability Verification Order
 

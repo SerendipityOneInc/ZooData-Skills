@@ -116,7 +116,7 @@ When `monthlySalesFloor` is null: **Monthly sales ≈ 300,000 / BSR^0.65**
 
 ### Disclaimer (every Full-mode report)
 
-> ⚠️ **Important**: This analysis is based on APIClaw API data as of [date]. Sales figures are lower-bound estimates. Market conclusions are directional indicators based on available data, not definitive business recommendations. Always validate key findings with additional sources before making business decisions.
+> ⚠️ **Important**: This analysis is based on ZooData API data as of [date]. Sales figures are lower-bound estimates. Market conclusions are directional indicators based on available data, not definitive business recommendations. Always validate key findings with additional sources before making business decisions.
 
 ### Confidence Labels (every conclusion must be tagged)
 
@@ -171,7 +171,7 @@ Use this rendered template at the end of every report:
 | **Credits remaining** | **492** |
 
 **Tracking rules:**
-1. Count each `apiclaw.py` execution as 1 call to the corresponding interface
+1. Count each `zoodata.py` execution as 1 call to the corresponding interface
 2. Sum `_credits.consumed` from every API response for total consumed
 3. Use `_credits.remaining` from the **last** API response as remaining balance
 4. If `_credits` fields are null, show "N/A"
@@ -225,7 +225,7 @@ Many interfaces return `.data` as an **array**. Use `.data[0]` to get the first 
 ## Error Handling
 
 Errors are handled by the script with structured JSON output. **Never expose error details to users.**
-Self-check: `python3 scripts/apiclaw.py check`
+Self-check: `python3 scripts/zoodata.py check`
 
 | Error | Fix |
 |-------|-----|

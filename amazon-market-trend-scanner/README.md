@@ -1,4 +1,4 @@
-# Amazon Market Trend Scanner — APIClaw Agent Skill
+# Amazon Market Trend Scanner — ZooData Agent Skill
 
 > Find rising categories before everyone else.
 
@@ -17,17 +17,17 @@ Scans Amazon category landscapes to discover trending subcategories, emerging ni
 ## Install
 
 ```bash
-npx skills add SerendipityOneInc/APIClaw-Skills
+npx skills add SerendipityOneInc/ZooData-Skills
 ```
 
 Select **Amazon Market Trend Scanner** when prompted.
 
 ## API Key Setup
 
-1. Get a free key at [apiclaw.io/api-keys](https://apiclaw.io/en/api-keys) — 1,000 free credits, no credit card
+1. Get a free key at [zoodata.ai/api-keys](https://zoodata.ai/en/api-keys) — 1,000 free credits, no credit card
 2. Set the environment variable:
    ```bash
-   export APICLAW_API_KEY='hms_live_xxxxxx'
+   export ZOODATA_API_KEY='hms_live_xxxxxx'
    ```
 
 ## Example Prompts
@@ -63,4 +63,4 @@ Full Scan: ~40-60 credits (~2-3 per subcategory × 20). Quick Check: ~20-30 cred
 
 ## Powered By
 
-[APIClaw](https://apiclaw.io) — The data infrastructure built for agents. 200M+ Amazon products, 1B+ reviews, real-time signals.
+[ZooData](https://zoodata.ai) — The data infrastructure built for agents. 200M+ Amazon products, 1B+ reviews, real-time signals.

@@ -60,7 +60,7 @@
 ```markdown
 # Keyword Traffic Diagnosis Report — [ASIN] × [Keyword]
 
-> Data is based on APIClaw keyword snapshots as of [date]. Weekly search and traffic metrics are sampled observations, not exact Amazon Ads billing data. This analysis is for reference only and should not be the sole basis for business decisions.
+> Data is based on ZooData keyword snapshots as of [date]. Weekly search and traffic metrics are sampled observations, not exact Amazon Ads billing data. This analysis is for reference only and should not be the sole basis for business decisions.
 
 ## Alert Level
 [High / Medium / Low]

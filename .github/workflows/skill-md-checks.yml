@@ -11,20 +11,20 @@ permissions:
   contents: read
 
 jobs:
-  check-apiclaw-path-prefix:
-    name: Check scripts/apiclaw.py has skill_base_dir prefix
+  check-zoodata-path-prefix:
+    name: Check scripts/zoodata.py has skill_base_dir prefix
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fail if scripts/apiclaw.py referenced without {skill_base_dir}/ prefix
+      - name: Fail if scripts/zoodata.py referenced without {skill_base_dir}/ prefix
         run: |
           FAILED=0
           while IFS= read -r file; do
-            # Find lines that mention scripts/apiclaw.py but are missing the prefix
-            if grep -n 'scripts/apiclaw\.py' "$file" | grep -v '{skill_base_dir}/scripts/apiclaw\.py' | grep -q .; then
-              echo "ERROR: bare 'scripts/apiclaw.py' reference found in $file (missing {skill_base_dir}/ prefix):"
-              grep -n 'scripts/apiclaw\.py' "$file" | grep -v '{skill_base_dir}/scripts/apiclaw\.py'
+            # Find lines that mention scripts/zoodata.py but are missing the prefix
+            if grep -n 'scripts/zoodata\.py' "$file" | grep -v '{skill_base_dir}/scripts/zoodata\.py' | grep -q .; then
+              echo "ERROR: bare 'scripts/zoodata.py' reference found in $file (missing {skill_base_dir}/ prefix):"
+              grep -n 'scripts/zoodata\.py' "$file" | grep -v '{skill_base_dir}/scripts/zoodata\.py'
               echo ""
               FAILED=1
             fi

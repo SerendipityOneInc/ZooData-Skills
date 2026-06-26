@@ -1,10 +1,15 @@
 #!/bin/bash
 # scripts/sync-scripts.sh
-# Sync apiclaw/scripts/apiclaw.py to all amazon-* skill directories
+# Sync zoodata/scripts/zoodata.py to all amazon-* skill directories
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-SOURCE="$REPO_ROOT/apiclaw/scripts/apiclaw.py"
+SOURCE="$REPO_ROOT/zoodata/scripts/zoodata.py"
+
+# Doc-only skills that do not embed the CLI script. SKILL.md for these
+# skills never invokes scripts/zoodata.py, so syncing a copy would add
+# ~120KB of unused code to the published skill.
+SKIP_SKILLS=("amazon-keywords")
 
 if [[ ! -f "$SOURCE" ]]; then
   echo "ERROR: Canonical source file does not exist: $SOURCE"
@@ -14,12 +19,19 @@ fi
 changed=0
 total=0
 conflict=0
+skipped=0
 
 for skill_dir in "$REPO_ROOT"/amazon-*/; do
   skill_name=$(basename "$skill_dir")
-  target="$skill_dir/scripts/apiclaw.py"
-  ((total++))
+  target="$skill_dir/scripts/zoodata.py"
 
+  if [[ " ${SKIP_SKILLS[*]} " == *" $skill_name "* ]]; then
+    echo "  SKIP $skill_name (doc-only)"
+    ((skipped++))
+    continue
+  fi
+
+  ((total++))
   mkdir -p "$skill_dir/scripts"
 
   if [[ ! -f "$target" ]]; then
@@ -38,8 +50,8 @@ for skill_dir in "$REPO_ROOT"/amazon-*/; do
       echo "  SYNC $skill_name"
       ((changed++))
     else
-      echo "  CONFLICT $skill_name - scripts/apiclaw.py differs from the canonical source and has no managed-copy marker"
-      echo "           Do not edit copies directly; submit changes to apiclaw/scripts/apiclaw.py"
+      echo "  CONFLICT $skill_name - scripts/zoodata.py differs from the canonical source and has no managed-copy marker"
+      echo "           Do not edit copies directly; submit changes to zoodata/scripts/zoodata.py"
       ((conflict++))
     fi
   fi
@@ -50,4 +62,4 @@ if [[ $conflict -gt 0 ]]; then
   echo "ERROR: $conflict skill copies appear to have been edited manually; sync aborted."
   exit 1
 fi
-echo "Done: $total skills processed, $changed updated."
+echo "Done: $total skills processed, $changed updated, $skipped skipped."

@@ -1,4 +1,4 @@
-# Amazon Competitor Intelligence Monitor — APIClaw Agent Skill
+# Amazon Competitor Intelligence Monitor — ZooData Agent Skill
 
 > Know your enemy. Full Scan + Quick Check. Always watching.
 
@@ -16,17 +16,17 @@ Deep competitor intelligence with two operational modes. **Full Scan** delivers 
 ## Install
 
 ```bash
-npx skills add SerendipityOneInc/APIClaw-Skills
+npx skills add SerendipityOneInc/ZooData-Skills
 ```
 
 Select **Amazon Competitor Intelligence Monitor** when prompted.
 
 ## API Key Setup
 
-1. Get a free key at [apiclaw.io/api-keys](https://apiclaw.io/en/api-keys) — 1,000 free credits, no credit card
+1. Get a free key at [zoodata.ai/api-keys](https://zoodata.ai/en/api-keys) — 1,000 free credits, no credit card
 2. Set the environment variable:
    ```bash
-   export APICLAW_API_KEY='hms_live_xxxxxx'
+   export ZOODATA_API_KEY='hms_live_xxxxxx'
    ```
 
 ## Example Prompts
@@ -73,4 +73,4 @@ Full Scan: ~28-35 credits. Quick Check: ~5-10 credits.
 
 ## Powered By
 
-[APIClaw](https://apiclaw.io) — The data infrastructure built for agents. 200M+ Amazon products, 1B+ reviews, real-time signals.
+[ZooData](https://zoodata.ai) — The data infrastructure built for agents. 200M+ Amazon products, 1B+ reviews, real-time signals.

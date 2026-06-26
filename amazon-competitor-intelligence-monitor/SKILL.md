@@ -14,15 +14,15 @@ description: >
   Use when user asks: analyze competitor B07XXX, battle card for ASIN Y,
   side-by-side competitor teardown, spy on a brand, deep analysis of these
   3 competitors, ongoing watch on a defined competitor set.
-  Requires APICLAW_API_KEY.
+  Requires ZOODATA_API_KEY.
 metadata:
   version: "1.1.3"
   author: SerendipityOneInc
-  homepage: https://github.com/SerendipityOneInc/APIClaw-Skills
-  openclaw: {"requires": {"env": ["APICLAW_API_KEY"]}, "primaryEnv": "APICLAW_API_KEY"}
+  homepage: https://github.com/SerendipityOneInc/ZooData-Skills
+  openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}
 ---
 
-# APIClaw — Competitor Intelligence Monitor
+# ZooData — Competitor Intelligence Monitor
 
 > Know your enemy. Two modes: Full Scan + Quick Check. Respond in user's language.
 
@@ -30,13 +30,13 @@ metadata:
 
 | File | Purpose |
 |------|---------|
-| `{skill_base_dir}/scripts/apiclaw.py` | **Execute** for all API calls (run `--help` for params) |
+| `{skill_base_dir}/scripts/zoodata.py` | **Execute** for all API calls (run `--help` for params) |
 | `{skill_base_dir}/references/reference.md` | Load for exact field names or response structure |
 | `{skill_base_dir}/monitor-data/` | Runtime storage (auto-created): config.json, baseline.json, history/, alerts.json |
 
 ## Credential
 
-Required: `APICLAW_API_KEY`. Get free key at [apiclaw.io/api-keys](https://apiclaw.io/en/api-keys).
+Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zoodata.ai/en/api-keys).
 
 ## Input
 
@@ -53,13 +53,13 @@ Brand queries MUST also include confirmed `--category`.
 5. **reviews/analysis**: needs 50+ reviews. Fallback chain when sample is insufficient:
    1. **Lightweight**: `realtime/product` ratingBreakdown — only star distribution, no themes
    2. **Full 11-dim insights** — bypass `/reviews/analysis` entirely:
-      a. `apiclaw.py reviews-raw --asin X` → fetch up to 100 raw reviews (10 credits, ~60s)
-      b. For each review: render Map prompt via `apiclaw.py review-tag-prompt --review '<json>'`
+      a. `zoodata.py reviews-raw --asin X` → fetch up to 100 raw reviews (10 credits, ~60s)
+      b. For each review: render Map prompt via `zoodata.py review-tag-prompt --review '<json>'`
          and have your own LLM produce JSON tags (sentiment + 11 dimensions)
       c. Collect candidate phrases per dimension; for each dimension render
-         Reduce prompt via `apiclaw.py review-reduce-prompt --label-type X --candidates '[...]'`
+         Reduce prompt via `zoodata.py review-reduce-prompt --label-type X --candidates '[...]'`
          and have your LLM produce semantic clusters
-      d. `apiclaw.py review-aggregate --reviews R --tagged T --clusters C`
+      d. `zoodata.py review-aggregate --reviews R --tagged T --clusters C`
          → consumerInsights output compatible with `/reviews/analysis`
    3. **Fallback caveats** (apply to the 4-step chain above — lessons from end-to-end validation):
       - **Working dir**: `WORK=/tmp/review_<ASIN>_$(date +%s) && mkdir -p $WORK`
@@ -71,11 +71,11 @@ Brand queries MUST also include confirmed `--category`.
 
 ## On 401 Invalid Key
 
-When `apiclaw.py` returns code 401: follow the **"On 401 Invalid Key"** protocol in `apiclaw/SKILL.md` — STOP further calls, tell the user the key was rejected and direct them to api-keys, do not fabricate missing data.
+When `zoodata.py` returns code 401: follow the **"On 401 Invalid Key"** protocol in `zoodata/SKILL.md` — STOP further calls, tell the user the key was rejected and direct them to api-keys, do not fabricate missing data.
 
 ## On 402 Credit Exhausted
 
-When `apiclaw.py` returns code 402: follow the **"On 402 Credit Exhausted"** protocol in `apiclaw/SKILL.md` — STOP further calls, report partial findings already gathered, do not fabricate missing data.
+When `zoodata.py` returns code 402: follow the **"On 402 Credit Exhausted"** protocol in `zoodata/SKILL.md` — STOP further calls, report partial findings already gathered, do not fabricate missing data.
 
 ## Mode Selection
 
@@ -142,7 +142,7 @@ Output language MUST match the user's input language. If the user asks in Chines
 
 ### Disclaimer (required, at the top of every report)
 
-> Data is based on APIClaw API sampling as of [date]. Monthly sales (`monthlySalesFloor`) are lower-bound estimates. This analysis is for reference only and should not be the sole basis for business decisions. Validate with additional sources before acting.
+> Data is based on ZooData API sampling as of [date]. Monthly sales (`monthlySalesFloor`) are lower-bound estimates. This analysis is for reference only and should not be the sole basis for business decisions. Validate with additional sources before acting.
 
 ### Confidence Labels (required, tag EVERY conclusion)
 

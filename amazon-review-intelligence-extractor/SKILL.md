@@ -5,16 +5,16 @@ description: >
   Extracts pain points, buying factors, user profiles, usage patterns,
   and differentiation opportunities across 11 analysis dimensions.
   Compares review sentiment across competitors and generates listing copy suggestions.
-  Uses all 11 APIClaw API endpoints with cross-validation.
+  Uses all 11 ZooData API endpoints with cross-validation.
   Use when user asks about: review analysis, customer feedback, pain points, what customers say,
   review insights, sentiment analysis, consumer insights, product improvements, voice of customer,
   review comparison, negative reviews, customer complaints, buying factors, user profile.
-  Requires APICLAW_API_KEY.
+  Requires ZOODATA_API_KEY.
 metadata:
   version: "1.0.3"
   author: SerendipityOneInc
-  homepage: https://github.com/SerendipityOneInc/APIClaw-Skills
-  openclaw: {"requires": {"env": ["APICLAW_API_KEY"]}, "primaryEnv": "APICLAW_API_KEY"}
+  homepage: https://github.com/SerendipityOneInc/ZooData-Skills
+  openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}
 ---
 
 # Amazon Review Intelligence Extractor — 11 Dimensions, 1B+ Reviews
@@ -22,18 +22,18 @@ metadata:
 Pre-analyzed consumer insights. Pain points, buying factors, user profiles, differentiation gaps.
 
 ## Files
-- **Script**: `{skill_base_dir}/scripts/apiclaw.py` — run `--help` for params
+- **Script**: `{skill_base_dir}/scripts/zoodata.py` — run `--help` for params
 - **Reference**: `{skill_base_dir}/references/reference.md` (field names & response structure)
 
 ## Credential
-Required: `APICLAW_API_KEY`. Get free key at [apiclaw.io/api-keys](https://apiclaw.io/en/api-keys)
+Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zoodata.ai/en/api-keys)
 
 ## Input (one of)
 - **Single ASIN**: "Analyze reviews for B09V3KXJPB"
 - **Multi-ASIN**: "Compare review pain points across these 5 competitor ASINs"
 - **Category-wide**: keyword/category name → resolve via `categories` first (need ≥3-level deep path)
 
-## API Pitfalls (see apiclaw skill for full list)
+## API Pitfalls (see zoodata skill for full list)
 - `reviews/analysis` needs **50+ reviews**. Fallback chain when sample is insufficient:
   1. **Lightweight**: `realtime/product` ratingBreakdown — only star distribution, no themes
   2. **Full 11-dim insights**: see "Insufficient Data Fallback" section below — use the
@@ -47,11 +47,11 @@ Required: `APICLAW_API_KEY`. Get free key at [apiclaw.io/api-keys](https://apicl
 
 ## On 401 Invalid Key
 
-When `apiclaw.py` returns code 401: follow the **"On 401 Invalid Key"** protocol in `apiclaw/SKILL.md` — STOP further calls, tell the user the key was rejected and direct them to api-keys, do not fabricate missing data.
+When `zoodata.py` returns code 401: follow the **"On 401 Invalid Key"** protocol in `zoodata/SKILL.md` — STOP further calls, tell the user the key was rejected and direct them to api-keys, do not fabricate missing data.
 
 ## On 402 Credit Exhausted
 
-When `apiclaw.py` returns code 402: follow the **"On 402 Credit Exhausted"** protocol in `apiclaw/SKILL.md` — STOP further calls, report partial findings already gathered, do not fabricate missing data.
+When `zoodata.py` returns code 402: follow the **"On 402 Credit Exhausted"** protocol in `zoodata/SKILL.md` — STOP further calls, report partial findings already gathered, do not fabricate missing data.
 
 ## 11 Analysis Dimensions
 `painPoints` · `issues` · `positives` · `improvements` · `buyingFactors` · `keywords` · `userProfiles` · `scenarios` · `usageTimes` · `usageLocations` · `behaviors`
@@ -105,7 +105,7 @@ Align dimensions (pain points vs pain points) across products. If competitor rev
 
 ## Composite Command
 ```bash
-python3 {skill_base_dir}/scripts/apiclaw.py review-deepdive --target-asin "<ASIN>" [--keyword "<kw>"] [--category "<path>"]
+python3 {skill_base_dir}/scripts/zoodata.py review-deepdive --target-asin "<ASIN>" [--keyword "<kw>"] [--category "<path>"]
 ```
 Optional: `--comp-asins "<asin1>,<asin2>"` for comparison.
 Runs: reviews × 11 dimensions + competitors + realtime + market context + price/trend.
@@ -160,7 +160,7 @@ WORK=/tmp/review_B0XXXXXXXX_$(date +%s) && mkdir -p $WORK
 ### Step 1 — Fetch raw reviews
 
 ```bash
-python3 {skill_base_dir}/scripts/apiclaw.py reviews-raw \
+python3 {skill_base_dir}/scripts/zoodata.py reviews-raw \
     --asin <ASIN> [--marketplace US] [--max-pages 10] > $WORK/raw.json
 # Cost: 1 credit/page, 10 reviews/page, hard cap 100 (10 pages).
 # Stops automatically when nextCursor=null (small-volume ASINs may exhaust earlier).
@@ -180,7 +180,7 @@ the schema, then mass-produce tags for all reviews in a single in-context pass.
 
 ```bash
 # Render the prompt for ONE review to learn the schema (do this once per skill run)
-python3 {skill_base_dir}/scripts/apiclaw.py review-tag-prompt \
+python3 {skill_base_dir}/scripts/zoodata.py review-tag-prompt \
     --review "$(python3 -c 'import json,sys; print(json.dumps(json.load(open(sys.argv[1]))[0]))' $WORK/reviews_array.json)" \
     [--product-title "..."] [--product-category "..."]
 ```
@@ -223,7 +223,7 @@ candidates = {d: sorted({el.strip().lower() for t in tagged for el in (t.get(d) 
 Then for EACH of the 11 dimensions, render the reduce prompt and YOU produce clusters:
 
 ```bash
-python3 {skill_base_dir}/scripts/apiclaw.py review-reduce-prompt \
+python3 {skill_base_dir}/scripts/zoodata.py review-reduce-prompt \
     --label-type positives \
     --candidates '["comfortable","comfy","very comfortable",...]'
 # → YOU produce {"clusters": [{"canonical": "Comfortable Fit",
@@ -246,7 +246,7 @@ by case-insensitive canonical name match. Other dims rarely exceed 100 candidate
 ### Step 4 — Aggregate (no LLM, pure local)
 
 ```bash
-python3 {skill_base_dir}/scripts/apiclaw.py review-aggregate \
+python3 {skill_base_dir}/scripts/zoodata.py review-aggregate \
     --reviews $WORK/raw.json \
     --tagged $WORK/tagged.json \
     --clusters $WORK/clusters.json > $WORK/insights.json
@@ -319,7 +319,7 @@ Output language MUST match the user's input language. If the user asks in Chines
 
 ### Disclaimer (required, at the top of every report)
 
-> Data is based on APIClaw API sampling as of [date]. Monthly sales (`monthlySalesFloor`) are lower-bound estimates. This analysis is for reference only and should not be the sole basis for business decisions. Validate with additional sources before acting.
+> Data is based on ZooData API sampling as of [date]. Monthly sales (`monthlySalesFloor`) are lower-bound estimates. This analysis is for reference only and should not be the sole basis for business decisions. Validate with additional sources before acting.
 
 ### Confidence Labels (required, tag EVERY conclusion)
 

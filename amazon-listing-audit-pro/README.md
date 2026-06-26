@@ -1,4 +1,4 @@
-# Amazon Listing Audit Pro — APIClaw Agent Skill
+# Amazon Listing Audit Pro — ZooData Agent Skill
 
 > 8-dimension health check. Benchmark against leaders. Fix what matters most.
 
@@ -17,17 +17,17 @@ Comprehensive listing health check and optimization engine. Scores your listing 
 ## Install
 
 ```bash
-npx skills add SerendipityOneInc/APIClaw-Skills
+npx skills add SerendipityOneInc/ZooData-Skills
 ```
 
 Select **Amazon Listing Audit Pro** when prompted.
 
 ## API Key Setup
 
-1. Get a free key at [apiclaw.io/api-keys](https://apiclaw.io/en/api-keys) — 1,000 free credits, no credit card
+1. Get a free key at [zoodata.ai/api-keys](https://zoodata.ai/en/api-keys) — 1,000 free credits, no credit card
 2. Set the environment variable:
    ```bash
-   export APICLAW_API_KEY='hms_live_xxxxxx'
+   export ZOODATA_API_KEY='hms_live_xxxxxx'
    ```
 
 ## Example Prompts
@@ -74,4 +74,4 @@ Select **Amazon Listing Audit Pro** when prompted.
 
 ## Powered By
 
-[APIClaw](https://apiclaw.io) — The data infrastructure built for agents. 200M+ Amazon products, 1B+ reviews, real-time signals.
+[ZooData](https://zoodata.ai) — The data infrastructure built for agents. 200M+ Amazon products, 1B+ reviews, real-time signals.

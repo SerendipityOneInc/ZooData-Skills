@@ -1,6 +1,6 @@
-# APIClaw Skills — Scoring Methodology Reference
+# ZooData Skills — Scoring Methodology Reference
 
-> This document defines the evaluation scoring framework used across all APIClaw Hero Skills.
+> This document defines the evaluation scoring framework used across all ZooData Hero Skills.
 > Based on market research of 5 major Amazon seller tools + industry best practices.
 > All skills that produce scores/ratings MUST reference this methodology.
 
@@ -49,7 +49,7 @@ Despite undisclosed weights, all tools converge on the same core dimensions:
 
 ---
 
-## APIClaw Scoring Framework
+## ZooData Scoring Framework
 
 ### Design Rationale
 

@@ -4,16 +4,16 @@ description: >
   One-click market viability assessment for Amazon sellers.
   Analyzes market size, competition intensity, brand landscape, pricing structure,
   and consumer pain points to deliver a GO/CAUTION/AVOID recommendation.
-  Uses all 11 APIClaw API endpoints with cross-validation for data-backed decisions.
+  Uses all 11 ZooData API endpoints with cross-validation for data-backed decisions.
   Use when user asks about: market entry, can I sell, should I enter, market viability,
   is this niche worth it, category analysis, market opportunity, market assessment,
   niche evaluation, product category research.
-  Requires APICLAW_API_KEY.
+  Requires ZOODATA_API_KEY.
 metadata:
   version: "1.0.3"
   author: SerendipityOneInc
-  homepage: https://github.com/SerendipityOneInc/APIClaw-Skills
-  openclaw: {"requires": {"env": ["APICLAW_API_KEY"]}, "primaryEnv": "APICLAW_API_KEY"}
+  homepage: https://github.com/SerendipityOneInc/ZooData-Skills
+  openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}
 ---
 
 # Amazon Market Entry Analyzer — GO / CAUTION / AVOID
@@ -21,17 +21,17 @@ metadata:
 One input (keyword/category). Full market viability assessment with sub-market discovery.
 
 ## Files
-- **Script**: `{skill_base_dir}/scripts/apiclaw.py` — run `--help` for params
+- **Script**: `{skill_base_dir}/scripts/zoodata.py` — run `--help` for params
 - **Reference**: `{skill_base_dir}/references/reference.md` (field names & response structure)
 
 ## Credential
-Required: `APICLAW_API_KEY`. Get free key at [apiclaw.io/api-keys](https://apiclaw.io/en/api-keys)
+Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zoodata.ai/en/api-keys)
 
 ## Input
 - **Required**: keyword or categoryPath
 - **Optional**: marketplace (default US)
 
-## API Pitfalls (shared with apiclaw skill — critical!)
+## API Pitfalls (shared with zoodata skill — critical!)
 - Keyword search is broad → categoryPath is auto-resolved via `categories` endpoint, with fallback to top search result. If `category_source` is `inferred_from_search`, confirm with user
 - Brand/price-band queries **MUST include --category** to avoid cross-category contamination
 - Revenue = `sampleAvgMonthlyRevenue` (NEVER calculate avgPrice × totalSales — overestimates 30-70%)
@@ -40,13 +40,13 @@ Required: `APICLAW_API_KEY`. Get free key at [apiclaw.io/api-keys](https://apicl
 - `reviews/analysis` needs 50+ reviews. Fallback chain when sample is insufficient:
   1. **Lightweight**: `realtime/product` ratingBreakdown — only star distribution, no themes
   2. **Full 11-dim insights** — bypass `/reviews/analysis` entirely:
-     a. `apiclaw.py reviews-raw --asin X` → fetch up to 100 raw reviews (10 credits, ~60s)
-     b. For each review: render Map prompt via `apiclaw.py review-tag-prompt --review '<json>'`
+     a. `zoodata.py reviews-raw --asin X` → fetch up to 100 raw reviews (10 credits, ~60s)
+     b. For each review: render Map prompt via `zoodata.py review-tag-prompt --review '<json>'`
         and have your own LLM produce JSON tags (sentiment + 11 dimensions)
      c. Collect candidate phrases per dimension; for each dimension render
-        Reduce prompt via `apiclaw.py review-reduce-prompt --label-type X --candidates '[...]'`
+        Reduce prompt via `zoodata.py review-reduce-prompt --label-type X --candidates '[...]'`
         and have your LLM produce semantic clusters
-     d. `apiclaw.py review-aggregate --reviews R --tagged T --clusters C`
+     d. `zoodata.py review-aggregate --reviews R --tagged T --clusters C`
         → consumerInsights output compatible with `/reviews/analysis`
   3. **Fallback caveats** (apply to the 4-step chain above — lessons from end-to-end validation):
      - **Working dir**: `WORK=/tmp/review_<ASIN>_$(date +%s) && mkdir -p $WORK`
@@ -59,11 +59,11 @@ Required: `APICLAW_API_KEY`. Get free key at [apiclaw.io/api-keys](https://apicl
 
 ## On 401 Invalid Key
 
-When `apiclaw.py` returns code 401: follow the **"On 401 Invalid Key"** protocol in `apiclaw/SKILL.md` — STOP further calls, tell the user the key was rejected and direct them to api-keys, do not fabricate missing data.
+When `zoodata.py` returns code 401: follow the **"On 401 Invalid Key"** protocol in `zoodata/SKILL.md` — STOP further calls, tell the user the key was rejected and direct them to api-keys, do not fabricate missing data.
 
 ## On 402 Credit Exhausted
 
-When `apiclaw.py` returns code 402: follow the **"On 402 Credit Exhausted"** protocol in `apiclaw/SKILL.md` — STOP further calls, report partial findings already gathered, do not fabricate missing data.
+When `zoodata.py` returns code 402: follow the **"On 402 Credit Exhausted"** protocol in `zoodata/SKILL.md` — STOP further calls, report partial findings already gathered, do not fabricate missing data.
 
 ## Unique Logic
 
@@ -106,7 +106,7 @@ Present TOP 10 sub-markets. Ask user which to deep-dive (default: top 3). If ≤
 
 ## Composite Command
 ```bash
-python3 {skill_base_dir}/scripts/apiclaw.py market-entry --keyword "{kw}" --category "{path}"
+python3 {skill_base_dir}/scripts/zoodata.py market-entry --keyword "{kw}" --category "{path}"
 ```
 Runs all 11 endpoints (~20 calls). Output JSON is large — use targeted extraction, not full read.
 
@@ -123,7 +123,7 @@ Output language MUST match the user's input language. If the user asks in Chines
 
 ### Disclaimer (required, at the top of every report)
 
-> Data is based on APIClaw API sampling as of [date]. Monthly sales (`monthlySalesFloor`) are lower-bound estimates. This analysis is for reference only and should not be the sole basis for business decisions. Validate with additional sources before acting.
+> Data is based on ZooData API sampling as of [date]. Monthly sales (`monthlySalesFloor`) are lower-bound estimates. This analysis is for reference only and should not be the sole basis for business decisions. Validate with additional sources before acting.
 
 ### Confidence Labels (required, tag EVERY conclusion)
 

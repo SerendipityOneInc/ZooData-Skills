@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <h1 align="center">APIClaw Skills</h1>
+  <h1 align="center">ZooData Skills</h1>
 </p>
 
 <p align="center">
@@ -12,16 +12,16 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/SerendipityOneInc/APIClaw-Skills/actions/workflows/test-apiclaw.yml"><img src="https://github.com/SerendipityOneInc/APIClaw-Skills/actions/workflows/test-apiclaw.yml/badge.svg" alt="Tests" /></a>
+  <a href="https://github.com/SerendipityOneInc/ZooData-Skills/actions/workflows/test-zoodata.yml"><img src="https://github.com/SerendipityOneInc/ZooData-Skills/actions/workflows/test-zoodata.yml/badge.svg" alt="Tests" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License" /></a>
-  <a href="https://apiclaw.io"><img src="https://img.shields.io/badge/API-apiclaw.io-orange" alt="API" /></a>
+  <a href="https://zoodata.ai"><img src="https://img.shields.io/badge/API-zoodata.ai-orange" alt="API" /></a>
   <a href="https://discord.gg/YfDFU9BDp5"><img src="https://img.shields.io/badge/Discord-Join-7289da?logo=discord&logoColor=white" alt="Discord" /></a>
-  <a href="https://github.com/SerendipityOneInc/APIClaw-Skills/stargazers"><img src="https://img.shields.io/github/stars/SerendipityOneInc/APIClaw-Skills?style=social" alt="Stars" /></a>
+  <a href="https://github.com/SerendipityOneInc/ZooData-Skills/stargazers"><img src="https://img.shields.io/github/stars/SerendipityOneInc/ZooData-Skills?style=social" alt="Stars" /></a>
 </p>
 
 <p align="center">
-  <a href="https://apiclaw.io">Website</a> •
-  <a href="https://apiclaw.io/en/api-keys">Get API Key</a> •
+  <a href="https://zoodata.ai">Website</a> •
+  <a href="https://zoodata.ai/en/api-keys">Get API Key</a> •
   <a href="https://discord.gg/YfDFU9BDp5">Discord</a> •
   <a href="#quick-start">Quick Start</a> •
   <a href="#api-endpoints">API Reference</a>
@@ -29,9 +29,9 @@
 
 ---
 
-## What is APIClaw?
+## What is ZooData?
 
-[APIClaw](https://apiclaw.io) is the data infrastructure built for agents. Not a scraping API. Not a human dashboard. A purpose-built data layer that gives your AI agents direct access to Amazon commerce signals — 200M+ indexed products, 2+ years of history, and 1B+ reviews pre-processed into structured insights. Clean JSON, real-time, agent-ready.
+[ZooData](https://zoodata.ai) is the data infrastructure built for agents. Not a scraping API. Not a human dashboard. A purpose-built data layer that gives your AI agents direct access to Amazon commerce signals — 200M+ indexed products, 2+ years of history, and 1B+ reviews pre-processed into structured insights. Clean JSON, real-time, agent-ready.
 
 
 https://github.com/user-attachments/assets/305a161b-7a53-49b8-afdc-4469a4fbf361
@@ -46,7 +46,7 @@ This repo contains **11 agent skills** organized in two tiers:
 
 | Skill | What It Does | Input | Output | Key Advantage |
 |-------|-------------|-------|--------|---------------|
-| 📦 [`apiclaw/`](apiclaw/) | Direct access to all 11 API endpoints — categories, markets, products, competitors, realtime, reviews, price bands, brands, history | Keyword, category, ASIN, or brand | Raw API data with field mapping and quirk documentation | Complete API reference — every other skill builds on this |
+| 📦 [`zoodata/`](zoodata/) | Direct access to all 11 API endpoints — categories, markets, products, competitors, realtime, reviews, price bands, brands, history | Keyword, category, ASIN, or brand | Raw API data with field mapping and quirk documentation | Complete API reference — every other skill builds on this |
 | 🎯 [`amazon-analysis/`](amazon-analysis/) | 13 built-in selection modes + market research, competitor analysis, ASIN evaluation, pricing, category research | Keyword/category/ASIN + intent | Analysis findings, top products, ASIN deep dives, confidence-tagged insights | Composite commands (`report`, `opportunity`) run multi-endpoint pipelines in one shot |
 | 🔎 [`amazon-keywords/`](amazon-keywords/) | Keyword intelligence workflows built on 6 keyword endpoints | Seed keyword, target keyword, ASIN, or ASIN + keyword | Expansion tiers, single-keyword verdicts, reverse-ASIN traffic terms, anomaly explanations | Dedicated flows for keyword expansion, reverse ASIN, and keyword monitoring |
 
@@ -68,13 +68,13 @@ This repo contains **11 agent skills** organized in two tiers:
 ### 1. Install the Skills
 
 ```bash
-npx skills add SerendipityOneInc/APIClaw-Skills
+npx skills add SerendipityOneInc/ZooData-Skills
 ```
 
 You'll be prompted to select which skills to install:
 
 **🏗️ Foundation:**
-- **APIClaw — Amazon Commerce Data, 11 Endpoints**
+- **ZooData — Amazon Commerce Data, 11 Endpoints**
 - **Amazon Analysis — Full-Spectrum Research & Seller Intelligence**
 - **Amazon Keyword Intelligence — Expansion, Reverse ASIN & Monitoring**
 
@@ -90,13 +90,13 @@ You'll be prompted to select which skills to install:
 
 Or clone manually:
 ```bash
-git clone https://github.com/SerendipityOneInc/APIClaw-Skills.git
+git clone https://github.com/SerendipityOneInc/ZooData-Skills.git
 ```
 
 ### 2. Set Your API Key
 
 ```bash
-export APICLAW_API_KEY='hms_live_xxx'   # Get yours free at apiclaw.io/en/api-keys
+export ZOODATA_API_KEY='hms_live_xxx'   # Get yours free at zoodata.ai/en/api-keys
 ```
 
 > 🎁 **Free tier**: 1,000 credits on signup. 1 credit = 1 API call. No credit card required.
@@ -110,13 +110,13 @@ Ask your AI agent:
 Or use the CLI directly:
 
 ```bash
-python amazon-analysis/scripts/apiclaw.py products --keyword "wireless earbuds" --mode competitive_landscape
+python amazon-analysis/scripts/zoodata.py products --keyword "wireless earbuds" --mode competitive_landscape
 ```
 
 ## API Endpoints
 
-**Base URL:** `https://api.apiclaw.io/openapi/v2`
-**Auth:** `Authorization: Bearer $APICLAW_API_KEY`
+**Base URL:** `https://api.zoodata.ai/openapi/v2`
+**Auth:** `Authorization: Bearer $ZOODATA_API_KEY`
 **Method:** All endpoints use `POST` with JSON body
 
 | Endpoint | Description | Example Use Case |
@@ -156,7 +156,7 @@ The `products/search` endpoint supports 13 preset modes for different research s
 ## Project Structure
 
 ```
-├── apiclaw/                              # Data layer skill (lightweight)
+├── zoodata/                              # Data layer skill (lightweight)
 │   ├── SKILL.md                            # 11 endpoints, quick start
 │   └── references/
 │       └── openapi-reference.md            # API field reference
@@ -173,7 +173,7 @@ The `products/search` endpoint supports 13 preset modes for different research s
 │   │   ├── scenarios-expand.md             # Expansion, trends
 │   │   └── scenarios-listing.md            # Listing writing, optimization
 │   └── scripts/
-│       └── apiclaw.py                      # CLI — 8 subcommands, 13 preset modes
+│       └── zoodata.py                      # CLI — 8 subcommands, 13 preset modes
 │
 ├── amazon-keywords/                      # Keyword intelligence & traffic analysis
 │   ├── SKILL.md
@@ -191,56 +191,56 @@ The `products/search` endpoint supports 13 preset modes for different research s
 │   ├── references/
 │   │   └── reference.md
 │   └── scripts/
-│       └── apiclaw.py
+│       └── zoodata.py
 │
 ├── amazon-daily-market-radar/            # Daily market pulse & anomaly detection
 │   ├── SKILL.md
 │   ├── references/
 │   │   └── reference.md
 │   └── scripts/
-│       └── apiclaw.py
+│       └── zoodata.py
 │
 ├── amazon-listing-audit-pro/             # Listing quality audit & optimization
 │   ├── SKILL.md
 │   ├── references/
 │   │   └── reference.md
 │   └── scripts/
-│       └── apiclaw.py
+│       └── zoodata.py
 │
 ├── amazon-market-entry-analyzer/         # Market viability assessment
 │   ├── SKILL.md
 │   ├── references/
 │   │   └── reference.md
 │   └── scripts/
-│       └── apiclaw.py
+│       └── zoodata.py
 │
 ├── amazon-opportunity-discoverer/        # Niche & opportunity identification
 │   ├── SKILL.md
 │   ├── references/
 │   │   └── reference.md
 │   └── scripts/
-│       └── apiclaw.py
+│       └── zoodata.py
 │
 ├── amazon-market-trend-scanner/           # Category landscape scanning & trend discovery
 │   ├── SKILL.md
 │   ├── references/
 │   │   └── reference.md
 │   └── scripts/
-│       └── apiclaw.py
+│       └── zoodata.py
 │
 ├── amazon-pricing-command-center/        # Pricing strategy & competitive signals
 │   ├── SKILL.md
 │   ├── references/
 │   │   └── reference.md
 │   └── scripts/
-│       └── apiclaw.py
+│       └── zoodata.py
 │
 ├── amazon-review-intelligence-extractor/    # Review intelligence & insight extraction
 │   ├── SKILL.md
 │   ├── references/
 │   │   └── reference.md
 │   └── scripts/
-│       └── apiclaw.py
+│       └── zoodata.py
 │
 ├── scoring-methodology.md                # Unified quality scoring framework
 ├── CHANGELOG.md
@@ -250,7 +250,7 @@ The `products/search` endpoint supports 13 preset modes for different research s
 ## Requirements
 
 - Python 3.8+ (stdlib only, zero pip dependencies)
-- APIClaw API Key ([get one free](https://apiclaw.io/en/api-keys))
+- ZooData API Key ([get one free](https://zoodata.ai/en/api-keys))
 
 ## Contributing
 
@@ -259,9 +259,9 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 ## Community
 
 - 💬 [Discord](https://discord.gg/YfDFU9BDp5) — Chat, get help, share what you're building
-- 🐛 [Issues](https://github.com/SerendipityOneInc/APIClaw-Skills/issues) — Bug reports and feature requests
-- 📖 [API Docs](https://apiclaw.io) — Full API documentation
+- 🐛 [Issues](https://github.com/SerendipityOneInc/ZooData-Skills/issues) — Bug reports and feature requests
+- 📖 [API Docs](https://zoodata.ai) — Full API documentation
 
 ## License
 
-[MIT](LICENSE) © [SerendipityOne Inc.](https://apiclaw.io)
+[MIT](LICENSE) © [SerendipityOne Inc.](https://zoodata.ai)

@@ -5,7 +5,7 @@
 | Version | Supported |
 |---------|-----------|
 | amazon-analysis 1.1.x | ✅ Yes |
-| apiclaw 1.x           | ✅ Yes |
+| zoodata 1.x           | ✅ Yes |
 | older versions         | ❌ No  |
 
 ## Reporting a Vulnerability
@@ -23,12 +23,12 @@ We will acknowledge your report within 48 hours and aim to release a fix within 
 ## Scope
 
 This security policy covers:
-- The `scripts/apiclaw.py` CLI script
+- The `scripts/zoodata.py` CLI script
 - Credential handling (API key storage and transmission)
 - Data exposure risks in skill documentation
 
 ## Known Security Considerations
 
-- **API Key Storage:** Keys can be stored via environment variable (`APICLAW_API_KEY`, preferred) or `config.json` (fallback). The `config.json` file is listed in `.gitignore` to prevent accidental commits.
-- **Network:** The script only communicates with `https://api.apiclaw.io`. No other external endpoints are contacted.
+- **API Key Storage:** Keys can be stored via environment variable (`ZOODATA_API_KEY`, preferred) or `config.json` (fallback). The `config.json` file is listed in `.gitignore` to prevent accidental commits.
+- **Network:** The script only communicates with `https://api.zoodata.ai`. No other external endpoints are contacted.
 - **No Telemetry:** This skill does not collect or transmit usage data.

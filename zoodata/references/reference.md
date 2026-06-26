@@ -18,8 +18,8 @@
 | 10 | `products/brand-detail` | Per-brand SKU/sales/revenue/share ranking | Step 1d |
 | 11 | `products/history` | 30-day price/BSR/sales trend for Top 3 | Step 5 |
 
-Base URL: `https://api.apiclaw.io/openapi/v2`
-Auth: `Bearer $APICLAW_API_KEY`
+Base URL: `https://api.zoodata.ai/openapi/v2`
+Auth: `Bearer $ZOODATA_API_KEY`
 Method: All POST with JSON body
 All endpoints return: `{success, data, error, meta}` with `meta.creditsRemaining`
 
@@ -179,7 +179,7 @@ Request params: `keyword`, `brand`, `asin`, `categoryPath`, `sortBy`, `pageSize`
 
 **RealtimeReview:** `reviewId`, `title`, `body`, `bodyHtml`, `rating`, `author`, `date` (ISO 8601 UTC), `verifiedPurchase`, `vineProgram`, `helpfulVoteCount`, `unhelpfulVoteCount`, `reviewCountry`, `images`, `link`, `isGlobalReview`
 
-**Use cases:** ASIN <50 reviews (fallback for `/reviews/analysis`), brand-new product without snapshot, freshest possible raw text. Feeds the local Map/Reduce toolkit (`apiclaw.py reviews-raw / review-tag-prompt / review-reduce-prompt / review-aggregate`).
+**Use cases:** ASIN <50 reviews (fallback for `/reviews/analysis`), brand-new product without snapshot, freshest possible raw text. Feeds the local Map/Reduce toolkit (`zoodata.py reviews-raw / review-tag-prompt / review-reduce-prompt / review-aggregate`).
 
 ---
 

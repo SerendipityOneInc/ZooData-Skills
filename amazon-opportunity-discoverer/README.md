@@ -1,4 +1,4 @@
-# Amazon Opportunity Discoverer — APIClaw Agent Skill
+# Amazon Opportunity Discoverer — ZooData Agent Skill
 
 > Tell me your budget and experience. I find opportunities, score them, and rank.
 
@@ -17,17 +17,17 @@ Automated product opportunity scanner tailored to your seller profile. Tell it y
 ## Install
 
 ```bash
-npx skills add SerendipityOneInc/APIClaw-Skills
+npx skills add SerendipityOneInc/ZooData-Skills
 ```
 
 Select **Amazon Opportunity Discoverer** when prompted.
 
 ## API Key Setup
 
-1. Get a free key at [apiclaw.io/api-keys](https://apiclaw.io/en/api-keys) — 1,000 free credits, no credit card
+1. Get a free key at [zoodata.ai/api-keys](https://zoodata.ai/en/api-keys) — 1,000 free credits, no credit card
 2. Set the environment variable:
    ```bash
-   export APICLAW_API_KEY='hms_live_xxxxxx'
+   export ZOODATA_API_KEY='hms_live_xxxxxx'
    ```
 
 ## Example Prompts
@@ -71,4 +71,4 @@ Full scan: ~50-60 credits. Quick-Scan mode: ~10 credits (directional only).
 
 ## Powered By
 
-[APIClaw](https://apiclaw.io) — The data infrastructure built for agents. 200M+ Amazon products, 1B+ reviews, real-time signals.
+[ZooData](https://zoodata.ai) — The data infrastructure built for agents. 200M+ Amazon products, 1B+ reviews, real-time signals.
