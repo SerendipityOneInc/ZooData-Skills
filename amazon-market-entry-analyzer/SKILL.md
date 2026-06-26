@@ -104,6 +104,23 @@ Present TOP 10 sub-markets. Ask user which to deep-dive (default: top 3). If ≤
 **CR10 dual-level check**: Category CR10 PASS + sub-market CR10 FAIL → ⚠️ CAUTION. Both FAIL → AVOID.
 **User criteria override**: If user sets thresholds, ANY fail → CAUTION/AVOID. Never override.
 
+### Small-Seller Entry Risk Gates
+Before upgrading a market to GO, run these gates against the user's budget, operating constraints, and risk tolerance:
+
+| Gate | Pass Signal | Hard-Block Signal |
+|------|-------------|-------------------|
+| Capital fit | First order, launch PPC, storage, and cash cycle fit available runway | MOQ, inventory, or ad spend requires more cash than the seller can safely hold |
+| Review barrier | Top competitors' review counts, ratings, and review velocity are reachable with a realistic launch plan | Conversion depends on matching an entrenched review moat |
+| Compliance/IP risk | Certifications, restricted claims, safety rules, and trademark/design risks are known and manageable | Unresolved compliance, patent, trademark, or restricted-product exposure |
+| Differentiation evidence | Clear pain point, feature, bundle, content, or price-band wedge | Only commodity resale, copycat design, or no defendable reason to buy |
+| Validation speed | Demand and positioning can be tested in 7-30 days with samples or lightweight listings | Proof requires tooling, a full PO, or a large irreversible launch |
+
+Decision adjustment:
+- One hard blocker caps the verdict at CAUTION and can justify AVOID even when the score is high.
+- GO requires both a passing viability score and resolved/mitigated risk gates.
+- CAUTION fits markets with one or two uncertain gates that can be validated quickly.
+- AVOID fits unresolved compliance/IP, cash runway, or review-moat blockers.
+- Tag each gate conclusion with the required confidence label (`📊`, `🔍`, or `💡`) instead of treating the whole gate table as data-backed.
 ## Composite Command
 ```bash
 python3 {skill_base_dir}/scripts/zoodata.py market-entry --keyword "{kw}" --category "{path}"
