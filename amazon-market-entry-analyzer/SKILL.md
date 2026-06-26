@@ -30,6 +30,12 @@ Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zooda
 ## Input
 - **Required**: keyword or categoryPath
 - **Optional**: marketplace (default US)
+- **Optional (seller-side — drives the Small-Seller Entry Risk Gates section below)**:
+  - `budget` — first-6-month capital available (e.g. "$10K", "$50K", "$200K+")
+  - `risk_tolerance` — low / medium / high
+  - `ip_concern` — known compliance, patent, trademark, or restricted-category concerns; or "none"
+
+  If the user hasn't supplied these, **ask once at the start of the workflow** (a single batched question is fine). If the user declines or skips, **omit the Risk Gates section from the final verdict** and add a line under Data Provenance: "Risk Gates: skipped — seller-side inputs not provided." **Do not guess thresholds** — silent gate evaluation with invented inputs produces inconsistent verdicts across runs.
 
 ## API Pitfalls (shared with zoodata skill — critical!)
 - Keyword search is broad → categoryPath is auto-resolved via `categories` endpoint, with fallback to top search result. If `category_source` is `inferred_from_search`, confirm with user
@@ -115,12 +121,14 @@ Before upgrading a market to GO, run these gates against the user's budget, oper
 | Differentiation evidence | Clear pain point, feature, bundle, content, or price-band wedge | Only commodity resale, copycat design, or no defendable reason to buy |
 | Validation speed | Demand and positioning can be tested in 7-30 days with samples or lightweight listings | Proof requires tooling, a full PO, or a large irreversible launch |
 
-Decision adjustment:
-- One hard blocker caps the verdict at CAUTION and can justify AVOID even when the score is high.
-- GO requires both a passing viability score and resolved/mitigated risk gates.
-- CAUTION fits markets with one or two uncertain gates that can be validated quickly.
-- AVOID fits unresolved compliance/IP, cash runway, or review-moat blockers.
-- Tag each gate conclusion with the required confidence label (`📊`, `🔍`, or `💡`) instead of treating the whole gate table as data-backed.
+Decision adjustment (precedence is pinned — apply in order):
+
+1. **Final verdict formula**: `final = MIN(score_tier, lowest_gate_tier)` where the tier ordering is `GO > CAUTION > AVOID`. A score-90 GO with one gate at AVOID → final AVOID; a score-90 GO with one gate at CAUTION → final CAUTION.
+2. **GO** requires BOTH a passing viability score AND every gate in PASS (or with a documented mitigation plan in the same workflow turn).
+3. **CAUTION** fits markets with 1–2 uncertain gates that can plausibly be validated inside the **Validation Speed** window (7–30 days, sampled or lightweight listing).
+4. **AVOID is mandatory** when any of {Compliance/IP, Capital fit, Review barrier} is a hard-block — regardless of viability score. These three categories are non-negotiable for small sellers.
+5. **Relationship to "User criteria override" above**: that rule remains authoritative — if the user sets explicit thresholds (e.g. "min monthly sales 500", "max CR10 50%"), those override even gates. The Gates fire as the default backstop when no user-set thresholds cover the same dimension.
+6. Tag each gate conclusion with the required confidence label (`📊`, `🔍`, or `💡`) — never treat the gate table itself as data-backed.
 ## Composite Command
 ```bash
 python3 {skill_base_dir}/scripts/zoodata.py market-entry --keyword "{kw}" --category "{path}"
