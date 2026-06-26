@@ -1,11 +1,11 @@
-# APIClaw API Quick Reference
+# ZooData API Quick Reference
 
 > Concise field reference for the currently documented Amazon commerce and keyword-intelligence endpoints. Load when you need exact parameter/field names.
 >
-> **OpenAPI Spec (live)**: https://apiclaw.io/api/v1/openapi-spec
+> **OpenAPI Spec (live)**: https://zoodata.ai/api/v1/openapi-spec
 
-Base URL: `https://api.apiclaw.io/openapi/v2`
-Auth: `Bearer $APICLAW_API_KEY`
+Base URL: `https://api.zoodata.ai/openapi/v2`
+Auth: `Bearer $ZOODATA_API_KEY`
 Method: All POST with JSON body
 
 ---
@@ -123,7 +123,7 @@ Use cases:
 - Brand-new product with no daily snapshot
 - Need fresh raw text for local LLM analysis (Map/Reduce → consumerInsights)
 
-See `apiclaw.py reviews-raw / review-tag-prompt / review-reduce-prompt / review-aggregate` for the local toolkit that consumes this endpoint.
+See `zoodata.py reviews-raw / review-tag-prompt / review-reduce-prompt / review-aggregate` for the local toolkit that consumes this endpoint.
 
 ---
 
@@ -459,10 +459,10 @@ Key fields from live response: `exploreType`, `absolutePosition`, `pageIndex`, `
 ## Shared Product Object (products/search, competitors & brand-detail sampleProducts)
 
 Boundary note:
-- `products/search` is a query against APIClaw's product-database snapshot
+- `products/search` is a query against ZooData's product-database snapshot
 - It is useful for broader catalog analysis such as market winners, sales distribution, price bands, and variant concentration
 - It does NOT represent Amazon live keyword SERP ordering
-- Do not describe `products/search` output as "Amazon search results" or "Amazon首页结果" unless you are explicitly talking about the APIClaw product database rather than the observed Amazon keyword SERP
+- Do not describe `products/search` output as "Amazon search results" or "Amazon首页结果" unless you are explicitly talking about the ZooData product database rather than the observed Amazon keyword SERP
 
 | Field | Type | Note |
 |-------|------|------|

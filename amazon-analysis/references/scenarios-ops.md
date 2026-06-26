@@ -14,10 +14,10 @@
 
 ```bash
 # Step 1: Market overview
-python3 scripts/apiclaw.py market --category "Pet Supplies,Dogs" --topn 10
+python3 scripts/zoodata.py market --category "Pet Supplies,Dogs" --topn 10
 
 # Step 2: New products in last 90 days
-python3 scripts/apiclaw.py products --keyword "dog toys" --listing-age 90 --page-size 20
+python3 scripts/zoodata.py products --keyword "dog toys" --listing-age 90 --page-size 20
 ```
 
 ---
@@ -25,7 +25,7 @@ python3 scripts/apiclaw.py products --keyword "dog toys" --listing-age 90 --page
 ## 6.2 Competitor Dynamics
 
 ```bash
-python3 scripts/apiclaw.py competitors --brand "CompetitorBrand" --sort listingDate
+python3 scripts/zoodata.py competitors --brand "CompetitorBrand" --sort listingDate
 ```
 
 ---
@@ -33,7 +33,7 @@ python3 scripts/apiclaw.py competitors --brand "CompetitorBrand" --sort listingD
 ## 6.3 Top Products Changes
 
 ```bash
-python3 scripts/apiclaw.py products --category "Pet Supplies,Dogs,Toys" --page-size 20
+python3 scripts/zoodata.py products --category "Pet Supplies,Dogs,Toys" --page-size 20
 ```
 
 ---
@@ -42,13 +42,13 @@ python3 scripts/apiclaw.py products --category "Pet Supplies,Dogs,Toys" --page-s
 
 ```bash
 # Step 1: Market indicators
-python3 scripts/apiclaw.py market --category "Pet Supplies,Dogs,Toys" --topn 10
+python3 scripts/zoodata.py market --category "Pet Supplies,Dogs,Toys" --topn 10
 
 # Step 2: Current top products
-python3 scripts/apiclaw.py products --category "Pet Supplies,Dogs,Toys" --page-size 20
+python3 scripts/zoodata.py products --category "Pet Supplies,Dogs,Toys" --page-size 20
 
 # Step 3: High-growth new products (potential threats)
-python3 scripts/apiclaw.py products --category "Pet Supplies,Dogs,Toys" --listing-age 90 --growth-min 0.2 --page-size 10
+python3 scripts/zoodata.py products --category "Pet Supplies,Dogs,Toys" --listing-age 90 --growth-min 0.2 --page-size 10
 ```
 
 **Alert Signal Detection**:
@@ -68,10 +68,10 @@ python3 scripts/apiclaw.py products --category "Pet Supplies,Dogs,Toys" --listin
 
 ```bash
 # Track ASIN price/BSR/sales history
-python3 scripts/apiclaw.py history --asin B09XXXXX --period 90d
+python3 scripts/zoodata.py history --asin B09XXXXX --period 90d
 
 # Brand-level competitor deep dive
-python3 scripts/apiclaw.py brand-detail --keyword "dog toys" --brand "CompetitorBrand" --page-size 20
+python3 scripts/zoodata.py brand-detail --keyword "dog toys" --brand "CompetitorBrand" --page-size 20
 ```
 
 **Output Template**

@@ -1,10 +1,10 @@
 {
   "ignorePatterns": [
     {
-      "pattern": "^https://api.apiclaw.io"
+      "pattern": "^https://api.zoodata.ai"
     },
     {
-      "pattern": "^https://apiclaw.io/en/api-keys"
+      "pattern": "^https://zoodata.ai/en/api-keys"
     }
   ],
   "timeout": "10s",

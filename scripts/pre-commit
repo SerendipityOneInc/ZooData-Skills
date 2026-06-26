@@ -1,13 +1,13 @@
 #!/bin/bash
 # .git/hooks/pre-commit
-# When apiclaw/scripts/apiclaw.py is staged, sync copies and stage them too
+# When zoodata/scripts/zoodata.py is staged, sync copies and stage them too
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 
-# Check whether apiclaw/scripts/apiclaw.py is staged in this commit
-if git diff --cached --name-only | grep -q "^apiclaw/scripts/apiclaw.py$"; then
-  echo "Detected changes to apiclaw/scripts/apiclaw.py, syncing copies..."
+# Check whether zoodata/scripts/zoodata.py is staged in this commit
+if git diff --cached --name-only | grep -q "^zoodata/scripts/zoodata.py$"; then
+  echo "Detected changes to zoodata/scripts/zoodata.py, syncing copies..."
   bash "$REPO_ROOT/scripts/sync-scripts.sh"
-  git add "$REPO_ROOT"/amazon-*/scripts/apiclaw.py
+  git add "$REPO_ROOT"/amazon-*/scripts/zoodata.py
   echo "Copies synced and staged for this commit."
 fi

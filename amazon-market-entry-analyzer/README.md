@@ -1,4 +1,4 @@
-# Amazon Market Entry Analyzer — APIClaw Agent Skill
+# Amazon Market Entry Analyzer — ZooData Agent Skill
 
 > One input. Complete market viability assessment with sub-market discovery. **GO / CAUTION / AVOID.**
 
@@ -7,7 +7,7 @@
 Evaluates whether a product category on Amazon is worth entering. Give it a keyword or category, and it:
 
 1. **Discovers all sub-markets** within the category — finds every leaf-level niche and ranks them by opportunity
-2. **Deep-dives top sub-markets** — pulls data from all 11 APIClaw endpoints for comprehensive analysis
+2. **Deep-dives top sub-markets** — pulls data from all 11 ZooData endpoints for comprehensive analysis
 3. **Scores market viability** (1-100) across 7 dimensions: market size, trend, competition, pricing, new entrant space, consumer pain points, and profit potential
 4. **Delivers a verdict** — GO ✅ / CAUTION ⚠️ / AVOID 🔴 with confidence-tagged reasoning
 
@@ -20,17 +20,17 @@ Evaluates whether a product category on Amazon is worth entering. Give it a keyw
 ## Install
 
 ```bash
-npx skills add SerendipityOneInc/APIClaw-Skills
+npx skills add SerendipityOneInc/ZooData-Skills
 ```
 
 Select **Amazon Market Entry Analyzer** when prompted.
 
 ## API Key Setup
 
-1. Get a free key at [apiclaw.io/api-keys](https://apiclaw.io/en/api-keys) — 1,000 free credits, no credit card
+1. Get a free key at [zoodata.ai/api-keys](https://zoodata.ai/en/api-keys) — 1,000 free credits, no credit card
 2. Set the environment variable:
    ```bash
-   export APICLAW_API_KEY='hms_live_xxxxxx'
+   export ZOODATA_API_KEY='hms_live_xxxxxx'
    ```
 
 ## Example Prompts
@@ -60,7 +60,7 @@ A comprehensive market entry report including:
 
 ## API Endpoints Used
 
-All 11 APIClaw endpoints:
+All 11 ZooData endpoints:
 
 | Endpoint | Purpose |
 |----------|---------|
@@ -78,4 +78,4 @@ All 11 APIClaw endpoints:
 
 ## Powered By
 
-[APIClaw](https://apiclaw.io) — The data infrastructure built for agents. 200M+ Amazon products, 1B+ reviews, real-time signals.
+[ZooData](https://zoodata.ai) — The data infrastructure built for agents. 200M+ Amazon products, 1B+ reviews, real-time signals.

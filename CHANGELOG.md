@@ -23,20 +23,20 @@ Frontmatter of all 10 SKILL.md files restructured to comply with the [Agent Skil
 
 ### Added — Realtime Reviews Fallback Toolkit (#57)
 - **`/openapi/v2/realtime/reviews` endpoint integration** — cursor-paginated raw review fetch (10 reviews/page, max 100 reviews / 10 pages, 1 credit/page, US+UK only). Spider-live, no AI tags.
-- **Local Review Toolkit in `apiclaw.py`** — prompt-as-data fallback path when `/reviews/analysis` lacks aggregation (ASIN <50 reviews or no daily snapshot). New CLI commands:
+- **Local Review Toolkit in `zoodata.py`** — prompt-as-data fallback path when `/reviews/analysis` lacks aggregation (ASIN <50 reviews or no daily snapshot). New CLI commands:
   - `reviews-raw` — fetch raw reviews with auto-pagination + early exit
   - `review-tag-prompt` — render per-review Map prompt for the caller's own LLM
   - `review-reduce-prompt` — render per-dimension Reduce prompt for the caller's own LLM
   - `review-aggregate` — combine raw reviews + Map tags + Reduce clusters into `consumerInsights` output compatible with `/reviews/analysis`
-- **Three-layer sync enforcement docs** in `apiclaw/scripts/apiclaw.py` file header (pre-commit hook + `sync-scripts.sh` + CI workflow).
+- **Three-layer sync enforcement docs** in `zoodata/scripts/zoodata.py` file header (pre-commit hook + `sync-scripts.sh` + CI workflow).
 - **CONTRIBUTING.md** sections on local branch hygiene and shared CLI script sync mechanism.
 
 ### Changed — Realtime Reviews Fallback Documentation (#57)
 - All 8 review-using SKILL.md files now document the realtime/reviews fallback chain (each self-contained, no cross-skill references):
-  - Tier A (deep update): `apiclaw`, `amazon-review-intelligence-extractor`, `amazon-analysis`
+  - Tier A (deep update): `zoodata`, `amazon-review-intelligence-extractor`, `amazon-analysis`
   - Tier B (pitfall expansion): `amazon-competitor-intelligence-monitor`, `amazon-daily-market-radar`, `amazon-listing-audit-pro`, `amazon-market-entry-analyzer`, `amazon-opportunity-discoverer`
-- Reference docs updated with `realtime/reviews` and `reviews/search` schemas (`apiclaw/references/{openapi-reference,reference}.md`, `amazon-review-intelligence-extractor/references/reference.md`).
-- All 9 `amazon-*/scripts/apiclaw.py` copies force-resynced to canonical (one-time cleanup of pre-existing drift; future syncs now safe via AUTO-SYNCED marker in file header).
+- Reference docs updated with `realtime/reviews` and `reviews/search` schemas (`zoodata/references/{openapi-reference,reference}.md`, `amazon-review-intelligence-extractor/references/reference.md`).
+- All 9 `amazon-*/scripts/zoodata.py` copies force-resynced to canonical (one-time cleanup of pre-existing drift; future syncs now safe via AUTO-SYNCED marker in file header).
 
 ### Fixed — SKILL.md `name` Field Spec Compliance (#65)
 
@@ -54,7 +54,7 @@ npx skills list
 npx skills remove "amazon-daily-market-radar-automated-monitoring-alerts"
 npx skills remove "amazon-review-intelligence-extractor-consumer-insights-from-1b-reviews"
 # (and any other long-name orphans shown by `list`)
-npx skills add SerendipityOneInc/APIClaw-Skills
+npx skills add SerendipityOneInc/ZooData-Skills
 ```
 
 ### Other (#51–#56, #62, #63)
@@ -101,9 +101,9 @@ npx skills add SerendipityOneInc/APIClaw-Skills
 - Added `references/execution-guide.md` — step-by-step execution playbook for agents
 - Updated `references/reference.md` with 11 endpoints (was 6), new field descriptions
 - Enhanced scenarios files with additional guidance
-- Rewrote `scripts/apiclaw.py` with improved error handling
+- Rewrote `scripts/zoodata.py` with improved error handling
 
-### apiclaw v1.1.0
+### zoodata v1.1.0
 - Expanded from 6 to 11 API endpoints: added price-band overview/detail, brand overview/detail, product history
 - Rewrote SKILL.md with complete endpoint documentation
 - Updated `references/openapi-reference.md` with full field reference for all 11 endpoints
@@ -144,7 +144,7 @@ npx skills add SerendipityOneInc/APIClaw-Skills
 - 6 new market response fields for new product metrics
 - Slimmed SKILL.md from 448 → 417 lines
 
-### apiclaw v1.0.0
+### zoodata v1.0.0
 - Initial release of general skill — platform overview, 6 API endpoints
 
 ## [1.1.1] — 2026-03-16
@@ -167,7 +167,7 @@ npx skills add SerendipityOneInc/APIClaw-Skills
 
 ### amazon-analysis
 - Initial release with full Amazon seller analytics skill
-- CLI tool (`apiclaw.py`) with 8 subcommands and 14 preset search modes
+- CLI tool (`zoodata.py`) with 8 subcommands and 14 preset search modes
 - Full API reference documentation
 - 7 scenario reference files
 
@@ -181,7 +181,7 @@ npx skills add SerendipityOneInc/APIClaw-Skills
 - Updated repo description to match official website positioning
 
 **2026-03-23**
-- Restructured repo: added general `apiclaw/` skill, moved amazon-analysis to subdirectory
+- Restructured repo: added general `zoodata/` skill, moved amazon-analysis to subdirectory
 - Added LICENSE (MIT), CONTRIBUTING.md, CODE_OF_CONDUCT.md, Issue Templates, PR template
 - Added CI workflow (CLI smoke test + markdown link check)
 - Rewrote README.md with badges, Quick Start, API examples

@@ -1,26 +1,26 @@
 #!/usr/bin/env python3
 # ============================================================
 # Canonical source - do not edit copies under amazon-* skill directories directly
-# Source location: apiclaw/scripts/apiclaw.py
+# Source location: zoodata/scripts/zoodata.py
 # Sync method: pre-commit hook auto-copy or bash scripts/sync-scripts.sh
 # ============================================================
 """
-APIClaw CLI — Amazon Product Research via APIClaw API
+ZooData CLI — Amazon Product Research via ZooData API
 
-Single-script interface for all 11 APIClaw endpoints + composite workflows.
+Single-script interface for all 11 ZooData endpoints + composite workflows.
 Handles authentication, retries, rate limits, parameter quirks, and output formatting.
 
 Usage:
-    python apiclaw.py categories --keyword "pet supplies"
-    python apiclaw.py market --category "Pet Supplies" --topn 10
-    python apiclaw.py products --keyword "yoga mat" --mode emerging
-    python apiclaw.py competitors --keyword "wireless earbuds"
-    python apiclaw.py product --asin B09V3KXJPB
-    python apiclaw.py report --keyword "pet supplies"
-    python apiclaw.py opportunity --keyword "pet supplies"
+    python zoodata.py categories --keyword "pet supplies"
+    python zoodata.py market --category "Pet Supplies" --topn 10
+    python zoodata.py products --keyword "yoga mat" --mode emerging
+    python zoodata.py competitors --keyword "wireless earbuds"
+    python zoodata.py product --asin B09V3KXJPB
+    python zoodata.py report --keyword "pet supplies"
+    python zoodata.py opportunity --keyword "pet supplies"
 
 Environment:
-    APICLAW_API_KEY — Required. Get one at https://apiclaw.io/en/api-keys
+    ZOODATA_API_KEY — Required. Get one at https://zoodata.ai/en/api-keys
 """
 
 import argparse
@@ -34,8 +34,8 @@ import urllib.error
 
 # ─── Configuration ───────────────────────────────────────────────────────────
 
-BASE_URL = "https://api.apiclaw.io/openapi/v2"  # APIClaw API base URL
-API_DOCS = "https://api.apiclaw.io/api-docs"   # API documentation URL
+BASE_URL = "https://api.zoodata.ai/openapi/v2"  # ZooData API base URL
+API_DOCS = "https://api.zoodata.ai/api-docs"   # API documentation URL
 MAX_RETRIES = 3       # Maximum number of retry attempts for failed requests
 RETRY_DELAY = 2       # Initial retry delay in seconds; doubles on each retry
 RATE_LIMIT_RETRIES = 4  # Extra retries specifically for 429 rate limits
@@ -72,11 +72,14 @@ def get_api_key():
     Get API key from environment variable or config file.
 
     Priority:
-    1. Environment variable APICLAW_API_KEY
+    1. Environment variable ZOODATA_API_KEY (legacy: APICLAW_API_KEY)
     2. Config file config.json in the skill directory (next to scripts/)
     """
-    # Try environment variable first
-    key = os.environ.get("APICLAW_API_KEY", "").strip()
+    # Try environment variable first; fall back to the legacy APICLAW_API_KEY name
+    key = (
+        os.environ.get("ZOODATA_API_KEY", "").strip()
+        or os.environ.get("APICLAW_API_KEY", "").strip()
+    )
     if key:
         return key
 
@@ -104,15 +107,15 @@ def get_api_key():
     print('    Content: {"api_key": "hms_live_yourkey"}', file=sys.stderr)
     print("", file=sys.stderr)
     print("  Method 2: Environment variable", file=sys.stderr)
-    print("    export APICLAW_API_KEY='hms_live_yourkey'", file=sys.stderr)
+    print("    export ZOODATA_API_KEY='hms_live_yourkey'", file=sys.stderr)
     print("", file=sys.stderr)
-    print("Get a free key at https://apiclaw.io/en/api-keys", file=sys.stderr)
+    print("Get a free key at https://zoodata.ai/en/api-keys", file=sys.stderr)
     sys.exit(1)
 
 
 def api_call(endpoint: str, params: dict) -> dict:
     """
-    Make a POST request to APIClaw API with retry and error handling.
+    Make a POST request to ZooData API with retry and error handling.
 
     Returns the parsed JSON response on success, with _query metadata injected.
     Exits with a clear error message on failure.
@@ -137,7 +140,7 @@ def api_call(endpoint: str, params: dict) -> dict:
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
-        "User-Agent": "APIClaw-CLI/1.0 (Python)",
+        "User-Agent": "ZooData-CLI/1.0 (Python)",
     }
 
     # Rate-limit pacing: enforce minimum interval between requests
@@ -173,11 +176,11 @@ def api_call(endpoint: str, params: dict) -> dict:
             status = e.code
             if status == 401:
                 return _error_result(401, "API Key invalid or expired",
-                    "Check your API Key or get a new one at https://apiclaw.io/en/api-keys",
+                    "Check your API Key or get a new one at https://zoodata.ai/en/api-keys",
                     endpoint, actual_params)
             elif status == 402:
                 return _error_result(402, "API quota exhausted or subscription expired",
-                    "Top up credits at https://apiclaw.io/en/pricing",
+                    "Top up credits at https://zoodata.ai/en/pricing",
                     endpoint, actual_params)
             elif status == 429:
                 # Switch to longer retry strategy for rate limits
@@ -386,14 +389,14 @@ def parse_category(cat_str: str) -> list:
 # steps, producing JSON that feeds back into `review-aggregate`.
 #
 # Caller flow:
-#   1. apiclaw.py reviews-raw --asin X          → fetch raw reviews
+#   1. zoodata.py reviews-raw --asin X          → fetch raw reviews
 #   2. For each review, render via:
-#        apiclaw.py review-tag-prompt --review '<json>'
+#        zoodata.py review-tag-prompt --review '<json>'
 #      The caller's LLM produces JSON matching REVIEW_MAP_SCHEMA.
 #   3. Collect per-dimension candidate phrases; for each dimension render:
-#        apiclaw.py review-reduce-prompt --label-type <dim> --candidates '[...]'
+#        zoodata.py review-reduce-prompt --label-type <dim> --candidates '[...]'
 #      The caller's LLM produces JSON matching REVIEW_REDUCE_SCHEMA.
-#   4. apiclaw.py review-aggregate --reviews R --tagged T --clusters C
+#   4. zoodata.py review-aggregate --reviews R --tagged T --clusters C
 #      → emits consumerInsights compatible with /reviews/analysis.
 
 REVIEW_MAP_CONCURRENCY = 20           # suggested map parallelism for caller
@@ -2285,32 +2288,40 @@ def cmd_check(args):
     API self-check: verify API connectivity and available endpoints.
     Tests each endpoint with a simple query.
     """
-    print("APIClaw API Self-Check\n", file=sys.stderr)
+    print("ZooData API Self-Check\n", file=sys.stderr)
     print("=" * 50, file=sys.stderr)
 
-    # Check API key from environment variable
-    api_key = os.environ.get("APICLAW_API_KEY", "").strip()
+    # Check API key from environment variable; fall back to legacy APICLAW_API_KEY
+    api_key = (
+        os.environ.get("ZOODATA_API_KEY", "").strip()
+        or os.environ.get("APICLAW_API_KEY", "").strip()
+    )
     key_source = "env"
+    config_path = None
 
-    # If not in env, check config file
+    # If not in env, check config file (with legacy ~/.apiclaw fallback)
     if not api_key:
-        config_path = os.path.expanduser("~/.apiclaw/config.json")
-        if os.path.exists(config_path):
-            try:
-                with open(config_path, "r", encoding="utf-8") as f:
-                    config = json.load(f)
-                    api_key = config.get("api_key", "").strip()
-                    key_source = "config"
-            except (json.JSONDecodeError, IOError):
-                pass
+        for candidate in ("~/.zoodata/config.json", "~/.apiclaw/config.json"):
+            path = os.path.expanduser(candidate)
+            if os.path.exists(path):
+                try:
+                    with open(path, "r", encoding="utf-8") as f:
+                        config = json.load(f)
+                        api_key = config.get("api_key", "").strip()
+                        if api_key:
+                            key_source = "config"
+                            config_path = candidate
+                            break
+                except (json.JSONDecodeError, IOError):
+                    pass
 
     if api_key:
-        source_label = "~/.apiclaw/config.json" if key_source == "config" else "env"
+        source_label = config_path if key_source == "config" else "env"
         print(f"✅ API Key ({source_label}): configured", file=sys.stderr)
     else:
         print("❌ API Key: Not found", file=sys.stderr)
-        print("   Checked: $APICLAW_API_KEY, ~/.apiclaw/config.json", file=sys.stderr)
-        print("   Get one at: https://apiclaw.io/en/api-keys", file=sys.stderr)
+        print("   Checked: $ZOODATA_API_KEY ($APICLAW_API_KEY), ~/.zoodata/config.json (~/.apiclaw/config.json)", file=sys.stderr)
+        print("   Get one at: https://zoodata.ai/en/api-keys", file=sys.stderr)
         sys.exit(1)
 
     print(f"\nTesting endpoints on {BASE_URL}...\n", file=sys.stderr)
@@ -2457,7 +2468,7 @@ def cmd_product_history(args):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="APIClaw CLI — Amazon Product Research",
+        description="ZooData CLI — Amazon Product Research",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         allow_abbrev=False,
         epilog="""
@@ -2700,7 +2711,7 @@ Examples:
     if unknown:
         cmd = sys.argv[1] if len(sys.argv) > 1 else ""
         print(f"ERROR: Unrecognized argument(s): {' '.join(unknown)}", file=sys.stderr)
-        print(f"Run 'apiclaw.py {cmd} --help' to see valid options.", file=sys.stderr)
+        print(f"Run 'zoodata.py {cmd} --help' to see valid options.", file=sys.stderr)
         sys.exit(1)
     args.func(args)
 

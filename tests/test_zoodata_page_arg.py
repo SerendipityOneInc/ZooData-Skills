@@ -9,9 +9,9 @@ Verifies that:
    price-band-detail, brand-overview, brand-detail
 
 Run from repo root:
-    python -m pytest tests/test_apiclaw_page_arg.py -v
+    python -m pytest tests/test_zoodata_page_arg.py -v
     # or without pytest:
-    python tests/test_apiclaw_page_arg.py
+    python tests/test_zoodata_page_arg.py
 """
 
 import importlib
@@ -26,13 +26,13 @@ from unittest.mock import patch
 # ---------------------------------------------------------------------------
 # Load the module under test without executing main()
 # ---------------------------------------------------------------------------
-SCRIPT_PATH = os.path.join(os.path.dirname(__file__), "..", "apiclaw", "scripts", "apiclaw.py")
+SCRIPT_PATH = os.path.join(os.path.dirname(__file__), "..", "zoodata", "scripts", "zoodata.py")
 
-spec = importlib.util.spec_from_file_location("apiclaw", SCRIPT_PATH)
-apiclaw = importlib.util.module_from_spec(spec)
+spec = importlib.util.spec_from_file_location("zoodata", SCRIPT_PATH)
+zoodata = importlib.util.module_from_spec(spec)
 # Patch get_api_key before exec so the module doesn't fail at import time
-with patch.dict("os.environ", {"APICLAW_API_KEY": "test_key"}):
-    spec.loader.exec_module(apiclaw)
+with patch.dict("os.environ", {"ZOODATA_API_KEY": "test_key"}):
+    spec.loader.exec_module(zoodata)
 
 
 # ---------------------------------------------------------------------------
@@ -42,7 +42,7 @@ MOCK_RESPONSE = {"success": True, "data": [], "_query": {"endpoint": "", "params
 
 
 def run_cli(*argv):
-    """Run apiclaw.main() with the given argv, mocking api_call.
+    """Run zoodata.main() with the given argv, mocking api_call.
 
     Returns the params dict that was passed to api_call.
     """
@@ -53,10 +53,10 @@ def run_cli(*argv):
         captured["params"] = dict(params)
         return {**MOCK_RESPONSE, "_query": {"endpoint": endpoint, "params": params}}
 
-    with patch.object(apiclaw, "api_call", side_effect=fake_api_call), \
-         patch.object(apiclaw, "output"), \
-         patch.object(sys, "argv", ["apiclaw.py", *argv]):
-        apiclaw.main()
+    with patch.object(zoodata, "api_call", side_effect=fake_api_call), \
+         patch.object(zoodata, "output"), \
+         patch.object(sys, "argv", ["zoodata.py", *argv]):
+        zoodata.main()
 
     return captured
 
@@ -162,11 +162,11 @@ class TestAllowAbbrevDisabled(unittest.TestCase):
     """allow_abbrev=False: abbreviated args should error, not silently match."""
 
     def _assert_parse_error(self, *argv):
-        with patch.object(apiclaw, "api_call", return_value=MOCK_RESPONSE), \
-             patch.object(apiclaw, "output"), \
-             patch.object(sys, "argv", ["apiclaw.py", *argv]), \
+        with patch.object(zoodata, "api_call", return_value=MOCK_RESPONSE), \
+             patch.object(zoodata, "output"), \
+             patch.object(sys, "argv", ["zoodata.py", *argv]), \
              self.assertRaises(SystemExit) as cm:
-            apiclaw.main()
+            zoodata.main()
         self.assertNotEqual(cm.exception.code, 0, "Should exit with error code")
 
     def test_abbreviated_page_errors_on_market(self):

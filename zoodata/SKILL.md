@@ -1,7 +1,7 @@
 ---
-name: apiclaw
+name: zoodata
 description: >
-  API endpoint reference for the APIClaw data platform. Provides the 12
+  API endpoint reference for the ZooData data platform. Provides the 12
   commerce endpoints plus 6 keyword intelligence endpoints (categories,
   markets, products, competitors, realtime ASIN, AI review analysis, raw
   reviews, price band, brand, history, keyword detail/trend/extends/search
@@ -12,28 +12,28 @@ description: >
   Use when the user asks about the API itself — which endpoints exist,
   how to call them, field schemas, parameter quirks, how to authenticate,
   how credit consumption is reported, or how the Local Review Toolkit works.
-  Use when user asks: what endpoints does APIClaw have, how do I call
+  Use when user asks: what endpoints does ZooData have, how do I call
   /products/search, fields returned by reviews/analysis, how to check
   credit usage, how the Local Review Toolkit works, how to get started.
-  Requires APICLAW_API_KEY.
+  Requires ZOODATA_API_KEY.
 metadata:
   version: "1.1.3"
   author: SerendipityOneInc
-  homepage: https://github.com/SerendipityOneInc/APIClaw-Skills
-  openclaw: {"requires": {"env": ["APICLAW_API_KEY"]}, "primaryEnv": "APICLAW_API_KEY"}
+  homepage: https://github.com/SerendipityOneInc/ZooData-Skills
+  openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}
 ---
 
 > **📋 Live API Reference**: Field names and parameters may change. If you encounter field errors,
-> check the latest OpenAPI spec at https://apiclaw.io/api/v1/openapi-spec for current field definitions.
+> check the latest OpenAPI spec at https://zoodata.ai/api/v1/openapi-spec for current field definitions.
 
-# APIClaw — Commerce Data Infrastructure for AI Agents
+# ZooData — Commerce Data Infrastructure for AI Agents
 
 200M+ Amazon products. 18 endpoints. One API key.
 
 ## Quick Start
-1. Get key: [apiclaw.io/api-keys](https://apiclaw.io/en/api-keys) (1,000 free credits)
-2. `export APICLAW_API_KEY='hms_live_xxx'`
-3. Base URL: `https://api.apiclaw.io/openapi/v2` — all POST with JSON body
+1. Get key: [zoodata.ai/api-keys](https://zoodata.ai/en/api-keys) (1,000 free credits)
+2. `export ZOODATA_API_KEY='hms_live_xxx'`
+3. Base URL: `https://api.zoodata.ai/openapi/v2` — all POST with JSON body
 4. Auth: `Authorization: Bearer YOUR_API_KEY`
 5. New keys need 3-5s to activate. If 403, wait and retry.
 
@@ -52,25 +52,25 @@ metadata:
 
 ## On 401 Invalid Key
 
-When `apiclaw.py` returns `{"code": 401, "message": "API Key invalid or expired"}`:
+When `zoodata.py` returns `{"code": 401, "message": "API Key invalid or expired"}`:
 
 1. **STOP further endpoint calls immediately.** Do not retry — a rejected key won't be accepted on a second try; every subsequent call will return 401 too.
 2. **Report to the user**:
-   - The `APICLAW_API_KEY` in use was rejected (likely invalid, revoked, or expired)
+   - The `ZOODATA_API_KEY` in use was rejected (likely invalid, revoked, or expired)
    - If any partial findings were collected before the failure, show them and mark as partial
-   - Fix at https://apiclaw.io/en/api-keys (verify the key, regenerate if needed)
+   - Fix at https://zoodata.ai/en/api-keys (verify the key, regenerate if needed)
 3. **Do not fabricate or guess** the data the failed calls would have returned.
 
 ## On 402 Credit Exhausted
 
-When `apiclaw.py` returns `{"code": 402, "message": "API quota exhausted or subscription expired"}`:
+When `zoodata.py` returns `{"code": 402, "message": "API quota exhausted or subscription expired"}`:
 
 1. **STOP further endpoint calls immediately.** Do not retry. Do not switch endpoints as a workaround — 402 is account-level (key/subscription), not endpoint-level.
 2. **Report to the user** with all four of:
    - Which step in the workflow was reached (e.g. "Completed step 3/5: brand analysis")
    - Partial findings already collected (show the actual data, not just a list of completed steps)
    - Rough credits needed to resume (sum remaining-step costs from this skill's API Budget table)
-   - Top-up link: https://apiclaw.io/en/pricing
+   - Top-up link: https://zoodata.ai/en/pricing
 3. **Do not fabricate or guess** the missing data to "complete" the report. Mark partial findings explicitly as partial.
 
 ## 18 Endpoints
@@ -115,7 +115,7 @@ When `apiclaw.py` returns `{"code": 402, "message": "API quota exhausted or subs
 - `keywords/search-results` requires `date` + `keyword`; `exploreTypes` values are `ORG`, `SP`, `SB`, `SBV`, `SPR`
 - `keywords/competitor-product-keywords` and `keywords/product-traffic-terms` require `date` + `asin`; both currently return the same live item shape, including `trafficShare`
 - `keywords/search-results` is the default source for explaining what products currently appear on a keyword SERP because it already returns listing-level product fields
-- `products/search` is a broader APIClaw product-database query and must not be presented as Amazon live keyword SERP ordering
+- `products/search` is a broader ZooData product-database query and must not be presented as Amazon live keyword SERP ordering
 
 ## Keyword Intelligence Endpoints
 
@@ -195,10 +195,10 @@ LLM — you (the calling skill's LLM) perform the Map/Reduce steps.
 
 ```bash
 # 1. Fetch raw reviews (up to 100, cursor-paginated, ~60s, 10 credits at full)
-apiclaw.py reviews-raw --asin B0XXXXXXXX [--marketplace US] [--max-pages 10]
+zoodata.py reviews-raw --asin B0XXXXXXXX [--marketplace US] [--max-pages 10]
 
 # 2. For EACH review, render the per-review Map prompt
-apiclaw.py review-tag-prompt --review '<single review JSON>' \
+zoodata.py review-tag-prompt --review '<single review JSON>' \
     [--product-title "..."] [--product-category "..."]
 # → Your LLM produces a JSON object with sentiment + 11 dimension arrays
 #   (mentioned_scenarios, mentioned_issues, mentioned_positives, mentioned_improvements,
@@ -207,13 +207,13 @@ apiclaw.py review-tag-prompt --review '<single review JSON>' \
 # Suggested map parallelism: ~20 concurrent if your LLM supports it
 
 # 3. Collect candidate phrases per dimension. For EACH dimension render the Reduce prompt
-apiclaw.py review-reduce-prompt --label-type positives \
+zoodata.py review-reduce-prompt --label-type positives \
     --candidates '["comfortable","comfy","very comfortable",...]'
 # → Your LLM produces {clusters: [{canonical, members}, ...]}
 # Suggested chunk size for `keywords` dim when >150 candidates: 150 per call
 
 # 4. Aggregate into reviews/analysis-compatible consumerInsights
-apiclaw.py review-aggregate --reviews raw.json --tagged tags.json --clusters clusters.json
+zoodata.py review-aggregate --reviews raw.json --tagged tags.json --clusters clusters.json
 # → Output shape matches /reviews/analysis: reviewCount, avgRating,
 #   sentimentDistribution, consumerInsights[], topKeywords[]
 ```
@@ -251,4 +251,4 @@ Strategy recommendations and subjective conclusions are NEVER 📊. Extreme grow
 - Each call consumes credits; check `meta.creditsConsumed`
 
 ## Links
-- [apiclaw.io](https://apiclaw.io) · [API Docs](https://api.apiclaw.io/api-docs) · [GitHub](https://github.com/SerendipityOneInc/APIClaw-Skills) · support@apiclaw.io
+- [zoodata.ai](https://zoodata.ai) · [API Docs](https://api.zoodata.ai/api-docs) · [GitHub](https://github.com/SerendipityOneInc/ZooData-Skills) · support@zoodata.ai

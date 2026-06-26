@@ -14,10 +14,10 @@
 
 ```bash
 # Step 1 (primary): AI-powered review analysis — covers ALL reviews
-python3 scripts/apiclaw.py analyze --asin B09V3KXJPB --label-type painPoints,issues,positives,improvements
+python3 scripts/zoodata.py analyze --asin B09V3KXJPB --label-type painPoints,issues,positives,improvements
 
 # Step 2 (supplement): Raw review samples for quoting specific examples
-python3 scripts/apiclaw.py product --asin B09V3KXJPB
+python3 scripts/zoodata.py product --asin B09V3KXJPB
 # → Use reviews/analysis for structured review insights
 ```
 
@@ -62,12 +62,12 @@ python3 scripts/apiclaw.py product --asin B09V3KXJPB
 
 ```bash
 # Primary: use competitors for quantitative comparison (sales, price, margins)
-python3 scripts/apiclaw.py competitors --keyword "yoga mat" --page-size 20
+python3 scripts/zoodata.py competitors --keyword "yoga mat" --page-size 20
 # Or for specific ASINs:
-python3 scripts/apiclaw.py competitors --asin B09XXXXX
+python3 scripts/zoodata.py competitors --asin B09XXXXX
 
 # Optional supplement: use realtime/product for qualitative details (reviews, features)
-python3 scripts/apiclaw.py product --asin B09XXXXX
+python3 scripts/zoodata.py product --asin B09XXXXX
 ```
 
 **⚠️ Important:** Use `competitors` (not `product`) as the primary data source for comparison.
@@ -98,13 +98,13 @@ python3 scripts/apiclaw.py product --asin B09XXXXX
 
 ```bash
 # Step 1: Competitive landscape (primary data: sales, margins, seller count)
-python3 scripts/apiclaw.py competitors --keyword "product keyword" --page-size 20
+python3 scripts/zoodata.py competitors --keyword "product keyword" --page-size 20
 # Step 2: Market context (category-level metrics)
-python3 scripts/apiclaw.py market --category "category path" --topn 10
+python3 scripts/zoodata.py market --category "category path" --topn 10
 # Step 3 (optional): Review details for the target ASIN
-python3 scripts/apiclaw.py product --asin B09XXXXX
+python3 scripts/zoodata.py product --asin B09XXXXX
 # Step 4 (recommended): Review sentiment for risk signal
-python3 scripts/apiclaw.py analyze --asin B09XXXXX --label-type issues,painPoints
+python3 scripts/zoodata.py analyze --asin B09XXXXX --label-type issues,painPoints
 ```
 
 **⚠️ Note:** Step 1 (`competitors`) provides sales, margins, and seller data needed for risk scoring.
@@ -154,7 +154,7 @@ Step 4 (`analyze`) provides AI-analyzed sentiment distribution and structured is
 > Trigger: "How much monthly sales does this product have" / "sales forecast" / "estimate sales"
 
 ```bash
-python3 scripts/apiclaw.py competitors --asin B09XXXXX
+python3 scripts/zoodata.py competitors --asin B09XXXXX
 # → Get bsr and monthlySalesFloor
 ```
 
@@ -177,7 +177,7 @@ python3 scripts/apiclaw.py competitors --asin B09XXXXX
 > Trigger: "category pain points" / "what do users want" / "consumer portrait" / "category user analysis" / "who is buying"
 
 ```bash
-python3 scripts/apiclaw.py analyze --category "Pet Supplies,Dogs,Toys" --period 90d
+python3 scripts/zoodata.py analyze --category "Pet Supplies,Dogs,Toys" --period 90d
 ```
 
 **Use case:** Understand the consumer landscape of a category **before** product selection. Not about specific ASINs, but about what users in this category care about, complain about, and value.

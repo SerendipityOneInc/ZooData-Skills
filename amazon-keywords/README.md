@@ -1,6 +1,6 @@
-# Amazon Keyword Intelligence — APIClaw Agent Skill
+# Amazon Keyword Intelligence — ZooData Agent Skill
 
-> Four keyword workflows built on APIClaw's six keyword endpoints.
+> Four keyword workflows built on ZooData's six keyword endpoints.
 
 ## What This Skill Does
 
@@ -15,7 +15,7 @@ It supports four common scenarios:
 
 ## Endpoints Used
 
-The skill is designed around these six APIClaw endpoints:
+The skill is designed around these six ZooData endpoints:
 
 - `/openapi/v2/keywords/detail`
 - `/openapi/v2/keywords/trend`
@@ -27,15 +27,15 @@ The skill is designed around these six APIClaw endpoints:
 ## Draft Tool Names
 
 To reduce agent guessing, document and prefer full callable tool names.
-These are draft names inferred from other APIClaw tool naming patterns and
+These are draft names inferred from other ZooData tool naming patterns and
 should be manually confirmed against the active session:
 
-- `mcp__apiclaw.openapi_v2_keyword_detail`
-- `mcp__apiclaw.openapi_v2_keyword_trend`
-- `mcp__apiclaw.openapi_v2_keyword_extends`
-- `mcp__apiclaw.openapi_v2_keyword_search_results`
-- `mcp__apiclaw.openapi_v2_keyword_competitor_product_keywords`
-- `mcp__apiclaw.openapi_v2_keyword_product_traffic_terms`
+- `mcp__zoodata.openapi_v2_keyword_detail`
+- `mcp__zoodata.openapi_v2_keyword_trend`
+- `mcp__zoodata.openapi_v2_keyword_extends`
+- `mcp__zoodata.openapi_v2_keyword_search_results`
+- `mcp__zoodata.openapi_v2_keyword_competitor_product_keywords`
+- `mcp__zoodata.openapi_v2_keyword_product_traffic_terms`
 
 ## What You Get
 

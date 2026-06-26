@@ -8,15 +8,15 @@ description: >
   Use when user asks about: market trends, category trends, trending
   categories, what's hot, emerging categories, trend scanner,
   which categories are growing, where the market is heading.
-  Requires APICLAW_API_KEY.
+  Requires ZOODATA_API_KEY.
 metadata:
   version: "1.0.2"
   author: SerendipityOneInc
-  homepage: https://github.com/SerendipityOneInc/APIClaw-Skills
-  openclaw: {"requires": {"env": ["APICLAW_API_KEY"]}, "primaryEnv": "APICLAW_API_KEY"}
+  homepage: https://github.com/SerendipityOneInc/ZooData-Skills
+  openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}
 ---
 
-# APIClaw — Market Trend Scanner
+# ZooData — Market Trend Scanner
 
 > Find rising categories before everyone else. Respond in user's language.
 
@@ -24,13 +24,13 @@ metadata:
 
 | File | Purpose |
 |------|---------|
-| `{skill_base_dir}/scripts/apiclaw.py` | **Execute** for all API calls (run `--help` for params) |
+| `{skill_base_dir}/scripts/zoodata.py` | **Execute** for all API calls (run `--help` for params) |
 | `{skill_base_dir}/references/reference.md` | Load for exact field names or response structure |
 | `{skill_base_dir}/scan-data/` | Runtime: watchlist.json, baseline.json, alerts.json, history/ (auto-created) |
 
 ## Credential
 
-Required: `APICLAW_API_KEY`. Get free key at [apiclaw.io/api-keys](https://apiclaw.io/en/api-keys).
+Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zoodata.ai/en/api-keys).
 
 ## Input
 
@@ -47,11 +47,11 @@ Required: 1+ category paths or keywords. Optional: scan depth, metric preference
 
 ## On 401 Invalid Key
 
-When `apiclaw.py` returns code 401: follow the **"On 401 Invalid Key"** protocol in `apiclaw/SKILL.md` — STOP further calls, tell the user the key was rejected and direct them to api-keys, do not fabricate missing data.
+When `zoodata.py` returns code 401: follow the **"On 401 Invalid Key"** protocol in `zoodata/SKILL.md` — STOP further calls, tell the user the key was rejected and direct them to api-keys, do not fabricate missing data.
 
 ## On 402 Credit Exhausted
 
-When `apiclaw.py` returns code 402: follow the **"On 402 Credit Exhausted"** protocol in `apiclaw/SKILL.md` — STOP further calls, report partial findings already gathered, do not fabricate missing data.
+When `zoodata.py` returns code 402: follow the **"On 402 Credit Exhausted"** protocol in `zoodata/SKILL.md` — STOP further calls, report partial findings already gathered, do not fabricate missing data.
 
 ## Mode 1: Full Scan
 
@@ -116,7 +116,7 @@ Output language MUST match the user's input language. If the user asks in Chines
 
 ### Disclaimer (required, at the top of every report)
 
-> Data is based on APIClaw API sampling as of [date]. Monthly sales (`monthlySalesFloor`) are lower-bound estimates. This analysis is for reference only and should not be the sole basis for business decisions. Validate with additional sources before acting.
+> Data is based on ZooData API sampling as of [date]. Monthly sales (`monthlySalesFloor`) are lower-bound estimates. This analysis is for reference only and should not be the sole basis for business decisions. Validate with additional sources before acting.
 
 ### Confidence Labels (required, tag EVERY conclusion)
 

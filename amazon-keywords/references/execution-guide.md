@@ -26,7 +26,7 @@ Before running any Full-mode keyword task:
 
 ### Tool Naming
 
-- Distinguish HTTP endpoint paths such as `/openapi/v2/keywords/detail` from actual callable tool names such as draft `mcp__apiclaw.openapi_v2_keyword_detail`
+- Distinguish HTTP endpoint paths such as `/openapi/v2/keywords/detail` from actual callable tool names such as draft `mcp__zoodata.openapi_v2_keyword_detail`
 - Never call a keyword tool from an inferred prefix alone
 - Before first use, inspect the active tool surface and confirm the exact full callable name
 - If the live callable name differs from the draft docs, trust the live callable name
@@ -37,13 +37,13 @@ Before running any Full-mode keyword task:
 - If the static tool list does not explicitly show the keyword tools, do not immediately fall back to API docs
 - First confirm whether the current session actually exposes the corresponding callable tool names
 - If the keyword tools are exposed, call them directly and do not use doc lookup as a prerequisite step
-- Only fall back to APIClaw docs for parameter confirmation when the keyword tools are not exposed or a live tool call fails
+- Only fall back to ZooData docs for parameter confirmation when the keyword tools are not exposed or a live tool call fails
 - If both direct tool access and doc-backed fallback are unavailable, report the limitation clearly and produce only a boundary-labeled substitute analysis
 
 ### Capability Inference Rule
 
 - Do not infer endpoint capability from the tool name alone
-- Determine capability in this order: live tool schema and field descriptions, then APIClaw reference docs, then endpoint naming as a weak hint only
+- Determine capability in this order: live tool schema and field descriptions, then ZooData reference docs, then endpoint naming as a weak hint only
 - If a tool exposes fields such as `estimateSearchCountWeekly`, `keywordEstimateSearchCount`, `estimateSearchCount`, `abaRank`, or related traffic fields, treat it as having keyword-volume or trend-analysis capability even if the tool name is not explicit
 - Do not say "the keyword-volume interface is not available" unless you have checked the exposed schema/docs and confirmed the required fields are unavailable
 - Prohibit reasoning such as "I do not see a tool named keyword volume, so volume cannot be analyzed"

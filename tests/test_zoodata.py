@@ -1,5 +1,5 @@
 """
-Test suite for apiclaw/scripts/apiclaw.py
+Test suite for zoodata/scripts/zoodata.py
 
 Coverage:
   - parse_category: all supported separators and edge cases
@@ -10,8 +10,8 @@ Coverage:
   - page / page-size: not overwritten by prefix matching (regression for #48)
 
 Run from repo root:
-    python tests/test_apiclaw.py
-    python -m pytest tests/test_apiclaw.py -v
+    python tests/test_zoodata.py
+    python -m pytest tests/test_zoodata.py -v
 """
 
 import importlib.util
@@ -24,12 +24,12 @@ from unittest.mock import patch
 # ---------------------------------------------------------------------------
 # Load module under test
 # ---------------------------------------------------------------------------
-SCRIPT_PATH = os.path.join(os.path.dirname(__file__), "..", "apiclaw", "scripts", "apiclaw.py")
+SCRIPT_PATH = os.path.join(os.path.dirname(__file__), "..", "zoodata", "scripts", "zoodata.py")
 
-spec = importlib.util.spec_from_file_location("apiclaw", SCRIPT_PATH)
-apiclaw = importlib.util.module_from_spec(spec)
-with patch.dict("os.environ", {"APICLAW_API_KEY": "test_key"}):
-    spec.loader.exec_module(apiclaw)
+spec = importlib.util.spec_from_file_location("zoodata", SCRIPT_PATH)
+zoodata = importlib.util.module_from_spec(spec)
+with patch.dict("os.environ", {"ZOODATA_API_KEY": "test_key"}):
+    spec.loader.exec_module(zoodata)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -38,7 +38,7 @@ MOCK_OK = {"success": True, "data": [], "_query": {"endpoint": "", "params": {}}
 
 
 def run_cli(*argv):
-    """Run apiclaw.main() with mocked api_call; return (endpoint, params)."""
+    """Run zoodata.main() with mocked api_call; return (endpoint, params)."""
     captured = {}
 
     def fake_api_call(endpoint, params):
@@ -46,16 +46,16 @@ def run_cli(*argv):
         captured["params"] = dict(params)
         return {**MOCK_OK, "_query": {"endpoint": endpoint, "params": params}}
 
-    with patch.object(apiclaw, "api_call", side_effect=fake_api_call), \
-         patch.object(apiclaw, "output"), \
-         patch.object(sys, "argv", ["apiclaw.py", *argv]):
-        apiclaw.main()
+    with patch.object(zoodata, "api_call", side_effect=fake_api_call), \
+         patch.object(zoodata, "output"), \
+         patch.object(sys, "argv", ["zoodata.py", *argv]):
+        zoodata.main()
 
     return captured
 
 
 def run_cli_stdout(fmt, subcmd, *args):
-    """Run apiclaw.main() with real output(); return stdout as string.
+    """Run zoodata.main() with real output(); return stdout as string.
 
     --format must precede the subcommand (it's a root-level arg).
     """
@@ -65,11 +65,11 @@ def run_cli_stdout(fmt, subcmd, *args):
         return {**MOCK_OK, "_query": {"endpoint": endpoint, "params": params}}
 
     buf = io.StringIO()
-    argv = ["apiclaw.py", "--format", fmt, subcmd, *args]
-    with patch.object(apiclaw, "api_call", side_effect=fake_api_call), \
+    argv = ["zoodata.py", "--format", fmt, subcmd, *args]
+    with patch.object(zoodata, "api_call", side_effect=fake_api_call), \
          patch.object(sys, "argv", argv), \
          patch("sys.stdout", buf):
-        apiclaw.main()
+        zoodata.main()
 
     return buf.getvalue()
 
@@ -80,34 +80,34 @@ def run_cli_stdout(fmt, subcmd, *args):
 class TestParseCategory(unittest.TestCase):
 
     def test_comma_separated(self):
-        self.assertEqual(apiclaw.parse_category("Pet Supplies,Dogs,Toys"),
+        self.assertEqual(zoodata.parse_category("Pet Supplies,Dogs,Toys"),
                          ["Pet Supplies", "Dogs", "Toys"])
 
     def test_spaced_arrow(self):
-        self.assertEqual(apiclaw.parse_category("Pet Supplies > Dogs > Toys"),
+        self.assertEqual(zoodata.parse_category("Pet Supplies > Dogs > Toys"),
                          ["Pet Supplies", "Dogs", "Toys"])
 
     def test_bare_arrow(self):
-        self.assertEqual(apiclaw.parse_category("Pet Supplies>Dogs>Toys"),
+        self.assertEqual(zoodata.parse_category("Pet Supplies>Dogs>Toys"),
                          ["Pet Supplies", "Dogs", "Toys"])
 
     def test_bare_arrow_with_spaces_in_name(self):
-        self.assertEqual(apiclaw.parse_category("Home & Kitchen>Storage & Organization"),
+        self.assertEqual(zoodata.parse_category("Home & Kitchen>Storage & Organization"),
                          ["Home & Kitchen", "Storage & Organization"])
 
     def test_single_segment(self):
-        self.assertEqual(apiclaw.parse_category("Electronics"), ["Electronics"])
+        self.assertEqual(zoodata.parse_category("Electronics"), ["Electronics"])
 
     def test_empty_string(self):
-        self.assertEqual(apiclaw.parse_category(""), [])
+        self.assertEqual(zoodata.parse_category(""), [])
 
     def test_spaced_arrow_takes_priority_over_bare(self):
         # " > " is checked before ">", so "A > B>C" splits on " > " first
-        result = apiclaw.parse_category("A > B>C")
+        result = zoodata.parse_category("A > B>C")
         self.assertEqual(result, ["A", "B>C"])
 
     def test_strips_whitespace(self):
-        self.assertEqual(apiclaw.parse_category("  Pet Supplies , Dogs "),
+        self.assertEqual(zoodata.parse_category("  Pet Supplies , Dogs "),
                          ["Pet Supplies", "Dogs"])
 
 
@@ -117,23 +117,23 @@ class TestParseCategory(unittest.TestCase):
 class TestProductModes(unittest.TestCase):
 
     def test_all_13_modes_defined(self):
-        self.assertEqual(len(apiclaw.PRODUCT_MODES), 13)
+        self.assertEqual(len(zoodata.PRODUCT_MODES), 13)
 
     def test_all_modes_accepted_by_cli(self):
         """Every mode name must be accepted by 'products --mode <name>' without sys.exit."""
-        for mode in apiclaw.PRODUCT_MODES:
+        for mode in zoodata.PRODUCT_MODES:
             with self.subTest(mode=mode):
                 # Should not raise or call sys.exit
                 result = run_cli("products", "--keyword", "test", "--mode", mode)
                 self.assertIn("endpoint", result)
 
     def test_unknown_mode_exits(self):
-        with patch.object(apiclaw, "api_call", return_value=MOCK_OK), \
-             patch.object(apiclaw, "output"), \
-             patch.object(sys, "argv", ["apiclaw.py", "products", "--keyword", "test",
+        with patch.object(zoodata, "api_call", return_value=MOCK_OK), \
+             patch.object(zoodata, "output"), \
+             patch.object(sys, "argv", ["zoodata.py", "products", "--keyword", "test",
                                         "--mode", "nonexistent-mode"]), \
              self.assertRaises(SystemExit) as cm:
-            apiclaw.main()
+            zoodata.main()
         self.assertNotEqual(cm.exception.code, 0)
 
 
@@ -152,15 +152,15 @@ SUBCOMMANDS = [
 class TestSubcommandHelp(unittest.TestCase):
 
     def _assert_help_exits_0(self, subcmd):
-        with patch.object(sys, "argv", ["apiclaw.py", subcmd, "--help"]), \
+        with patch.object(sys, "argv", ["zoodata.py", subcmd, "--help"]), \
              self.assertRaises(SystemExit) as cm:
-            apiclaw.main()
+            zoodata.main()
         self.assertEqual(cm.exception.code, 0, f"'{subcmd} --help' should exit 0")
 
     def test_root_help(self):
-        with patch.object(sys, "argv", ["apiclaw.py", "--help"]), \
+        with patch.object(sys, "argv", ["zoodata.py", "--help"]), \
              self.assertRaises(SystemExit) as cm:
-            apiclaw.main()
+            zoodata.main()
         self.assertEqual(cm.exception.code, 0)
 
     def test_all_subcommand_help(self):
@@ -175,11 +175,11 @@ class TestSubcommandHelp(unittest.TestCase):
 class TestAllowAbbrevDisabled(unittest.TestCase):
 
     def _assert_parse_error(self, *argv):
-        with patch.object(apiclaw, "api_call", return_value=MOCK_OK), \
-             patch.object(apiclaw, "output"), \
-             patch.object(sys, "argv", ["apiclaw.py", *argv]), \
+        with patch.object(zoodata, "api_call", return_value=MOCK_OK), \
+             patch.object(zoodata, "output"), \
+             patch.object(sys, "argv", ["zoodata.py", *argv]), \
              self.assertRaises(SystemExit) as cm:
-            apiclaw.main()
+            zoodata.main()
         self.assertNotEqual(cm.exception.code, 0)
 
     def test_abbreviated_page_errors_on_market(self):
@@ -357,13 +357,13 @@ class TestMarketEntryCategoryFallback(unittest.TestCase):
             return {"success": True, "data": empty_data, "meta": {"total": 0},
                     "_query": {"endpoint": endpoint, "params": params}}
 
-        argv = ["apiclaw.py", "market-entry",
+        argv = ["zoodata.py", "market-entry",
                 "--keyword", "Over-Ear Headphones",
                 "--category", self.DEEP_LEAF]
-        with patch.object(apiclaw, "api_call", side_effect=fake_api_call), \
-             patch.object(apiclaw, "output"), \
+        with patch.object(zoodata, "api_call", side_effect=fake_api_call), \
+             patch.object(zoodata, "output"), \
              patch.object(sys, "argv", argv):
-            apiclaw.main()
+            zoodata.main()
         return calls
 
     @staticmethod

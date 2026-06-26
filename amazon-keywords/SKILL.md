@@ -3,15 +3,15 @@ name: amazon-keywords
 description: >
   Use when user asks for keyword expansion or ad keyword filtering; whether a keyword is worth
   bidding on; which keywords drive traffic to an ASIN; or why an ASIN changed under a keyword.
-  Requires APICLAW_API_KEY.
+  Requires ZOODATA_API_KEY.
 metadata:
   version: "0.1.0"
   author: SerendipityOneInc
-  homepage: https://github.com/SerendipityOneInc/APIClaw-Skills
-  openclaw: {"requires": {"env": ["APICLAW_API_KEY"]}, "primaryEnv": "APICLAW_API_KEY"}
+  homepage: https://github.com/SerendipityOneInc/ZooData-Skills
+  openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}
 ---
 
-# APIClaw — Amazon Keyword Intelligence
+# ZooData — Amazon Keyword Intelligence
 
 > Amazon keyword research and traffic analysis. Respond in user's language.
 
@@ -28,7 +28,7 @@ metadata:
 
 ## Credential
 
-Required: `APICLAW_API_KEY`. Get free key at [apiclaw.io/api-keys](https://apiclaw.io/en/api-keys).
+Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zoodata.ai/en/api-keys).
 
 ## Input
 
@@ -67,14 +67,14 @@ Business endpoint paths and MCP callable tool names are not the same thing.
 
 | HTTP endpoint path | Draft callable tool name |
 |-------------------|--------------------------|
-| `/openapi/v2/keywords/detail` | `mcp__apiclaw__openapi_v2_keyword_detail` |
-| `/openapi/v2/keywords/trend` | `mcp__apiclaw__openapi_v2_keyword_trend` |
-| `/openapi/v2/keywords/extends` | `mcp__apiclaw__openapi_v2_keyword_extends` |
-| `/openapi/v2/keywords/search-results` | `mcp__apiclaw__openapi_v2_keyword_search_results` |
-| `/openapi/v2/keywords/competitor-product-keywords` | `mcp__apiclaw__openapi_v2_keyword_competitor_product_keywords` |
-| `/openapi/v2/keywords/product-traffic-terms` | `mcp__apiclaw__openapi_v2_keyword_product_traffic_terms` |
+| `/openapi/v2/keywords/detail` | `mcp__zoodata__openapi_v2_keyword_detail` |
+| `/openapi/v2/keywords/trend` | `mcp__zoodata__openapi_v2_keyword_trend` |
+| `/openapi/v2/keywords/extends` | `mcp__zoodata__openapi_v2_keyword_extends` |
+| `/openapi/v2/keywords/search-results` | `mcp__zoodata__openapi_v2_keyword_search_results` |
+| `/openapi/v2/keywords/competitor-product-keywords` | `mcp__zoodata__openapi_v2_keyword_competitor_product_keywords` |
+| `/openapi/v2/keywords/product-traffic-terms` | `mcp__zoodata__openapi_v2_keyword_product_traffic_terms` |
 
-The draft names above follow the naming convention seen in other APIClaw skills. If the live session exposes a different name, use that name exactly.
+The draft names above follow the naming convention seen in other ZooData skills. If the live session exposes a different name, use that name exactly.
 
 **PROHIBITED — never do any of the following:**
 - Call a keyword tool before inspecting its live schema
@@ -162,15 +162,15 @@ Tool availability note:
 10. `/openapi/v2/keywords/search-results` already returns listing-level product fields and should be the default source for answering "首页都是什么产品"
 11. Do not append `products/search` by default when the user's question is only about the observed keyword SERP; use it only as an optional broader-market supplement
 12. `products/search` is our own product-database query result, not Amazon live search results, so never present it as evidence of current SERP ordering
-13. `webtools_search` is a crawler / web retrieval utility, not a keyword-intelligence endpoint; do not treat it as a substitute for keyword snapshot, trend, or SERP evidence unless the task is explicitly web collection rather than APIClaw keyword analysis
+13. `webtools_search` is a crawler / web retrieval utility, not a keyword-intelligence endpoint; do not treat it as a substitute for keyword snapshot, trend, or SERP evidence unless the task is explicitly web collection rather than ZooData keyword analysis
 
 ## On 401 Invalid Key
 
-When the API returns code 401: stop further calls, tell the user the key was rejected, and direct them to https://apiclaw.io/en/api-keys. Do not fabricate missing data.
+When the API returns code 401: stop further calls, tell the user the key was rejected, and direct them to https://zoodata.ai/en/api-keys. Do not fabricate missing data.
 
 ## On 402 Credit Exhausted
 
-When the API returns code 402: stop further calls, report partial findings already gathered, estimate remaining credits needed, and direct the user to https://apiclaw.io/en/pricing. Do not fabricate missing data.
+When the API returns code 402: stop further calls, report partial findings already gathered, estimate remaining credits needed, and direct the user to https://zoodata.ai/en/pricing. Do not fabricate missing data.
 
 ## Decision Framework
 
@@ -209,7 +209,7 @@ Output language MUST match the user's input language. Technical field names and 
 
 ### Disclaimer (required, at the top of every report)
 
-> Data is based on APIClaw keyword snapshots as of [date]. Weekly search and traffic metrics are sampled observations, not exact Amazon Ads billing data. This analysis is for reference only and should not be the sole basis for business decisions.
+> Data is based on ZooData keyword snapshots as of [date]. Weekly search and traffic metrics are sampled observations, not exact Amazon Ads billing data. This analysis is for reference only and should not be the sole basis for business decisions.
 
 ### Confidence Labels (required, tag EVERY conclusion)
 

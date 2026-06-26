@@ -1,9 +1,9 @@
 # Default owner for all files
-* @apiclaw
+* @zoodata
 
 # Skill files
-/amazon-analysis/ @apiclaw
-/apiclaw/ @apiclaw
+/amazon-analysis/ @zoodata
+/zoodata/ @zoodata
 
 # CLI script
-/amazon-analysis/scripts/ @apiclaw
+/amazon-analysis/scripts/ @zoodata

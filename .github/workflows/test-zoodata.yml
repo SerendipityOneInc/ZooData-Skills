@@ -1,17 +1,17 @@
-name: Test apiclaw.py
+name: Test zoodata.py
 
 on:
   pull_request:
     branches: [main]
     paths:
-      - 'apiclaw/scripts/apiclaw.py'
-      - 'amazon-*/scripts/apiclaw.py'
-      - 'tests/test_apiclaw*.py'
+      - 'zoodata/scripts/zoodata.py'
+      - 'amazon-*/scripts/zoodata.py'
+      - 'tests/test_zoodata*.py'
   push:
     branches: [main]
     paths:
-      - 'apiclaw/scripts/apiclaw.py'
-      - 'tests/test_apiclaw*.py'
+      - 'zoodata/scripts/zoodata.py'
+      - 'tests/test_zoodata*.py'
   workflow_dispatch:
 
 permissions:
@@ -32,7 +32,7 @@ jobs:
       # No dependencies needed — stdlib only
 
       - name: Run test suite
-        run: python tests/test_apiclaw.py
+        run: python tests/test_zoodata.py
 
       - name: Run page-arg regression tests
-        run: python tests/test_apiclaw_page_arg.py
+        run: python tests/test_zoodata_page_arg.py

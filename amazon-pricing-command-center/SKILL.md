@@ -5,17 +5,17 @@ description: >
   Given one or more ASINs, auto-detects each product's leaf category, analyzes
   the pricing landscape, and delivers RAISE/HOLD/LOWER signals with profit simulation.
   Supports single ASIN or batch (multiple ASINs, auto-grouped by category).
-  Uses APIClaw API endpoints with cross-validation.
+  Uses ZooData API endpoints with cross-validation.
   Use when user asks about: pricing strategy, how much to price, optimal price,
   price optimization, competitor pricing, price war, BuyBox strategy,
   profit margin, pricing analysis, should I raise price, should I lower price,
   price comparison, price positioning, repricing, should I raise or lower price.
-  Requires APICLAW_API_KEY.
+  Requires ZOODATA_API_KEY.
 metadata:
   version: "1.1.2"
   author: SerendipityOneInc
-  homepage: https://github.com/SerendipityOneInc/APIClaw-Skills
-  openclaw: {"requires": {"env": ["APICLAW_API_KEY"]}, "primaryEnv": "APICLAW_API_KEY"}
+  homepage: https://github.com/SerendipityOneInc/ZooData-Skills
+  openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}
 ---
 
 # Dynamic Pricing Intelligence Agent — RAISE / HOLD / LOWER
@@ -23,11 +23,11 @@ metadata:
 Give me your ASIN(s). I'll tell you whether to raise, hold, or lower — with data.
 
 ## Files
-- **Script**: `{skill_base_dir}/scripts/apiclaw.py` — run `--help` for params
+- **Script**: `{skill_base_dir}/scripts/zoodata.py` — run `--help` for params
 - **Reference**: `{skill_base_dir}/references/reference.md` (field names & response structure)
 
 ## Credential
-Required: `APICLAW_API_KEY`. Get free key at [apiclaw.io/api-keys](https://apiclaw.io/en/api-keys)
+Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zoodata.ai/en/api-keys)
 
 ## Input
 - **Required**: one or more ASINs (your products). No keyword needed — category is auto-detected.
@@ -53,11 +53,11 @@ On first interaction, tell user: "Give me your ASIN(s). I support single or batc
 
 ## On 401 Invalid Key
 
-When `apiclaw.py` returns code 401: follow the **"On 401 Invalid Key"** protocol in `apiclaw/SKILL.md` — STOP further calls, tell the user the key was rejected and direct them to api-keys, do not fabricate missing data.
+When `zoodata.py` returns code 401: follow the **"On 401 Invalid Key"** protocol in `zoodata/SKILL.md` — STOP further calls, tell the user the key was rejected and direct them to api-keys, do not fabricate missing data.
 
 ## On 402 Credit Exhausted
 
-When `apiclaw.py` returns code 402: follow the **"On 402 Credit Exhausted"** protocol in `apiclaw/SKILL.md` — STOP further calls, report partial findings already gathered, do not fabricate missing data.
+When `zoodata.py` returns code 402: follow the **"On 402 Credit Exhausted"** protocol in `zoodata/SKILL.md` — STOP further calls, report partial findings already gathered, do not fabricate missing data.
 
 ## Pricing Signal Logic
 
@@ -106,7 +106,7 @@ Output language MUST match the user's input language. If the user asks in Chines
 
 ### Disclaimer (required, at the top of every report)
 
-> Data is based on APIClaw API sampling as of [date]. Monthly sales (`monthlySalesFloor`) are lower-bound estimates. This analysis is for reference only and should not be the sole basis for business decisions. Validate with additional sources before acting.
+> Data is based on ZooData API sampling as of [date]. Monthly sales (`monthlySalesFloor`) are lower-bound estimates. This analysis is for reference only and should not be the sole basis for business decisions. Validate with additional sources before acting.
 
 ### Confidence Labels (required, tag EVERY conclusion)
 

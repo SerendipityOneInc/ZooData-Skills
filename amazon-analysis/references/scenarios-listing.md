@@ -18,12 +18,12 @@
 
 ```bash
 # Step 1: Pull 2-3 top competitor ASINs for listing content
-python3 scripts/apiclaw.py product --asin B09XXXXX
-python3 scripts/apiclaw.py product --asin B08YYYYY
-python3 scripts/apiclaw.py product --asin B07ZZZZZ
+python3 scripts/zoodata.py product --asin B09XXXXX
+python3 scripts/zoodata.py product --asin B08YYYYY
+python3 scripts/zoodata.py product --asin B07ZZZZZ
 
 # Step 2: AI review analysis across all competitors (one call)
-python3 scripts/apiclaw.py analyze --asins B09XXXXX,B08YYYYY,B07ZZZZZ --label-type positives,painPoints,buyingFactors
+python3 scripts/zoodata.py analyze --asins B09XXXXX,B08YYYYY,B07ZZZZZ --label-type positives,painPoints,buyingFactors
 ```
 
 **Data source priority:** Use `analyze` consumerInsights for structured findings (covers ALL reviews). Use `realtime/product` features for specific listing copy examples and quotes.
@@ -75,15 +75,15 @@ python3 scripts/apiclaw.py analyze --asins B09XXXXX,B08YYYYY,B07ZZZZZ --label-ty
 
 ```bash
 # Step 1: Pull top 3 competitors for reference
-python3 scripts/apiclaw.py product --asin B09XXXXX
-python3 scripts/apiclaw.py product --asin B08YYYYY
-python3 scripts/apiclaw.py product --asin B07ZZZZZ
+python3 scripts/zoodata.py product --asin B09XXXXX
+python3 scripts/zoodata.py product --asin B08YYYYY
+python3 scripts/zoodata.py product --asin B07ZZZZZ
 
 # Step 2: Get category competitive data
-python3 scripts/apiclaw.py competitors --keyword "product keyword" --page-size 20
+python3 scripts/zoodata.py competitors --keyword "product keyword" --page-size 20
 
 # Step 3: Consumer insights for data-driven copy
-python3 scripts/apiclaw.py analyze --asins B09XXXXX,B08YYYYY,B07ZZZZZ --label-type buyingFactors,scenarios,userProfiles
+python3 scripts/zoodata.py analyze --asins B09XXXXX,B08YYYYY,B07ZZZZZ --label-type buyingFactors,scenarios,userProfiles
 ```
 
 **⚠️ Important:** Use `realtime/product` for listing content (features, reviews). Use `competitors` for market positioning data (price range, review counts). Use `analyze` for consumer-driven copy direction (buying factors, scenarios, user profiles). Do NOT expect sales data from realtime/product.
@@ -168,17 +168,17 @@ python3 scripts/apiclaw.py analyze --asins B09XXXXX,B08YYYYY,B07ZZZZZ --label-ty
 
 ```bash
 # Step 1: Pull user's own ASIN
-python3 scripts/apiclaw.py product --asin B09XXXXX
+python3 scripts/zoodata.py product --asin B09XXXXX
 
 # Step 2: Pull top 3 competitors in same category
-python3 scripts/apiclaw.py competitors --keyword "product keyword" --page-size 10
+python3 scripts/zoodata.py competitors --keyword "product keyword" --page-size 10
 # Then pull realtime detail for top 3
-python3 scripts/apiclaw.py product --asin [competitor1]
-python3 scripts/apiclaw.py product --asin [competitor2]
-python3 scripts/apiclaw.py product --asin [competitor3]
+python3 scripts/zoodata.py product --asin [competitor1]
+python3 scripts/zoodata.py product --asin [competitor2]
+python3 scripts/zoodata.py product --asin [competitor3]
 
 # Step 3: Review-based competitive intelligence
-python3 scripts/apiclaw.py analyze --asins B09XXXXX,[competitor1],[competitor2] --label-type positives,painPoints
+python3 scripts/zoodata.py analyze --asins B09XXXXX,[competitor1],[competitor2] --label-type positives,painPoints
 ```
 
 **⚠️ Note:** `realtime/product` provides listing content for diagnosis. `competitors` provides competitive benchmarks (sales, reviews, price). `analyze` provides AI-analyzed consumer insights across your ASIN and competitors. All three are needed for a thorough diagnosis.

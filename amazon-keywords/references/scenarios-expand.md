@@ -69,7 +69,7 @@ For each keyword, output:
 ```markdown
 # Keyword Expansion Report — [Seed Keyword]
 
-> Data is based on APIClaw keyword snapshots as of [date]. Weekly search and traffic metrics are sampled observations, not exact Amazon Ads billing data. This analysis is for reference only and should not be the sole basis for business decisions.
+> Data is based on ZooData keyword snapshots as of [date]. Weekly search and traffic metrics are sampled observations, not exact Amazon Ads billing data. This analysis is for reference only and should not be the sole basis for business decisions.
 
 ## Summary
 [🔍 What kind of keyword pool this seed generated]

@@ -14,10 +14,10 @@
 
 ```bash
 # Step 1: Sibling categories
-python3 scripts/apiclaw.py categories --parent "Pet Supplies,Dogs"
+python3 scripts/zoodata.py categories --parent "Pet Supplies,Dogs"
 
 # Step 2: Evaluate each
-python3 scripts/apiclaw.py market --category "Pet Supplies,Dogs,Feeding & Watering" --topn 10
+python3 scripts/zoodata.py market --category "Pet Supplies,Dogs,Feeding & Watering" --topn 10
 ```
 
 ---
@@ -25,7 +25,7 @@ python3 scripts/apiclaw.py market --category "Pet Supplies,Dogs,Feeding & Wateri
 ## 7.2 New Category Evaluation
 
 ```bash
-python3 scripts/apiclaw.py market --keyword "new category keyword" --topn 10
+python3 scripts/zoodata.py market --keyword "new category keyword" --topn 10
 ```
 
 ---
@@ -33,7 +33,7 @@ python3 scripts/apiclaw.py market --keyword "new category keyword" --topn 10
 ## 7.3 Trend Discovery
 
 ```bash
-python3 scripts/apiclaw.py products --keyword "pet supplies" --growth-min 0.2 --listing-age 180 --page-size 20
+python3 scripts/zoodata.py products --keyword "pet supplies" --growth-min 0.2 --listing-age 180 --page-size 20
 ```
 
 ---
@@ -42,10 +42,10 @@ python3 scripts/apiclaw.py products --keyword "pet supplies" --growth-min 0.2 --
 
 ```bash
 # Step 1: Product current performance
-python3 scripts/apiclaw.py competitors --asin B09XXXXX
+python3 scripts/zoodata.py competitors --asin B09XXXXX
 
 # Step 2: Category market trend
-python3 scripts/apiclaw.py market --category "category path" --topn 10
+python3 scripts/zoodata.py market --category "category path" --topn 10
 ```
 
 **Discontinuation Signals**:
@@ -85,13 +85,13 @@ python3 scripts/apiclaw.py market --category "category path" --topn 10
 
 ```bash
 # Brand landscape — who dominates this category
-python3 scripts/apiclaw.py brand-overview --keyword "pet toys"
+python3 scripts/zoodata.py brand-overview --keyword "pet toys"
 
 # Price band scan — where are the gaps
-python3 scripts/apiclaw.py price-band-overview --keyword "pet toys"
+python3 scripts/zoodata.py price-band-overview --keyword "pet toys"
 
 # Historical validation for specific expansion candidates
-python3 scripts/apiclaw.py history --asin B09XXXXX --period 90d
+python3 scripts/zoodata.py history --asin B09XXXXX --period 90d
 ```
 
 **Expansion evaluation**: Combine `brand-overview` (low concentration = easier entry) with `price-band-overview` (high opportunity index bands) to identify the best entry points.

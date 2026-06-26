@@ -18,8 +18,8 @@
 | 10 | `products/brand-detail` | Per-brand SKU/sales/revenue/share ranking | Step 1d |
 | 11 | `products/history` | 30-day price/BSR/sales trend for Top 3 | Step 5 |
 
-Base URL: `https://api.apiclaw.io/openapi/v2`
-Auth: `Bearer $APICLAW_API_KEY`
+Base URL: `https://api.zoodata.ai/openapi/v2`
+Auth: `Bearer $ZOODATA_API_KEY`
 Method: All POST with JSON body
 All endpoints return: `{success, data, error, meta}` with `meta.creditsRemaining`
 
@@ -181,10 +181,10 @@ use this endpoint + the local Map/Reduce toolkit to produce a compatible
 ### Local Toolkit Workflow
 
 ```
-apiclaw.py reviews-raw          → fetch raw reviews (one HTTP call per page, auto-paginates)
-apiclaw.py review-tag-prompt    → render Map prompt for one review (caller's LLM tags it)
-apiclaw.py review-reduce-prompt → render Reduce prompt for one dimension (caller's LLM clusters)
-apiclaw.py review-aggregate     → combine raw + tags + clusters → consumerInsights output
+zoodata.py reviews-raw          → fetch raw reviews (one HTTP call per page, auto-paginates)
+zoodata.py review-tag-prompt    → render Map prompt for one review (caller's LLM tags it)
+zoodata.py review-reduce-prompt → render Reduce prompt for one dimension (caller's LLM clusters)
+zoodata.py review-aggregate     → combine raw + tags + clusters → consumerInsights output
 ```
 
 The aggregator output matches `/reviews/analysis` structure exactly:
