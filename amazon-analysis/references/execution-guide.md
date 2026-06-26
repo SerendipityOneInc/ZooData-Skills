@@ -127,9 +127,12 @@ When `monthlySalesFloor` is null: **Monthly sales ≈ 300,000 / BSR^0.65**
 
 ### Data Provenance Block (Full Mode Only)
 
-```markdown
+Use this rendered template at the end of every Full-mode report:
+
 ---
+
 📋 **Data Provenance**
+
 | Item | Value |
 |------|-------|
 | Query Keyword | [keyword used] |
@@ -142,7 +145,6 @@ When `monthlySalesFloor` is null: **Monthly sales ≈ 300,000 / BSR^0.65**
 | Endpoints Used | [list with call count] |
 | Credits Consumed | [total] |
 | Known Limitations | [list any gaps] |
-```
 
 **Rules**:
 1. Every Full-mode analysis MUST end with this block
@@ -153,8 +155,10 @@ When `monthlySalesFloor` is null: **Monthly sales ≈ 300,000 / BSR^0.65**
 
 ### API Usage Summary (All Modes — MANDATORY)
 
-```markdown
+Use this rendered template at the end of every report:
+
 📊 **API Usage**
+
 | Interface | Calls |
 |-----------|-------|
 | categories | 1 |
@@ -165,7 +169,6 @@ When `monthlySalesFloor` is null: **Monthly sales ≈ 300,000 / BSR^0.65**
 | **Total** | **8** |
 | **Credits consumed** | **8** |
 | **Credits remaining** | **492** |
-```
 
 **Tracking rules:**
 1. Count each `apiclaw.py` execution as 1 call to the corresponding interface
@@ -215,7 +218,7 @@ The interfaces return **different fields**. Do NOT assume they share the same st
 
 ## Data Structure Reminder
 
-All interfaces return `.data` as an **array**. Use `.data[0]` to get the first record, NOT `.data.fieldName`.
+Many interfaces return `.data` as an **array**. Use `.data[0]` to get the first record for those responses, but inspect the actual payload shape first because some commands return non-array data inside `data`.
 
 ---
 
@@ -226,7 +229,7 @@ Self-check: `python3 scripts/apiclaw.py check`
 
 | Error | Fix |
 |-------|-----|
-| `Cannot index array with string` | Use `.data[0].fieldName` (`.data` is array) |
+| `Cannot index array with string` | If the response `data` is an array, use `.data[0].fieldName`; otherwise inspect the actual payload shape first |
 | Empty `data: []` | Use `categories` to confirm category exists |
 | `monthlySalesFloor: null` | BSR estimate: 300,000 / BSR^0.65 |
 

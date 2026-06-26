@@ -2,11 +2,13 @@
 name: apiclaw
 description: >
   API endpoint reference for the APIClaw data platform. Provides the 12
-  endpoints (categories, markets, products, competitors, realtime ASIN,
-  AI review analysis, raw reviews, price band, brand, history), their
-  inputs/outputs, parameter quirks, Quick Start (auth, base URL), how
-  credits are tracked (meta.creditsConsumed field), and the Local Review
-  Toolkit (Map/Reduce for raw reviews).
+  commerce endpoints plus 6 keyword intelligence endpoints (categories,
+  markets, products, competitors, realtime ASIN, AI review analysis, raw
+  reviews, price band, brand, history, keyword detail/trend/extends/search
+  results/product traffic/competitor keywords), their inputs/outputs,
+  parameter quirks, Quick Start (auth, base URL), how credits are tracked
+  (meta.creditsConsumed field), and the Local Review Toolkit (Map/Reduce
+  for raw reviews).
   Use when the user asks about the API itself — which endpoints exist,
   how to call them, field schemas, parameter quirks, how to authenticate,
   how credit consumption is reported, or how the Local Review Toolkit works.
@@ -26,7 +28,7 @@ metadata:
 
 # APIClaw — Commerce Data Infrastructure for AI Agents
 
-200M+ Amazon products. 12 endpoints. One API key.
+200M+ Amazon products. 18 endpoints. One API key.
 
 ## Quick Start
 1. Get key: [apiclaw.io/api-keys](https://apiclaw.io/en/api-keys) (1,000 free credits)
@@ -71,7 +73,7 @@ When `apiclaw.py` returns `{"code": 402, "message": "API quota exhausted or subs
    - Top-up link: https://apiclaw.io/en/pricing
 3. **Do not fabricate or guess** the missing data to "complete" the report. Mark partial findings explicitly as partial.
 
-## 12 Endpoints
+## 18 Endpoints
 
 | # | Endpoint | Purpose | Key Output |
 |---|----------|---------|------------|
@@ -87,10 +89,16 @@ When `apiclaw.py` returns `{"code": 402, "message": "API quota exhausted or subs
 | 10 | `products/brand-overview` | Brand concentration | sampleTop10BrandSalesRate (CR10), sampleBrandCount |
 | 11 | `products/brand-detail` | Per-brand breakdown | brands[] with sales, revenue, sampleProducts |
 | 12 | `products/history` | Time series (single ASIN per call) | timestamps[], price[], bsr[], monthlySalesFloor[], rating[], ratingCount[], sellerCount[], title/imageUrl/bestSeller/newRelease/aPlus/inventoryStatus changelogs |
+| 13 | `/openapi/v2/keywords/detail` | Keyword summary from the nearest available weekly snapshot | `estimateSearchCountWeekly`, `abaRank`, `marketCharacteristics`, `adCount`; may return `data: null` |
+| 14 | `/openapi/v2/keywords/trend` | Weekly keyword time series | `estimateSearchCount`, `abaRank`, `rankChangeCount`, `periodStartDate`, `periodEndDate` |
+| 15 | `/openapi/v2/keywords/extends` | Keyword expansion / long-tail discovery | related keywords ranked by `relevanceScore` / `estimateSearchCount`; may return empty array |
+| 16 | `/openapi/v2/keywords/search-results` | Daily keyword SERP snapshot | `asin`, `exploreType`, `absolutePosition`, `estimateImpressionPoint`, listing fields |
+| 17 | `/openapi/v2/keywords/competitor-product-keywords` | Keyword set where an ASIN appears as a competitor | `keyword`, `avgPosition`, `keywordEstimateSearchCount`, `trafficShare` |
+| 18 | `/openapi/v2/keywords/product-traffic-terms` | Traffic-driving keywords for an ASIN | same live response shape as competitor-product-keywords |
 
 ## Known Quirks
 - `topN`, `listingAge`, `newProductPeriod` are **strings** (`"10"` not `10`)
-- Response `.data` is always an **array** — use `.data[0]`
+- Many search/list endpoints return `.data` as an **array** — use `.data[0]` for the first record. But some commands may return non-array payloads inside `data`, so inspect the actual response shape before indexing.
 - `ratingCount` not `reviewCount` everywhere
 - `bsr` (int) in products vs `bestsellersRank` (array) in realtime
 - `buyboxWinner.price` — NOT top-level `price` in realtime
@@ -101,6 +109,81 @@ When `apiclaw.py` returns `{"code": 402, "message": "API quota exhausted or subs
 - `categories` uses `categoryKeyword` (not `keyword`) and `parentCategoryPath` (not `parentCategoryName`)
 - `reviews/analysis`: `mode` required ("asin"/"category"), use `asins` (plural array) not `asin`
 - `realtime/reviews`: returns 10 reviews/page fixed (no `pageSize` param); 1 credit/page; cursor-paginated; hard cap = 100 reviews (10 pages); supports `marketplace` US/UK only
+- `keywords/detail` resolves the input `date` to the nearest available weekly snapshot at or before that date, and may legitimately return `data: null` even with `success: true`
+- `keywords/extends` also resolves the input `date` to the nearest available weekly snapshot, requires `query` (not `keyword`), supports `queryType` = `phrase` or `fuzzy`, and may legitimately return `data: []`
+- `keywords/search-results`, `keywords/competitor-product-keywords`, and `keywords/product-traffic-terms` use daily observations over a sliding ~7-day window, not a long-retention historical store
+- `keywords/search-results` requires `date` + `keyword`; `exploreTypes` values are `ORG`, `SP`, `SB`, `SBV`, `SPR`
+- `keywords/competitor-product-keywords` and `keywords/product-traffic-terms` require `date` + `asin`; both currently return the same live item shape, including `trafficShare`
+- `keywords/search-results` is the default source for explaining what products currently appear on a keyword SERP because it already returns listing-level product fields
+- `products/search` is a broader APIClaw product-database query and must not be presented as Amazon live keyword SERP ordering
+
+## Keyword Intelligence Endpoints
+
+These six endpoints were verified against the live API surface and fill the gap between raw
+catalog data and search-demand/search-visibility intelligence.
+
+### `/openapi/v2/keywords/detail`
+- Input: `keyword`, `date`, optional `marketplace`
+- Data window: resolves the requested `date` to the nearest available weekly snapshot at or before that date
+- Response shape: top-level `data` is an object or `null` (not an array)
+- Key fields from schema: `estimateSearchCountWeekly`, `abaRank`, `abaTop3ClickShareRate`,
+  `abaTop3ConversionShareRate`, `marketCharacteristics`, `totalSkuCnt`, `brandCount`,
+  `organicSkuCount`, `adCampaignCount`, `adCount`
+- Live validation note: for `keyword="yoga mat"` and several June 2026 dates, the endpoint returned
+  `success: true` with `data: null`
+
+### `/openapi/v2/keywords/trend`
+- Input: `keyword`, `dateFrom`, `dateTo`, optional `marketplace`
+- Data window: weekly-granularity points across the requested date range
+- Response shape: `data` is an array
+- Key fields from live response/schema: `observedAt`, `periodStartDate`, `periodEndDate`,
+  `estimateSearchCount`, `estimateSearchChangeCount`, `estimateSearchChangeRate`, `abaRank`,
+  `prevAbaRank`, `prevEstimateSearchCount`, `rankChangeCount`
+
+### `/openapi/v2/keywords/extends`
+- Input: `query`, `date`, optional `marketplace`, `page`, `pageSize`, `queryType`, `sortBy`, `sortOrder`
+- Important quirk: seed field is `query`, not `keyword`; `queryType` supports `phrase` and `fuzzy`
+- Data window: resolves the requested `date` to the nearest available weekly snapshot at or before that date
+- Response shape: `data` is an array
+- Key fields from schema: `term`, `seedKeyword`, `relevanceScore`, `estimateSearchCountWeekly`,
+  `abaRank`, `marketCharacteristics`, `brandCount`, `organicSkuCount`, `adCount`,
+  `periodStartDate`, `periodEndDate`, `observedAt`
+- Live validation note: empty arrays are normal; `query="yoga mat"` returned `data: []` for both
+  `queryType="phrase"` and `queryType="fuzzy"`
+
+### `/openapi/v2/keywords/search-results`
+- Input: `keyword`, `date`, optional `marketplace`, `page`, `pageSize`, `exploreTypes`, `sortBy`, `sortOrder`
+- Data window: daily observations surfaced through a sliding ~7-day window
+- Response shape: `data` is an array
+- Key fields from live response/schema: `exploreType`, `absolutePosition`, `pageIndex`,
+  `pagePosition`, `asin`, `title`, `brand`, `price`, `currency`, `link`, `imageLink`, `rating`,
+  `ratingCount`, `recentSales`, `hasVideo`, `estimateImpressionPoint`,
+  `keywordTotalEstimateImpressionPoint`
+- Interpretation rule: use this endpoint first for "what is on page 1 / what products dominate this keyword / what does the SERP look like"
+- Do not substitute `products/search` when the question is about observed keyword SERP composition or ordering
+
+### `/openapi/v2/keywords/competitor-product-keywords`
+- Input: `asin`, `date`, optional `marketplace`, `page`, `pageSize`, `exploreTypes`,
+  `keywordContains`, `sortBy`, `sortOrder`
+- Data window: daily observations surfaced through a sliding ~7-day window
+- Response shape: `data` is an array
+- Key fields from live response/schema: `exploreType`, `absolutePosition`, `pageIndex`,
+  `pagePosition`, `asin`, `keyword`, `estimateImpressionPoint`, `asinTotalEstimateImpressionPoint`,
+  `avgPosition`, `daysCoverageRate`, `observationCount`, `keywordEstimateSearchCount`,
+  `keywordEstimateSearchGrowthCount`, `keywordEstimateSearchCountChangeRate`, `keywordAbaRank`,
+  `keywordAbaRankChangeCount`, `trafficShare`
+
+### `/openapi/v2/keywords/product-traffic-terms`
+- Input: same request shape as `keywords/competitor-product-keywords`
+- Data window: daily observations surfaced through a sliding ~7-day window
+- Response shape: `data` is an array
+- Key fields from live response/schema: `exploreType`, `absolutePosition`, `pageIndex`,
+  `pagePosition`, `asin`, `keyword`, `estimateImpressionPoint`, `asinTotalEstimateImpressionPoint`,
+  `avgPosition`, `daysCoverageRate`, `observationCount`, `keywordEstimateSearchCount`,
+  `keywordEstimateSearchGrowthCount`, `keywordEstimateSearchCountChangeRate`, `keywordAbaRank`,
+  `keywordAbaRankChangeCount`, `trafficShare`
+- Live validation note: current live response item shape matches `keywords/competitor-product-keywords`
+  field-for-field; keep the semantic distinction in output wording rather than assuming a unique schema
 
 ## Local Review Toolkit
 

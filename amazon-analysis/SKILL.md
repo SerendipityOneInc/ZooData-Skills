@@ -56,7 +56,7 @@ User provides: keyword, category, ASIN, or brand — depending on intent. Use in
       d. `apiclaw.py review-aggregate --reviews R --tagged T --clusters C`
          → consumerInsights output compatible with `/reviews/analysis`
 5. **Aggregation without categoryPath**: produces severely distorted data
-6. **`.data` is array**: use `.data[0]`, not `.data.field`
+6. **Check the `data` shape before indexing**: many search/list endpoints return `.data` as an array, so use `.data[0]` for the first record in those cases; some commands return non-array payloads inside `data`
 7. **labelType**: NOT an API request parameter — it is a field in the response `consumerInsights` array, used for client-side filtering
 8. **history empty**: try oldest-listed ASINs first, up to 3 rounds of different ASINs before giving up
 9. **Sales null fallback**: Monthly sales ≈ 300,000 / BSR^0.65
