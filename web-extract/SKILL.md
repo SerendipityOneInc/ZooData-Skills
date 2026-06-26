@@ -1,5 +1,5 @@
 ---
-name: zoodata-webtools
+name: web-extract
 description: >
   Extract structured JSON from web pages, search engines, and entire
   sites — the agent gets ready-to-consume {title, summary, sections,
@@ -40,9 +40,9 @@ metadata:
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}
 ---
 
-# ZooData WebTools — Structured Web Extraction
+# Web Extract — Structured Data from the Open Web
 
-Six HTTP endpoints. One API key. **Structured JSON by default — no second LLM pass to parse fields.**
+Backed by the ZooData WebTools API. Six HTTP endpoints. One API key. **Structured JSON by default — no second LLM pass to parse fields.**
 
 ## Files
 
@@ -55,13 +55,13 @@ Six HTTP endpoints. One API key. **Structured JSON by default — no second LLM 
 
 | Tool | What it gives you | When to pick it |
 |---|---|---|
-| **`zoodata-webtools`** (this skill) | Page → `{title, summary, sections, key_metrics, outgoing_links, ...}` JSON in one call | You need **page DATA** (price, specs, fields, link graphs) — downstream code or LLM can use the JSON directly without re-parsing |
+| **`web-extract`** (this skill) | Page → `{title, summary, sections, key_metrics, outgoing_links, ...}` JSON in one call | You need **page DATA** (price, specs, fields, link graphs) — downstream code or LLM can use the JSON directly without re-parsing |
 | `browser-act` | Browser session: click, scroll, type, screenshot | You need to **interact** with a page (login flow, take a screenshot, fill a form) or visually verify rendering |
 | `WebFetch` (built-in) | Static URL → markdown | You need a **single static page** as prose, no JS rendering, no structured fields |
 | `deep-research` | Multi-source research with citations | You need a **synthesized report** drawing from many web sources, not raw data |
 | `monid` | Generic tool-discovery layer | You're not sure which tool to use yet and want to browse options |
 
-**Key advantage**: every other tool above forces a second pass (re-LLM the markdown / re-parse the HTML / extract structure manually). ZooData WebTools returns the structured fields directly — saves a round-trip and tokens.
+**Key advantage**: every other tool above forces a second pass (re-LLM the markdown / re-parse the HTML / extract structure manually). The underlying API returns the structured fields directly — saves a round-trip and tokens.
 
 ## Credential
 
@@ -77,7 +77,7 @@ mkdir -p ~/.zoodata && echo '{"api_key":"hms_live_xxx"}' > ~/.zoodata/config.jso
 ## Two ways to drive it
 
 1. **`webtools.py` CLI** (preferred — quirks baked in): UA header, warmup tolerance, retry/backoff, JSON-first defaults all handled. Just run `python {skill_base_dir}/scripts/webtools.py <subcommand>`.
-2. **Raw curl / HTTP** (when CLI isn't installed or for ad-hoc calls): every example below also shows the raw POST. **Always set `User-Agent: zoodata-webtools-skill/1.0`** — the Cloudflare edge rejects the default Python-urllib UA with HTTP 403 (see Tips).
+2. **Raw curl / HTTP** (when CLI isn't installed or for ad-hoc calls): every example below also shows the raw POST. **Always set `User-Agent: web-extract-skill/1.0`** — the Cloudflare edge rejects the default Python-urllib UA with HTTP 403 (see Tips).
 
 Endpoint base URL: `https://api.zoodata.ai/openapi/v2/webtools/*`. All POST with JSON body, except `crawl/{id}` (GET).
 
@@ -157,7 +157,7 @@ When the CLI isn't available (no `python3` / offline / restricted env), every en
 curl -sS -X POST https://api.zoodata.ai/openapi/v2/webtools/scrape \
   -H "Authorization: Bearer $ZOODATA_API_KEY" \
   -H "Content-Type: application/json" \
-  -H "User-Agent: zoodata-webtools-skill/1.0"   `# REQUIRED — see Tips` \
+  -H "User-Agent: web-extract-skill/1.0"   `# REQUIRED — see Tips` \
   -d '{"url":"https://example.com","formats":["json"]}'
 ```
 
@@ -181,7 +181,7 @@ Full schemas are in `references/reference.md`. Load that when you need exact fie
 
 ## Tips
 
-- **🚨 Cloudflare 1010 trap (Python / non-curl HTTP clients).** The Cloudflare edge in front of `api.zoodata.ai` blocks default Python `Python-urllib/X.Y` User-Agent → HTTP 403. ALWAYS set an explicit `User-Agent` header (any non-default value works, e.g. `User-Agent: zoodata-webtools-skill/1.0`). curl is fine out of the box; Python / Go / Node fetch / requests all need it.
+- **🚨 Cloudflare 1010 trap (Python / non-curl HTTP clients).** The Cloudflare edge in front of `api.zoodata.ai` blocks default Python `Python-urllib/X.Y` User-Agent → HTTP 403. ALWAYS set an explicit `User-Agent` header (any non-default value works, e.g. `User-Agent: web-extract-skill/1.0`). curl is fine out of the box; Python / Go / Node fetch / requests all need it.
 - **Crawl `GET /crawl/{job_id}` warmup gotcha**: for ~5–10 seconds after `POST /crawl` returns the job_id, polling may return `NOT_FOUND`. This is the job still registering, not a real "not found." Tolerate it: retry with 5s sleep up to ~3 times before giving up.
 - **`crawl-status` response shape**: `data` is an **object** `{id, status, completed, total, data: [pages...]}` — the page array is nested at `data.data`. Status values: `"queued"`, `"running"`, `"completed"`, `"failed"`. (Failed `success:false` responses cost 0 credits.)
 - **A `success:true` response can still contain an error page.** Always check `data.meta.statusCode` (or per-result `meta.statusCode` for search) before trusting content.

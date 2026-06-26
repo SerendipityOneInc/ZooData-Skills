@@ -42,7 +42,7 @@ import urllib.request
 import urllib.error
 
 BASE_URL = "https://api.zoodata.ai/openapi/v2/webtools"
-USER_AGENT = "zoodata-webtools-skill/1.0 (python)"
+USER_AGENT = "web-extract-skill/1.0 (python)"
 DEFAULT_TIMEOUT = 200       # scrape SLA 120s, interactive 180s — leave buffer
 MAX_RETRIES = 3
 RETRY_DELAY = 2

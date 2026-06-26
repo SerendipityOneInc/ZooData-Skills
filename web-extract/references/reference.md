@@ -1,4 +1,4 @@
-# ZooData WebTools — Endpoint Reference
+# Web Extract — Endpoint Reference (ZooData WebTools API)
 
 Full request/response schemas for every endpoint under `/openapi/v2/webtools/*`.
 Load this file when you need exact field names, error codes, billing rules, or response shapes — the SKILL.md is the day-to-day cheat sheet, this is the source of truth.
@@ -292,7 +292,7 @@ The Cloudflare edge in front of `api.zoodata.ai` rejects requests with the defau
 |---|---|
 | `curl/8.x` (default) | ✅ 200 |
 | `Python-urllib/3.10` (default) | ❌ 403 (Cloudflare 1010) |
-| `Python-urllib/3.10` + custom `User-Agent: zoodata-webtools-skill/1.0` | ✅ 200 |
+| `Python-urllib/3.10` + custom `User-Agent: web-extract-skill/1.0` | ✅ 200 |
 
 **Rule**: any HTTP client other than curl must set an explicit `User-Agent`. Any non-default string is accepted. This applies to ALL endpoints (`/scrape`, `/search`, `/map`, `/crawl`, `/crawl/{id}`), not just crawl-status — the block is at the edge, before routing.
 
