@@ -193,13 +193,28 @@ Full schemas are in `references/reference.md`. Load that when you need exact fie
 - **Polling costs 1 credit per call.** For large crawls, batch your polls — fetch with `limit=1000` and space polls ≥10s apart.
 - **Format choice (skill default = JSON)**: `json` is the default — gives structured fields (`title/summary/sections/key_metrics/outgoing_links/page_type/...`) that downstream tools can consume directly. Use `markdown` only when the user asks for clean prose or the page is article-shaped (blog post / docs); use `rawHtml` only when DOM access is needed (custom selectors, table parsing the JSON layer doesn't expose).
 
+## On Missing Key (no credentials configured)
+
+**BEFORE calling any endpoint**, verify a credential is configured. Reliable check: `python {skill_base_dir}/scripts/webtools.py check` — exits 2 if no key is found in env (`ZOODATA_API_KEY` / legacy `APICLAW_API_KEY`) or config files (`~/.zoodata/config.json` / `~/.apiclaw/config.json`). A `[ -z "$ZOODATA_API_KEY" ]` test alone is NOT sufficient.
+
+When no key is found through any mechanism:
+
+1. **STOP.** Do not call any endpoint.
+2. **Do NOT fall back to "partial output from training data" / "describe the page from common knowledge" / "for reference only" preview.** This skill's deliverable is structured extraction of THIS URL's actual content — without the data, there is no deliverable.
+3. **Tell the user, in their language**, all three of:
+   - "`ZOODATA_API_KEY` is not set — I need this to fetch the page."
+   - **Get a free key** (1,000 credits, no credit card): https://zoodata.ai/en/api-keys
+   - **Configure** via one of:
+     - `export ZOODATA_API_KEY='hms_live_xxx'` (session only)
+     - `mkdir -p ~/.zoodata && echo '{"api_key":"hms_live_xxx"}' > ~/.zoodata/config.json` (persistent)
+
 ## On 401 Invalid Key
 
 When any endpoint returns HTTP 401:
 
 1. **STOP further calls immediately.** A rejected key won't be accepted on retry — every subsequent call will return 401 too.
 2. **Tell the user**: their `ZOODATA_API_KEY` was rejected (invalid, revoked, or expired). Direct them to [zoodata.ai/en/api-keys](https://zoodata.ai/en/api-keys).
-3. If you collected partial output before failure, show it and mark partial. **Do not fabricate** the rest.
+3. If you collected partial output before failure, show it and mark partial. **Do not fabricate** the rest — no "training-data fallback" / "page description from common knowledge" substitution.
 
 ## On 402 Credit Exhausted
 
@@ -207,7 +222,7 @@ When any endpoint returns HTTP 402:
 
 1. **STOP further calls.**
 2. Report partial findings already gathered, plus the `creditsRemaining` number from the last successful call.
-3. Point the user at [zoodata.ai/en/pricing](https://zoodata.ai/en/pricing) to top up. **Do not fabricate** the rest.
+3. Point the user at [zoodata.ai/en/pricing](https://zoodata.ai/en/pricing) to top up. **Do not fabricate** the rest — no "common-sense page summary" filler in place of a real fetch.
 
 ## See also
 

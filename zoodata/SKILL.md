@@ -50,6 +50,22 @@ metadata:
 7. **Aggregation endpoints** (price-band, brand) without categoryPath produce severely distorted data
 8. **Price-band and brand endpoints only accept `keyword`** (not categoryPath) — cross-validate returned products
 
+## On Missing Key (no credentials configured)
+
+**BEFORE calling any endpoint**, verify credentials are configured. The reliable check is `python {skill_base_dir}/scripts/zoodata.py check` — exits 2 if no key is found in env vars OR config files. A `[ -z "$ZOODATA_API_KEY" ]` test alone is NOT sufficient — a user may have only `~/.zoodata/config.json` set.
+
+When no key is found through any mechanism:
+
+1. **STOP.** Do not run the workflow. Do not call `zoodata.py` (you'll just get the same credential error and burn tokens).
+2. **Do NOT fall back to a "partial analysis from training data" / "industry common-sense headlines" / "for reference only" preview.** Your training data is stale, has no per-ASIN granularity, and presenting it as analysis — even disclaimed — misrepresents what this skill produces. The deliverable is data-backed; without data, there is no deliverable.
+3. **Tell the user, in their language**, all three of:
+   - "`ZOODATA_API_KEY` is not set — I need this to run the analysis."
+   - **Get a free key** (1,000 credits, no credit card): https://zoodata.ai/en/api-keys
+   - **Configure** via one of:
+     - `export ZOODATA_API_KEY='hms_live_xxx'` (session only)
+     - `mkdir -p ~/.zoodata && echo '{"api_key":"hms_live_xxx"}' > ~/.zoodata/config.json` (persistent)
+4. **Optionally** state in **one sentence** what the workflow will produce once the key is configured (deliverable shape only — no numbers, no market color, no "common sense" preview).
+
 ## On 401 Invalid Key
 
 When `zoodata.py` returns `{"code": 401, "message": "API Key invalid or expired"}`:
@@ -59,7 +75,7 @@ When `zoodata.py` returns `{"code": 401, "message": "API Key invalid or expired"
    - The `ZOODATA_API_KEY` in use was rejected (likely invalid, revoked, or expired)
    - If any partial findings were collected before the failure, show them and mark as partial
    - Fix at https://zoodata.ai/en/api-keys (verify the key, regenerate if needed)
-3. **Do not fabricate or guess** the data the failed calls would have returned.
+3. **Do not fabricate or guess** the data the failed calls would have returned. This includes "training-data fallback" / "industry common-sense" headlines disguised as preview — those are fabrications.
 
 ## On 402 Credit Exhausted
 
@@ -71,7 +87,7 @@ When `zoodata.py` returns `{"code": 402, "message": "API quota exhausted or subs
    - Partial findings already collected (show the actual data, not just a list of completed steps)
    - Rough credits needed to resume (sum remaining-step costs from this skill's API Budget table)
    - Top-up link: https://zoodata.ai/en/pricing
-3. **Do not fabricate or guess** the missing data to "complete" the report. Mark partial findings explicitly as partial.
+3. **Do not fabricate or guess** the missing data to "complete" the report. Mark partial findings explicitly as partial. **No "training-data fallback" / "industry common-sense" filler** — substituting public-knowledge prose for missing endpoint data is still fabrication.
 
 ## 18 Endpoints
 
