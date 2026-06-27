@@ -164,6 +164,9 @@ Tool availability note:
 12. `products/search` is our own product-database query result, not Amazon live search results, so never present it as evidence of current SERP ordering
 13. `webtools_search` is a crawler / web retrieval utility, not a keyword-intelligence endpoint; do not treat it as a substitute for keyword snapshot, trend, or SERP evidence unless the task is explicitly web collection rather than ZooData keyword analysis
 
+## On Missing Key
+
+When `ZOODATA_API_KEY` is not set (verify via `python {skill_base_dir}/scripts/zoodata.py check` — exits 2 if no key in env or `~/.zoodata/config.json`): follow the **"On Missing Key"** protocol in `zoodata/SKILL.md` — STOP before any call, link the user to https://zoodata.ai/en/api-keys, and DO NOT produce a "partial analysis from public knowledge" / "for reference only" fallback as a substitute.
 ## On 401 Invalid Key
 
 When the API returns code 401: stop further calls, tell the user the key was rejected, and direct them to https://zoodata.ai/en/api-keys. Do not fabricate missing data.

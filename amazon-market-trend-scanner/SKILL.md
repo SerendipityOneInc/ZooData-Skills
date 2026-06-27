@@ -45,6 +45,9 @@ Required: 1+ category paths or keywords. Optional: scan depth, metric preference
 3. **Use API fields directly**: revenue=`sampleAvgMonthlyRevenue`, sales=`monthlySalesFloor`
 4. **Key metrics per subcategory**: sampleAvgMonthlySales, sampleNewSkuRate, topBrandSalesRate, sampleAvgPrice, sampleAPlusRate, totalSkuCount, sampleFbaRate
 
+## On Missing Key
+
+When `ZOODATA_API_KEY` is not set (verify via `python {skill_base_dir}/scripts/zoodata.py check` — exits 2 if no key in env or `~/.zoodata/config.json`): follow the **"On Missing Key"** protocol in `zoodata/SKILL.md` — STOP before any call, link the user to https://zoodata.ai/en/api-keys, and DO NOT produce a "partial analysis from public knowledge" / "for reference only" fallback as a substitute.
 ## On 401 Invalid Key
 
 When `zoodata.py` returns code 401: follow the **"On 401 Invalid Key"** protocol in `zoodata/SKILL.md` — STOP further calls, tell the user the key was rejected and direct them to api-keys, do not fabricate missing data.
