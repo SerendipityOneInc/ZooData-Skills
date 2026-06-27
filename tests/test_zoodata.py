@@ -19,7 +19,7 @@ import json
 import os
 import sys
 import unittest
-from unittest.mock import patch
+from unittest.mock import mock_open, patch
 
 # ---------------------------------------------------------------------------
 # Load module under test
@@ -411,6 +411,56 @@ class TestMarketEntryCategoryFallback(unittest.TestCase):
         market_calls = [p for ep, p in calls if ep == "markets/search"]
         self.assertGreaterEqual(len(market_calls), 2)
         self.assertIn("categoryKeyword", market_calls[1])
+
+
+class TestCredentialResolution(unittest.TestCase):
+    """Regression: cmd_check used to read ~/.zoodata/config.json but
+    get_api_key read {skill_dir}/config.json. The two paths never overlapped,
+    so users could see "check OK" then watch every real call fail. After the
+    fix both functions go through _resolve_credential() with the same chain."""
+
+    def test_env_zoodata_takes_precedence(self):
+        with patch.dict("os.environ", {"ZOODATA_API_KEY": "z"}, clear=True):
+            self.assertEqual(zoodata._resolve_credential(), "z")
+
+    def test_env_legacy_apiclaw_is_a_fallback(self):
+        with patch.dict("os.environ", {"APICLAW_API_KEY": "legacy"}, clear=True):
+            self.assertEqual(zoodata._resolve_credential(), "legacy")
+
+    def test_zoodata_env_beats_apiclaw_env(self):
+        with patch.dict("os.environ",
+                        {"ZOODATA_API_KEY": "new", "APICLAW_API_KEY": "old"},
+                        clear=True):
+            self.assertEqual(zoodata._resolve_credential(), "new")
+
+    def test_user_home_config_works_when_no_env(self):
+        """The regression: before the fix, real API calls didn't look here
+        even though `check` did, so a key written ONLY to ~/.zoodata/config.json
+        produced false-green check + hard-fail calls."""
+        home_zoodata = os.path.expanduser("~/.zoodata/config.json")
+        with patch.dict("os.environ", {}, clear=True), \
+             patch("os.path.exists", side_effect=lambda p: p == home_zoodata), \
+             patch("builtins.open", mock_open(read_data='{"api_key":"home_key"}')):
+            self.assertEqual(zoodata._resolve_credential(), "home_key")
+
+    def test_returns_none_when_nothing_configured(self):
+        with patch.dict("os.environ", {}, clear=True), \
+             patch("os.path.exists", return_value=False):
+            self.assertIsNone(zoodata._resolve_credential())
+
+
+class TestCategoriesMarketplace(unittest.TestCase):
+    """The categories subcommand used to reject --marketplace even though every
+    other marketplace-aware subcommand accepted it."""
+
+    def test_categories_accepts_marketplace_flag(self):
+        r = run_cli("categories", "--keyword", "x", "--marketplace", "UK")
+        self.assertEqual(r["endpoint"], "categories")
+        self.assertEqual(r["params"]["marketplace"], "UK")
+
+    def test_categories_marketplace_defaults_to_us(self):
+        r = run_cli("categories", "--keyword", "x")
+        self.assertEqual(r["params"]["marketplace"], "US")
 
 
 # ---------------------------------------------------------------------------

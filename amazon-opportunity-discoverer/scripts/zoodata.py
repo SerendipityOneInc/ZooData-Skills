@@ -67,46 +67,58 @@ PRODUCT_MODES = {
 
 # ─── API Client ──────────────────────────────────────────────────────────────
 
-def get_api_key():
+def _resolve_credential():
     """
-    Get API key from environment variable or config file.
+    Resolve the ZooData API key. Returns the key string or None.
+    Used by BOTH get_api_key() and cmd_check() so the two stay in sync —
+    a divergence here was a real bug (check said configured, real calls failed).
+    """
+    for var in ("ZOODATA_API_KEY", "APICLAW_API_KEY"):
+        key = os.environ.get(var, "").strip()
+        if key:
+            return key
 
-    Priority:
-    1. Environment variable ZOODATA_API_KEY (legacy: APICLAW_API_KEY)
-    2. Config file config.json in the skill directory (next to scripts/)
-    """
-    # Try environment variable first; fall back to the legacy APICLAW_API_KEY name
-    key = (
-        os.environ.get("ZOODATA_API_KEY", "").strip()
-        or os.environ.get("APICLAW_API_KEY", "").strip()
-    )
+    for candidate in ("~/.zoodata/config.json", "~/.apiclaw/config.json"):
+        path = os.path.expanduser(candidate)
+        if os.path.exists(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    key = json.load(f).get("api_key", "").strip()
+                if key:
+                    return key
+            except (json.JSONDecodeError, IOError):
+                pass
+
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    skill_dir = os.path.dirname(script_dir)
+    skill_config = os.path.join(skill_dir, "config.json")
+    if os.path.exists(skill_config):
+        try:
+            with open(skill_config, "r", encoding="utf-8") as f:
+                key = json.load(f).get("api_key", "").strip()
+            if key:
+                return key
+        except (json.JSONDecodeError, IOError) as e:
+            print(f"WARNING: Failed to read {skill_config}: {e}", file=sys.stderr)
+
+    return None
+
+
+def get_api_key():
+    """Get API key for API calls. Exits with guidance if no key is found."""
+    key = _resolve_credential()
     if key:
         return key
 
-    # Try config file in skill directory (parent of scripts/)
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    skill_dir = os.path.dirname(script_dir)  # go up from scripts/ to skill root
-    config_path = os.path.join(skill_dir, "config.json")
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r", encoding="utf-8") as f:
-                config = json.load(f)
-                key = config.get("api_key", "").strip()
-                if key:
-                    return key
-        except (json.JSONDecodeError, IOError) as e:
-            print(f"WARNING: Failed to read config file: {e}", file=sys.stderr)
-
-    # No key found
     print("ERROR: API Key not found.", file=sys.stderr)
     print("", file=sys.stderr)
     print("Please configure your API Key using one of these methods:", file=sys.stderr)
     print("", file=sys.stderr)
-    print("  Method 1: Config file (recommended)", file=sys.stderr)
-    print(f"    Create config.json in the skill directory: {skill_dir}", file=sys.stderr)
-    print('    Content: {"api_key": "hms_live_yourkey"}', file=sys.stderr)
+    print("  Method 1: User-home config (recommended — shared across all skills)", file=sys.stderr)
+    print("    mkdir -p ~/.zoodata", file=sys.stderr)
+    print('    echo \'{"api_key":"hms_live_yourkey"}\' > ~/.zoodata/config.json', file=sys.stderr)
     print("", file=sys.stderr)
-    print("  Method 2: Environment variable", file=sys.stderr)
+    print("  Method 2: Environment variable (session only)", file=sys.stderr)
     print("    export ZOODATA_API_KEY='hms_live_yourkey'", file=sys.stderr)
     print("", file=sys.stderr)
     print("Get a free key at https://zoodata.ai/en/api-keys", file=sys.stderr)
@@ -702,6 +714,8 @@ def cmd_categories(args):
     elif args.parent:
         params["parentCategoryPath"] = parse_category(args.parent)
     # else: no params → root categories
+    if args.marketplace:
+        params["marketplace"] = args.marketplace
 
     result = api_call("categories", params)
     output(result, args.format)
@@ -2291,36 +2305,12 @@ def cmd_check(args):
     print("ZooData API Self-Check\n", file=sys.stderr)
     print("=" * 50, file=sys.stderr)
 
-    # Check API key from environment variable; fall back to legacy APICLAW_API_KEY
-    api_key = (
-        os.environ.get("ZOODATA_API_KEY", "").strip()
-        or os.environ.get("APICLAW_API_KEY", "").strip()
-    )
-    key_source = "env"
-    config_path = None
-
-    # If not in env, check config file (with legacy ~/.apiclaw fallback)
-    if not api_key:
-        for candidate in ("~/.zoodata/config.json", "~/.apiclaw/config.json"):
-            path = os.path.expanduser(candidate)
-            if os.path.exists(path):
-                try:
-                    with open(path, "r", encoding="utf-8") as f:
-                        config = json.load(f)
-                        api_key = config.get("api_key", "").strip()
-                        if api_key:
-                            key_source = "config"
-                            config_path = candidate
-                            break
-                except (json.JSONDecodeError, IOError):
-                    pass
-
-    if api_key:
-        source_label = config_path if key_source == "config" else "env"
-        print(f"✅ API Key ({source_label}): configured", file=sys.stderr)
+    # Use the SAME lookup chain as real API calls — divergence here was a real bug.
+    if _resolve_credential():
+        print("✅ API Key: configured", file=sys.stderr)
     else:
         print("❌ API Key: Not found", file=sys.stderr)
-        print("   Checked: $ZOODATA_API_KEY ($APICLAW_API_KEY), ~/.zoodata/config.json (~/.apiclaw/config.json)", file=sys.stderr)
+        print("   Checked: env ZOODATA_API_KEY, env APICLAW_API_KEY, ~/.zoodata/config.json, ~/.apiclaw/config.json, {skill_dir}/config.json", file=sys.stderr)
         print("   Get one at: https://zoodata.ai/en/api-keys", file=sys.stderr)
         sys.exit(1)
 
@@ -2496,6 +2486,7 @@ Examples:
     p_cat.add_argument("--keyword", help="Search categories by keyword")
     p_cat.add_argument("--category", help="Exact category path (comma-separated)")
     p_cat.add_argument("--parent", help="Get child categories (comma-separated parent path)")
+    p_cat.add_argument("--marketplace", default="US", help="Marketplace (default: US)")
     p_cat.set_defaults(func=cmd_categories)
 
     # ── market ──
