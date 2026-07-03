@@ -145,7 +145,12 @@ SUBCOMMANDS = [
     "report", "opportunity", "market-entry", "competitor-analysis",
     "pricing-analysis", "daily-radar", "listing-audit", "opportunity-scan",
     "review-deepdive", "analyze", "price-band-overview", "price-band-detail",
-    "brand-overview", "brand-detail", "history", "check",
+    "brand-overview", "brand-detail", "history",
+    "keyword-detail", "keyword-trend", "keyword-extends",
+    "keyword-search-results", "keyword-competitor-product-keywords",
+    "keyword-product-traffic-terms",
+    "product-traffic-terms-overview", "product-traffic-terms-timeline",
+    "check",
 ]
 
 
@@ -276,6 +281,93 @@ class TestEndpointRouting(unittest.TestCase):
     def test_brand_detail(self):
         r = run_cli("brand-detail", "--keyword", "yoga")
         self.assertEqual(r["endpoint"], "products/brand-detail")
+
+    def test_keyword_detail(self):
+        r = run_cli("keyword-detail", "--keyword", "yoga mat", "--date", "2026-06-29")
+        self.assertEqual(r["endpoint"], "keywords/detail")
+        self.assertEqual(r["params"], {
+            "keyword": "yoga mat",
+            "date": "2026-06-29",
+            "marketplace": "US",
+        })
+
+    def test_keyword_trend(self):
+        r = run_cli("keyword-trend",
+                    "--keyword", "yoga mat",
+                    "--date-from", "2026-06-01",
+                    "--date-to", "2026-06-29")
+        self.assertEqual(r["endpoint"], "keywords/trend")
+        self.assertEqual(r["params"]["dateFrom"], "2026-06-01")
+        self.assertEqual(r["params"]["dateTo"], "2026-06-29")
+
+    def test_keyword_extends(self):
+        r = run_cli("keyword-extends",
+                    "--query", "yoga mat",
+                    "--date", "2026-06-29",
+                    "--query-type", "fuzzy",
+                    "--page-size", "50")
+        self.assertEqual(r["endpoint"], "keywords/extends")
+        self.assertEqual(r["params"]["query"], "yoga mat")
+        self.assertEqual(r["params"]["queryType"], "fuzzy")
+        self.assertEqual(r["params"]["pageSize"], 50)
+
+    def test_keyword_search_results(self):
+        r = run_cli("keyword-search-results",
+                    "--keyword", "yoga mat",
+                    "--date", "2026-06-29",
+                    "--explore-types", "ORG,SP")
+        self.assertEqual(r["endpoint"], "keywords/search-results")
+        self.assertEqual(r["params"]["exploreTypes"], ["ORG", "SP"])
+
+    def test_keyword_competitor_product_keywords(self):
+        r = run_cli("keyword-competitor-product-keywords",
+                    "--asin", "B01CGLCGRA",
+                    "--date", "2026-06-29",
+                    "--keyword-contains", "yoga",
+                    "--explore-types", "ORG")
+        self.assertEqual(r["endpoint"], "keywords/competitor-product-keywords")
+        self.assertEqual(r["params"]["keywordContains"], "yoga")
+        self.assertEqual(r["params"]["exploreTypes"], ["ORG"])
+
+    def test_keyword_product_traffic_terms(self):
+        r = run_cli("keyword-product-traffic-terms",
+                    "--asin", "B01CGLCGRA",
+                    "--date", "2026-06-29")
+        self.assertEqual(r["endpoint"], "keywords/product-traffic-terms")
+        self.assertEqual(r["params"]["asin"], "B01CGLCGRA")
+
+    def test_product_traffic_terms_overview(self):
+        r = run_cli("product-traffic-terms-overview",
+                    "--asin", "B01CGLCGRA",
+                    "--date", "2026-06-29")
+        self.assertEqual(r["endpoint"], "keywords/product-traffic-terms-overview")
+        self.assertEqual(r["params"], {
+            "asin": "B01CGLCGRA",
+            "date": "2026-06-29",
+            "marketplace": "US",
+        })
+
+    def test_product_traffic_terms_timeline(self):
+        r = run_cli("product-traffic-terms-timeline",
+                    "--asin", "B01CGLCGRA",
+                    "--keyword", "yoga mat",
+                    "--date-from", "2026-06-23",
+                    "--date-to", "2026-06-29",
+                    "--page", "2",
+                    "--page-size", "50",
+                    "--sort-order", "desc")
+        self.assertEqual(r["endpoint"], "keywords/product-traffic-terms-timeline")
+        self.assertEqual(r["params"], {
+            "asin": "B01CGLCGRA",
+            "keyword": "yoga mat",
+            "dateFrom": "2026-06-23",
+            "dateTo": "2026-06-29",
+            "marketplace": "US",
+            "page": 2,
+            "pageSize": 50,
+            "sortBy": "date",
+            "sortOrder": "desc",
+        })
 
 
 # ---------------------------------------------------------------------------
@@ -447,6 +539,80 @@ class TestCredentialResolution(unittest.TestCase):
         with patch.dict("os.environ", {}, clear=True), \
              patch("os.path.exists", return_value=False):
             self.assertIsNone(zoodata._resolve_credential())
+
+
+class TestBaseUrlResolution(unittest.TestCase):
+    def test_default_base_url_points_to_openapi_v2(self):
+        with patch.dict("os.environ", {}, clear=True):
+            self.assertEqual(
+                zoodata._resolve_base_url(),
+                "https://api.zoodata.ai/openapi/v2",
+            )
+
+    def test_env_base_url_appends_openapi_v2_for_bare_host(self):
+        with patch.dict("os.environ", {"ZOODATA_BASE_URL": "http://localhost:8080"}, clear=True):
+            self.assertEqual(
+                zoodata._resolve_base_url(),
+                "http://localhost:8080/openapi/v2",
+            )
+
+    def test_env_base_url_preserves_explicit_openapi_v2_path(self):
+        with patch.dict(
+            "os.environ",
+            {"ZOODATA_BASE_URL": "http://localhost:8080/openapi/v2/"},
+            clear=True,
+        ):
+            self.assertEqual(
+                zoodata._resolve_base_url(),
+                "http://localhost:8080/openapi/v2",
+            )
+
+
+class TestCheckCommand(unittest.TestCase):
+    def test_check_defaults_to_credentials_only_without_api_call(self):
+        captured = {}
+
+        def fake_output(data, fmt="json"):
+            captured.update(data)
+
+        args = type("Args", (), {
+            "format": "json",
+            "endpoints": False,
+            "keyword_endpoints": False,
+        })()
+
+        with patch.object(zoodata, "_resolve_credential", return_value="test_key"), \
+             patch.object(zoodata, "api_call") as api_call, \
+             patch.object(zoodata, "output", side_effect=fake_output):
+            zoodata.cmd_check(args)
+
+        api_call.assert_not_called()
+        self.assertEqual(captured["check"], "credentials_only")
+        self.assertEqual(captured["endpoint_probes"], "skipped")
+
+    def test_check_marks_structured_api_failure_as_failed_when_probing_endpoints(self):
+        error = {
+            "success": False,
+            "error": {"message": "Request failed"},
+            "_query": {"endpoint": "categories", "params": {}},
+        }
+        captured = {}
+
+        def fake_output(data, fmt="json"):
+            captured.update(data)
+
+        args = type("Args", (), {
+            "format": "json",
+            "endpoints": True,
+            "keyword_endpoints": False,
+        })()
+
+        with patch.object(zoodata, "_resolve_credential", return_value="test_key"), \
+             patch.object(zoodata, "api_call", return_value=error), \
+             patch.object(zoodata, "output", side_effect=fake_output):
+            zoodata.cmd_check(args)
+
+        self.assertEqual(captured["endpoints"]["categories"]["status"], "failed")
 
 
 class TestCategoriesMarketplace(unittest.TestCase):

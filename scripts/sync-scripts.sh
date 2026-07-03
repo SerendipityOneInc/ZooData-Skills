@@ -9,7 +9,7 @@ SOURCE="$REPO_ROOT/zoodata/scripts/zoodata.py"
 # Doc-only skills that do not embed the CLI script. SKILL.md for these
 # skills never invokes scripts/zoodata.py, so syncing a copy would add
 # ~120KB of unused code to the published skill.
-SKIP_SKILLS=("amazon-keywords")
+SKIP_SKILLS=()
 
 if [[ ! -f "$SOURCE" ]]; then
   echo "ERROR: Canonical source file does not exist: $SOURCE"
@@ -25,7 +25,7 @@ for skill_dir in "$REPO_ROOT"/amazon-*/; do
   skill_name=$(basename "$skill_dir")
   target="$skill_dir/scripts/zoodata.py"
 
-  if [[ " ${SKIP_SKILLS[*]} " == *" $skill_name "* ]]; then
+  if [[ ${#SKIP_SKILLS[@]} -gt 0 && " ${SKIP_SKILLS[*]} " == *" $skill_name "* ]]; then
     echo "  SKIP $skill_name (doc-only)"
     ((skipped++))
     continue

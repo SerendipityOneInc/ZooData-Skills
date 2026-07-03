@@ -2,10 +2,11 @@
 name: zoodata
 description: >
   API endpoint reference for the ZooData data platform. Provides the 12
-  commerce endpoints plus 6 keyword intelligence endpoints (categories,
+  commerce endpoints plus 8 keyword intelligence endpoints (categories,
   markets, products, competitors, realtime ASIN, AI review analysis, raw
   reviews, price band, brand, history, keyword detail/trend/extends/search
-  results/product traffic/competitor keywords), their inputs/outputs,
+  results/product traffic/competitor keywords, traffic overview/timeline),
+  their inputs/outputs,
   parameter quirks, Quick Start (auth, base URL), how credits are tracked
   (meta.creditsConsumed field), and the Local Review Toolkit (Map/Reduce
   for raw reviews).
@@ -28,7 +29,7 @@ metadata:
 
 # ZooData — Commerce Data Infrastructure for AI Agents
 
-200M+ Amazon products. 18 endpoints. One API key.
+200M+ Amazon products. 20 endpoints. One API key.
 
 ## Quick Start
 1. Get key: [zoodata.ai/api-keys](https://zoodata.ai/en/api-keys) (1,000 free credits)
@@ -52,7 +53,7 @@ metadata:
 
 ## On Missing Key (no credentials configured)
 
-**BEFORE calling any endpoint**, verify credentials are configured. The reliable check is `python {skill_base_dir}/scripts/zoodata.py check` — exits 2 if no key is found in env vars OR config files. A `[ -z "$ZOODATA_API_KEY" ]` test alone is NOT sufficient — a user may have only `~/.zoodata/config.json` set.
+**BEFORE calling any endpoint**, verify credentials are configured. The reliable check is `python {skill_base_dir}/scripts/zoodata.py check` — credentials-only by default, no endpoint calls and no credit usage; exits non-zero if no key is found in env vars OR config files. A `[ -z "$ZOODATA_API_KEY" ]` test alone is NOT sufficient — a user may have only `~/.zoodata/config.json` set.
 
 When no key is found through any mechanism:
 
@@ -89,7 +90,7 @@ When `zoodata.py` returns `{"code": 402, "message": "API quota exhausted or subs
    - Top-up link: https://zoodata.ai/en/pricing
 3. **Do not fabricate or guess** the missing data to "complete" the report. Mark partial findings explicitly as partial. **No "training-data fallback" / "industry common-sense" filler** — substituting public-knowledge prose for missing endpoint data is still fabrication.
 
-## 18 Endpoints
+## 20 Endpoints
 
 | # | Endpoint | Purpose | Key Output |
 |---|----------|---------|------------|
@@ -111,6 +112,8 @@ When `zoodata.py` returns `{"code": 402, "message": "API quota exhausted or subs
 | 16 | `/openapi/v2/keywords/search-results` | Daily keyword SERP snapshot | `asin`, `exploreType`, `absolutePosition`, `estimateImpressionPoint`, listing fields |
 | 17 | `/openapi/v2/keywords/competitor-product-keywords` | Keyword set where an ASIN appears as a competitor | `keyword`, `avgPosition`, `keywordEstimateSearchCount`, `trafficShare` |
 | 18 | `/openapi/v2/keywords/product-traffic-terms` | Traffic-driving keywords for an ASIN | same live response shape as competitor-product-keywords |
+| 19 | `/openapi/v2/keywords/product-traffic-terms-overview` | Weekly ASIN all-keyword traffic-change overview | current vs previous-period placement-level impression points, ORG first-3-page keyword entries/exits |
+| 20 | `/openapi/v2/keywords/product-traffic-terms-timeline` | ASIN + keyword daily timeline | position/impression points, listing snapshot, keyword weekly metrics, ad activity |
 
 ## Known Quirks
 - `topN`, `listingAge`, `newProductPeriod` are **strings** (`"10"` not `10`)
@@ -128,19 +131,33 @@ When `zoodata.py` returns `{"code": 402, "message": "API quota exhausted or subs
 - `keywords/detail` resolves the input `date` to the nearest available weekly snapshot at or before that date, and may legitimately return `data: null` even with `success: true`
 - `keywords/extends` also resolves the input `date` to the nearest available weekly snapshot, requires `query` (not `keyword`), supports `queryType` = `phrase` or `fuzzy`, and may legitimately return `data: []`
 - `keywords/search-results`, `keywords/competitor-product-keywords`, and `keywords/product-traffic-terms` use daily observations over a sliding ~7-day window, not a long-retention historical store
+- Keyword endpoints are keyword-query workflows; for inputs named `keyword` or `query`, use the Amazon search query / keyword phrase being analyzed
+- For keyword endpoints that require `date` or `dateTo`, prefer T-1 or earlier and avoid the current date unless the user explicitly asks for today's lookup
 - `keywords/search-results` requires `date` + `keyword`; `exploreTypes` values are `ORG`, `SP`, `SB`, `SBV`, `SPR`
 - `keywords/competitor-product-keywords` and `keywords/product-traffic-terms` require `date` + `asin`; both currently return the same live item shape, including `trafficShare`
+- `keywords/product-traffic-terms-overview` requires `date` + `asin`; it returns the latest weekly overview of all keyword impression traffic changes under that ASIN at or before the date, compared with the previous period
+- `keywords/product-traffic-terms-timeline` requires `asin` + exact `keyword` + `dateFrom` + `dateTo`; the date range cannot exceed 60 days
 - `keywords/search-results` is the default source for explaining what products currently appear on a keyword SERP because it already returns listing-level product fields
 - `products/search` is a broader ZooData product-database query and must not be presented as Amazon live keyword SERP ordering
 
 ## Keyword Intelligence Endpoints
 
-These six endpoints were verified against the live API surface and fill the gap between raw
+These eight endpoints were verified against the live API surface and fill the gap between raw
 catalog data and search-demand/search-visibility intelligence.
+
+Keyword value boundary:
+- Keyword endpoints provide estimated search, visibility, rank, traffic-share, and impression-point signals
+- They do not provide a seller's first-party ABA Search Query Performance funnel by themselves
+- Treat keyword value, profitability, and conversion potential as directional unless the user supplies ABA-SQP impressions, clicks, cart adds, purchases, click share, purchase share, and conversion rate
+- ABA-SQP backend location: Chinese Seller Central path `品牌分析 -> 搜索分析 -> 搜索查询绩效 -> 品牌视图`; English Seller Central path `Brand Analytics -> Search Analytics -> Search Query Performance -> Brand View`
+- Recommended ABA-SQP data provision method: in Brand View, sort descending by `[Search Funnel - Impressions](https://sellercentral.amazon.com/brand-analytics/metric-glossary?linkedFrom=query-performance-brand-report-table-qp-impressions-group) -> Brand Count` / `搜索漏斗-展示次数 -> 品牌数量`, then provide a screenshot; alternatively, download the CSV and provide it for model analysis
+- If the user has not provided Amazon backend ABA-SQP search conversion data, every traffic-related conclusion or recommendation group should include: "建议结合 Amazon 后台 ABA-SQP 的搜索转化数据做更精确分析（中文路径：品牌分析 -> 搜索分析 -> 搜索查询绩效 -> 品牌视图；英文路径：Brand Analytics -> Search Analytics -> Search Query Performance -> Brand View）."
+- If the user provided ABA-SQP data, use it as first-party conversion evidence and do not add that caveat
 
 ### `/openapi/v2/keywords/detail`
 - Input: `keyword`, `date`, optional `marketplace`
 - Data window: resolves the requested `date` to the nearest available weekly snapshot at or before that date
+- Date rule: prefer T-1 or earlier for `date`; avoid current-date lookup unless explicitly requested
 - Response shape: top-level `data` is an object or `null` (not an array)
 - Key fields from schema: `estimateSearchCountWeekly`, `abaRank`, `abaTop3ClickShareRate`,
   `abaTop3ConversionShareRate`, `marketCharacteristics`, `totalSkuCnt`, `brandCount`,
@@ -151,6 +168,7 @@ catalog data and search-demand/search-visibility intelligence.
 ### `/openapi/v2/keywords/trend`
 - Input: `keyword`, `dateFrom`, `dateTo`, optional `marketplace`
 - Data window: weekly-granularity points across the requested date range
+- Date rule: prefer T-1 or earlier for `dateTo`; avoid current-date lookup unless explicitly requested
 - Response shape: `data` is an array
 - Key fields from live response/schema: `observedAt`, `periodStartDate`, `periodEndDate`,
   `estimateSearchCount`, `estimateSearchChangeCount`, `estimateSearchChangeRate`, `abaRank`,
@@ -160,6 +178,7 @@ catalog data and search-demand/search-visibility intelligence.
 - Input: `query`, `date`, optional `marketplace`, `page`, `pageSize`, `queryType`, `sortBy`, `sortOrder`
 - Important quirk: seed field is `query`, not `keyword`; `queryType` supports `phrase` and `fuzzy`
 - Data window: resolves the requested `date` to the nearest available weekly snapshot at or before that date
+- Date rule: prefer T-1 or earlier for `date`; avoid current-date lookup unless explicitly requested
 - Response shape: `data` is an array
 - Key fields from schema: `term`, `seedKeyword`, `relevanceScore`, `estimateSearchCountWeekly`,
   `abaRank`, `marketCharacteristics`, `brandCount`, `organicSkuCount`, `adCount`,
@@ -170,6 +189,7 @@ catalog data and search-demand/search-visibility intelligence.
 ### `/openapi/v2/keywords/search-results`
 - Input: `keyword`, `date`, optional `marketplace`, `page`, `pageSize`, `exploreTypes`, `sortBy`, `sortOrder`
 - Data window: daily observations surfaced through a sliding ~7-day window
+- Date rule: prefer T-1 or earlier for `date`; avoid current-date lookup unless explicitly requested
 - Response shape: `data` is an array
 - Key fields from live response/schema: `exploreType`, `absolutePosition`, `pageIndex`,
   `pagePosition`, `asin`, `title`, `brand`, `price`, `currency`, `link`, `imageLink`, `rating`,
@@ -182,6 +202,7 @@ catalog data and search-demand/search-visibility intelligence.
 - Input: `asin`, `date`, optional `marketplace`, `page`, `pageSize`, `exploreTypes`,
   `keywordContains`, `sortBy`, `sortOrder`
 - Data window: daily observations surfaced through a sliding ~7-day window
+- Date rule: prefer T-1 or earlier for `date`; avoid current-date lookup unless explicitly requested
 - Response shape: `data` is an array
 - Key fields from live response/schema: `exploreType`, `absolutePosition`, `pageIndex`,
   `pagePosition`, `asin`, `keyword`, `estimateImpressionPoint`, `asinTotalEstimateImpressionPoint`,
@@ -192,6 +213,7 @@ catalog data and search-demand/search-visibility intelligence.
 ### `/openapi/v2/keywords/product-traffic-terms`
 - Input: same request shape as `keywords/competitor-product-keywords`
 - Data window: daily observations surfaced through a sliding ~7-day window
+- Date rule: prefer T-1 or earlier for `date`; avoid current-date lookup unless explicitly requested
 - Response shape: `data` is an array
 - Key fields from live response/schema: `exploreType`, `absolutePosition`, `pageIndex`,
   `pagePosition`, `asin`, `keyword`, `estimateImpressionPoint`, `asinTotalEstimateImpressionPoint`,
@@ -200,6 +222,62 @@ catalog data and search-demand/search-visibility intelligence.
   `keywordAbaRankChangeCount`, `trafficShare`
 - Live validation note: current live response item shape matches `keywords/competitor-product-keywords`
   field-for-field; keep the semantic distinction in output wording rather than assuming a unique schema
+
+### `/openapi/v2/keywords/product-traffic-terms-overview`
+- Input: `asin`, `date`, optional `marketplace`
+- Data window: latest weekly overview snapshot at or before the requested date; compares all keyword impression traffic under the ASIN with the previous period
+- Date rule: prefer T-1 or earlier for `date`; avoid current-date lookup unless explicitly requested
+- Response shape: `data` is an object or `null`
+- Key fields from live localhost MCP response: `periodStartDate`, `periodEndDate`, `asin`, `site`,
+  `organicImpressionPoint`, `sponsoredProductImpressionPoint`, `sponsoredBrandImpressionPoint`,
+  `sponsoredBrandVideoImpressionPoint`, `sponsoredRecommendImpressionPoint`,
+  `organicImpressionPointPrev`, `sponsoredProductImpressionPointPrev`,
+  `sponsoredBrandImpressionPointPrev`, `sponsoredBrandVideoImpressionPointPrev`,
+  `sponsoredRecommendImpressionPointPrev`, `first3PagesNewOrganicKeywords`,
+  `first3PagesLostOrganicKeywords`
+- `*Prev` fields are previous-period baselines for the matching current impression-point fields
+- `first3PagesNewOrganicKeywords` and `first3PagesLostOrganicKeywords` are arrays of objects with
+  `keyword`, `pageIndex`, and `pagePosition`
+- `first3PagesNewOrganicKeywords` lists keywords newly entering ORG first three pages; `first3PagesLostOrganicKeywords`
+  lists keywords that dropped out of ORG first three pages
+- Live validation request: MCP tool `openapi_v2_product_traffic_terms_overview` on
+  `http://localhost:8080/mcp`, `asin="B01CGLCGRA"`, `date="2026-06-29"`, `marketplace="US"`
+
+### `/openapi/v2/keywords/product-traffic-terms-timeline`
+- Input: `asin`, exact `keyword`, `dateFrom`, `dateTo`, optional `marketplace`, `page`, `pageSize`,
+  `sortBy`, `sortOrder`
+- Data window: ASIN + keyword timeline across the requested date range; date range cannot exceed 60 days
+- Date rule: prefer T-1 or earlier for `dateTo`; avoid current-date lookup unless explicitly requested
+- Response shape: `data` is an array
+- Metric groups:
+  - `keyword*` fields are keyword traffic-forecast dependency data for the provided keyword's corresponding metric period, indicated by `keywordPeriodStartDate` / `keywordPeriodEndDate`
+  - `latest*` fields are the ASIN's latest product/listing/rank snapshot on the specified `date`
+  - impression-point fields, `avg*` fields, ad-activity fields, and placement observations are rolling metrics for the most recent 7 days ending at the given `date`
+- Diagnosis curves/events: price (`latestPrice`), BSR (`latestSmallCategoryBsr`, `latestBigCategoryBsr`),
+  sales (`latestMonthlySaleCnt`), rating (`latestRatingAmt`, `latestRatingCnt`), traffic estimate
+  (impression-point fields plus `avgOrganicObservation` / `avgAdObservation`), and listing events
+  (`latestTitle`, `latestMainImageLink`)
+- Key fields from live localhost MCP response: `date`, `site`, `asin`, `keyword`, listing snapshot fields
+  such as `latestTitle`, `latestPrice`, `latestCurrency`, `latestLink`, `latestMainImageLink`,
+  `latestBrandName`, `latestMonthlySaleCnt`, `latestRatingAmt`, `latestRatingCnt`,
+  `latestSmallCategoryName`, `latestSmallCategoryBsr`, `latestBigCategoryName`,
+  `latestBigCategoryBsr`, `latestProductHasVideo`; placement fields such as `exploreTypes`,
+  `exploreRecommendTypes`, `organicImpressionPoint`, `sponsoredProductImpressionPoint`,
+  `sponsoredBrandImpressionPoint`, `sponsoredBrandVideoImpressionPoint`,
+  `sponsoredRecommendImpressionPoint`, `latestOrganicPosition`, `latestOrganicPageIndex`,
+  `latestOrganicPagePosition`, `latestOrganicObservedAt`, `latestAdPosition`,
+  `latestAdPageIndex`, `latestAdPagePosition`, `latestAdObservedAt`, `avgOrganicObservation`,
+  `avgAdObservation`; keyword snapshot fields such as `keywordPeriodStartDate`,
+  `keywordPeriodEndDate`, `keywordEstimateSearchCnt`, `keywordEstimateSearchGrowthCnt`,
+  `keywordAbaRank`, `keywordAbaRankGrowthCnt`, `keywordAbaTopClickShareRate`,
+  `keywordAbaTopConversionShareRate`, `keywordTitleDensity`, `keywordTotalSkuCnt`,
+  `keywordObservedSkuCnt`, `keywordOrganicSkuCnt`, `keywordSponsoredProductSkuCnt`,
+  `keywordSponsoredBrandSkuCnt`, `keywordSponsoredBrandVideoSkuCnt`,
+  `keywordSponsoredRecommendSkuCnt`; ad activity fields `adActiveObservationCount`,
+  `adActiveDayCoverageRate`, `adCampaignCnt`, `adCnt`
+- Live validation request: MCP tool `openapi_v2_product_traffic_terms_timeline` on
+  `http://localhost:8080/mcp`, `asin="B01CGLCGRA"`, `keyword="yoga mat"`,
+  `dateFrom="2026-06-23"`, `dateTo="2026-06-29"`, `marketplace="US"`
 
 ## Local Review Toolkit
 
