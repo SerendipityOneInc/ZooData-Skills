@@ -18,6 +18,14 @@ Usage:
     python zoodata.py product --asin B09V3KXJPB
     python zoodata.py report --keyword "pet supplies"
     python zoodata.py opportunity --keyword "pet supplies"
+    python zoodata.py keyword-detail --keyword "yoga mat" --date 2025-06-01
+    python zoodata.py keyword-trend --keyword "yoga mat" --date-from 2025-01-01 --date-to 2025-06-01
+    python zoodata.py keyword-extends --query "yoga mat" --date 2025-06-01
+    python zoodata.py keyword-search-results --keyword "yoga mat" --date 2025-06-01
+    python zoodata.py keyword-competitor-product-keywords --asin B09V3KXJPB --date 2025-06-01
+    python zoodata.py keyword-product-traffic-terms --asin B09V3KXJPB --date 2025-06-01
+    python zoodata.py product-traffic-terms-overview --asin B09V3KXJPB --date 2025-06-01
+    python zoodata.py product-traffic-terms-timeline --asin B09V3KXJPB --keyword "yoga mat" --date 2025-06-01
 
 Environment:
     ZOODATA_API_KEY — Required. Get one at https://zoodata.ai/en/api-keys
@@ -31,10 +39,25 @@ import random
 import time
 import urllib.request
 import urllib.error
+import re
+from datetime import date
 
 # ─── Configuration ───────────────────────────────────────────────────────────
 
-BASE_URL = "https://api.zoodata.ai/openapi/v2"  # ZooData API base URL
+DEFAULT_BASE_URL = "https://api.zoodata.ai/openapi/v2"
+API_BASE_PATH = "/openapi/v2"
+KEYWORD_DATE_RANGE_MAX_DAYS = 93
+
+
+def _resolve_base_url():
+    """Resolve API base URL, allowing local test hosts via ZOODATA_BASE_URL."""
+    configured = os.environ.get("ZOODATA_BASE_URL", DEFAULT_BASE_URL).strip().rstrip("/")
+    if configured.endswith(API_BASE_PATH):
+        return configured
+    return f"{configured}{API_BASE_PATH}"
+
+
+BASE_URL = _resolve_base_url()  # ZooData API base URL
 API_DOCS = "https://api.zoodata.ai/api-docs"   # API documentation URL
 MAX_RETRIES = 3       # Maximum number of retry attempts for failed requests
 RETRY_DELAY = 2       # Initial retry delay in seconds; doubles on each retry
@@ -45,6 +68,9 @@ REQUEST_TIMEOUT = 60  # Request timeout in seconds; realtime/product can be slow
 
 # Global request pacer — prevents burst rate limit violations
 _last_request_time = 0.0
+
+
+DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 # 13 built-in product selection modes
 # Each maps to a set of products/search filter parameters
@@ -186,6 +212,11 @@ def api_call(endpoint: str, params: dict) -> dict:
                     return data
         except urllib.error.HTTPError as e:
             status = e.code
+            response_text = ""
+            try:
+                response_text = e.read().decode("utf-8", errors="replace")
+            except Exception:
+                response_text = ""
             if status == 401:
                 return _error_result(401, "API Key invalid or expired",
                     "Check your API Key or get a new one at https://zoodata.ai/en/api-keys",
@@ -213,6 +244,17 @@ def api_call(endpoint: str, params: dict) -> dict:
             elif status == 404:
                 return _error_result(404, f"Endpoint '{endpoint}' not found",
                     f"Check {API_DOCS} for current endpoints",
+                    endpoint, actual_params)
+            elif status == 422:
+                detail = response_text.strip()
+                if detail:
+                    try:
+                        parsed = json.loads(detail)
+                        detail = json.dumps(parsed, ensure_ascii=False)
+                    except json.JSONDecodeError:
+                        pass
+                return _error_result(422, "Request validation failed",
+                    detail or "Check request parameters, especially date formats and required fields",
                     endpoint, actual_params)
             else:
                 if attempt < max_attempts:
@@ -2299,8 +2341,8 @@ def cmd_review_deepdive(args):
 
 def cmd_check(args):
     """
-    API self-check: verify API connectivity and available endpoints.
-    Tests each endpoint with a simple query.
+    API self-check: verify credentials by default.
+    Endpoint probes are opt-in because each API call can consume credits.
     """
     print("ZooData API Self-Check\n", file=sys.stderr)
     print("=" * 50, file=sys.stderr)
@@ -2314,14 +2356,44 @@ def cmd_check(args):
         print("   Get one at: https://zoodata.ai/en/api-keys", file=sys.stderr)
         sys.exit(1)
 
+    if not args.endpoints and not args.keyword_endpoints:
+        print("\nNo endpoint probes requested; skipping API calls to avoid credit usage.", file=sys.stderr)
+        print("Use --endpoints for general endpoint probes or --keyword-endpoints for keyword endpoint probes.", file=sys.stderr)
+        output({"check": "credentials_only", "api_key": "configured", "endpoint_probes": "skipped"}, args.format)
+        return
+
     print(f"\nTesting endpoints on {BASE_URL}...\n", file=sys.stderr)
 
-    endpoints = [
-        ("categories", {}, "Category tree"),
-        ("markets/search", {"categoryKeyword": "pet", "pageSize": 1}, "Market search"),
-        ("products/search", {"keyword": "test", "pageSize": 1}, "Product search"),
-        ("products/competitors", {"keyword": "test", "pageSize": 1}, "Competitor lookup"),
-    ]
+    endpoints = []
+    if args.endpoints:
+        endpoints.extend([
+            ("categories", {}, "Category tree"),
+            ("markets/search", {"categoryKeyword": "pet", "pageSize": 1}, "Market search"),
+            ("products/search", {"keyword": "test", "pageSize": 1}, "Product search"),
+            ("products/competitors", {"keyword": "test", "pageSize": 1}, "Competitor lookup"),
+        ])
+    if args.keyword_endpoints:
+        keyword = args.keyword or "yoga mat"
+        date = args.date or time.strftime("%Y-%m-%d", time.localtime(time.time() - 86400))
+        endpoints.extend([
+            ("keywords/detail", {"keyword": keyword, "date": date}, "Keyword snapshot"),
+            ("keywords/extends", {"query": keyword, "date": date, "queryType": "phrase", "pageSize": 1}, "Keyword expansion"),
+            ("keywords/search-results", {"keyword": keyword, "date": date, "pageSize": 1}, "Keyword SERP"),
+        ])
+        if args.asin:
+            endpoints.extend([
+                ("keywords/product-traffic-terms", {"asin": args.asin, "date": date, "pageSize": 1}, "ASIN traffic terms"),
+                ("keywords/competitor-product-keywords", {"asin": args.asin, "date": date, "pageSize": 1}, "ASIN keyword coverage"),
+                ("keywords/product-traffic-terms-overview", {"asin": args.asin, "date": date}, "ASIN traffic overview"),
+            ])
+            if keyword:
+                endpoints.append((
+                    "keywords/product-traffic-terms-timeline",
+                    {"asin": args.asin, "keyword": keyword, "dateFrom": date, "dateTo": date, "pageSize": 1},
+                    "ASIN + keyword timeline",
+                ))
+        else:
+            print("⏭️  ASIN keyword endpoints      (skipped, pass --asin to probe)", file=sys.stderr)
 
     results = {}
     all_ok = True
@@ -2329,9 +2401,17 @@ def cmd_check(args):
     for endpoint, params, desc in endpoints:
         try:
             result = api_call(endpoint, params)
-            data_count = len(result.get("data", []))
-            print(f"✅ {endpoint:30} OK (returned {data_count} items)", file=sys.stderr)
-            results[endpoint] = {"status": "ok", "items": data_count}
+            if result.get("success"):
+                data = result.get("data")
+                data_count = len(data) if isinstance(data, list) else (1 if data else 0)
+                print(f"✅ {endpoint:30} OK (returned {data_count} items)", file=sys.stderr)
+                results[endpoint] = {"status": "ok", "items": data_count}
+            else:
+                err = result.get("error", {})
+                message = err.get("message") or err.get("code") or "unknown error"
+                print(f"❌ {endpoint:30} FAILED: {message}", file=sys.stderr)
+                results[endpoint] = {"status": "failed", "message": message}
+                all_ok = False
         except SystemExit:
             print(f"❌ {endpoint:30} FAILED", file=sys.stderr)
             results[endpoint] = {"status": "failed"}
@@ -2341,12 +2421,12 @@ def cmd_check(args):
             results[endpoint] = {"status": "error", "message": str(e)}
             all_ok = False
 
-    # Note: realtime/product requires a valid ASIN, skip in self-check
-    print(f"⏭️  realtime/product            (skipped, requires valid ASIN)", file=sys.stderr)
+    if args.endpoints:
+        print(f"⏭️  realtime/product            (skipped, requires valid ASIN)", file=sys.stderr)
 
     print("\n" + "=" * 50, file=sys.stderr)
     if all_ok:
-        print("✅ All endpoints operational", file=sys.stderr)
+        print("✅ Requested endpoint probes completed", file=sys.stderr)
     else:
         print("⚠️  Some endpoints failed. Check API key or network.", file=sys.stderr)
 
@@ -2454,6 +2534,165 @@ def cmd_product_history(args):
     output(result, args.format)
 
 
+def _split_csv(value):
+    """Split a comma-separated CLI value into a list, preserving None."""
+    if not value:
+        return None
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def _require_yyyy_mm_dd(value, name):
+    """Fail fast on malformed dates before sending validation-bad requests."""
+    if not DATE_RE.match(value or ""):
+        raise SystemExit(f"ERROR: {name} must be a full date in YYYY-MM-DD format, got: {value!r}")
+    try:
+        date.fromisoformat(value)
+    except ValueError:
+        raise SystemExit(f"ERROR: {name} must be a valid calendar date in YYYY-MM-DD format, got: {value!r}")
+    return value
+
+
+def _require_date_range_within(date_from, date_to, max_days, label):
+    """Fail fast on validation-bad date ranges before sending API requests."""
+    start = date.fromisoformat(date_from)
+    end = date.fromisoformat(date_to)
+    span = (end - start).days
+    if span < 0:
+        raise SystemExit(
+            f"ERROR: --date-from must be on or before --date-to for {label}, got: {date_from} > {date_to}"
+        )
+    if span > max_days:
+        raise SystemExit(
+            f"ERROR: {label} date range cannot exceed {max_days} days, got {span} days "
+            f"({date_from} to {date_to})"
+        )
+
+
+def cmd_keyword_detail(args):
+    """Get weekly keyword snapshot metrics."""
+    _require_yyyy_mm_dd(args.date, "--date")
+    params = {
+        "keyword": args.keyword,
+        "date": args.date,
+        "marketplace": args.marketplace,
+    }
+    result = api_call("keywords/detail", params)
+    output(result, args.format)
+
+
+def cmd_keyword_trend(args):
+    """Get weekly keyword trend metrics."""
+    _require_yyyy_mm_dd(args.date_from, "--date-from")
+    _require_yyyy_mm_dd(args.date_to, "--date-to")
+    _require_date_range_within(args.date_from, args.date_to, KEYWORD_DATE_RANGE_MAX_DAYS, "keyword-trend")
+    params = {
+        "keyword": args.keyword,
+        "dateFrom": args.date_from,
+        "dateTo": args.date_to,
+        "marketplace": args.marketplace,
+    }
+    result = api_call("keywords/trend", params)
+    output(result, args.format)
+
+
+def cmd_keyword_extends(args):
+    """Get keyword expansion candidates."""
+    _require_yyyy_mm_dd(args.date, "--date")
+    params = {
+        "query": args.query,
+        "date": args.date,
+        "marketplace": args.marketplace,
+        "page": args.page,
+        "pageSize": args.page_size,
+        "queryType": args.query_type,
+        "sortBy": args.sort_by,
+        "sortOrder": args.sort_order,
+    }
+    result = api_call("keywords/extends", params)
+    output(result, args.format)
+
+
+def cmd_keyword_search_results(args):
+    """Get observed keyword SERP rows."""
+    _require_yyyy_mm_dd(args.date, "--date")
+    params = {
+        "keyword": args.keyword,
+        "date": args.date,
+        "marketplace": args.marketplace,
+        "page": args.page,
+        "pageSize": args.page_size,
+        "exploreTypes": _split_csv(args.explore_types),
+        "sortBy": args.sort_by,
+        "sortOrder": args.sort_order,
+    }
+    result = api_call("keywords/search-results", params)
+    output(result, args.format)
+
+
+def _asin_keyword_params(args):
+    _require_yyyy_mm_dd(args.date, "--date")
+    return {
+        "asin": args.asin,
+        "date": args.date,
+        "marketplace": args.marketplace,
+        "page": args.page,
+        "pageSize": args.page_size,
+        "exploreTypes": _split_csv(args.explore_types),
+        "keywordContains": args.keyword_contains,
+        "sortBy": args.sort_by,
+        "sortOrder": args.sort_order,
+    }
+
+
+def cmd_keyword_competitor_product_keywords(args):
+    """Get competitor ASIN keyword rows."""
+    result = api_call("keywords/competitor-product-keywords", _asin_keyword_params(args))
+    output(result, args.format)
+
+
+def cmd_keyword_product_traffic_terms(args):
+    """Get traffic-driving keyword rows for one ASIN."""
+    result = api_call("keywords/product-traffic-terms", _asin_keyword_params(args))
+    output(result, args.format)
+
+
+def cmd_product_traffic_terms_overview(args):
+    """Get weekly product traffic-term overview for one ASIN."""
+    _require_yyyy_mm_dd(args.date, "--date")
+    params = {
+        "asin": args.asin,
+        "date": args.date,
+        "marketplace": args.marketplace,
+    }
+    result = api_call("keywords/product-traffic-terms-overview", params)
+    output(result, args.format)
+
+
+def cmd_product_traffic_terms_timeline(args):
+    """Get product traffic-term timeline for one ASIN + keyword."""
+    _require_yyyy_mm_dd(args.date_from, "--date-from")
+    _require_yyyy_mm_dd(args.date_to, "--date-to")
+    _require_date_range_within(
+        args.date_from,
+        args.date_to,
+        KEYWORD_DATE_RANGE_MAX_DAYS,
+        "product-traffic-terms-timeline",
+    )
+    params = {
+        "asin": args.asin,
+        "keyword": args.keyword,
+        "dateFrom": args.date_from,
+        "dateTo": args.date_to,
+        "marketplace": args.marketplace,
+        "page": args.page,
+        "pageSize": args.page_size,
+        "sortBy": args.sort_by,
+        "sortOrder": args.sort_order,
+    }
+    result = api_call("keywords/product-traffic-terms-timeline", params)
+    output(result, args.format)
+
+
 # ─── CLI Setup ───────────────────────────────────────────────────────────────
 
 def main():
@@ -2471,7 +2710,8 @@ Examples:
   %(prog)s product --asin B09V3KXJPB
   %(prog)s report --keyword "pet supplies"
   %(prog)s opportunity --keyword "pet supplies" --mode high-demand-low-barrier
-  %(prog)s check                                            # API self-check
+  %(prog)s check                                            # Credential check, no endpoint calls
+  %(prog)s check --keyword-endpoints --keyword "yoga mat"   # Optional keyword endpoint probes
         """,
     )
 
@@ -2694,8 +2934,100 @@ Examples:
     p_ph.add_argument("--end-date", required=True, help="End date (YYYY-MM-DD)")
     p_ph.set_defaults(func=cmd_product_history)
 
+    # ── keyword-detail ──
+    p_kd = sub.add_parser("keyword-detail", help="Keyword weekly snapshot", allow_abbrev=False)
+    p_kd.add_argument("--keyword", required=True, help="Keyword (required)")
+    p_kd.add_argument("--date", required=True, help="Lookup date (YYYY-MM-DD)")
+    p_kd.add_argument("--marketplace", choices=["US", "UK"], default="US", help="Marketplace (default: US)")
+    p_kd.set_defaults(func=cmd_keyword_detail)
+
+    # ── keyword-trend ──
+    p_kt = sub.add_parser("keyword-trend", help="Keyword weekly trend", allow_abbrev=False)
+    p_kt.add_argument("--keyword", required=True, help="Keyword (required)")
+    p_kt.add_argument("--date-from", required=True, help="Start date (YYYY-MM-DD; max 93-day range)")
+    p_kt.add_argument("--date-to", required=True, help="End date (YYYY-MM-DD; max 93-day range)")
+    p_kt.add_argument("--marketplace", choices=["US", "UK"], default="US", help="Marketplace (default: US)")
+    p_kt.set_defaults(func=cmd_keyword_trend)
+
+    # ── keyword-extends ──
+    p_ke = sub.add_parser("keyword-extends", help="Keyword expansion", allow_abbrev=False)
+    p_ke.add_argument("--query", required=True, help="Seed keyword (required)")
+    p_ke.add_argument("--date", required=True, help="Lookup date (YYYY-MM-DD)")
+    p_ke.add_argument("--marketplace", choices=["US", "UK"], default="US", help="Marketplace (default: US)")
+    p_ke.add_argument("--page", type=int, default=1, help="Page number (default: 1)")
+    p_ke.add_argument("--page-size", type=int, default=20, help="Page size (default: 20, max 100)")
+    p_ke.add_argument("--query-type", choices=["phrase", "fuzzy"], default="phrase", help="Expansion mode (default: phrase)")
+    p_ke.add_argument("--sort-by", choices=["relevanceScore", "estimateSearchCount", "abaRank", "observedAt", "keyword"], default="relevanceScore")
+    p_ke.add_argument("--sort-order", choices=["asc", "desc"], default="desc")
+    p_ke.set_defaults(func=cmd_keyword_extends)
+
+    # ── keyword-search-results ──
+    p_ksr = sub.add_parser("keyword-search-results", help="Keyword SERP snapshot", allow_abbrev=False)
+    p_ksr.add_argument("--keyword", required=True, help="Keyword (required)")
+    p_ksr.add_argument("--date", required=True, help="Lookup date (YYYY-MM-DD)")
+    p_ksr.add_argument("--marketplace", choices=["US", "UK"], default="US", help="Marketplace (default: US)")
+    p_ksr.add_argument("--page", type=int, default=1, help="Page number (default: 1)")
+    p_ksr.add_argument("--page-size", type=int, default=20, help="Page size (default: 20, max 100)")
+    p_ksr.add_argument("--explore-types", help="Comma-separated placements: ORG,SP,SB,SBV,SPR")
+    p_ksr.add_argument("--sort-by", choices=["absolutePosition", "estimateImpressionPoint", "observedAt", "price", "rating", "ratingCount", "recentSales", "asin", "title"], default="absolutePosition")
+    p_ksr.add_argument("--sort-order", choices=["asc", "desc"], default="asc")
+    p_ksr.set_defaults(func=cmd_keyword_search_results)
+
+    # ── keyword-competitor-product-keywords ──
+    p_kcpk = sub.add_parser("keyword-competitor-product-keywords", help="Competitor ASIN keyword rows", allow_abbrev=False)
+    p_kcpk.add_argument("--asin", required=True, help="ASIN (required)")
+    p_kcpk.add_argument("--date", required=True, help="Lookup date (YYYY-MM-DD)")
+    p_kcpk.add_argument("--marketplace", choices=["US", "UK"], default="US", help="Marketplace (default: US)")
+    p_kcpk.add_argument("--page", type=int, default=1, help="Page number (default: 1)")
+    p_kcpk.add_argument("--page-size", type=int, default=20, help="Page size (default: 20, max 100)")
+    p_kcpk.add_argument("--explore-types", help="Comma-separated placements: ORG,SP,SB,SBV,SPR")
+    p_kcpk.add_argument("--keyword-contains", help="Optional substring filter")
+    p_kcpk.add_argument("--sort-by", choices=["estimateImpressionPoint", "absolutePosition", "avgPosition", "keywordEstimateSearchCount", "keywordAbaRank", "observedAt", "keyword"], default="estimateImpressionPoint")
+    p_kcpk.add_argument("--sort-order", choices=["asc", "desc"], default="desc")
+    p_kcpk.set_defaults(func=cmd_keyword_competitor_product_keywords)
+
+    # ── keyword-product-traffic-terms ──
+    p_kptt = sub.add_parser("keyword-product-traffic-terms", help="ASIN traffic-driving keyword rows", allow_abbrev=False)
+    p_kptt.add_argument("--asin", required=True, help="ASIN (required)")
+    p_kptt.add_argument("--date", required=True, help="Lookup date (YYYY-MM-DD)")
+    p_kptt.add_argument("--marketplace", choices=["US", "UK"], default="US", help="Marketplace (default: US)")
+    p_kptt.add_argument("--page", type=int, default=1, help="Page number (default: 1)")
+    p_kptt.add_argument("--page-size", type=int, default=20, help="Page size (default: 20, max 100)")
+    p_kptt.add_argument("--explore-types", help="Comma-separated placements: ORG,SP,SB,SBV,SPR")
+    p_kptt.add_argument("--keyword-contains", help="Optional substring filter")
+    p_kptt.add_argument("--sort-by", choices=["estimateImpressionPoint", "absolutePosition", "avgPosition", "keywordEstimateSearchCount", "keywordAbaRank", "observedAt", "keyword"], default="estimateImpressionPoint")
+    p_kptt.add_argument("--sort-order", choices=["asc", "desc"], default="desc")
+    p_kptt.set_defaults(func=cmd_keyword_product_traffic_terms)
+
+    # ── product-traffic-terms-overview ──
+    p_ptto = sub.add_parser("product-traffic-terms-overview", help="Weekly ASIN traffic-term overview", allow_abbrev=False)
+    p_ptto.add_argument("--asin", required=True, help="ASIN (required)")
+    p_ptto.add_argument("--date", required=True, help="Lookup date (YYYY-MM-DD)")
+    p_ptto.add_argument("--marketplace", choices=["US", "UK"], default="US", help="Marketplace (default: US)")
+    p_ptto.set_defaults(func=cmd_product_traffic_terms_overview)
+
+    # ── product-traffic-terms-timeline ──
+    p_pttt = sub.add_parser("product-traffic-terms-timeline", help="ASIN + keyword traffic-term timeline", allow_abbrev=False)
+    p_pttt.add_argument("--asin", required=True, help="ASIN (required)")
+    p_pttt.add_argument("--keyword", required=True, help="Exact keyword (required)")
+    p_pttt.add_argument("--date-from", required=True, help="Start date (YYYY-MM-DD; max 93-day range)")
+    p_pttt.add_argument("--date-to", required=True, help="End date (YYYY-MM-DD; max 93-day range)")
+    p_pttt.add_argument("--marketplace", choices=["US", "UK"], default="US", help="Marketplace (default: US)")
+    p_pttt.add_argument("--page", type=int, default=1, help="Page number (default: 1)")
+    p_pttt.add_argument("--page-size", type=int, default=20, help="Page size (default: 20, max 100)")
+    p_pttt.add_argument("--sort-by", choices=["date"], default="date", help="Sort field (default: date)")
+    p_pttt.add_argument("--sort-order", choices=["asc", "desc"], default="asc", help="Sort direction (default: asc)")
+    p_pttt.set_defaults(func=cmd_product_traffic_terms_timeline)
+
     # ── check (API self-check) ──
-    p_check = sub.add_parser("check", help="Fetch latest OpenAPI spec to verify available endpoints", allow_abbrev=False)
+    p_check = sub.add_parser("check", help="Check credentials; endpoint probes are opt-in", allow_abbrev=False)
+    p_check.add_argument("--endpoints", action="store_true",
+                         help="Probe general commerce endpoints; consumes API credits")
+    p_check.add_argument("--keyword-endpoints", action="store_true",
+                         help="Probe keyword endpoints; consumes API credits")
+    p_check.add_argument("--keyword", help="Keyword/query to use for --keyword-endpoints probes")
+    p_check.add_argument("--asin", help="ASIN to use for ASIN keyword endpoint probes")
+    p_check.add_argument("--date", help="Optional YYYY-MM-DD snapshot date for keyword probes")
     p_check.set_defaults(func=cmd_check)
 
     args, unknown = parser.parse_known_args()

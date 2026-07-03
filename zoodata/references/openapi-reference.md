@@ -302,10 +302,20 @@ Tool-surface note:
 
 ## 12. /openapi/v2/keywords/detail
 
+Keyword value boundary for all keyword endpoints:
+- The keyword endpoints expose estimated search, SERP visibility, rank, traffic-share, and impression-point signals.
+- Keyword endpoints are keyword-query workflows; parameters named `keyword` or `query` expect Amazon search query / keyword phrases.
+- For keyword endpoints that require `date` or `dateTo`, prefer T-1 or earlier and avoid the current date unless the user explicitly asks for today's lookup.
+- These signals support directional screening and testing priority, but do not 100% prove a keyword's value for a specific ASIN.
+- ABA-SQP backend location: Chinese Seller Central path `品牌分析 -> 搜索分析 -> 搜索查询绩效 -> 品牌视图`; English Seller Central path `Brand Analytics -> Search Analytics -> Search Query Performance -> Brand View`.
+- Recommended ABA-SQP data provision method: in Brand View, sort descending by `[Search Funnel - Impressions](https://sellercentral.amazon.com/brand-analytics/metric-glossary?linkedFrom=query-performance-brand-report-table-qp-impressions-group) -> Brand Count` / `搜索漏斗-展示次数 -> 品牌数量`, then provide a screenshot; alternatively, download the CSV and provide it for model analysis.
+- If the user has not provided Amazon backend ABA-SQP search conversion data, every traffic-related conclusion or recommendation group should include: "建议结合 Amazon 后台 ABA-SQP 的搜索转化数据做更精确分析（中文路径：品牌分析 -> 搜索分析 -> 搜索查询绩效 -> 品牌视图；英文路径：Brand Analytics -> Search Analytics -> Search Query Performance -> Brand View）."
+- If the user provided ABA-SQP data, combine the endpoint output with impressions, clicks, cart adds, purchases, click share, purchase share, and conversion rate as first-party conversion evidence and omit that caveat.
+
 | Parameter | Type | Required | Note |
 |-----------|------|----------|------|
 | keyword | String | **Yes** | Keyword to inspect |
-| date | String | **Yes** | Lookup date `YYYY-MM-DD`; resolves to the nearest available weekly snapshot at or before that date |
+| date | String | **Yes** | Lookup date `YYYY-MM-DD`; prefer T-1 or earlier; resolves to the nearest available weekly snapshot at or before that date |
 | marketplace | String | No | Marketplace code, default `US` |
 
 ⚠️ Live behavior: `success: true` may still return `data: null` when no matching weekly snapshot record is available for that keyword.
@@ -324,7 +334,7 @@ Key fields: `estimateSearchCountWeekly`, `abaRank`, `abaTop3ClickShareRate`, `ab
 |-----------|------|----------|------|
 | keyword | String | **Yes** | Keyword to inspect |
 | dateFrom | String | **Yes** | Start date `YYYY-MM-DD` |
-| dateTo | String | **Yes** | End date `YYYY-MM-DD` |
+| dateTo | String | **Yes** | End date `YYYY-MM-DD`; prefer T-1 or earlier |
 | marketplace | String | No | Marketplace code, default `US` |
 
 **Response:** Array of weekly-granularity trend points across the requested date range.
@@ -343,7 +353,7 @@ Key fields: `observedAt`, `periodStartDate`, `periodEndDate`, `estimateSearchCou
 | Parameter | Type | Required | Note |
 |-----------|------|----------|------|
 | query | String | **Yes** | Seed keyword |
-| date | String | **Yes** | Lookup date `YYYY-MM-DD`; resolves to the nearest available weekly snapshot at or before that date |
+| date | String | **Yes** | Lookup date `YYYY-MM-DD`; prefer T-1 or earlier; resolves to the nearest available weekly snapshot at or before that date |
 | marketplace | String | No | Marketplace code, default `US` |
 | page | Integer | No | default 1 |
 | pageSize | Integer | No | default 20, max 100 |
@@ -374,7 +384,7 @@ Additional market-structure fields may appear on each item, including `totalSkuC
 | Parameter | Type | Required | Note |
 |-----------|------|----------|------|
 | keyword | String | **Yes** | Keyword to inspect |
-| date | String | **Yes** | Daily snapshot lookup date `YYYY-MM-DD` |
+| date | String | **Yes** | Daily snapshot lookup date `YYYY-MM-DD`; prefer T-1 or earlier |
 | marketplace | String | No | Marketplace code, default `US` |
 | page | Integer | No | default 1 |
 | pageSize | Integer | No | default 20, max 100 |
@@ -405,7 +415,7 @@ Interpretation rule:
 | Parameter | Type | Required | Note |
 |-----------|------|----------|------|
 | asin | String | **Yes** | Target ASIN |
-| date | String | **Yes** | Daily snapshot lookup date `YYYY-MM-DD` |
+| date | String | **Yes** | Daily snapshot lookup date `YYYY-MM-DD`; prefer T-1 or earlier |
 | marketplace | String | No | Marketplace code, default `US` |
 | page | Integer | No | default 1 |
 | pageSize | Integer | No | default 20, max 100 |
@@ -432,7 +442,7 @@ Key fields from live response: `exploreType`, `absolutePosition`, `pageIndex`, `
 | Parameter | Type | Required | Note |
 |-----------|------|----------|------|
 | asin | String | **Yes** | Target ASIN |
-| date | String | **Yes** | Daily snapshot lookup date `YYYY-MM-DD` |
+| date | String | **Yes** | Daily snapshot lookup date `YYYY-MM-DD`; prefer T-1 or earlier |
 | marketplace | String | No | Marketplace code, default `US` |
 | page | Integer | No | default 1 |
 | pageSize | Integer | No | default 20, max 100 |
@@ -453,6 +463,111 @@ Key fields from live response: `exploreType`, `absolutePosition`, `pageIndex`, `
 `daysCoverageRate`, `observationCount`, `keywordEstimateSearchCount`,
 `keywordEstimateSearchGrowthCount`, `keywordEstimateSearchCountChangeRate`, `keywordAbaRank`,
 `keywordAbaRankChangeCount`, `trafficShare`
+
+---
+
+## 18. /openapi/v2/keywords/product-traffic-terms-overview
+
+| Parameter | Type | Required | Note |
+|-----------|------|----------|------|
+| asin | String | **Yes** | Target ASIN |
+| date | String | **Yes** | Lookup date `YYYY-MM-DD`; prefer T-1 or earlier; returns the latest weekly all-keyword impression traffic-change overview on or before this date |
+| marketplace | String | No | Marketplace code, default `US` |
+
+**Response:** Single overview object **or `null`**.
+
+Purpose:
+- Shows estimated impression traffic changes across all keywords under the ASIN versus the previous period
+- Current placement-level impression-point fields are paired with matching `*Prev` previous-period fields
+- Lists keywords newly entering ORG first three pages and keywords dropping out of ORG first three pages
+
+Key fields from live localhost MCP response:
+`periodStartDate`, `periodEndDate`, `asin`, `site`, `organicImpressionPoint`,
+`sponsoredProductImpressionPoint`, `sponsoredBrandImpressionPoint`,
+`sponsoredBrandVideoImpressionPoint`, `sponsoredRecommendImpressionPoint`,
+`organicImpressionPointPrev`, `sponsoredProductImpressionPointPrev`,
+`sponsoredBrandImpressionPointPrev`, `sponsoredBrandVideoImpressionPointPrev`,
+`sponsoredRecommendImpressionPointPrev`, `first3PagesNewOrganicKeywords`,
+`first3PagesLostOrganicKeywords`.
+
+`*Prev` fields are previous-period baselines for the matching current impression-point fields.
+
+`first3PagesNewOrganicKeywords` and `first3PagesLostOrganicKeywords` items contain
+`keyword`, `pageIndex`, and `pagePosition`.
+
+`first3PagesNewOrganicKeywords` lists keywords newly entering ORG first three pages;
+`first3PagesLostOrganicKeywords` lists keywords that dropped out of ORG first three pages.
+
+Live validation source: `http://localhost:8080/mcp` tool
+`openapi_v2_product_traffic_terms_overview`, request
+`{"asin":"B01CGLCGRA","date":"2026-06-29","marketplace":"US"}`.
+
+---
+
+## 19. /openapi/v2/keywords/product-traffic-terms-timeline
+
+| Parameter | Type | Required | Note |
+|-----------|------|----------|------|
+| asin | String | **Yes** | Target ASIN |
+| keyword | String | **Yes** | Exact keyword filter |
+| dateFrom | String | **Yes** | Start date `YYYY-MM-DD` |
+| dateTo | String | **Yes** | End date `YYYY-MM-DD`; prefer T-1 or earlier; requested range cannot exceed 93 days |
+| marketplace | String | No | Marketplace code, default `US` |
+| page | Integer | No | default 1 |
+| pageSize | Integer | No | default 20, max 100 |
+| sortBy | String | No | `date` |
+| sortOrder | String | No | `asc` / `desc` |
+
+**Response:** Array of timeline rows.
+
+Metric groups:
+- `keyword*` fields are keyword traffic-forecast dependency data for the provided keyword's corresponding metric period, indicated by `keywordPeriodStartDate` / `keywordPeriodEndDate`
+- `latest*` fields are the ASIN's latest product/listing/rank snapshot on the specified `date`
+- impression-point fields, `avg*` fields, ad-activity fields, and placement observations are rolling metrics for the most recent 7 days ending at the given `date`
+
+Diagnosis curves and events:
+- Price curve: `latestPrice`
+- BSR curve: `latestSmallCategoryBsr`, `latestBigCategoryBsr`
+- Sales curve: `latestMonthlySaleCnt`
+- Rating curve: `latestRatingAmt`, `latestRatingCnt`
+- Traffic-estimate curve: impression-point fields plus `avgOrganicObservation` / `avgAdObservation`
+- Keyword fields: use `keyword*` fields only as supporting context for traffic-estimate changes
+- Listing events: `latestTitle` and `latestMainImageLink` changes indicate title/main-image change events
+
+Key fields from live localhost MCP response:
+`date`, `site`, `asin`, `keyword`, `latestTitle`, `latestPrice`, `latestCurrency`,
+`latestLink`, `latestMainImageLink`, `latestBrandName`, `latestProductBadges`,
+`latestMonthlySaleCnt`, `latestRatingAmt`, `latestRatingCnt`,
+`latestSmallCategoryName`, `latestSmallCategoryBsr`, `latestBigCategoryName`,
+`latestBigCategoryBsr`, `latestProductHasVideo`, `exploreTypes`,
+`exploreRecommendTypes`, `organicImpressionPoint`, `sponsoredProductImpressionPoint`,
+`sponsoredBrandImpressionPoint`, `sponsoredBrandVideoImpressionPoint`,
+`sponsoredRecommendImpressionPoint`, `latestOrganicPosition`,
+`latestOrganicPageIndex`, `latestOrganicPageSize`, `latestOrganicPageSizeReal`,
+`latestOrganicPagePosition`, `latestOrganicObservedAt`, `latestAdPosition`,
+`latestAdPageIndex`, `latestAdPageSize`, `latestAdPageSizeReal`,
+`latestAdPagePosition`, `latestAdObservedAt`, `avgOrganicObservation`,
+`avgAdObservation`, `keywordPeriodStartDate`, `keywordPeriodEndDate`,
+`keywordEstimateSearchCnt`, `keywordEstimateSearchGrowthCnt`, `keywordEstimateShowCnt`,
+`keywordEstimateShowGrowthCnt`, `keywordEstimateClickCnt`,
+`keywordEstimateClickGrowthCnt`, `keywordEstimatePurchaseCnt`,
+`keywordEstimatePurchaseGrowthCnt`, `keywordAbaRank`, `keywordAbaRankGrowthCnt`,
+`keywordAbaTopClickShareRate`, `keywordAbaTopClickShareGrowthAmt`,
+`keywordAbaTopConversionShareRate`, `keywordAbaTopConversionShareGrowthAmt`,
+`keywordMarketCharacteristics`, `keywordTitleDensity`,
+`keywordTitleDensityGrowthAmt`, `keywordTotalSkuCnt`, `keywordTotalSkuGrowthCnt`,
+`keywordObservedSkuCnt`, `keywordObservedSkuGrowthCnt`, `keywordOrganicSkuCnt`,
+`keywordOrganicSkuGrowthCnt`, `keywordAmazonChoiceSkuCnt`,
+`keywordAmazonChoiceSkuGrowthCnt`, `keywordSponsoredProductSkuCnt`,
+`keywordSponsoredProductSkuGrowthCnt`, `keywordSponsoredBrandSkuCnt`,
+`keywordSponsoredBrandSkuGrowthCnt`, `keywordSponsoredBrandVideoSkuCnt`,
+`keywordSponsoredBrandVideoSkuGrowthCnt`, `keywordSponsoredRecommendSkuCnt`,
+`keywordSponsoredRecommendSkuGrowthCnt`, `adActiveObservationCount`,
+`adActiveDayCoverageRate`, `adCampaignCnt`, `adCnt`.
+
+Live validation source: `http://localhost:8080/mcp` tool
+`openapi_v2_product_traffic_terms_timeline`, request
+`{"asin":"B01CGLCGRA","keyword":"yoga mat","dateFrom":"2026-06-23","dateTo":"2026-06-29","marketplace":"US","page":1,"pageSize":20,"sortBy":"date","sortOrder":"asc"}`.
 
 ---
 

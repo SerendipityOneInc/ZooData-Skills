@@ -45,7 +45,7 @@
 |------|------|------|------|----------|
 | 📦 [`zoodata/`](zoodata/) | 直接调用全部 11 个 API 端点 | 关键词/品类/ASIN/品牌 | 原始 API 数据 + 字段映射文档 | 所有其他 skill 的底层依赖 |
 | 🎯 [`amazon-analysis/`](amazon-analysis/) | 13 种选品模式 + 市场/竞品/ASIN/定价/品类研究 | 关键词/品类/ASIN + 意图 | 分析发现、Top 产品、深度报告、置信度标签 | report/opportunity 复合命令一键跑完 |
-| 🔎 [`amazon-keywords/`](amazon-keywords/) | 基于 6 个关键词接口的关键词 intelligence 工作流 | 种子词、目标词、ASIN 或 ASIN + 关键词 | 拓词分层、单词判定、反查流量词、异动解释 | 专门覆盖拓词、反查 ASIN、关键词监控 |
+| 🔎 [`amazon-keyword-traffic-analysis/`](amazon-keyword-traffic-analysis/) | 基于 8 个关键词流量接口的关键词 intelligence 工作流 | 种子词、目标词、ASIN 或 ASIN + 关键词 | 拓词分层、单词判定、反查流量词、异动解释 | 专门覆盖拓词、反查 ASIN、关键词流量监控 |
 
 **⚡ 专项层** — 面向特定工作流的专用技能：
 
@@ -172,7 +172,7 @@ python amazon-analysis/scripts/zoodata.py products --keyword "wireless earbuds" 
 │   └── scripts/
 │       └── zoodata.py                      # CLI 工具 — 8 个子命令，13 种预设模式
 │
-├── amazon-keywords/                      # 关键词 intelligence 与流量分析
+├── amazon-keyword-traffic-analysis/      # 关键词 intelligence 与流量分析
 │   ├── SKILL.md
 │   ├── README.md
 │   └── references/
