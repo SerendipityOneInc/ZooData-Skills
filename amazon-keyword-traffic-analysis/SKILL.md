@@ -5,7 +5,7 @@ description: >
   keyword deep dive; whether a keyword is worth bidding on; which keywords drive traffic to an ASIN;
   or why an ASIN changed under a keyword. Requires ZOODATA_API_KEY.
 metadata:
-  version: "0.1.1"
+  version: "0.1.2"
   author: SerendipityOneInc
   homepage: https://github.com/SerendipityOneInc/ZooData-Skills
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}

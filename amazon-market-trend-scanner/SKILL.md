@@ -10,7 +10,7 @@ description: >
   which categories are growing, where the market is heading.
   Requires ZOODATA_API_KEY.
 metadata:
-  version: "1.0.2"
+  version: "1.0.3"
   author: SerendipityOneInc
   homepage: https://github.com/SerendipityOneInc/ZooData-Skills
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}
