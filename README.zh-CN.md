@@ -7,7 +7,8 @@
 </p>
 
 <p align="center">
-  <b>面向 AI Agent 的亚马逊电商数据层技能包。</b><br/>
+  <b>面向 AI Agent 的数据基础设施。</b><br/>
+  覆盖 Amazon、TikTok 等平台的电商数据智能 + 开放网页结构化采集。<br/>
   200M+ 商品、1B+ 评论、实时信号 — 为 AI 结构化，而非为人类设计。
 </p>
 
@@ -31,19 +32,23 @@
 
 ## 什么是 ZooData？
 
-[ZooData](https://zoodata.ai) 是专为 Agent 构建的数据基础设施。模型正在商品化，真正稀缺的是 Agent 能直接消费的结构化数据。ZooData 提供实时电商信号，让你的 Agent 每天能分析 10,000+ 商品，而不是 100 个。
+[ZooData](https://zoodata.ai) 是专为 Agent 构建的数据基础设施。模型正在商品化，真正稀缺的是 Agent 能直接消费的结构化数据。一个 API Key，两大能力：
 
-当前已接入亚马逊，提供 11 个 API 接口：产品搜索（13 种预设模式）、市场分析、竞品情报、实时追踪、AI 评论洞察、类目导航、价格带分析、品牌分析、历史数据。干净 JSON，Agent 即用。
+- **电商数据智能** — 覆盖 Amazon、TikTok 等平台的选品研究与竞品分析。仅亚马逊就提供 11 个 API 接口：产品搜索（13 种预设模式）、市场分析、竞品情报、实时追踪、AI 评论洞察、类目导航、价格带分析、品牌分析、历史数据，背后是 200M+ 索引商品、2 年+ 历史与 1B+ 预处理评论。
+- **开放网页采集** — 任意网页、搜索结果或整站的结构化 JSON 提取：单页抓取、JS 渲染交互抓取、Google 搜索深抓、站点 URL 发现、全站递归爬取。
+
+干净 JSON，实时返回，Agent 即用 — 让你的 Agent 每天能分析 10,000+ 商品，而不是 100 个。
 
 ## 技能概览
 
-本仓库包含 **11 个 Agent 技能**，分为两个层级：
+本仓库包含 **12 个 Agent 技能**，分为两个层级：
 
 **🏗️ 基础层** — 数据接入与全方位分析：
 
 | 技能 | 说明 | 输入 | 输出 | 核心优势 |
 |------|------|------|------|----------|
 | 📦 [`zoodata/`](zoodata/) | 直接调用全部 11 个 API 端点 | 关键词/品类/ASIN/品牌 | 原始 API 数据 + 字段映射文档 | 所有其他 skill 的底层依赖 |
+| 🌐 [`web-extract/`](web-extract/) | 开放网页结构化采集 — 单页/JS 渲染抓取、Google 搜索深抓、站点 URL 发现、全站爬取（6 个端点） | URL、搜索词或域名 | `{title, summary, sections, key_metrics, ...}` 结构化字段 | 一次调用直接返回结构化 JSON，无需二次解析 |
 | 🎯 [`amazon-analysis/`](amazon-analysis/) | 13 种选品模式 + 市场/竞品/ASIN/定价/品类研究 | 关键词/品类/ASIN + 意图 | 分析发现、Top 产品、深度报告、置信度标签 | report/opportunity 复合命令一键跑完 |
 | 🔎 [`amazon-keyword-traffic-analysis/`](amazon-keyword-traffic-analysis/) | 基于 8 个关键词流量接口的关键词 intelligence 工作流 | 种子词、目标词、ASIN 或 ASIN + 关键词 | 拓词分层、单词判定、反查流量词、异动解释 | 专门覆盖拓词、反查 ASIN、关键词流量监控 |
 
@@ -72,6 +77,7 @@ npx skills add SerendipityOneInc/ZooData-Skills
 
 **🏗️ 基础层：**
 - **ZooData** — 数据层概览，11 个 API 接口，快速集成
+- **Web Extract** — 开放网页结构化采集，6 个接口
 - **Amazon Analysis** — 13 种选品模式，市场验证，竞品情报
 - **Amazon Keyword Intelligence** — 拓词、反查 ASIN、关键词监控
 
@@ -116,11 +122,13 @@ python amazon-analysis/scripts/zoodata.py products --keyword "wireless earbuds" 
 **认证方式：** `Authorization: Bearer $ZOODATA_API_KEY`
 **请求方法：** 所有接口均使用 `POST`，请求体为 JSON
 
+### 亚马逊电商接口
+
 | 接口 | 说明 | 使用场景 |
 |------|------|----------|
 | 🔍 `products/search` | 商品搜索，13 种预设模式，20+ 筛选条件 | *"找 80 美元以下、4 星以上的跑步鞋"* |
 | 📊 `markets/search` | 市场维度指标——集中度、品牌份额、定价分布 | *"瑜伽垫市场竞争激烈吗？"* |
-| 🏷️ `products/competitor-lookup` | 按关键词、品牌或 ASIN 发现竞品 | *"这个细分类目的头部卖家有哪些？"* |
+| 🏷️ `products/competitors` | 按关键词、品牌或 ASIN 发现竞品 | *"这个细分类目的头部卖家有哪些？"* |
 | ⚡ `realtime/product` | 实时商品详情——评论、功能、变体 | *"查一下 ASIN B0D5CRV4KL 的最新信息"* |
 | 💬 `reviews/analysis` | AI 驱动的评论洞察——情感分析、痛点提取 | *"消费者对这个产品的好评和差评分别集中在哪里？"* |
 | 📁 `categories` | 亚马逊类目树导航 | *"看看 Electronics 下面有哪些子类目"* |
@@ -129,6 +137,10 @@ python amazon-analysis/scripts/zoodata.py products --keyword "wireless earbuds" 
 | 🏢 `products/brand-overview` | 头部品牌集中度指标（CR10） | *"这个类目品牌集中度如何？"* |
 | 🏷️ `products/brand-detail` | 各品牌拆解与头部商品 | *"哪些品牌占据了这个类目？"* |
 | 📅 `products/history` | ASIN 历史每日快照 | *"查看这个 ASIN 的价格和 BSR 历史"* |
+
+### 开放网页接口（WebTools API）
+
+由 [`web-extract/`](web-extract/) 使用，同一个 API Key：`scrape`、`scrape-interactive`、`search`、`map`、`crawl`、`crawl-status` — 任意 URL、Google 搜索结果或整站的结构化 JSON。字段与计费详见 [`web-extract/references/reference.md`](web-extract/references/reference.md)。
 
 ## 13 种选品模式
 
@@ -238,6 +250,13 @@ python amazon-analysis/scripts/zoodata.py products --keyword "wireless earbuds" 
 │   │   └── reference.md
 │   └── scripts/
 │       └── zoodata.py
+│
+├── web-extract/                          # 开放网页结构化采集（6 个端点）
+│   ├── SKILL.md
+│   ├── references/
+│   │   └── reference.md
+│   └── scripts/
+│       └── webtools.py
 │
 ├── scoring-methodology.md                # 统一质量评分框架
 ├── CHANGELOG.md

@@ -8,7 +8,8 @@
 
 <p align="center">
   <b>The data infrastructure built for agents.</b><br/>
-  Currently powering Amazon commerce with 200M+ products, 1B+ reviews, and real-time signals.
+  E-commerce data intelligence across Amazon, TikTok & beyond, plus structured extraction from the open web.<br/>
+  200M+ products, 1B+ reviews, real-time signals.
 </p>
 
 <p align="center">
@@ -31,7 +32,12 @@
 
 ## What is ZooData?
 
-[ZooData](https://zoodata.ai) is the data infrastructure built for agents. Not a scraping API. Not a human dashboard. A purpose-built data layer that gives your AI agents direct access to Amazon commerce signals — 200M+ indexed products, 2+ years of history, and 1B+ reviews pre-processed into structured insights. Clean JSON, real-time, agent-ready.
+[ZooData](https://zoodata.ai) is the data infrastructure built for agents. Not a human dashboard. Not raw HTML you have to re-parse. One API key unlocks two capability families:
+
+- **E-commerce data intelligence** — product research and competitor analysis across Amazon, TikTok & beyond. On Amazon alone: 200M+ indexed products, 2+ years of history, and 1B+ reviews pre-processed into structured insights.
+- **Open-web extraction** — structured JSON from any page, search result, or entire site: scrape, JS-rendered pages, Google SERP deep-scrape, URL discovery, recursive crawl.
+
+Clean JSON, real-time, agent-ready.
 
 
 https://github.com/user-attachments/assets/305a161b-7a53-49b8-afdc-4469a4fbf361
@@ -40,13 +46,14 @@ https://github.com/user-attachments/assets/305a161b-7a53-49b8-afdc-4469a4fbf361
 
 ## Skills Overview
 
-This repo contains **11 agent skills** organized in two tiers:
+This repo contains **12 agent skills** organized in two tiers:
 
 **🏗️ Foundation** — data access and full-spectrum analysis:
 
 | Skill | What It Does | Input | Output | Key Advantage |
 |-------|-------------|-------|--------|---------------|
 | 📦 [`zoodata/`](zoodata/) | Direct access to all 11 API endpoints — categories, markets, products, competitors, realtime, reviews, price bands, brands, history | Keyword, category, ASIN, or brand | Raw API data with field mapping and quirk documentation | Complete API reference — every other skill builds on this |
+| 🌐 [`web-extract/`](web-extract/) | Open-web extraction — scrape (incl. JS-rendered pages), Google SERP deep-scrape, URL discovery, recursive site crawl (6 endpoints) | URL, search query, or domain | Structured `{title, summary, sections, key_metrics, outgoing_links, ...}` JSON | One call returns ready-to-consume fields — no second LLM pass to parse HTML |
 | 🎯 [`amazon-analysis/`](amazon-analysis/) | 13 built-in selection modes + market research, competitor analysis, ASIN evaluation, pricing, category research | Keyword/category/ASIN + intent | Analysis findings, top products, ASIN deep dives, confidence-tagged insights | Composite commands (`report`, `opportunity`) run multi-endpoint pipelines in one shot |
 | 🔎 [`amazon-keyword-traffic-analysis/`](amazon-keyword-traffic-analysis/) | Keyword intelligence workflows built on 8 keyword traffic endpoints | Seed keyword, target keyword, ASIN, or ASIN + keyword | Expansion tiers, single-keyword verdicts, reverse-ASIN traffic terms, anomaly explanations | Dedicated flows for keyword expansion, reverse ASIN, and keyword traffic monitoring |
 
@@ -75,6 +82,7 @@ You'll be prompted to select which skills to install:
 
 **🏗️ Foundation:**
 - **ZooData — Amazon Commerce Data, 11 Endpoints**
+- **Web Extract — Structured Data from the Open Web**
 - **Amazon Analysis — Full-Spectrum Research & Seller Intelligence**
 - **Amazon Keyword Intelligence — Expansion, Reverse ASIN & Monitoring**
 
@@ -119,6 +127,8 @@ python amazon-analysis/scripts/zoodata.py products --keyword "wireless earbuds" 
 **Auth:** `Authorization: Bearer $ZOODATA_API_KEY`
 **Method:** All endpoints use `POST` with JSON body
 
+### Amazon Commerce Endpoints
+
 | Endpoint | Description | Example Use Case |
 |----------|-------------|-----------------|
 | 🔍 `products/search` | Product search with 13 preset modes, 20+ filters | *"Find running shoes under $80 with 4+ stars"* |
@@ -132,6 +142,10 @@ python amazon-analysis/scripts/zoodata.py products --keyword "wireless earbuds" 
 | 🏢 `products/brand-overview` | Top-brand concentration metrics (CR10) | *"How concentrated is the brand landscape?"* |
 | 🏷️ `products/brand-detail` | Per-brand breakdown with top products | *"Which brands dominate this category?"* |
 | 📅 `products/history` | Historical daily snapshots for ASINs | *"Show price and BSR history for this ASIN"* |
+
+### Open-Web Endpoints (WebTools API)
+
+Used by [`web-extract/`](web-extract/), same API key: `scrape`, `scrape-interactive`, `search`, `map`, `crawl`, `crawl-status` — structured JSON from any URL, Google SERP, or entire site. See [`web-extract/references/reference.md`](web-extract/references/reference.md) for schemas and billing.
 
 ## 13 Product Search Modes
 
@@ -241,6 +255,13 @@ The `products/search` endpoint supports 13 preset modes for different research s
 │   │   └── reference.md
 │   └── scripts/
 │       └── zoodata.py
+│
+├── web-extract/                          # Open-web structured extraction (6 endpoints)
+│   ├── SKILL.md
+│   ├── references/
+│   │   └── reference.md
+│   └── scripts/
+│       └── webtools.py
 │
 ├── scoring-methodology.md                # Unified quality scoring framework
 ├── CHANGELOG.md
