@@ -6,7 +6,7 @@
 
 ## 2. Single Keyword Analysis
 
-> Trigger: "keyword deep dive" / "is this keyword worth targeting" / "single keyword analysis"
+> Trigger includes natural seller questions such as "Is yoga mat worth focusing on in the US, and how hard would it be for a new product to enter?", as well as "keyword deep dive" / "is this keyword worth targeting" / "single keyword analysis".
 
 ### Inputs
 
@@ -16,16 +16,62 @@
 - optional: trend lookback window, default 8-12 weeks when available
 - date rule: if a keyword endpoint needs `date` or `dateTo`, prefer T-1 or earlier; avoid current-date lookup unless explicitly requested
 
+### Target-Keyword Decision Journey
+
+Use this staged sequence only for a target-keyword decision that naturally progresses from market screening to product-specific operating strategy. It is not a universal workflow for every keyword scenario.
+
+| Stage | Available input and evidence | Maximum conclusion | End-of-stage action |
+|-------|------------------------------|--------------------|---------------------|
+| 1. Keyword market screening | Target keyword, marketplace, market profile, 8–12 week trend, and only the SERP evidence required for product type / intent | Whether the term merits ASIN-level validation, new-product entry difficulty, and a provisional `Core` / `Secondary` / `Observe` role | Ask for the user's ASIN. Do not request SQP yet. |
+| 2. ASIN × target keyword diagnosis | Stage 1 evidence plus observed ASIN relevance, price/rating/reviews/sales basis, organic/ad positions, traffic structure, changes, and market-relative barrier | Current `Defend` / `Expand` / `Observe` / `Avoid` posture and likely constraint hypotheses | Generate a candidate pool, but do not recommend unvalidated candidates. |
+| 3. Candidate market-profile validation | Candidate terms from ASIN traffic, target-term extensions, attributes/scenes, user-provided SQP queries, or competitor terms; batch market profiles | Preliminary `Priority test` / `Selective test` / `Harvest` / `Observe only` / `Avoid` validation tiers | Ask for ABA-SQP; ask for Ads search-term data only when profitability or exact ad-budget decisions are requested. |
+| 4. Seller data request | Clear list of required ABA-SQP and optional Ads fields | Explain the remaining decision gaps without strengthening prior conclusions | Wait for screenshot, CSV, or pasted fields. |
+| 5. Seller-real calibration | Seller ABA-SQP funnel and optionally Ads performance | Final keyword groups, budget and bid/spend actions, 7–14 day validation rules, and continue/raise/lower/pause conditions | State the calibrated decisions and monitoring conditions. |
+
+#### Journey Routing Rules
+
+- Start at Stage 1 when the user asks whether a target keyword is worth focusing on or how difficult new-product entry would be, even when no technical metrics are named.
+- At Stage 1 assess demand scale, 8–12 week trend, ad activity, Top-20 organic entry difficulty, supply saturation, brand concentration, head-product barrier, and SERP product type / buying intent.
+- If a metric dimension is unsupported, mark it unavailable rather than forcing a same-source data-layer call that cannot add different evidence.
+- The Stage 1 answer must not contain final product priority, budget allocation, or bid actions. Its only proactive request is the ASIN.
+- At Stage 2 distinguish observed facts from possible click/conversion issues. Without seller funnel data, describe click or conversion weakness as a hypothesis, not a measured fact.
+- Candidate generation and candidate recommendation are different operations. Every candidate must pass Stage 3 batch market-profile validation before appearing in a recommended validation tier.
+- Candidate priority formula: `product fit × current ASIN performance × keyword market profile`. Title relevance or an occasional observed position is not sufficient by itself.
+- Stage 3 compares at least demand scale, ad activity, Top-20 organic entry difficulty, supply saturation, brand structure, head-product barrier, and Top-3 concentration when covered.
+- Do not ask for ABA-SQP until Stages 2 and 3 are complete, unless the user supplied it earlier or explicitly requests an immediate seller-real diagnosis.
+- If the user supplies later-stage inputs in the initial request, execute the supplied stages without an artificial pause. If the user requests only one stage, honor that boundary.
+
+#### Journey Conclusion Gate
+
+| Stage | Required conclusion label | Allowed | Forbidden |
+|-------|---------------------------|---------|-----------|
+| 1 | `Market-screen conclusion` | Market attractiveness, relative entry difficulty, provisional role, risks, and whether ASIN validation is worthwhile | Final focus/do-not-focus decision, product fit, budget, bid, expansion, pause, profitability, or conversion claims |
+| 2 | `ASIN-observation preliminary conclusion` | Observed fit/position/traffic posture, current posture label, likely constraint hypotheses, and candidate pool | Final keyword priority, unvalidated candidate recommendations, budget/bid changes, profitability, or measured click/conversion claims without seller data |
+| 3 | `Candidate-validation preliminary conclusion` | Market-profile-validated ranking for controlled seller-funnel validation | Final expansion list, fixed budget split, bid changes, pause/negative decisions, profitability, or unconditional GO/NO-GO |
+| 4 | `Awaiting seller evidence` | Decision gaps and minimum required seller fields | Repeating or strengthening prior conclusions while waiting |
+| 5 | `Final calibrated conclusion` | Final keyword groups, budget and bid/spend actions, validation rules, and decision thresholds | Profit or ACOS/ROAS claims when Ads performance is absent |
+
+Before Stage 5, use bounded language such as `merits the next validation stage`, `controlled-test candidate`, `awaiting SQP/Ads before changing budget or bids`, `downgrade candidate pending validation`, or `current evidence does not support advancing`.
+
+If required evidence is missing, end with exactly three logical parts: current-stage conclusion, unresolved final decision, and required next evidence. Never manufacture closure merely because the user asked a yes/no question.
+
 ### Task Constraints
 
-- Minimum evidence: `keywords/detail` + `keywords/search-results`
-- If `keywords/trend` is unavailable, do not make strong demand-direction claims
-- Page-1 product mix, brand mix, price band, and ad-vs-organic composition must come primarily from `keywords/search-results`
+- Minimum evidence is judgment-specific, not a fixed pair of data endpoints. Use metric-layer `keywords/market-profile` first for weekly market judgment and `keywords/search-results-metrics` when live for SERP structure judgment.
+- Use `keywords/detail` only when `market-profile` is unavailable or a named inference requires raw snapshot fields that the metric contract omits. Do not call it merely because one profile dimension has incomplete calculation coverage.
+- Use raw `keywords/search-results` when the SERP metric is unavailable or the inference requires product/placement rows; do not call it merely to confirm a sufficient SERP metric.
+- Prefer `keywords/trend-metrics` when live. Use raw `keywords/trend` only when the metric is unavailable or the Agent needs weekly points/fields omitted from the metric; otherwise do not make strong demand-direction claims.
+- Use one batch call when comparing multiple target keywords; read each `data.items[]` status independently
+- If a metric returns an unsupported dimension because its calculation inputs are missing, mark that conclusion unavailable. Only descend when the data contract provides different evidence needed for another valid inference.
+- Page-1 product rows must come from `keywords/search-results`; aggregate SERP structure should come from `keywords/search-results-metrics` when live.
 - `products/search` is allowed only as broader market context when the user explicitly asks for that broader view
+- Interpret `marketProfile` levels/scores only with returned `thresholdBasis` and `calculationCoverage`; never treat them as trend, root cause, or strategy output.
 - The analysis may use any efficient call pattern, but the final verdict must stay within the available evidence scope
-- ZooData evidence is estimated search/exposure/visibility data, not the user's ASIN-specific ABA Search Query Performance funnel; without user-provided SQP data, the verdict is a directional test-priority judgment, not a definitive keyword-value judgment
-- If the user did not provide Amazon backend ABA-SQP search conversion data, keep traffic-related verdicts, findings, and budget/placement recommendations directional and place the seller-side SQP enrichment request only in `Data Notes` and `Data Notes Reminder`
-- If the user provided ABA-SQP data, use impressions, clicks, cart adds, purchases, click share, purchase share, and conversion rate to refine the verdict and do not add the seller-side SQP enrichment request
+- ZooData evidence is estimated search/exposure/visibility data, not the user's ASIN-specific ABA Search Query Performance funnel. The first reply is a market-level directional judgment, not a final keyword-value or budget judgment.
+- After the market screening, ask only for the user's ASIN. Do not request ABA-SQP in the first reply.
+- If the conversation already contains an ASIN, continue with the ASIN × keyword stage. Generate candidate terms when useful, but do not recommend them until they pass a batch `market-profile` validation.
+- Ask for ABA-SQP only after the ASIN diagnosis and candidate validation are complete. If the user already provided SQP, use impressions, clicks, cart adds, purchases, and their shares to calibrate the final decision.
+- Apply the Journey Conclusion Gate before drafting the verdict. Stage 1 may decide only whether ASIN-level validation is justified; it must not present a final focus/do-not-focus operating decision.
 
 ### SERP Source Rule
 
@@ -41,19 +87,33 @@
 | Demand | Is the search volume meaningful enough? |
 | Trend | Is volume stable, rising, or weakening? |
 | Competition | Is the keyword ad-heavy and crowded? |
+| Market profile | What do the covered demand, concentration, ad activity, entry difficulty, saturation, brand, and organic benchmark dimensions show? |
 | SERP intent | Do current results match the user's product intent? |
 | Organic room | Is there room outside the entrenched leaders? |
 | Launch fit | Better for discovery, exact defense, or long-tail harvest? |
 
+Stage 1 should cover these operator-facing questions even when the user does not name the metrics explicitly:
+
+1. How large is demand?
+2. What happened over the last 8–12 weeks?
+3. How active is advertising?
+4. How hard is Top-20 organic entry?
+5. How saturated is supply?
+6. How concentrated are brands and Top-3 traffic?
+7. What are the review/rating/sales barriers among head products?
+8. What product types and buying intents dominate the SERP?
+
+Do not report planned `demandLifecycle`, `competitionMetrics`, or `entryEvidence` as API data unless the corresponding metric endpoint actually returned them.
+
 ### Decision Logic
 
-- Worth targeting now:
-  demand is real, trend is not deteriorating, and the SERP is still contestable; without ABA-SQP data, phrase this as "priority test" rather than proven value and reserve the seller-side SQP enrichment request for `Data Notes` and `Data Notes Reminder`
-- Worth selective testing:
+- Merits ASIN-level validation:
+  demand is real, trend is not deteriorating, and the SERP is still contestable; describe only a provisional core, secondary, or observation role
+- Merits selective validation:
   demand is good but competition is heavy, or intent fit is narrower
-- Not worth prioritizing:
-  demand is weak, trend is poor, or SERP mismatch is strong
-- Do not call a keyword definitively profitable, high-converting, or fully validated unless the user provides SQP or equivalent first-party conversion data
+- No current support for advancing:
+  demand is weak, trend is poor, or SERP mismatch is strong; this is not an unconditional final rejection
+- Do not call a keyword definitively profitable, high-converting, fully validated, or ready for a final budget unless the user provides SQP or equivalent first-party conversion data
 
 ### Output Template
 
@@ -61,26 +121,27 @@
 # Keyword Analysis — [Keyword]
 
 > Data is based on ZooData keyword snapshots as of [date]. Weekly search and traffic metrics are sampled observations, not exact Amazon Ads billing data. This analysis is for reference only and should not be the sole basis for business decisions.
-> ZooData estimates exposure/search/visibility. When the current evidence set is ZooData plus Amazon Brand Analytics market-wide signals only, keep traffic-related conclusions and recommendations directional and place the seller-side SQP enrichment request only in Data Notes and Data Notes Reminder. If seller-side ABA-SQP data is included, integrate it directly and omit the enrichment request.
+> ZooData estimates exposure/search/visibility. This first-stage report is a market-level directional judgment, not a product-specific or final budget decision.
 
 ## [Localized Data Notes title]
-[Use short, natural prose, not status labels, field lists, or deficit-framed wording. If the current evidence set is ZooData plus Amazon Brand Analytics market-wide signals only, first state that evidence basis; then say that if the user can provide seller-side ABA-SQP conversion funnel data, the analysis can tailor for the user a more exclusive operating strategy that better fits the product's actual conversion performance; then include Seller Central path `Brand Analytics → Search Analytics → Search Query Performance → Brand View`, recommend sorting by `Search Funnel - Impressions → Brand Count`, and ask for a screenshot or CSV. If seller-private ABA-SQP data is present, name the SQP fields used and omit the seller-side SQP enrichment request.]
+[State that this is a market-level directional judgment based on ZooData market, trend, and observed SERP evidence. It is not yet a product-specific or final budget judgment. Do not request SQP here.]
 
-## Verdict
-[Priority test / Selective test / Observe only / Exclude — directional unless SQP data is provided]
+## Market-screen Conclusion
+- Merits ASIN-level validation: [yes / selectively / observe / no current support]
+- New-product entry difficulty: [low / medium / high / unavailable]
+- Provisional market role: [Core candidate / Secondary candidate / Observe]
+- Not yet decided: [product-specific priority, final expansion decision, budget]
 
 ## Findings
 - Demand: [📊 / 🔍]
 - Trend: [📊 / 🔍]
 - Competition: [📊 / 🔍]
 - SERP structure: [📊 / 🔍]
+- Product type and buying intent: [📊 / 🔍]
 - Recommended usage scene: [💡]
 
-## Action
-[💡 Budget or placement suggestion]
-
-## [Localized Data Notes Reminder title]
-[Repeat the opening Data Notes body here. For Chinese output, the opening title must render from `\u6570\u636e\u8bf4\u660e`; the end reminder title must render from `\u6570\u636e\u8bf4\u660e\uff08\u518d\u6b21\u63d0\u9192\uff09`.]
+## Next Step
+[Ask for the user's ASIN so the next stage can compare product fit, current organic/ad positions, traffic structure, and market-relative barrier. Do not give final budget advice and do not ask for SQP yet.]
 
 ## API Usage
 | Endpoint | Calls | Credits |

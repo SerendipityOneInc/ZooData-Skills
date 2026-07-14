@@ -14,6 +14,7 @@
 - optional: marketplace
 - optional: top-N focus for returned keywords
 - optional: spot-check keywords to inspect with `keywords/search-results`
+- optional: target keyword carried forward from a market-screening step
 - date rule: if a keyword endpoint needs `date` or `dateTo`, prefer T-1 or earlier; avoid current-date lookup unless explicitly requested
 
 ### Task Constraints
@@ -22,11 +23,20 @@
 - These two endpoints currently provide equivalent functionality and the same live item shape for traffic-structure analysis; choose one available endpoint instead of requiring both
 - Prefer `keywords/product-traffic-terms` for the target ASIN's traffic-source list; use `keywords/competitor-product-keywords` as an equivalent fallback or when the workflow is competitor/overlap framed
 - If neither ASIN traffic-list endpoint is available, do not output reverse-ASIN traffic-source conclusions
+- `product-traffic-terms-overview` is aggregate evidence. Production currently returns a legacy flat object; calculate simple channel totals/shares/changes transparently and do not claim grouped `trafficStructure`, `aggregateChanges`, or `keywordConcentration` were returned.
+- `keywords/product-traffic-term-changes` is the planned source for keyword losers/gainers and contribution. If it is unavailable, do not infer keyword-level change contribution from the current traffic list or flat overview.
+- Use metric-layer `product-traffic-terms-overview` first when the request is aggregate movement/structure. Call one ASIN traffic-list data endpoint only when keyword rows are the requested deliverable; no current metric replaces that row list.
+- Enrich selected traffic terms through metric-layer `keywords/market-profile` first. Call `detail` only when a named inference needs raw snapshot fields omitted by the metric, and call raw `trend` only when a trend metric is unavailable or weekly points are required.
+- Do not descend from `market-profile` merely because a dimension lacks calculation coverage; same-source data is unlikely to restore the missing metric input.
 - `keywords/detail` and `keywords/search-results` may enrich prioritization and SERP context, but they cannot replace ASIN keyword evidence
 - `products/search` is supplementary only when the user explicitly asks for broader market context beyond observed keyword SERP behavior
 - Term bucketing may use any efficient call pattern, as long as the traffic-source map is grounded in one of the ASIN traffic-list endpoints
 - Reverse-ASIN traffic terms show visibility and estimated traffic contribution, not definitive commercial value or conversion quality
-- If the user did not provide Amazon backend ABA-SQP search conversion data, keep traffic-source conclusions, buckets, and spend/value recommendations directional and place the seller-side SQP enrichment request only in `Data Notes` and `Data Notes Reminder`
+- When this follows a target-keyword market screen, diagnose the ASIN × target keyword first: semantic/product-form fit, price/rating/reviews/sales basis, organic and sponsored positions, target-term share of observed ASIN traffic, organic/ad exposure mix, recent changes, listing events, and distance from the market barrier.
+- Classify the target term as `Defend`, `Expand`, `Observe`, or `Avoid`, and identify the likely constraint: exposure shortage, ad dependence, weak organic capture, weak relevance, or a possible click/conversion issue. Click/conversion issues remain hypotheses without seller funnel data.
+- Candidate terms may be formed from ASIN traffic terms, target-term extensions, attributes/scenes, user-provided SQP queries, and competitor terms. Do not publish them as recommendations until they have passed batch `keywords/market-profile` validation.
+- Keep traffic-source conclusions and spend/value recommendations directional without seller data. Ask for ABA-SQP only after candidate-profile validation, not at the start of the ASIN diagnosis.
+- Apply the General Conclusion Authority Gate: `Defend` / `Expand` / `Observe` / `Avoid` is an observed posture, not permission to change bids or budgets. Keep final focus, expansion, or pause decisions unresolved until seller calibration.
 - If the user provided ABA-SQP data, use impressions, clicks, cart adds, purchases, click share, purchase share, and conversion rate to refine each traffic-source bucket and do not add the seller-side SQP enrichment request
 
 ### Tool Availability Gate
@@ -57,9 +67,9 @@
 ### Decision Buckets
 
 - `Defend`
-  high traffic share or good position on strategically important terms; if ABA-SQP is missing, keep budget impact directional and reserve the seller-side SQP enrichment request for `Data Notes` and `Data Notes Reminder`
+  high traffic share or good position on strategically important terms; budget impact remains directional without seller data
 - `Expand`
-  decent relevance and volume, but position is still improvable; treat as a testing priority without ABA-SQP and reserve the seller-side SQP enrichment request for `Data Notes` and `Data Notes Reminder`
+  decent relevance and volume, but position is still improvable; treat as a testing priority without ABA-SQP
 - `Observe`
   signals are promising but weak or unstable
 - `Avoid`
@@ -71,10 +81,13 @@
 # Reverse ASIN Keyword Report — [ASIN]
 
 > Data is based on ZooData keyword snapshots as of [date]. Weekly search and traffic metrics are sampled observations, not exact Amazon Ads billing data. This analysis is for reference only and should not be the sole basis for business decisions.
-> Traffic-source signals estimate visibility and exposure contribution, not final keyword value. When the current evidence set is ZooData plus Amazon Brand Analytics market-wide signals only, keep traffic-source conclusions, buckets, and recommendations directional and place the seller-side SQP enrichment request only in Data Notes and Data Notes Reminder. If seller-side ABA-SQP data is included, integrate it directly and omit the enrichment request.
+> Traffic-source signals estimate visibility and exposure contribution, not final keyword value.
 
 ## [Localized Data Notes title]
-[Use short, natural prose, not status labels, field lists, or deficit-framed wording. If the current evidence set is ZooData plus Amazon Brand Analytics market-wide signals only, first state that evidence basis; then say that if the user can provide seller-side ABA-SQP conversion funnel data, the analysis can tailor for the user a more exclusive operating strategy that better fits the product's actual conversion performance; then include Seller Central path `Brand Analytics → Search Analytics → Search Query Performance → Brand View`, recommend sorting by `Search Funnel - Impressions → Brand Count`, and ask for a screenshot or CSV. If seller-private ABA-SQP data is present, name the SQP fields used and omit the seller-side SQP enrichment request.]
+[State that this is an ASIN-observation-level diagnosis. It can judge observed fit, visibility, and preliminary action class, but not measured seller conversion or final budget.]
+
+## ASIN-observation Preliminary Conclusion
+[State the current observed posture and explicitly list which final decisions remain unresolved.]
 
 ## Top Traffic Terms
 | Keyword | Traffic Share | Avg Position | Search Count | Bucket |
@@ -96,8 +109,11 @@
 ## Risks
 [Crowding, weak coverage, unstable observations]
 
-## [Localized Data Notes Reminder title]
-[Repeat the opening Data Notes body here. For Chinese output, the opening title must render from `\u6570\u636e\u8bf4\u660e`; the end reminder title must render from `\u6570\u636e\u8bf4\u660e\uff08\u518d\u6b21\u63d0\u9192\uff09`.]
+## Candidate Validation
+[Show only candidates that completed batch market-profile validation. Use `Priority test` / `Selective test` / `Harvest` / `Observe only` / `Avoid`.]
+
+## Next Step
+[After candidate validation, request ABA-SQP using the Stage 4 contract in execution-guide.md. Request Ads search-term fields only when profitability or final budget is requested.]
 
 ## API Usage
 | Endpoint | Calls | Credits |

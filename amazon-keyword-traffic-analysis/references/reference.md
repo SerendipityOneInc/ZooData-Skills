@@ -1,377 +1,338 @@
-# Amazon Keyword Intelligence — Reference
+# ZooData Keyword API Reference
 
-> Load this file when you need exact endpoint choices, field priorities, evidence boundaries, or scenario-to-endpoint mapping.
+> Read before choosing tools or interpreting fields. Production status was verified by direct calls on 2026-07-13; `market-profile` was inspected on localhost on 2026-07-14 and is not yet published. Re-check the target surface when behavior matters; the response is authoritative over this file and over the design document.
 
-## Endpoints
+## Contents
 
-| Endpoint | Use in this skill | Key fields |
-|----------|-------------------|------------|
-| `/openapi/v2/keywords/detail` | Weekly keyword snapshot | `estimateSearchCountWeekly`, `abaRank`, `abaTop3ClickShareRate`, `abaTop3ConversionShareRate`, `marketCharacteristics`, `totalSkuCnt`, `brandCount`, `organicSkuCount`, `adCampaignCount`, `adCount` |
-| `/openapi/v2/keywords/trend` | Weekly trend validation | `estimateSearchCount`, `estimateSearchChangeRate`, `abaRank`, `rankChangeCount`, `periodStartDate`, `periodEndDate` |
-| `/openapi/v2/keywords/extends` | Expansion / long-tail discovery | `term`, `seedKeyword`, `relevanceScore`, `estimateSearchCountWeekly`, `abaRank`, `marketCharacteristics`, `brandCount`, `organicSkuCount`, `adCount` |
-| `/openapi/v2/keywords/search-results` | SERP structure, page-1 product mix, and ad density | `exploreType`, `absolutePosition`, `pageIndex`, `pagePosition`, `asin`, `title`, `brand`, `price`, `rating`, `ratingCount`, `recentSales`, `estimateImpressionPoint`, `keywordTotalEstimateImpressionPoint` |
-| `/openapi/v2/keywords/competitor-product-keywords` | Keywords where ASIN appears as competitor | `keyword`, `avgPosition`, `daysCoverageRate`, `observationCount`, `keywordEstimateSearchCount`, `keywordEstimateSearchCountChangeRate`, `keywordAbaRank`, `trafficShare` |
-| `/openapi/v2/keywords/product-traffic-terms` | Traffic-driving keywords for ASIN | `keyword`, `avgPosition`, `daysCoverageRate`, `observationCount`, `keywordEstimateSearchCount`, `keywordEstimateSearchCountChangeRate`, `keywordAbaRank`, `trafficShare` |
-| `/openapi/v2/keywords/product-traffic-terms-overview` | All-keyword traffic changes under one ASIN versus previous period | placement-level impression points, matching `*Prev` previous-period fields, `first3PagesNewOrganicKeywords`, `first3PagesLostOrganicKeywords`, `periodStartDate`, `periodEndDate` |
-| `/openapi/v2/keywords/product-traffic-terms-timeline` | ASIN + keyword anomaly timeline | `date`, `latestOrganicPosition`, `latestAdPosition`, impression-point fields, `avgOrganicObservation`, `avgAdObservation`, `keywordEstimateSearchCnt`, `keywordAbaRank`, ad activity fields |
+- [Layer model](#layer-model)
+- [Production availability](#production-availability)
+- [Common contract](#common-contract)
+- [Live endpoints by layer](#live-endpoints-by-layer)
+- [Planned metric endpoints](#planned-metric-endpoints)
+- [Evidence boundaries](#evidence-boundaries)
+- [CLI and callable mapping](#cli-and-callable-mapping)
 
-## Keyword API Quick Reference
+## Layer model
 
-Use this section before selecting or calling a keyword endpoint. It is the
-skill-local API reference for the keyword endpoints; `zoodata/references/openapi-reference.md`
-remains the broader platform reference.
+Keep the three layers distinct:
 
-Usage accounting:
-- Each CLI/API response should include `_query.endpoint` and `_query.params`; use `_query.endpoint` for API usage aggregation
-- Credits are reported in response `meta.creditsConsumed`; aggregate this by endpoint for the final API Usage table and include a final `Total` row
-- Credits remaining are reported in response `meta.creditsRemaining`; use the latest observed value for `Credits remaining`
-- If either credit field is missing, write `not returned` in the report rather than omitting API usage
-- Any report based on live API data must end with `API Usage`; omit `Data Provenance` unless the user explicitly asks for source-by-section details
+1. **Data endpoints** return traceable snapshots and details in `items[]`, `rows[]`, or `series[]`.
+2. **Metric endpoints** return deterministic aggregate objects, context, coverage, and evidence—not full detail rows.
+3. **Agent + skill workflows** combine evidence, explain it, add confidence and limitations, and recommend actions.
 
-Keyword-query and date rule:
-- Keyword endpoints are keyword-query workflows; inputs named `keyword` or `query` should be Amazon search queries / keyword phrases
-- If an endpoint requires `date` or `dateTo`, prefer T-1 or earlier and avoid the current date unless the user explicitly asks for today's lookup. Do not proactively explain the rationale unless the user asks why.
-- If today's lookup is explicitly requested and data is missing, sparse, or resolves backward, label the result as potentially incomplete instead of treating it as a demand signal
+Do not move Agent outputs such as `recommendedAction`, `conclusion`, `reasoning`, root cause, or Mermaid diagrams into the API layer. Do not describe an Agent calculation as an API field.
 
-### Keyword Value Boundary
+### Access priority: metric first, data on demand
 
-- ZooData keyword endpoints provide estimated search volume, SERP visibility, rank, traffic share, and impression-point signals
-- These fields are enough for directional opportunity screening and testing priority, but not enough to 100% prove a keyword's value for a specific ASIN
-- Do not claim definitive profitability, conversion potential, or final budget priority from ZooData alone
-- Do not claim the ASIN, listing, CTR, CVR, rank, or traffic quality is better than competitors without direct competitor evidence at the same metric, keyword/query, marketplace, date range, and comparable placement or position scope
-- Prefer market-relative language when competitor-specific evidence is missing: above/below market median, ahead/behind the market midpoint, near the upper/lower band, ranking toward the front/back, or not an obvious weak point
-- When a market average or median is derived from ABA/SQP screenshots, ZooData aggregates, or visible SERP samples, state the calculation basis and limitation; do not present it as external benchmark proof or competitor-specific evidence
-- ABA-SQP backend location: Seller Central path `Brand Analytics -> Search Analytics -> Search Query Performance -> Brand View`
-- Recommended ABA-SQP data provision method: in Brand View, sort descending by `[Search Funnel - Impressions](https://sellercentral.amazon.com/brand-analytics/metric-glossary?linkedFrom=query-performance-brand-report-table-qp-impressions-group) -> Brand Count`, then provide a screenshot; alternatively, download the CSV and provide it for model analysis
+Terminology:
 
-- Before writing conclusions, check whether the user provided ABA backend Search Query Performance / ABA-SQP search conversion data for the relevant ASIN/brand/query/date range
-- When the current evidence set is ZooData plus Amazon Brand Analytics market-wide signals only, place the seller-side SQP enrichment request in the report's opening `Data Notes` and end `Data Notes Reminder`, not inside each traffic-related conclusion or recommendation group.
-- If seller-side ABA-SQP data is included, do not add the seller-side SQP enrichment request; incorporate impressions, clicks, cart adds, purchases, click share, purchase share, and conversion rate as first-party conversion evidence
+| Concept | Meaning | Access implication |
+|---|---|---|
+| Calculation coverage | Source inputs available to calculate a metric dimension | Limits that metric conclusion; does not authorize down-drill |
+| Metric contract scope | Indicators, summaries, reasons, and grain intentionally exposed by the metric | Compare this scope with the requested inference |
+| Inference sufficiency | Whether returned metric information supports the Agent's required judgment | Descend only if data is known to provide the missing information |
 
-### `/openapi/v2/keywords/detail`
+- Start from the judgment, not from a fixed endpoint chain.
+- Prefer a matching metric endpoint because it provides the stable server-calculated object intended for that judgment.
+- Treat a successful, sufficiently covered metric response as complete for its contract. Do not call the source data endpoint by default.
+- Do not equate metric calculation coverage with data-access permission. When both layers share the same source, missing metric inputs usually remain missing below.
+- Descend only when the Agent's required inference needs information the metric contract does not expose but the data contract explicitly does: rows, series points, placements, raw fields, or another traceable evidence grain.
+- A non-deployed/metric-specific failure may also justify data fallback when transparent Agent calculation is valid; a same-source `empty`/unsupported dimension normally does not.
+- Make fallback surgical: retrieve only the missing subject, period, placement, rows, or fields.
 
-Parameters:
-- required: `keyword`, `date`
-- optional: `marketplace` default `US`
+| Judgment / deliverable | Metric-first source | Data fallback or direct-data exception |
+|---|---|---|
+| Weekly keyword market structure | `keywords/market-profile` | `keywords/detail` only when a required inference needs raw snapshot fields omitted by the metric, or the metric endpoint itself is unavailable; not merely because a profile dimension lacks calculation coverage |
+| Trend shape, volatility, lifecycle | `keywords/trend-metrics` when live | `keywords/trend` when the metric is unavailable, or the Agent needs weekly points/fields omitted from the metric for a specific inference |
+| SERP structure/concentration | `keywords/search-results-metrics` when live | `keywords/search-results` for unavailable metric or requested product/placement rows |
+| Root-universe demand | `keywords/root-aggregate` when live | No equivalent fallback; `extends` is candidate recall, not root-demand proof |
+| ASIN aggregate traffic change | `keywords/product-traffic-terms-overview` | Use its verified live contract; do not infer missing keyword contribution from traffic-list rows |
+| Keyword change contribution | `keywords/product-traffic-term-changes` when live | No equivalent fallback if contribution is absent |
+| ASIN × keyword timeline evidence summary | `keywords/product-traffic-terms-timeline-review` when live | `keywords/product-traffic-terms-timeline` for unavailable metric, unsupported evidence, or requested raw series |
+| Candidate recall / current traffic-term list | No metric endpoint | Call `extends` or one ASIN traffic-list data endpoint directly because rows are the deliverable |
 
-Behavior:
-- `date` resolves to the nearest available weekly snapshot at or before the requested date
-- Prefer T-1 or earlier for `date`; avoid current-date lookup unless explicitly requested
-- `success: true` may return `data: null`; treat that as no weekly snapshot, not an API failure
+## Production availability
 
-Response:
-- single keyword snapshot object or `null`
-- key fields: `estimateSearchCountWeekly`, `abaRank`, `abaTop3ClickShareRate`, `abaTop3ConversionShareRate`, `marketCharacteristics`, `totalSkuCnt`, `brandCount`, `organicSkuCount`, `adCampaignCount`, `adCount`, `periodStartDate`, `periodEndDate`, `observedAt`
+| Endpoint | Layer | Live status | Verified live body |
+|---|---|---|---|
+| `keywords/detail` | data | available | `data.context + data.items[]` |
+| `keywords/market-profile` | metric | localhost pre-release; not published | `data.context + data.items[].marketProfile` |
+| `keywords/trend` | data | available | `data.context + data.items[].series[]` |
+| `keywords/extends` | data | available | `data.context + data.query + data.queryType + data.rows[]` |
+| `keywords/search-results` | data | available | `data.context + data.identity + data.rows[]` |
+| `keywords/product-traffic-terms` | data | available | `data.context + data.identity + data.rows[]` |
+| `keywords/competitor-product-keywords` | data | available | same shape as `product-traffic-terms` |
+| `keywords/product-traffic-terms-timeline` | data | available | `data.context + data.items[].series[]` |
+| `keywords/product-traffic-terms-overview` | aggregate | available, legacy shape | flat `data` object with current and `*Prev` fields |
+| `keywords/trend-metrics` | metric | unavailable | HTTP 404 |
+| `keywords/search-results-metrics` | metric | unavailable | HTTP 404 |
+| `keywords/root-aggregate` | metric | unavailable | HTTP 404 |
+| `keywords/product-traffic-term-changes` | metric | unavailable | HTTP 404 |
+| `keywords/product-traffic-terms-timeline-review` | metric | unavailable | HTTP 404 |
 
-### `/openapi/v2/keywords/trend`
+Treat unavailable metric endpoints as planned capability. Before first use in a later session, inspect/probe the live surface. On 404, use only the available data endpoints and transparent Agent-side aggregation; do not invent the planned response objects.
 
-Parameters:
-- required: `keyword`, `dateFrom`, `dateTo`
-- optional: `marketplace` default `US`
-- CLI flags: `keyword-trend --keyword "<query>" --date-from YYYY-MM-DD --date-to YYYY-MM-DD --marketplace US`
-- Dates must be complete ISO strings. Do not use truncated dates, ellipses, relative dates, or natural-language dates in CLI calls.
-- `dateTo - dateFrom` cannot exceed 93 days for `keywords/trend`
+## Common contract
 
-Behavior:
-- weekly-granularity series across the requested date range
-- Prefer T-1 or earlier for `dateTo`; avoid current-date lookup unless explicitly requested
-- do not compare directly to daily SERP observations without stating the grain difference
+### Identity and context
 
-Response:
-- array of weekly trend points
-- key fields: `observedAt`, `periodStartDate`, `periodEndDate`, `estimateSearchCount`, `estimateSearchChangeCount`, `estimateSearchChangeRate`, `abaRank`, `prevAbaRank`, `prevEstimateSearchCount`, `rankChangeCount`
+- Keyword identity: `{ keyword, site }`.
+- ASIN identity: `{ asin, site }`.
+- ASIN + keyword identity: `{ asin, keyword, site }`.
+- Single query objects use `data.identity`; batch endpoints use `data.items[].identity`.
+- `requestedDate*` records the request. `resolvedDate*` records the actual available observation. Report resolved dates and returned period boundaries.
+- Snapshot/current-window endpoints may contain `dataWindow.currentPeriod`; range endpoints use `resolvedDateFrom`, `resolvedDateTo`, and series dates instead.
+- `latestObservedAt` is row collection time. Never use it to manufacture a snapshot period.
 
-### `/openapi/v2/keywords/extends`
+### Batch behavior
 
-Parameters:
-- required: `query`, `date`
-- optional: `marketplace` default `US`, `page`, `pageSize` max `100`, `queryType`, `sortBy`, `sortOrder`
-- `queryType`: `phrase` / `fuzzy`
-- `sortBy`: `relevanceScore` / `estimateSearchCount` / `abaRank` / `observedAt` / `keyword`
-- `sortOrder`: `asc` / `desc`
+The following live endpoints support batch subjects:
 
-Behavior:
-- uses `query`, not `keyword`
-- `date` resolves to the nearest available weekly snapshot at or before the requested date
-- Prefer T-1 or earlier for `date`; avoid current-date lookup unless explicitly requested
-- `data: []` is a normal success case; try both `phrase` and `fuzzy` before concluding low expandability
+| Endpoint | Single subject | Batch subject | Limit |
+|---|---|---|---:|
+| `keywords/detail` | `keyword` | `keywords[]` | 20 |
+| `keywords/market-profile` | `keyword` | `keywords[]` | 20 |
+| `keywords/trend` | `keyword` | `keywords[]` | 20 |
+| `keywords/product-traffic-terms-timeline` | `asin + keyword` | `asin + keywords[]` | 20 keywords for one ASIN |
 
-Response:
-- array of expansion keyword rows
-- key fields: `term`, `seedKeyword`, `relevanceScore`, `estimateSearchCountWeekly`, `abaRank`, `marketCharacteristics`, `brandCount`, `organicSkuCount`, `adCount`, `periodStartDate`, `periodEndDate`, `observedAt`
-- market-structure fields may include `totalSkuCnt`, `observedSkuCount`, `titleDensity`, `organicRolloverRate`, `amazonChoiceSkuCount`, sponsored SKU counts, `adCampaignCount`, and top-48 organic average price/rating/sales fields
+Rules:
 
-### `/openapi/v2/keywords/search-results`
+- Prefer batch over repeated single-subject calls whenever subjects share all non-subject request parameters.
+- Plan the full compatible subject set before the first call; do not discoverably loop one keyword at a time and batch only later.
+- Send exactly one of the single or batch fields.
+- Batch only subjects with the same marketplace, snapshot/range, granularity, window, filters, and sort context; timeline batches must share one ASIN.
+- Deduplicate case-insensitively before calling; duplicate subjects return 422.
+- Preserve input order in `data.items[]` and when merging multiple chunks.
+- Inspect every item independently: `status=ok|empty|error`, `emptyReason`, `errorCode`, and `errorMessage`.
+- Outer `success` is service execution status, not proof that every item has data.
+- Do not discard empty/error items from the report; name their reason.
+- Billing is per `status=ok` item. Empty and error items are not billed. Always report the returned `meta.creditsConsumed` rather than calculating credits yourself.
 
-Parameters:
-- required: `keyword`, `date`
-- optional: `marketplace` default `US`, `page`, `pageSize` max `100`, `exploreTypes`, `sortBy`, `sortOrder`
-- `exploreTypes`: `ORG` / `SP` / `SB` / `SBV` / `SPR`
-- `sortBy`: `absolutePosition` / `estimateImpressionPoint` / `observedAt` / `price` / `rating` / `ratingCount` / `recentSales` / `asin` / `title`
+CLI examples:
 
-Behavior:
-- daily/recent SERP observation exposed through a short sliding window, not long-retention history
-- Prefer T-1 or earlier for `date`; avoid current-date lookup unless explicitly requested
-- primary source for observed keyword SERP, page-1 product mix, brand mix, ad vs organic composition, and visible price-band questions
-- separate `exploreType` at least into `ORG` and sponsored placements
-- do not replace it with `products/search` for observed Amazon keyword SERP composition or ordering
+```bash
+python {skill_base_dir}/scripts/zoodata.py keyword-detail \
+  --keywords "yoga mat,pilates mat" --date 2026-07-12 --marketplace US
 
-Response:
-- array of SERP product rows with absolute positions
-- key fields: `exploreType`, `absolutePosition`, `pageIndex`, `pagePosition`, `asin`, `title`, `brand`, `price`, `currency`, `link`, `imageLink`, `rating`, `ratingCount`, `recentSales`, `hasVideo`, `estimateImpressionPoint`, `keywordTotalEstimateImpressionPoint`
+python {skill_base_dir}/scripts/zoodata.py keyword-market-profile \
+  --keywords "yoga mat,pilates mat" --date 2026-07-12 --marketplace US
 
-### `/openapi/v2/keywords/product-traffic-terms`
+python {skill_base_dir}/scripts/zoodata.py keyword-trend \
+  --keywords "yoga mat,pilates mat" \
+  --date-from 2026-06-01 --date-to 2026-07-12 --marketplace US
 
-Parameters:
-- required: `asin`, `date`
-- optional: `marketplace` default `US`, `page`, `pageSize` max `100`, `exploreTypes`, `keywordContains`, `sortBy`, `sortOrder`
-- `exploreTypes`: `ORG` / `SP` / `SB` / `SBV` / `SPR`
-- `sortBy`: `estimateImpressionPoint` / `absolutePosition` / `avgPosition` / `keywordEstimateSearchCount` / `keywordAbaRank` / `observedAt` / `keyword`
+python {skill_base_dir}/scripts/zoodata.py product-traffic-terms-timeline \
+  --asin B01CGLCGRA --keywords "yoga mat,pilates mat" \
+  --date-from 2026-07-06 --date-to 2026-07-12 --marketplace US
+```
 
-Behavior:
-- reverse-ASIN traffic-list endpoint for current traffic-source/share structure
-- Prefer T-1 or earlier for `date`; avoid current-date lookup unless explicitly requested
-- same live item shape and equivalent traffic-list functionality as `competitor-product-keywords`; choose one available endpoint instead of requiring both
-- preferred choice for target-ASIN traffic-source lists
-- not a substitute for `keywords/search-results` when the question is visible page-1 product composition
+For more than 20 compatible subjects, issue sequential chunks of 20 or fewer and restore global input order when merging. Keep one usage record per response. Use a single-subject request only for one subject, incompatible request contexts, or an endpoint without batch support.
 
-Response:
-- array of ASIN keyword rows
-- key fields: `exploreType`, `absolutePosition`, `pageIndex`, `pagePosition`, `asin`, `keyword`, `estimateImpressionPoint`, `asinTotalEstimateImpressionPoint`, `avgPosition`, `daysCoverageRate`, `observationCount`, `keywordEstimateSearchCount`, `keywordEstimateSearchGrowthCount`, `keywordEstimateSearchCountChangeRate`, `keywordAbaRank`, `keywordAbaRankChangeCount`, `trafficShare`
+### Empty results and errors
 
-### `/openapi/v2/keywords/competitor-product-keywords`
+- `status=empty` means no matching observation in the resolved snapshot/window. It does not prove low demand.
+- `keywords/extends` may return an empty `rows[]`; try `phrase` and `fuzzy` before concluding low expandability.
+- HTTP 422 is request validation failure. Read the detail, fix parameters, and do not retry unchanged.
+- HTTP 404 on a planned metric endpoint means it is not deployed on that surface; do not relabel it as a data-empty success.
 
-Parameters:
-- required: `asin`, `date`
-- optional: `marketplace` default `US`, `page`, `pageSize` max `100`, `exploreTypes`, `keywordContains`, `sortBy`, `sortOrder`
-- `exploreTypes`: `ORG` / `SP` / `SB` / `SBV` / `SPR`
-- `sortBy`: `estimateImpressionPoint` / `absolutePosition` / `avgPosition` / `keywordEstimateSearchCount` / `keywordAbaRank` / `observedAt` / `keyword`
+### Credits
 
-Behavior:
-- reverse-ASIN traffic-list endpoint for competitor/overlap-framed workflows
-- Prefer T-1 or earlier for `date`; avoid current-date lookup unless explicitly requested
-- same live item shape and equivalent traffic-list functionality as `product-traffic-terms`; choose one available endpoint instead of requiring both
-- not a substitute for `keywords/search-results` when the question is visible page-1 product composition
+Track `_query.endpoint`, `_query.params`, `meta.creditsConsumed`, and `meta.creditsRemaining` for every response. Aggregate usage by endpoint in the final `API Usage` table. Use `not returned` when metadata is absent.
+
+## Live endpoints by layer
+
+### Data layer: `keywords/detail`
+
+Request:
+
+- exactly one of `keyword` or `keywords[]` (1–20)
+- required `date` (`YYYY-MM-DD`)
+- `marketplace=US|UK`, default `US`
+- `granularity=week` only
 
 Response:
-- array of ASIN keyword rows
-- key fields match `product-traffic-terms`: `exploreType`, `absolutePosition`, `pageIndex`, `pagePosition`, `asin`, `keyword`, `estimateImpressionPoint`, `asinTotalEstimateImpressionPoint`, `avgPosition`, `daysCoverageRate`, `observationCount`, `keywordEstimateSearchCount`, `keywordEstimateSearchGrowthCount`, `keywordEstimateSearchCountChangeRate`, `keywordAbaRank`, `keywordAbaRankChangeCount`, `trafficShare`
 
-### `/openapi/v2/keywords/product-traffic-terms-overview`
+- `data.context`: marketplace, site, requested/resolved date, weekly granularity, current period
+- `data.items[]`: identity, status, `snapshotData`, empty/error fields
+- `snapshotData`: `estimateSearchCount`, `abaRank`, Top3 click/conversion shares, market characteristics, SKU/brand/title coverage, organic/ad counts, and Top48 organic-product benchmarks
 
-Parameters:
-- required: `asin`, `date`
-- optional: `marketplace` default `US`
+Do not expect legacy `estimateSearchCountWeekly`, `totalSkuCnt`, or top-level `data:null` in the current response. Read `snapshotData.estimateSearchCount`, `totalSkuCount`, and item status.
 
-Behavior:
-- preferred core evidence for two-week / previous-period ASIN all-keyword impression traffic changes
-- returns the latest weekly all-keyword traffic-change overview on or before `date`
-- Prefer T-1 or earlier for `date`; avoid current-date lookup unless explicitly requested
-- when reporting the overview period, use the response's `periodStartDate` and `periodEndDate` exactly; do not display the request `date` or an inferred date range as the data period
-- use matching `*Prev` impression-point fields as previous-period baselines
-- do not treat it as per-keyword daily rank history
+### Metric layer: `keywords/market-profile`
 
-Response:
-- single overview object or `null`
-- key fields: `periodStartDate`, `periodEndDate`, `asin`, `site`, `organicImpressionPoint`, `sponsoredProductImpressionPoint`, `sponsoredBrandImpressionPoint`, `sponsoredBrandVideoImpressionPoint`, `sponsoredRecommendImpressionPoint`, matching `*Prev` fields, `first3PagesNewOrganicKeywords`, `first3PagesLostOrganicKeywords`
-- `first3PagesNewOrganicKeywords` and `first3PagesLostOrganicKeywords` items contain `keyword`, `pageIndex`, and `pagePosition`
+Availability:
 
-### `/openapi/v2/keywords/product-traffic-terms-timeline`
+- Pre-release on `http://localhost:8080` as of 2026-07-14; do not assume the production API exposes it.
+- Localhost tool name: `openapi_v2_keyword_market_profile`.
+- Before calling, inspect the target surface. On 404 or missing tool, continue with `keywords/detail` and transparent Agent-side interpretation; do not fabricate profile objects.
 
-Parameters:
-- required: `asin`, `keyword`, `dateFrom`, `dateTo`
-- optional: `marketplace` default `US`, `page`, `pageSize` max `100`, `sortBy`, `sortOrder`
-- `dateTo - dateFrom` cannot exceed 93 days
-- `sortBy`: `date`
-- `sortOrder`: `asc` / `desc`
+Request:
 
-Behavior:
-- preferred ASIN + exact-keyword timeline input for anomaly diagnosis
-- Prefer T-1 or earlier for `dateTo`; avoid current-date lookup unless explicitly requested
-- interpret three metric groups separately:
-  - `keyword*` fields describe keyword traffic-forecast dependency data for `keywordPeriodStartDate` / `keywordPeriodEndDate`
-  - `latest*` fields describe the ASIN's latest product/listing/rank snapshot on the row date
-  - impression-point, `avg*`, ad-activity, and placement fields are rolling metrics for the most recent 7 days ending on the row date
+- exactly one of `keyword` or `keywords[]` (1–20)
+- required `date` (`YYYY-MM-DD`)
+- `marketplace=US|UK`, default `US`
+- `granularity=week` only
 
 Response:
-- array of timeline rows
-- product/listing fields: `date`, `asin`, `keyword`, `latestTitle`, `latestPrice`, `latestCurrency`, `latestLink`, `latestMainImageLink`, `latestBrandName`, `latestMonthlySaleCnt`, `latestRatingAmt`, `latestRatingCnt`, category BSR fields
-- placement/exposure fields: `exploreTypes`, impression-point fields, `latestOrganicPosition`, organic page fields, `latestAdPosition`, ad page fields, `avgOrganicObservation`, `avgAdObservation`, `adActiveObservationCount`, `adActiveDayCoverageRate`, `adCampaignCnt`, `adCnt`
-- keyword context fields: `keywordPeriodStartDate`, `keywordPeriodEndDate`, `keywordEstimateSearchCnt`, keyword growth fields, `keywordAbaRank`, ABA share fields, keyword market/SKU/ad-count fields
 
-## Draft Callable Tool Mapping
+- `data.context`: marketplace, site, requested/resolved date, weekly period, `thresholdBasis`
+- `data.items[]`: input-order identity, `status=ok|empty|error`, `marketProfile`, and empty/error fields
+- `marketProfile`: `marketContext`, `demandScale`, `top3Concentration`, `adActivity`, `top20OrganicEntryDifficulty`, `supplySaturation`, `brandStructure`, `organicProductBenchmark`, `calculationCoverage`
+- profile objects currently use snake_case internal keys such as `input_field_names`, `unsupported_reason`, `dimension_coverage`, `used_field_names`, and `missing_field_names`; preserve these keys as returned
+- internal objects are versioned by the server-side metric profile; interpret returned levels/scores with `thresholdBasis` and per-dimension coverage, not as timeless universal thresholds
+- inspect `calculationCoverage.dimension_coverage[]` and each dimension's `level`, `score`, and `unsupported_reason`; top-level `calculationCoverage.supported=true` does not guarantee every dimension is usable
 
-Use these as draft full names only. Final authority is the tool surface actually
-exposed in the current session.
+This endpoint returns deterministic weekly snapshot evidence. It does not return history, strategy advice, root cause, recommended actions, or seller-private ABA-SQP conversion data. An unmatched keyword returns `status=empty`, `marketProfile=null`, and `emptyReason=keyword_not_observed_in_snapshot`. Billing is per `status=ok` item; a localhost batch with one `ok` and one `empty` item consumed 1 credit. Use returned `meta.creditsConsumed` / `meta.creditsConsumedExact` rather than estimating.
 
-| HTTP endpoint path | Draft callable tool name |
-|----------|--------------------------|
-| `/openapi/v2/keywords/detail` | `mcp__zoodata__openapi_v2_keyword_detail` |
-| `/openapi/v2/keywords/trend` | `mcp__zoodata__openapi_v2_keyword_trend` |
-| `/openapi/v2/keywords/extends` | `mcp__zoodata__openapi_v2_keyword_extends` |
-| `/openapi/v2/keywords/search-results` | `mcp__zoodata__openapi_v2_keyword_search_results` |
-| `/openapi/v2/keywords/competitor-product-keywords` | `mcp__zoodata__openapi_v2_keyword_competitor_product_keywords` |
-| `/openapi/v2/keywords/product-traffic-terms` | `mcp__zoodata__openapi_v2_keyword_product_traffic_terms` |
-| `/openapi/v2/keywords/product-traffic-terms-overview` | `mcp__zoodata__openapi_v2_product_traffic_terms_overview` |
-| `/openapi/v2/keywords/product-traffic-terms-timeline` | `mcp__zoodata__openapi_v2_product_traffic_terms_timeline` |
+Layer boundary: obtain stable server-calculated multidimensional profile objects from metric-layer `keywords/market-profile` first. Incomplete calculation coverage limits the conclusion but does not itself justify calling data-layer `keywords/detail`, because both are snapshot-source related. Access `detail` only when a required Agent inference needs raw fields omitted by the metric contract, the metric endpoint is unavailable for a metric-specific reason, or the user requests traceable source fields. Combine evidence, explain limitations, assign confidence, and recommend actions only in the Agent + skill layer.
 
-Tool selection rules:
-- Before selecting a tool, read the candidate tool's relevant docs/help/schema; names are hints, not proof of function
-- Preferred execution path after that documentation check is `python {skill_base_dir}/scripts/zoodata.py` with the matching keyword subcommand
-- Use the full callable tool name, not a shortened alias
-- Do not infer a callable name from another tool such as `openapi_v2_categories`
-- If the live session exposes a different full name, follow the live session
-- If the local CLI path is unavailable and the live session does not expose keyword tools, report that explicitly
+### Data layer: `keywords/trend`
 
-## Endpoint Quirks
+Request:
 
-- `keywords/detail`: top-level `data` is an object or `null`
-- `keywords/trend`: `data` is an array of weekly points
-- `keywords/extends`: input seed is `query`; try `queryType=phrase` first, then `fuzzy`
-- `keywords/search-results`: daily-ish observation in a ~7-day sliding window
-- `keywords/competitor-product-keywords` and `keywords/product-traffic-terms`: same live item shape and equivalent traffic-list functionality today; for traffic-structure analysis, choose one available endpoint instead of requiring both
-- `keywords/product-traffic-terms-overview`: weekly ASIN-level all-keyword impression traffic-change overview; `data` is an object or `null`; `*Prev` fields are previous-period baselines for matching impression-point fields
-- For `keywords/product-traffic-terms-overview`, report the period from response fields `periodStartDate` / `periodEndDate` only; request dates are lookup inputs, not the returned observation period
-- `first3PagesNewOrganicKeywords` lists keywords newly entering the ORG first three pages; `first3PagesLostOrganicKeywords` lists keywords that dropped out of the ORG first three pages
-- `keywords/product-traffic-terms-timeline`: ASIN + exact-keyword timeline; `data` is an array, requested range cannot exceed 93 days
+- exactly one of `keyword` or `keywords[]` (1–20)
+- `dateFrom`, `dateTo`; maximum 93-day range
+- `marketplace=US|UK`; `granularity=week` only
 
-Timeline field groups:
-- `keyword*` fields are keyword traffic-forecast dependency data for the provided keyword's corresponding metric period, indicated by `keywordPeriodStartDate` / `keywordPeriodEndDate`
-- `latest*` fields are the ASIN's latest product/listing/rank snapshot on the specified `date`
-- impression-point fields, `avg*` fields, ad-activity fields, and placement observations are rolling metrics for the most recent 7 days ending at the given `date`
-- Do not compare these groups as if they were the same time grain
-- For diagnosis, use timeline data as several curves: price (`latestPrice`), BSR (`latestSmallCategoryBsr`, `latestBigCategoryBsr`), sales (`latestMonthlySaleCnt`), rating (`latestRatingAmt`, `latestRatingCnt`), and traffic estimate (impression-point fields plus `avgOrganicObservation` / `avgAdObservation`)
-- Use `keyword*` fields as supporting context for traffic-estimate movement, not as direct evidence of ASIN price, BSR, sales, rating, title, or image changes
-- Treat `latestTitle` and `latestMainImageLink` changes as listing events; use them as possible causes/confounders only when their timing aligns with curve movement
+Response:
 
-## SERP Product Interpretation Rule
+- `data.context`: requested/resolved range and weekly granularity
+- `data.items[].series[]`: `periodStartDate`, `periodEndDate`, `estimateSearchCount`, `abaRank`, `abaTop3ClickShareRate`, `abaTop3ConversionShareRate`
 
-- If the user asks what products appear on the first page for a keyword, answer that primarily from `/openapi/v2/keywords/search-results`
-- This endpoint already returns product-level fields such as `asin`, `title`, `brand`, `price`, `rating`, `ratingCount`, and `recentSales`, so it is not just an ad-density endpoint
-- Treat `/openapi/v2/keywords/search-results` as the default source for page-1 product mix, intent shape, brand mix, and ad vs organic composition
-- Do not add `products/search` by default just to explain what appears on the keyword SERP
-- Add `products/search` only as an optional supplement when the user explicitly asks for broader market winners, sales distribution, price-band structure, or best-selling variants beyond the observed keyword SERP
+This is raw weekly history. Compute slopes or lifecycle labels transparently in the Agent layer until `trend-metrics` is live.
 
-## `products/search` Boundary Rule
+### Data layer: `keywords/extends`
 
-- `products/search` is a query against our own product database snapshot, not a direct Amazon live search-result page
-- Its result set can help describe broader catalog winners, sales distribution, price-band structure, and variant concentration
-- Do not present `products/search` output as "Amazon search results", "Amazon first-page results", or evidence of current keyword SERP ordering
-- Do not classify `products/search` as a front-end keyword SERP interface
-- When both endpoints are used, describe them separately:
-  `keywords/search-results` = observed keyword SERP
-  `products/search` = broader product-database supplement
+Request:
 
-## `webtools_search` Boundary Rule
+- required `query`; do not rename it to `keyword`
+- `queryType=phrase|fuzzy`
+- optional marketplace, page, pageSize (1–100), sortBy, sortOrder
+- no date is required; the service uses the latest available weekly snapshot. A legacy `date` may be sent but is ignored.
+- `sortBy=relevanceScore|estimateSearchCount|abaRank|keyword`
 
-- `webtools_search` is a crawler / web retrieval utility, not a keyword-intelligence endpoint
-- Do not use `webtools_search` as a substitute for `/openapi/v2/keywords/detail`, `/trend`, `/extends`, or `/search-results`
-- Use it only when the task is genuinely about web collection or when you need an explicitly labeled supplementary source outside the ZooData keyword endpoints
+Response:
 
-## Evidence Boundary Rules
+- `data.context.coverageType` and `coverageReason`
+- `data.query`, `data.queryType`
+- `data.rows[].matchData`: query, keyword, site, relevanceScore
+- `data.rows[].keywordSnapshot`: `dataWindow.currentPeriod` plus the same core snapshot families as detail
 
-- Use the endpoint that directly matches the evidence type whenever possible
-- Do not substitute broader product-library evidence for observed keyword SERP evidence
-- Do not substitute keyword snapshot evidence for reverse-ASIN source attribution
-- Do not substitute daily observed SERP evidence for weekly demand direction
-- Missing data from one endpoint type should create a boundary, not trigger cross-type invention
+Do not flatten the response back to legacy `term`, `seedKeyword`, or `estimateSearchCountWeekly` fields.
 
-## Capability Verification Order
+### Data layer: `keywords/search-results`
 
-Before judging whether a question can be answered:
+Request:
 
-1. Read the relevant docs/help/schema for each plausible candidate tool before choosing one
-2. Check whether the matching `zoodata.py` keyword subcommand exists and use it as the primary execution path when its docs match the evidence need
-3. If needed, read the live tool schema and field descriptions for the exposed callable tool
-4. Map those fields or CLI outputs to the business question
-5. Use endpoint naming only as a weak hint, never as proof
+- required `keyword`, `date`
+- `granularity=lately_day`, `lookbackDays=7`
+- optional `exploreTypes=ORG|SP|SB|SBV|SPR`, page/pageSize
+- `sortBy=absolutePosition|estimateImpressionPoint|latestObservedAt|price|rating|ratingCount|recentSales|asin|title`
 
-If neither the CLI docs/subcommand path nor live tool schema can be verified from the current environment, report that boundary explicitly instead of inventing capability.
+Response:
 
-## Scenario Mapping
+- `data.context`: requested/resolved date and 7-day current period
+- `data.identity`
+- `data.rows[]`: `latestObservedAt`, placement/position, listing fields, `estimateImpressionPoint`, `keywordTotalEstimateImpressionPoint`
 
-| Scenario | Must-have endpoints | Optional endpoints | Main decision output |
-|----------|---------------------|--------------------|----------------------|
-| Keyword expansion | `keywords/extends`, `keywords/detail` | `keywords/trend`, `keywords/search-results`, `products/search` | Candidate tiers and coarse filtering |
-| Single keyword analysis | `keywords/detail`, `keywords/search-results` | `keywords/trend`, `products/search` | Worth targeting or not |
-| Reverse ASIN keyword analysis | one of `keywords/product-traffic-terms` or `keywords/competitor-product-keywords` | the other ASIN traffic-list endpoint, `keywords/detail`, `keywords/search-results`, `products/search` | Traffic-source map and bid focus |
-| Keyword Traffic Diagnosis | `keywords/search-results`, `keywords/detail` | `keywords/product-traffic-terms-timeline`, `keywords/product-traffic-terms-overview`, `keywords/trend`, ASIN keyword endpoints, `products/search` | Cause analysis for changes |
+Use this as the primary observed SERP source. Split ORG from sponsored placements. Do not substitute `products/search` for SERP ordering.
 
-Availability interpretation:
-- `Must-have endpoints` means the scenario should not be presented as fully executable without them
-- `Optional endpoints` may enrich confidence or context, but they must not be silently substituted for missing must-have endpoints
-- For reverse ASIN, `keywords/product-traffic-terms` and `keywords/competitor-product-keywords` currently provide equivalent traffic-list functionality; one available endpoint is enough for the core traffic-source map
-- For reverse ASIN, `keywords/detail` and `keywords/search-results` are enrichers only; they do not replace an ASIN traffic-list endpoint
-- For traffic diagnosis, `keywords/product-traffic-terms-timeline` is the preferred ASIN + keyword timeline input; if missing, keep ASIN-side position/exposure-change conclusions weak
-- For traffic diagnosis, `keywords/product-traffic-terms-overview` is the preferred core evidence for two-week / previous-period all-keyword ASIN impression traffic changes; if missing, omit previous-period all-keyword traffic deltas and ORG first-3-page entry/exit conclusions
-- For traffic diagnosis, if both ASIN traffic-list endpoints are missing, omit ASIN-side traffic-share conclusions instead of inferring them
-- For single keyword analysis, if `keywords/trend` is missing, keep the conclusion snapshot-led and avoid strong claims about demand direction
+### Data layer: `keywords/product-traffic-terms` and `keywords/competitor-product-keywords`
 
-Conclusion scope:
-- `Must-have endpoints` unlock the scenario's core claim
-- `Optional endpoints` can refine confidence, context, or prioritization
-- Missing optional endpoints should narrow the claim scope, not redirect the task into another evidence model
+Request:
 
-## Scoring Inputs
+- required `asin`, `date`
+- `granularity=lately_day`, `lookbackDays=7`
+- optional `keywordContains`, `exploreTypes`, page/pageSize
+- `sortBy=trafficShare|estimateImpressionPoint|absolutePosition|avgPosition|keywordEstimateSearchCount|keywordAbaRank|latestObservedAt|keyword`
 
-### Demand
+Response:
 
-- Primary: `estimateSearchCountWeekly`, `keywordEstimateSearchCount`
-- Secondary: `estimateSearchChangeRate`, `keywordEstimateSearchCountChangeRate`, `abaRank`
-- Boundary: these are search-demand and exposure estimates, not first-party conversion or sales value; when the current evidence set is ZooData plus Amazon Brand Analytics market-wide signals only, keep traffic/value conclusions directional and put the seller-side SQP enrichment request only in `Data Notes` and `Data Notes Reminder`; when seller-side ABA-SQP data is included, use it to refine final keyword value
+- `data.context`, `data.identity`, `data.rows[]`
+- rows include placement/position, keyword, impression points, `trafficShare`, `avgPosition`, coverage/observation counts, keyword search/change fields, and ABA rank/change
 
-### Competition
+The two endpoints currently return the same row shape. Prefer `product-traffic-terms` for the user's target ASIN; use the competitor-named route for competitor/overlap framing or fallback. One call is enough unless explicitly checking parity.
 
-- Primary: `adCount`, `adCampaignCount`, SERP ad-slot share
-- Secondary: top ASIN repetition, `avgPosition`, `trafficShare`
+`trafficShare` is the row's sampled 7-day share within the ASIN traffic observation, not exact Amazon share of voice.
 
-### Relevance
+### Data layer: `keywords/product-traffic-terms-timeline`
 
-- Primary: `relevanceScore`
-- Secondary: semantic closeness to seed term, alignment between keyword intent and SERP results
+Request:
 
-### Stability
+- one ASIN and exactly one of `keyword` or `keywords[]` (1–20)
+- `dateFrom`, `dateTo`; maximum 61-day range
+- `granularity=lately_day`, `lookbackDays=7`
+- no page/pageSize pagination for series
 
-- Primary: trend consistency across 4-8 weekly points
-- Secondary: `daysCoverageRate`, `observationCount`
+Response:
 
-## Recommended Reporting Dimensions
+- `data.context`: requested/resolved range, granularity, lookbackDays
+- `data.items[].identity`, status, `series[]`, empty/error fields
+- each series point contains:
+  - `date`
+  - `asinSnapshot`: title, price, link/image, brand, badges, sales, rating, BSR, video
+  - `traffic`: ORG/SP/SB/SBV/SPR impression points
+  - `placement`: organic/ad positions, pages, observation timestamps, average observations
+  - `keywordMetrics`: `metricWindow` plus search count, ABA rank, Top3 shares
+  - `adActivity`: observation count, day coverage, campaign count, ad count
 
-### For keyword expansion
+Keep time grains separate: `asinSnapshot` is tied to the series date; traffic/placement/ad activity cover the 7-day rolling window ending on that date; `keywordMetrics` belongs to its own weekly `metricWindow`.
 
-- Search demand bucket
-- Competition bucket
-- Relevance bucket
-- Suggested usage scene: auto, broad, phrase, exact, product targeting support, or SEO observation
+### Metric layer (legacy response): `keywords/product-traffic-terms-overview`
 
-### For single keyword analysis
+The endpoint is conceptually aggregate, but production still returns the legacy flat shape:
 
-- Traffic size
-- Traffic direction
-- Ad crowding
-- Organic room
-- Head-listing strength
-- Bid recommendation tier
+- `periodStartDate`, `periodEndDate`, `asin`, `site`
+- current ORG/SP/SB/SBV/SPR impression points
+- matching `*Prev` values
+- `first3PagesNewOrganicKeywords[]`
+- `first3PagesLostOrganicKeywords[]`
 
-### For reverse ASIN
+Use returned period boundaries exactly. Do not claim that live production returned the planned `trafficPoints`, `trafficStructure`, `aggregateChanges`, `keywordConcentration`, or `channelBreakdown` objects. You may calculate simple current-minus-previous channel changes and shares transparently in the Agent layer.
 
-- Top traffic-source keywords
-- Ranking quality by keyword
-- Defensive keywords vs expansion keywords
-- Missing but strategically relevant competitor keywords
-- Bucket labels: `Defend` / `Expand` / `Observe` / `Avoid`
+## Planned metric endpoints
 
-### For keyword traffic diagnosis
+Use these only after live verification succeeds.
 
-- Position change
-- Exposure change
-- Search demand change
-- Ad density change
-- ASIN + keyword timeline movement
-- Price / BSR / sales / rating curves
-- Traffic-estimate curve
-- Title and main image change events
-- ASIN all-keyword impression traffic changes versus previous period
-- ORG first-3-page keyword entries/exits
-- Head competitor change
-- Likely cause and urgency
+| Endpoint | Planned deterministic objects | Never substitute with |
+|---|---|---|
+| `keywords/trend-metrics` | descriptive/change/rank stats, trend shape, outliers, `demandLifecycle` | raw series presented as server metrics |
+| `keywords/search-results-metrics` | `serpStructure`, organic stats, top ASINs/brands, target-ASIN evidence, competition evidence | strategy conclusion or raw rows |
+| `keywords/root-aggregate` | root-universe series and `rootDemand` | summing `extends` candidates |
+| `keywords/product-traffic-term-changes` | top losers/gainers, change rows and contribution within filter scope | overview aggregate or timeline inference |
+| `keywords/product-traffic-terms-timeline-review` | drill-down evidence signals for specified ASIN + keywords | final root cause or top loser discovery |
+
+Important boundaries:
+
+- Do not calculate root-universe demand by summing expansion rows.
+- Do not infer keyword losers/gainers from the flat ASIN overview; it has no keyword contribution rows.
+- Do not claim a timeline review proved causality; it is planned to return evidence signals only.
+- `market-profile` occupies the stable snapshot-profile metric role. If a dimension lacks calculation coverage, mark that metric judgment unavailable; do not assume `detail` can reconstruct the missing metric. Use `detail` only when it exposes additional raw evidence needed for a different, explicitly named Agent inference or when the metric endpoint itself is unavailable.
+
+## Evidence boundaries
+
+- Keyword opportunity workflow: use detail/trend + SERP evidence; use `extends` for candidates. Without seller ABA-SQP, value/spend recommendations remain directional.
+- ASIN keyword health: live production can describe current traffic terms and legacy aggregate current-vs-previous movement. Full keyword change contribution requires the planned `product-traffic-term-changes` endpoint.
+- ASIN anomaly diagnosis: combine overview, current traffic terms, raw timeline, keyword trend, and SERP. Rank plausible explanations; do not claim a server-returned root cause.
+- `products/search` is broader ZooData catalog data, not observed keyword SERP evidence.
+- `webtools_search` is web retrieval, not ZooData keyword intelligence.
+- Do not compare CTR, CVR, rank, or traffic quality against competitors without same-metric, same-keyword, same-marketplace, comparable-period and comparable-placement evidence.
+- ZooData does not supply the seller's private ABA Search Query Performance funnel. Use user-provided impressions, clicks, cart adds, purchases, shares, and conversion rates as first-party enrichment when available.
+
+## CLI and callable mapping
+
+Use `python {skill_base_dir}/scripts/zoodata.py` after reading subcommand help.
+
+| HTTP endpoint | CLI subcommand |
+|---|---|
+| `keywords/detail` | `keyword-detail` |
+| `keywords/market-profile` | `keyword-market-profile` |
+| `keywords/trend` | `keyword-trend` |
+| `keywords/extends` | `keyword-extends` |
+| `keywords/search-results` | `keyword-search-results` |
+| `keywords/product-traffic-terms` | `keyword-product-traffic-terms` |
+| `keywords/competitor-product-keywords` | `keyword-competitor-product-keywords` |
+| `keywords/product-traffic-terms-overview` | `product-traffic-terms-overview` |
+| `keywords/product-traffic-terms-timeline` | `product-traffic-terms-timeline` |
+
+If using MCP/session tools, inspect the live tool surface and exact schema first. Never infer a callable name from an HTTP path or draft name.

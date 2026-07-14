@@ -43,7 +43,7 @@ should be manually confirmed against the active session:
 
 ## What You Get
 
-- Candidate keyword tiers: `Priority test` / `Selective test` / `Observe only` / `Exclude`
+- Candidate keyword tiers: `Priority test` / `Selective test` / `Harvest` / `Observe only` / `Avoid`
 - Single-keyword directional viability assessment across demand, competition, ad density, and SERP structure
 - Reverse ASIN keyword source view with traffic-share-based prioritization
 - Keyword anomaly diagnosis with likely cause analysis
