@@ -27,7 +27,7 @@ Four workflows for search-demand and keyword-traffic questions that product/cate
 
 ## Data Source & Boundaries
 
-All keyword signals come from the **Amazon Brand Analytics (ABA)** backend — the same search-demand data Amazon shows brand owners, not scraped estimates.
+All keyword signals are sourced from the **Amazon Brand Analytics (ABA)** backend — the search-demand data Amazon shows brand owners. Coverage is limited to keywords that appear in ABA; missing data means outside ABA coverage, not low demand.
 
 Keyword value boundary: ZooData keyword endpoints provide estimated search, exposure, visibility, and rank signals. They do not prove final keyword value or conversion quality for a specific ASIN by themselves. When the current evidence set is ZooData plus Amazon Brand Analytics market-wide signals only, traffic-related conclusions should be treated as directional. Recommended data provision: in Brand View, sort descending by Search Funnel - Impressions → Brand Count, then provide a screenshot or download the CSV for model analysis. If seller-side ABA-SQP data is included, use impressions, clicks, cart adds, purchases, click share, purchase share, and conversion rate as first-party conversion evidence.
 
