@@ -342,11 +342,11 @@ Availability: exposed on `http://localhost:8080` as of 2026-07-14; not yet publi
 
 **Response:** `data.context + data.items[]` for both single and batch requests.
 
-Context fields: `marketplace`, `site`, `requestedDate`, `resolvedDate`, `granularity`, `thresholdBasis`, `dataWindow.currentPeriod`.
+Context fields: `marketplace`, `site`, `requestedDate`, `resolvedDate`, `granularity`, `dataWindow.currentPeriod`, and `scoringSpec` (`id`, `version`, `scoreType`, `scoreRange`, `referenceScope`).
 
-Each item has `identity`, `status`, `marketProfile`, `emptyReason`, `errorCode`, and `errorMessage`. `marketProfile` contains `marketContext`, `demandScale`, `top3Concentration`, `adActivity`, `top20OrganicEntryDifficulty`, `supplySaturation`, `brandStructure`, `organicProductBenchmark`, and `calculationCoverage`.
+Each item has `identity`, `status`, `marketProfile`, `emptyReason`, `errorCode`, and `errorMessage`. `marketProfile` contains `marketContext`, `demandScale`, `top3Concentration`, `adActivity`, `top20OrganicEntryDifficulty`, `supplySaturation`, `brandStructure`, and `organicProductBenchmark`.
 
-Use returned levels/scores only with `thresholdBasis` and per-dimension coverage. Profile objects currently use snake_case internal keys such as `input_field_names`, `unsupported_reason`, and `dimension_coverage`. Check every `calculationCoverage.dimension_coverage[]` entry because top-level `supported=true` does not mean all dimensions are available. This endpoint returns deterministic weekly snapshot evidence, not trend, root cause, recommendations, or seller-private ABA-SQP conversion data. Empty items are not billed; use returned `meta.creditsConsumed` / `meta.creditsConsumedExact`.
+Use returned scores only with `context.scoringSpec`. Profile objects currently use camelCase fields. Each scored dimension exposes `supported`, `score`, `level`, `interpretation`, `scoreDirection`, `calculationStatus`, and `unsupportedReason`; evaluate it independently and treat any explicit unavailable signal as a conclusion boundary. `marketContext` may also return `annualSeasonality` with `isAvailable`, `unavailableReason`, `pairedWeekCount`, level, and score. It is a seasonality-detection summary, not a trend series. This endpoint returns deterministic weekly snapshot evidence, not trend, root cause, recommendations, or seller-private ABA-SQP conversion data. Empty items are not billed; use returned `meta.creditsConsumed` / `meta.creditsConsumedExact`.
 
 Three-layer boundary: `keywords/detail` is the traceable data layer; `keywords/market-profile` is the stable deterministic metric layer; the Agent + skill layer combines evidence and produces confidence, explanations, limitations, and recommendations.
 

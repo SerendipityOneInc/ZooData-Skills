@@ -65,7 +65,7 @@ If required evidence is missing, end with exactly three logical parts: current-s
 - If a metric returns an unsupported dimension because its calculation inputs are missing, mark that conclusion unavailable. Only descend when the data contract provides different evidence needed for another valid inference.
 - Page-1 product rows must come from `keywords/search-results`; aggregate SERP structure should come from `keywords/search-results-metrics` when live.
 - `products/search` is allowed only as broader market context when the user explicitly asks for that broader view
-- Interpret `marketProfile` levels/scores only with returned `thresholdBasis` and `calculationCoverage`; never treat them as trend, root cause, or strategy output.
+- Interpret `marketProfile` scores only with returned `context.scoringSpec`, and gate every dimension through its own `supported`, `calculationStatus`, `unsupportedReason`, `score`, and `level`; never treat the profile or `annualSeasonality` summary as a trend series, root cause, or strategy output.
 - The analysis may use any efficient call pattern, but the final verdict must stay within the available evidence scope
 - ZooData evidence is estimated search/exposure/visibility data, not the user's ASIN-specific ABA Search Query Performance funnel. The first reply is a market-level directional judgment, not a final keyword-value or budget judgment.
 - After the market screening, ask only for the user's ASIN. Do not request ABA-SQP in the first reply.

@@ -175,12 +175,13 @@ Request:
 
 Response:
 
-- `data.context`: marketplace, site, requested/resolved date, weekly period, `thresholdBasis`
+- `data.context`: marketplace, site, requested/resolved date, weekly period, and `scoringSpec` (`id`, `version`, `scoreType`, `scoreRange`, `referenceScope`)
 - `data.items[]`: input-order identity, `status=ok|empty|error`, `marketProfile`, and empty/error fields
-- `marketProfile`: `marketContext`, `demandScale`, `top3Concentration`, `adActivity`, `top20OrganicEntryDifficulty`, `supplySaturation`, `brandStructure`, `organicProductBenchmark`, `calculationCoverage`
-- profile objects currently use snake_case internal keys such as `input_field_names`, `unsupported_reason`, `dimension_coverage`, `used_field_names`, and `missing_field_names`; preserve these keys as returned
-- internal objects are versioned by the server-side metric profile; interpret returned levels/scores with `thresholdBasis` and per-dimension coverage, not as timeless universal thresholds
-- inspect `calculationCoverage.dimension_coverage[]` and each dimension's `level`, `score`, and `unsupported_reason`; top-level `calculationCoverage.supported=true` does not guarantee every dimension is usable
+- `marketProfile`: `marketContext`, `demandScale`, `top3Concentration`, `adActivity`, `top20OrganicEntryDifficulty`, `supplySaturation`, `brandStructure`, and `organicProductBenchmark`
+- current profile objects use camelCase fields. Each scored dimension returns `supported`, `score`, `level`, `interpretation`, `scoreDirection`, `calculationStatus`, and `unsupportedReason`
+- internal objects are versioned by `context.scoringSpec`; interpret scores with its returned model id/version, normalized range, and reference scope rather than as timeless universal thresholds
+- inspect every dimension independently. Treat `supported=false`, `calculationStatus=unavailable`, `level=unknown`, `score=null`, or non-null `unsupportedReason` as unavailable; the current contract has no aggregate `calculationCoverage` object
+- `marketContext` may include `volatilityType`, `peakPeriods`, `annualSeasonality`, `sourceValue`, `confidence`, `inputFieldNames`, `reasons`, and `unsupportedReason`. `annualSeasonality` has its own `isAvailable` / `unavailableReason` boundary and is a detection summary, not a returned trend series
 
 This endpoint returns deterministic weekly snapshot evidence. It does not return history, strategy advice, root cause, recommended actions, or seller-private ABA-SQP conversion data. An unmatched keyword returns `status=empty`, `marketProfile=null`, and `emptyReason=keyword_not_observed_in_snapshot`. Billing is per `status=ok` item; a localhost batch with one `ok` and one `empty` item consumed 1 credit. Use returned `meta.creditsConsumed` / `meta.creditsConsumedExact` rather than estimating.
 
