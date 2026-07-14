@@ -1,9 +1,12 @@
 ---
 name: amazon-keyword-traffic-analysis
 description: >
-  Use when user asks for keyword expansion or ad keyword filtering; single keyword analysis or
-  keyword deep dive; whether a keyword is worth bidding on; which keywords drive traffic to an ASIN;
-  or why an ASIN changed under a keyword. Requires ZOODATA_API_KEY.
+  Amazon keyword intelligence backed by Brand Analytics (ABA) data — keyword expansion sorted into
+  Priority/Selective/Observe/Exclude test tiers, bid-worthiness verdicts for single keywords,
+  reverse-ASIN traffic terms, and keyword rank anomaly diagnosis. Use when user asks for keyword
+  expansion or ad keyword filtering; single keyword analysis or keyword deep dive; whether a keyword
+  is worth bidding on; which keywords drive traffic to an ASIN; or why an ASIN changed under a
+  keyword. Requires ZOODATA_API_KEY.
 metadata:
   version: "0.1.2"
   author: SerendipityOneInc
