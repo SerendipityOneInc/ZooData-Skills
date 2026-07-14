@@ -41,6 +41,47 @@ Apply these rules to every full-mode scenario. Scenario files define their own s
 - Reserve `Final calibrated conclusion` for decisions supported by the relevant seller-real fields.
 - Require Amazon Ads performance in addition to ABA-SQP for profitability, ACOS/ROAS, exact bid changes, or exact ad-budget allocation.
 
+## Evidence-to-Action Protocol
+
+Apply this protocol after scoping the conclusion and before writing recommendations. Confidence labels describe evidentiary strength; they do not authorize a more specific action.
+
+### Authorization checklist
+
+For every proposed action, record:
+
+1. **Target** — exact asset, field, keyword, campaign setting, offer, or business decision affected.
+2. **Direct observation** — whether the target was inspected at sufficient fidelity.
+3. **Defect signal** — the concrete issue observed on that target.
+4. **Alternatives** — other plausible causes consistent with the same performance pattern.
+5. **Validation** — comparison, experiment, time series, or first-party measurement that distinguishes the target from alternatives.
+6. **Impact** — reversibility, cost, and downside if the action is wrong.
+
+Map the evidence to the highest authorized action level:
+
+| Level | Minimum authorization |
+|-------|-----------------------|
+| `Inspect` | A broad signal identifies a relevant problem domain |
+| `Diagnose` | Multiple bounded hypotheses are supported and alternatives remain explicit |
+| `Test` | The target was directly observed, a specific defect hypothesis exists, and the test is reversible with predefined success/failure criteria |
+| `Change` | Direct target evidence plus validation distinguishes the target from material alternatives |
+| `Scale` / `Stop` | Seller-real outcome evidence and thresholds justify the financial consequence |
+
+If any required condition is absent, downgrade the action itself. Do not retain a `Change`, `Scale`, or `Stop` action by softening its wording.
+
+### General examples
+
+| Available evidence | Not authorized | Authorized next action |
+|--------------------|----------------|------------------------|
+| Clicks/cart adds but weak purchases | Rebuild the first three secondary images | Inspect the post-click/purchase handoff across images, copy, reviews, offer, price, variation, fulfillment, and traffic quality |
+| Search-result main-image thumbnail only | Rebuild the main image or secondary images | Inspect thumbnail-level subject recognition and request the full image set for asset-level review |
+| High ACOS alone | Lower bids by a fixed percentage | Diagnose search-term CPC, conversion, placement, and attribution; define a reversible bid test only after target-level evidence |
+| Organic rank decline | Pause the keyword | Diagnose demand, placement, inventory, listing events, competition, and ad coverage |
+| Review deterioration | Redesign the product | Cluster complaint themes and validate frequency, recency, variant scope, and product causality |
+
+### Asset-fidelity rule
+
+State what representation was actually observed when an asset enters the diagnosis: full-resolution asset, detail-page rendering, mobile rendering, search-result thumbnail, URL/change event, or no visual observation. An asset URL or detected change event proves that an asset changed, not that its content is defective or caused the performance movement.
+
 ### Seller Data Contract
 
 When a scenario advances to seller-real evidence, request ABA-SQP from `Brand Analytics → Search Analytics → Search Query Performance → Brand View`. Recommend sorting by `Search Funnel - Impressions → Brand Count` and accept screenshot or CSV. Prefer these fields:
@@ -58,13 +99,13 @@ When seller funnel data is available, compare `impression share → click share 
 
 | Funnel pattern | Interpretation | Default action |
 |----------------|----------------|----------------|
-| Click share > impression share | Main image, price, or title is attracting clicks | Test more exposure |
+| Click share > impression share | The search-to-click handoff is comparatively strong; image, price, title, placement, and intent fit remain candidate contributors unless separately inspected | Consider an exposure test only after Ads economics and target-level evidence support it |
 | Cart-add share rises again | Product acceptance is comparatively stronger | Raise priority |
 | Purchase share rises again | Real conversion competitiveness is strong | Consider focused expansion |
-| Click share is high but purchase share is low | Post-click loss | Improve detail page, reviews, offer, or price |
-| Impressions are high but clicks are low | First-screen appeal or intent fit is weak | Lower bid and improve creative/positioning |
+| Click share is high but purchase share is low | Post-click/purchase handoff requires diagnosis | Inspect detail-page assets, reviews, offer, price, variation, fulfillment, and traffic quality; do not prescribe a specific change without direct target evidence |
+| Impressions are high but clicks are low | Search-to-click handoff or intent/placement mismatch requires diagnosis | Inspect query intent, placement, main-image thumbnail, visible price/title, and Ads economics before authorizing creative or bid changes |
 | Click and purchase performance are good but market difficulty is high | Efficient but expensive to scale | Expand under controls |
-| Market profile is favorable but the ASIN funnel is weak | The market is viable, but the current product is not capturing it | Improve the product/listing before scaling |
+| Market profile is favorable but the ASIN funnel is weak | The market may be viable while the ASIN is not capturing it; the responsible factor is unresolved | Diagnose product, listing, offer, traffic quality, and fulfillment before selecting a change or scaling |
 
 ## Quick Mode Output
 
@@ -100,6 +141,7 @@ Before running any Full-mode keyword task:
 - [ ] Use the next-step request defined by the active scenario; do not infer a universal fixed sequence
 - [ ] Track every live API response for usage accounting: `_query.endpoint`, `_query.params`, `meta.creditsConsumed`, and `meta.creditsRemaining`
 - [ ] Separate traffic facts from strategy advice using confidence labels
+- [ ] Apply the Evidence-to-Action Protocol to every recommendation; verify target observation, defect signal, alternatives, validation, and authorized action level
 - [ ] Include `API Usage` as the final report section; if credit fields are missing, write `not returned` instead of omitting the section
 
 ## Evidence Capability Matrix

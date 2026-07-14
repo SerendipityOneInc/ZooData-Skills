@@ -195,6 +195,29 @@ These constraints are higher priority than any suggested workflow wording in ref
 - Without Search Query Performance data, phrase keyword-value and traffic-related conclusions as directional testing priority. Use the active scenario file to determine the next evidence request.
 - If user-provided ABA-SQP data is available, use it to refine traffic and keyword-value conclusions and do not add the seller-side SQP enrichment request
 
+### Evidence-to-Action Authorization Gate (MANDATORY)
+
+The specificity and consequence of an action must not exceed the specificity and strength of its evidence. Apply this gate separately from confidence labels; cautious wording does not authorize an unsupported action.
+
+Before proposing an action, identify the exact target, whether that target was directly observed at sufficient fidelity, the specific defect signal, material alternative explanations, available validation, and the action's reversibility/impact.
+
+- `Inspect`: allowed when a broad signal identifies a relevant problem domain.
+- `Diagnose`: allowed when evidence supports multiple bounded hypotheses; retain alternatives and do not select an unproven root cause.
+- `Test`: requires direct observation of the target, a specific defect hypothesis, a reversible test, and predefined success/failure criteria.
+- `Change`: requires direct target evidence and stronger validation that distinguishes it from material alternatives.
+- `Scale` / `Stop`: requires seller-real outcome evidence and decision thresholds proportionate to the financial impact.
+
+Hard rules:
+
+- If the target was not directly inspected, stop at `Inspect` for that target.
+- Broad funnel weakness can identify a handoff/problem domain but cannot authorize changes to a specific listing asset, keyword, campaign setting, offer, price, variation, or fulfillment setting.
+- Low-fidelity evidence authorizes only conclusions at that fidelity. A search-result thumbnail cannot support claims about full-size detail, secondary images, mobile readability, texture, dimensions, or image sequence.
+- If an asset was not inspected, recommend auditing it rather than modifying, replacing, removing, or rebuilding it.
+- When evidence is insufficient, downgrade the action itself—not merely its confidence label or wording. Words such as `consider`, `possibly`, and `directionally` do not upgrade authorization.
+- Preserve the chain `observed fact → problem domain → candidate causes → authorized action`; never skip directly from an aggregate performance signal to a specific change.
+
+See `references/execution-guide.md § Evidence-to-Action Protocol` for the operational checklist and examples.
+
 ### Comparative Claims Gate
 
 - Avoid saying the product, listing, CTR, CVR, rank, or traffic quality is "better than competitors", "outperforming competitors", or "superior to competitors" unless there is direct evidence for the same metric, same keyword/query, same marketplace, comparable date range, and comparable placement or position scope

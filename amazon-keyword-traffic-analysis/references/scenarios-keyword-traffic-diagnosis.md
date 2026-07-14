@@ -34,6 +34,8 @@
 - Diagnosis may use any efficient call pattern, but likely-cause claims must stay within the available evidence class
 - Without seller funnel data, keep traffic-change conclusions and likely causes directional. In a staged target-keyword workflow, ask for ABA-SQP only after candidate-profile validation; in a standalone anomaly diagnosis, one end-of-report seller-data request is allowed when it directly resolves the diagnosed uncertainty.
 - If the user provided ABA-SQP data, use impressions, clicks, cart adds, purchases, click share, purchase share, and conversion rate to refine traffic-change causes and action priority; do not add the seller-side SQP enrichment request
+- Apply `execution-guide.md § Evidence-to-Action Protocol` to every recommendation. Aggregate traffic or funnel movement can authorize inspection/diagnosis but cannot identify a defective listing asset or operating setting by itself.
+- Do not recommend rebuilding or replacing images, title, bullets, A+ content, price, offer, variation, fulfillment, keyword, bid, or campaign settings unless the exact target meets the required authorization level. If it was not directly inspected, stop at `Inspect`.
 
 ### Tool Availability Gate
 
@@ -92,7 +94,7 @@ Use keyword-level fields as supporting context for traffic-estimate changes:
 Track these timeline events:
 - Title change event: `asinSnapshot.latestTitle` changed between dates
 - Main image change event: `asinSnapshot.latestMainImageLink` changed between dates
-- Treat title/image events as possible causes or confounders only when their timing aligns with traffic, BSR, sales, or rating movement
+- Treat title/image events as possible causes or confounders only when their timing aligns with traffic, BSR, sales, or rating movement. A changed value/link does not reveal content quality and cannot authorize a content change without direct inspection.
 
 ### Diagnosis Signals
 
@@ -166,7 +168,7 @@ Track these timeline events:
 3. [💡 / 🔍 only]
 
 ## Recommended Actions
-[Observe / increase defense / inspect bids / inspect listing relevance]
+[For each action, label `Inspect / Diagnose / Test / Change / Scale / Stop` and state the target plus supporting evidence. If the target was not directly inspected, use `Inspect`; do not prescribe a target-level change.]
 
 ## Next Step
 [In a standalone diagnosis, request only the seller data needed to resolve the named uncertainty. Omit this section when the provided data is sufficient.]

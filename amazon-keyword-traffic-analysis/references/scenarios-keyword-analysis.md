@@ -35,6 +35,8 @@ Use this staged sequence only for a target-keyword decision that naturally progr
 - If a metric dimension is unsupported, mark it unavailable rather than forcing a same-source data-layer call that cannot add different evidence.
 - The Stage 1 answer must not contain final product priority, budget allocation, or bid actions. Its only proactive request is the ASIN.
 - At Stage 2 distinguish observed facts from possible click/conversion issues. Without seller funnel data, describe click or conversion weakness as a hypothesis, not a measured fact.
+- At Stage 2, a funnel weakness authorizes inspection of the relevant handoff, not a specific asset or operating change. Apply `execution-guide.md § Evidence-to-Action Protocol` before recommending changes to images, title, bullets, A+ content, price, reviews, offer, variation, fulfillment, keywords, bids, or campaigns.
+- Treat image evidence according to fidelity. A thumbnail supports only thumbnail-level observations; an image URL/change event proves only that the image changed. Require direct inspection of each targeted asset before proposing an asset-level test or change.
 - Candidate generation and candidate recommendation are different operations. Every candidate must pass Stage 3 batch market-profile validation before appearing in a recommended validation tier.
 - Candidate priority formula: `product fit × current ASIN performance × keyword market profile`. Title relevance or an occasional observed position is not sufficient by itself.
 - Stage 3 compares at least demand scale, ad activity, Top-20 organic entry difficulty, supply saturation, brand structure, head-product barrier, and Top-3 concentration when covered.
@@ -46,7 +48,7 @@ Use this staged sequence only for a target-keyword decision that naturally progr
 | Stage | Required conclusion label | Allowed | Forbidden |
 |-------|---------------------------|---------|-----------|
 | 1 | `Market-screen conclusion` | Market attractiveness, relative entry difficulty, provisional role, risks, and whether ASIN validation is worthwhile | Final focus/do-not-focus decision, product fit, budget, bid, expansion, pause, profitability, or conversion claims |
-| 2 | `ASIN-observation preliminary conclusion` | Observed fit/position/traffic posture, current posture label, likely constraint hypotheses, and candidate pool | Final keyword priority, unvalidated candidate recommendations, budget/bid changes, profitability, or measured click/conversion claims without seller data |
+| 2 | `ASIN-observation preliminary conclusion` | Observed fit/position/traffic posture, current posture label, likely constraint hypotheses, candidate pool, and inspection actions authorized by the observed problem domain | Final keyword priority, unvalidated candidate recommendations, uninspected asset changes, budget/bid changes, profitability, or measured click/conversion claims without seller data |
 | 3 | `Candidate-validation preliminary conclusion` | Market-profile-validated ranking for controlled seller-funnel validation | Final expansion list, fixed budget split, bid changes, pause/negative decisions, profitability, or unconditional GO/NO-GO |
 | 4 | `Awaiting seller evidence` | Decision gaps and minimum required seller fields | Repeating or strengthening prior conclusions while waiting |
 | 5 | `Final calibrated conclusion` | Final keyword groups, budget and bid/spend actions, validation rules, and decision thresholds | Profit or ACOS/ROAS claims when Ads performance is absent |
