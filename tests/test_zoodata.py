@@ -146,7 +146,7 @@ SUBCOMMANDS = [
     "pricing-analysis", "daily-radar", "listing-audit", "opportunity-scan",
     "review-deepdive", "analyze", "price-band-overview", "price-band-detail",
     "brand-overview", "brand-detail", "history",
-    "keyword-detail", "keyword-trend", "keyword-extends",
+    "keyword-detail", "keyword-market-profile", "keyword-trend", "keyword-extends",
     "keyword-search-results", "keyword-competitor-product-keywords",
     "keyword-product-traffic-terms",
     "product-traffic-terms-overview", "product-traffic-terms-timeline",

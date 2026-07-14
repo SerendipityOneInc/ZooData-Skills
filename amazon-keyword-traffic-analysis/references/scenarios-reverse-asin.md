@@ -2,7 +2,14 @@
 
 > Load this file for reverse ASIN keyword analysis.
 
----
+## Contents
+
+- [Inputs](#inputs)
+- [Task Constraints](#task-constraints)
+- [Tool Availability Gate](#tool-availability-gate)
+- [Analysis Dimensions](#analysis-dimensions)
+- [Decision Buckets](#decision-buckets)
+- [Output Template](#output-template)
 
 ## 3. Reverse ASIN Keyword Analysis
 
@@ -27,7 +34,7 @@
 - `keywords/product-traffic-term-changes` is the planned source for keyword losers/gainers and contribution. If it is unavailable, do not infer keyword-level change contribution from the current traffic list or flat overview.
 - Use metric-layer `product-traffic-terms-overview` first when the request is aggregate movement/structure. Call one ASIN traffic-list data endpoint only when keyword rows are the requested deliverable; no current metric replaces that row list.
 - Enrich selected traffic terms through metric-layer `keywords/market-profile` first. Call `detail` only when a named inference needs raw snapshot fields omitted by the metric, and call raw `trend` only when a trend metric is unavailable or weekly points are required.
-- Do not descend from `market-profile` merely because a dimension lacks calculation coverage; same-source data is unlikely to restore the missing metric input.
+- Do not descend from `market-profile` merely because a dimension is unsupported/unavailable; same-source data is unlikely to restore the missing metric input.
 - `keywords/detail` and `keywords/search-results` may enrich prioritization and SERP context, but they cannot replace ASIN keyword evidence
 - `products/search` is supplementary only when the user explicitly asks for broader market context beyond observed keyword SERP behavior
 - Term bucketing may use any efficient call pattern, as long as the traffic-source map is grounded in one of the ASIN traffic-list endpoints
@@ -37,6 +44,7 @@
 - Candidate terms may be formed from ASIN traffic terms, target-term extensions, attributes/scenes, user-provided SQP queries, and competitor terms. Do not publish them as recommendations until they have passed batch `keywords/market-profile` validation.
 - Keep traffic-source conclusions and spend/value recommendations directional without seller data. Ask for ABA-SQP only after candidate-profile validation, not at the start of the ASIN diagnosis.
 - Apply the General Conclusion Authority Gate: `Defend` / `Expand` / `Observe` / `Avoid` is an observed posture, not permission to change bids or budgets. Keep final focus, expansion, or pause decisions unresolved until seller calibration.
+- Apply `execution-guide.md § Evidence-to-Action Protocol` to every action. Traffic rows and posture labels alone do not authorize match type, bids, budgets, scaling, pausing, negatives, or uninspected listing changes.
 - If the user provided ABA-SQP data, use impressions, clicks, cart adds, purchases, click share, purchase share, and conversion rate to refine each traffic-source bucket and do not add the seller-side SQP enrichment request
 
 ### Tool Availability Gate
@@ -94,10 +102,10 @@
 |---------|---------------|--------------|--------------|--------|
 
 ## Defense Terms
-[Which terms should be protected]
+[Which terms currently show a defend posture; do not prescribe protection actions without the required seller/Ads evidence.]
 
 ## Expansion Terms
-[Which terms deserve testing, SQP validation, or SEO support]
+[Which terms are expansion candidates for validation; separate `Inspect / Diagnose / Test` from any later execution action.]
 
 ## ORG First-3-Page Changes
 [Fill from `keywords/product-traffic-terms-overview` when available. If unavailable, omit this section.]
@@ -113,7 +121,7 @@
 [Show only candidates that completed batch market-profile validation. Use `Priority test` / `Selective test` / `Harvest` / `Observe only` / `Avoid`.]
 
 ## Next Step
-[After candidate validation, request ABA-SQP using the Stage 4 contract in execution-guide.md. Request Ads search-term fields only when profitability or final budget is requested.]
+[After candidate validation, request ABA-SQP using `execution-guide.md § Seller Data Contract`. Request Ads search-term fields only when profitability, match-type execution, exact bids, or final budget is requested.]
 
 ## API Usage
 | Endpoint | Calls | Credits |

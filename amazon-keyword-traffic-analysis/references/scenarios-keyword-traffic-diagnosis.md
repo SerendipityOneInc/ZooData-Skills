@@ -2,7 +2,15 @@
 
 > Load this file for keyword traffic anomaly diagnosis.
 
----
+## Contents
+
+- [Inputs](#inputs)
+- [Task Constraints](#task-constraints)
+- [Tool Availability Gate](#tool-availability-gate)
+- [Important ASIN-Side Inputs](#important-asin-side-inputs)
+- [Curves And Events](#curves-and-events)
+- [Diagnosis Signals](#diagnosis-signals)
+- [Output Template](#output-template)
 
 ## 4. Keyword Traffic Diagnosis
 
@@ -20,7 +28,7 @@
 
 - Minimum evidence is claim-specific. Prefer `search-results-metrics` for SERP structure, `market-profile` for weekly market context, `product-traffic-terms-overview` for ASIN aggregate movement, and `product-traffic-terms-timeline-review` when live for timeline evidence summary.
 - Use raw `search-results`, `detail`, or timeline data only when the matching metric is unavailable or omits rows/fields/series required for a named diagnosis inference.
-- Metric calculation coverage limits the conclusion; it does not automatically authorize a same-source data call.
+- A metric dimension's unsupported/unavailable status limits the conclusion; it does not automatically authorize a same-source data call.
 - Two or more observations are required for anything stronger than directional movement commentary
 - If `keywords/trend` is unavailable, keep demand-change interpretation weak
 - `keywords/product-traffic-terms-timeline-review` is preferred when live. Use raw `keywords/product-traffic-terms-timeline` only when the review metric is unavailable or the diagnosis needs series detail omitted by the metric.

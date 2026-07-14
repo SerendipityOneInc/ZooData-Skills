@@ -2,7 +2,14 @@
 
 > Load this file for single-keyword evaluation.
 
----
+## Contents
+
+- [Inputs](#inputs)
+- [Target-Keyword Decision Journey](#target-keyword-decision-journey)
+- [Task Constraints](#task-constraints)
+- [Analysis Dimensions](#analysis-dimensions)
+- [Decision Logic](#decision-logic)
+- [Output Template](#output-template)
 
 ## 2. Single Keyword Analysis
 
@@ -26,7 +33,7 @@ Use this staged sequence only for a target-keyword decision that naturally progr
 | 2. ASIN × target keyword diagnosis | Stage 1 evidence plus observed ASIN relevance, price/rating/reviews/sales basis, organic/ad positions, traffic structure, changes, and market-relative barrier | Current `Defend` / `Expand` / `Observe` / `Avoid` posture and likely constraint hypotheses | Generate a candidate pool, but do not recommend unvalidated candidates. |
 | 3. Candidate market-profile validation | Candidate terms from ASIN traffic, target-term extensions, attributes/scenes, user-provided SQP queries, or competitor terms; batch market profiles | Preliminary `Priority test` / `Selective test` / `Harvest` / `Observe only` / `Avoid` validation tiers | Ask for ABA-SQP; ask for Ads search-term data only when profitability or exact ad-budget decisions are requested. |
 | 4. Seller data request | Clear list of required ABA-SQP and optional Ads fields | Explain the remaining decision gaps without strengthening prior conclusions | Wait for screenshot, CSV, or pasted fields. |
-| 5. Seller-real calibration | Seller ABA-SQP funnel and optionally Ads performance | Final keyword groups, budget and bid/spend actions, 7–14 day validation rules, and continue/raise/lower/pause conditions | State the calibrated decisions and monitoring conditions. |
+| 5. Seller-real calibration | Seller ABA-SQP funnel and, for financial execution, Ads performance | Final keyword groups and evidence-authorized operating actions; exact budget/bid/spend and continue/raise/lower/pause conditions require the relevant Ads fields and Evidence-to-Action authorization | State calibrated decisions and monitoring conditions within the supplied fields. |
 
 #### Journey Routing Rules
 
@@ -60,7 +67,7 @@ If required evidence is missing, end with exactly three logical parts: current-s
 ### Task Constraints
 
 - Minimum evidence is judgment-specific, not a fixed pair of data endpoints. Use metric-layer `keywords/market-profile` first for weekly market judgment and `keywords/search-results-metrics` when live for SERP structure judgment.
-- Use `keywords/detail` only when `market-profile` is unavailable or a named inference requires raw snapshot fields that the metric contract omits. Do not call it merely because one profile dimension has incomplete calculation coverage.
+- Use `keywords/detail` only when `market-profile` is unavailable or a named inference requires raw snapshot fields that the metric contract omits. Do not call it merely because one profile dimension is unsupported/unavailable.
 - Use raw `keywords/search-results` when the SERP metric is unavailable or the inference requires product/placement rows; do not call it merely to confirm a sufficient SERP metric.
 - Prefer `keywords/trend-metrics` when live. Use raw `keywords/trend` only when the metric is unavailable or the Agent needs weekly points/fields omitted from the metric; otherwise do not make strong demand-direction claims.
 - Use one batch call when comparing multiple target keywords; read each `data.items[]` status independently

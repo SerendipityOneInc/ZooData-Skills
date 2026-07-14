@@ -35,14 +35,14 @@ Terminology:
 - Start from the judgment, not from a fixed endpoint chain.
 - Prefer a matching metric endpoint because it provides the stable server-calculated object intended for that judgment.
 - Treat a successful, sufficiently covered metric response as complete for its contract. Do not call the source data endpoint by default.
-- Do not equate metric calculation coverage with data-access permission. When both layers share the same source, missing metric inputs usually remain missing below.
+- Do not equate a dimension's calculation status with data-access permission. When both layers share the same source, missing metric inputs usually remain missing below.
 - Descend only when the Agent's required inference needs information the metric contract does not expose but the data contract explicitly does: rows, series points, placements, raw fields, or another traceable evidence grain.
 - A non-deployed/metric-specific failure may also justify data fallback when transparent Agent calculation is valid; a same-source `empty`/unsupported dimension normally does not.
 - Make fallback surgical: retrieve only the missing subject, period, placement, rows, or fields.
 
 | Judgment / deliverable | Metric-first source | Data fallback or direct-data exception |
 |---|---|---|
-| Weekly keyword market structure | `keywords/market-profile` | `keywords/detail` only when a required inference needs raw snapshot fields omitted by the metric, or the metric endpoint itself is unavailable; not merely because a profile dimension lacks calculation coverage |
+| Weekly keyword market structure | `keywords/market-profile` | `keywords/detail` only when a required inference needs raw snapshot fields omitted by the metric, or the metric endpoint itself is unavailable; not merely because a profile dimension is unsupported/unavailable |
 | Trend shape, volatility, lifecycle | `keywords/trend-metrics` when live | `keywords/trend` when the metric is unavailable, or the Agent needs weekly points/fields omitted from the metric for a specific inference |
 | SERP structure/concentration | `keywords/search-results-metrics` when live | `keywords/search-results` for unavailable metric or requested product/placement rows |
 | Root-universe demand | `keywords/root-aggregate` when live | No equivalent fallback; `extends` is candidate recall, not root-demand proof |
@@ -165,6 +165,7 @@ Availability:
 - Pre-release on `http://localhost:8080` as of 2026-07-14; do not assume the production API exposes it.
 - Localhost tool name: `openapi_v2_keyword_market_profile`.
 - Before calling, inspect the target surface. On 404 or missing tool, continue with `keywords/detail` and transparent Agent-side interpretation; do not fabricate profile objects.
+- Local CLI localhost pattern: `ZOODATA_BASE_URL=http://localhost:8080/openapi/v2 python {skill_base_dir}/scripts/zoodata.py keyword-market-profile ...`. Do not switch hosts unless that target surface is in scope and available.
 
 Request:
 
@@ -185,7 +186,7 @@ Response:
 
 This endpoint returns deterministic weekly snapshot evidence. It does not return history, strategy advice, root cause, recommended actions, or seller-private ABA-SQP conversion data. An unmatched keyword returns `status=empty`, `marketProfile=null`, and `emptyReason=keyword_not_observed_in_snapshot`. Billing is per `status=ok` item; a localhost batch with one `ok` and one `empty` item consumed 1 credit. Use returned `meta.creditsConsumed` / `meta.creditsConsumedExact` rather than estimating.
 
-Layer boundary: obtain stable server-calculated multidimensional profile objects from metric-layer `keywords/market-profile` first. Incomplete calculation coverage limits the conclusion but does not itself justify calling data-layer `keywords/detail`, because both are snapshot-source related. Access `detail` only when a required Agent inference needs raw fields omitted by the metric contract, the metric endpoint is unavailable for a metric-specific reason, or the user requests traceable source fields. Combine evidence, explain limitations, assign confidence, and recommend actions only in the Agent + skill layer.
+Layer boundary: obtain stable server-calculated multidimensional profile objects from metric-layer `keywords/market-profile` first. An unsupported/unavailable dimension limits the conclusion but does not itself justify calling data-layer `keywords/detail`, because both are snapshot-source related. Access `detail` only when a required Agent inference needs raw fields omitted by the metric contract, the metric endpoint is unavailable for a metric-specific reason, or the user requests traceable source fields. Combine evidence, explain limitations, assign confidence, and recommend actions only in the Agent + skill layer.
 
 ### Data layer: `keywords/trend`
 
@@ -308,11 +309,11 @@ Important boundaries:
 - Do not calculate root-universe demand by summing expansion rows.
 - Do not infer keyword losers/gainers from the flat ASIN overview; it has no keyword contribution rows.
 - Do not claim a timeline review proved causality; it is planned to return evidence signals only.
-- `market-profile` occupies the stable snapshot-profile metric role. If a dimension lacks calculation coverage, mark that metric judgment unavailable; do not assume `detail` can reconstruct the missing metric. Use `detail` only when it exposes additional raw evidence needed for a different, explicitly named Agent inference or when the metric endpoint itself is unavailable.
+- `market-profile` occupies the stable snapshot-profile metric role. If a dimension is unsupported/unavailable, mark that metric judgment unavailable; do not assume `detail` can reconstruct the missing metric. Use `detail` only when it exposes additional raw evidence needed for a different, explicitly named Agent inference or when the metric endpoint itself is unavailable.
 
 ## Evidence boundaries
 
-- Keyword opportunity workflow: use detail/trend + SERP evidence; use `extends` for candidates. Without seller ABA-SQP, value/spend recommendations remain directional.
+- Keyword opportunity workflow: use `extends` directly for candidate recall, `market-profile` first for weekly market judgment, and trend/SERP metrics when live; descend to targeted raw detail/trend/SERP only for unavailable metrics or contract-omitted evidence required by a named inference. Without seller ABA-SQP, value/spend recommendations remain directional.
 - ASIN keyword health: live production can describe current traffic terms and legacy aggregate current-vs-previous movement. Full keyword change contribution requires the planned `product-traffic-term-changes` endpoint.
 - ASIN anomaly diagnosis: combine overview, current traffic terms, raw timeline, keyword trend, and SERP. Rank plausible explanations; do not claim a server-returned root cause.
 - `products/search` is broader ZooData catalog data, not observed keyword SERP evidence.

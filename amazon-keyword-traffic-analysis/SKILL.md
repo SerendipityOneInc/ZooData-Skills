@@ -110,9 +110,9 @@ Keep these concepts separate:
 
 1. Define the exact judgment and evidence type before calling an endpoint.
 2. Inspect the target surface for the matching metric endpoint and call the smallest sufficient metric request first.
-3. Inspect item status, resolved period, threshold/version, calculation coverage, and the metric fields actually returned.
+3. Inspect item status, resolved period, the returned scoring/profile version, each dimension's calculation status, and the metric fields actually returned.
 4. If the metric fully supports the requested judgment, stop at the metric layer. Do not automatically call its source data endpoint for confirmation, enrichment, or completeness.
-5. Treat calculation coverage as a conclusion boundary, not an automatic fallback trigger. When metric and data are derived from the same source, missing metric inputs usually mean the data layer cannot restore that metric. Mark the dimension unavailable unless the data contract is known to contain different evidence that supports a different, valid Agent inference.
+5. Treat each dimension's calculation status as a conclusion boundary, not an automatic fallback trigger. When metric and data are derived from the same source, missing metric inputs usually mean the data layer cannot restore that metric. Mark the dimension unavailable unless the data contract is known to contain different evidence that supports a different, valid Agent inference.
 6. Access the data layer only when at least one condition holds:
    - no metric endpoint exists for the required capability, such as candidate recall or a current ASIN traffic-term list;
    - the metric endpoint is not deployed or fails for a metric-specific reason, and the data endpoint can transparently support the requested judgment;
@@ -274,7 +274,7 @@ See `references/execution-guide.md § Evidence-to-Action Protocol` for the opera
 
 ## On Missing Key
 
-When `ZOODATA_API_KEY` is not set (verify via `python {skill_base_dir}/scripts/zoodata.py check` — credentials-only, no endpoint calls and no credit usage; exits non-zero if no key in env or `~/.zoodata/config.json`): follow the **"On Missing Key"** protocol in `zoodata/SKILL.md` — STOP before any call, link the user to https://zoodata.ai/en/api-keys, and DO NOT produce a "partial analysis from public knowledge" / "for reference only" fallback as a substitute.
+When `ZOODATA_API_KEY` is not set, verify with `python {skill_base_dir}/scripts/zoodata.py check` (credentials-only, no endpoint calls or credit usage; exits non-zero if no key is found in the supported config locations). Then STOP before any endpoint call, direct the user to https://zoodata.ai/en/api-keys, and do not substitute public knowledge, web search, or a boundary-labeled "partial analysis" for missing ZooData evidence.
 
 ## On 401 Invalid Key
 
@@ -307,35 +307,37 @@ Important boundary:
 These are candidate-validation labels only. They rank which terms deserve seller-funnel validation and must not be presented as final expansion or spend decisions.
 
 - `Priority test` — good balance of demand, relevance, and manageable competition
-- `Selective test` — usable in certain ad groups or exact-match campaigns only
-- `Harvest` — lower demand but strong product relevance; suitable for controlled low-cost exact or long-tail capture
+- `Selective test` — deserves narrow seller-funnel validation; this label does not select an ad group or match type
+- `Harvest` — lower demand but strong product relevance; deserves controlled long-tail validation without prescribing bids or match type
 - `Observe only` — interesting but not ready for budget allocation
 - `Avoid` — weak relevance, poor market structure, or no credible entry path
 
 ### Reverse-ASIN Labels
 
-- `Defend` — already meaningful for traffic or position and should be protected
-- `Expand` — relevant and promising, but still has room to improve visibility
+- `Defend` — observed defend posture because the term is already meaningful for traffic or position; not permission to change bids/budgets
+- `Expand` — observed expansion-candidate posture with room to improve visibility; not permission to scale
 - `Observe` — potentially useful but weak, unstable, or incomplete
 - `Avoid` — low fit, weak position, or crowded without a clear path
 
 ## Output Spec
 
-Use the stage-specific structure in `execution-guide.md § Conversational Evidence Ladder`. Do not force later-stage sections into an earlier-stage reply. Any report that used live API data must still end with `API Usage`.
+Use the stage-specific structure in `execution-guide.md § Evidence-Level Progression` and the active scenario's journey/template. Do not force later-stage sections into an earlier-stage reply. Any report that used live API data must still end with `API Usage`.
 
 ### Language (required)
 
 Output language MUST match the user's input language. Technical field names and endpoint names may remain in English.
 
-### Disclaimer (required, at the top of every report)
+### Disclaimer (required at the top of every Full-mode report)
 
 > Data is based on ZooData keyword snapshots as of [date]. Weekly search and traffic metrics are sampled observations, not exact Amazon Ads billing data. This analysis is for reference only and should not be the sole basis for business decisions.
+
+Quick-mode lookups follow `execution-guide.md § Quick Mode Output` and may use a concise inline source/date note instead of this block.
 
 For keyword-value reports, add this note:
 
 > ZooData provides estimated exposure/search/visibility signals. State the current evidence level and keep conclusions within that boundary; use the next-step request defined by the conversational evidence ladder.
 
-### Confidence Labels (required, tag EVERY conclusion)
+### Confidence Labels (required for every substantive judgment or recommendation)
 
 - 📊 **Data-backed** — direct API data
 - 🔍 **Inferred** — logical reasoning from multiple observed fields
@@ -347,6 +349,7 @@ Rules:
 - Traffic-related conclusions without user-provided ABA-SQP search conversion data are NEVER above 💡 when they imply spend/value priority; do not repeat the seller-side SQP enrichment request inside the conclusion body
 - Single-day anomaly explanations are NEVER above 💡
 - Group headers and aggregate labels must not use stronger confidence than their contents
+- Pure status fields such as resolved dates, unavailable evidence, or lists of unresolved decisions do not need a confidence tag
 
 For API Usage format and credit tracking rules, see `execution-guide.md § Usage Accounting Rule`.
 

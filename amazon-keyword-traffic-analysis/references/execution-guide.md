@@ -2,7 +2,17 @@
 
 This file defines the task-constraint protocol for the four keyword scenarios.
 
----
+## Contents
+
+- [Execution Mode](#execution-mode)
+- [Evidence-Level Progression](#evidence-level-progression)
+- [Evidence-to-Action Protocol](#evidence-to-action-protocol)
+- [Seller Data Contract](#seller-data-contract)
+- [Quick Mode Output](#quick-mode-output)
+- [Full-Mode Checklist](#full-mode-checklist)
+- [Evidence Capability Matrix](#evidence-capability-matrix)
+- [General Rules](#general-rules)
+- [Output Rules](#output-rules)
 
 ## Execution Mode
 
@@ -95,16 +105,16 @@ When a scenario advances to seller-real evidence, request ABA-SQP from `Brand An
 
 If the user also wants profitability or final ad-budget allocation, request Search term, Match type, Impressions, Clicks, Spend, Orders, Sales, CPC, CVR, and ACOS or ROAS.
 
-When seller funnel data is available, compare `impression share → click share → cart-add share → purchase share` rather than judging from click count alone. Use share gains as evidence of funnel strength and share losses to locate the likely handoff problem. A calibrated strategy may cover core defense, priority expansion, long-tail harvest, controlled tests, lower-bid/negative terms, budget, 7–14 day validation metrics, and explicit decision thresholds.
+When seller funnel data is available, compare `impression share → click share → cart-add share → purchase share` rather than judging from click count alone. Use share gains as evidence of funnel strength and share losses to locate the likely handoff problem. When the required SQP/Ads fields are present and the Evidence-to-Action Protocol authorizes them, a calibrated strategy may cover core defense, priority expansion, long-tail harvest, controlled tests, lower-bid/negative terms, budget, 7–14 day validation metrics, and explicit decision thresholds.
 
 | Funnel pattern | Interpretation | Default action |
 |----------------|----------------|----------------|
 | Click share > impression share | The search-to-click handoff is comparatively strong; image, price, title, placement, and intent fit remain candidate contributors unless separately inspected | Consider an exposure test only after Ads economics and target-level evidence support it |
-| Cart-add share rises again | Product acceptance is comparatively stronger | Raise priority |
-| Purchase share rises again | Real conversion competitiveness is strong | Consider focused expansion |
+| Cart-add share rises again | Product acceptance is comparatively stronger | Upgrade the validation posture; authorize a test/change only through the Evidence-to-Action Protocol |
+| Purchase share rises again | Query-level seller conversion evidence is comparatively stronger | Mark as a focused-expansion candidate; require Ads economics before scaling, match-type, bid, or budget execution |
 | Click share is high but purchase share is low | Post-click/purchase handoff requires diagnosis | Inspect detail-page assets, reviews, offer, price, variation, fulfillment, and traffic quality; do not prescribe a specific change without direct target evidence |
 | Impressions are high but clicks are low | Search-to-click handoff or intent/placement mismatch requires diagnosis | Inspect query intent, placement, main-image thumbnail, visible price/title, and Ads economics before authorizing creative or bid changes |
-| Click and purchase performance are good but market difficulty is high | Efficient but expensive to scale | Expand under controls |
+| Click and purchase performance are good but market difficulty is high | The query is efficient in the supplied seller funnel but may be expensive to scale | Diagnose Ads economics and define controlled scale thresholds before authorizing expansion |
 | Market profile is favorable but the ASIN funnel is weak | The market may be viable while the ASIN is not capturing it; the responsible factor is unresolved | Diagnose product, listing, offer, traffic quality, and fulfillment before selecting a change or scaling |
 
 ## Quick Mode Output
@@ -125,8 +135,8 @@ Before running any Full-mode keyword task:
 
 - [ ] Read the relevant tool documentation before selecting the tool: CLI help/reference docs for `zoodata.py`, or live schema / field descriptions for MCP/session tools
 - [ ] Write down the required judgment/evidence type and select its metric endpoint first; do not begin from a fixed data-endpoint chain
-- [ ] Inspect metric item status, period, threshold/version, calculation coverage, and the fields exposed for the required inference
-- [ ] If the metric satisfies the inference, stop; if it does not, determine whether data actually contains additional evidence before calling it—calculation coverage alone is not a fallback reason
+- [ ] Inspect metric item status, period, returned scoring/profile version, each dimension's calculation status, and the fields exposed for the required inference
+- [ ] If the metric satisfies the inference, stop; if it does not, determine whether data actually contains additional evidence before calling it—an unsupported/unavailable dimension alone is not a fallback reason
 - [ ] Prefer `python {skill_base_dir}/scripts/zoodata.py` and choose the matching keyword subcommand after the documentation check
 - [ ] If you need session tool parity or fallback, inspect the active tool surface and read the live schema / field descriptions for candidate keyword tools before selecting or judging capability
 - [ ] Classify the task: seed keyword / target keyword / ASIN / ASIN + keyword
@@ -146,7 +156,7 @@ Before running any Full-mode keyword task:
 
 ## Evidence Capability Matrix
 
-Do not classify the request into a scenario before calling endpoints. Instead, determine which inputs are available, call the most relevant endpoints, then use this matrix to scope conclusions to the evidence returned.
+Before calling endpoints, identify the input shape and requested judgment so the relevant scenario rules and evidence plan are loaded. After retrieval, use this matrix to narrow conclusions to the evidence actually returned; the initial route never guarantees the final conclusion scope.
 
 ### Available Data → Conclusion Scope
 
@@ -228,7 +238,7 @@ When some endpoints return data but others are unavailable:
 
 ### Tool Naming
 
-- Distinguish HTTP endpoint paths such as `/openapi/v2/keywords/detail` from actual callable tool names such as draft `mcp__zoodata.openapi_v2_keyword_detail`
+- Distinguish HTTP endpoint paths such as `/openapi/v2/keywords/detail` from actual callable tool names such as draft `mcp__zoodata__openapi_v2_keyword_detail`
 - Never call a keyword tool from an inferred prefix, endpoint name, or friendly label alone
 - Never select or reject a candidate tool before reading its relevant docs/help/schema
 - Before first use, inspect the active tool surface and confirm the exact full callable name
@@ -241,7 +251,7 @@ When some endpoints return data but others are unavailable:
 - If the static tool list does not explicitly show the keyword tools, do not immediately fall back to API docs
 - First confirm whether the current session actually exposes the corresponding callable tool names when you need a fallback or parity check
 - Only fall back to ZooData docs for parameter confirmation when the local CLI path is unavailable, or a direct CLI/live tool call fails
-- If both the local CLI path and direct tool access are unavailable, report the limitation clearly and produce only a boundary-labeled substitute analysis
+- If both the local CLI path and direct tool access are unavailable, report the limitation clearly. Do not substitute public knowledge, web search, products/search, or adjacent endpoints for missing keyword evidence; offer a narrower task only when it has its own valid evidence source.
 
 ### Capability Inference Rule
 
@@ -260,7 +270,7 @@ When some endpoints return data but others are unavailable:
   - seed keyword only → use data-layer `extends` for candidate recall because rows are the deliverable; batch shortlisted terms through metric-layer `market-profile` first; call `detail` only when a named inference requires raw fields omitted by the metric contract; prefer `trend-metrics`/`search-results-metrics` when live and descend only for contract-omitted evidence or row-level requests
   - target keyword → use `market-profile` first for weekly market judgment; use `detail` only if the metric endpoint is unavailable or a named inference requires raw fields omitted by its contract; unsupported calculation dimensions end those metric conclusions unless data provides distinct evidence for a different inference
   - ASIN only → use metric-layer `product-traffic-terms-overview` first for aggregate movement; call one ASIN traffic-list data endpoint only when the task asks which keywords drive traffic; enrich selected terms with `market-profile` first and use `detail` only for explicitly required raw fields omitted by the metric
-  - ASIN + keyword → choose the metric matching the requested judgment (`market-profile`, `search-results-metrics`, or timeline review when live); call raw SERP, traffic-list, or timeline data only when the metric contract omits information required for a named inference, the metric endpoint is unavailable, or row/series evidence is requested; metric calculation coverage alone is not a fallback trigger
+  - ASIN + keyword → choose the metric matching the requested judgment (`market-profile`, `search-results-metrics`, or timeline review when live); call raw SERP, traffic-list, or timeline data only when the metric contract omits information required for a named inference, the metric endpoint is unavailable, or row/series evidence is requested; an unsupported/unavailable metric dimension alone is not a fallback trigger
   - ASIN + keyword + date range → prefer `product-traffic-terms-timeline-review` when live; fall back to `product-traffic-terms-timeline` only for unavailable/insufficient metric evidence or requested raw series
   - ASIN + multiple keywords + date range → batch through timeline review when live; otherwise batch the narrow fallback set through one timeline data call when there are at most 20
 - After data is retrieved, scope conclusions using the Evidence Capability Matrix above
@@ -332,7 +342,7 @@ When some endpoints return data but others are unavailable:
 - At seller-real-data level, name the provided SQP/Ads fields used and do not request them again.
 - Keep the wording natural and translated to the user's language. Avoid deficit-framed language and form-like status blocks.
 - Do not use ZooData estimated exposure/search/visibility signals as a substitute for user-provided ABA-SQP conversion evidence.
-- For ABA-SQP backend paths and recommended data provision method, see reference.md § Keyword Value Boundary.
+- For ABA-SQP backend paths, fields, and recommended data provision method, see this file's `Seller Data Contract`.
 
 ### Date Handling
 

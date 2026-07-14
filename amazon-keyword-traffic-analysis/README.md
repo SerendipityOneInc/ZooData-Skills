@@ -1,6 +1,6 @@
 # Amazon Keyword Intelligence — ZooData Agent Skill
 
-> Four keyword workflows built on ZooData's eight keyword endpoints.
+> Four staged keyword workflows built on ZooData data, metric, and aggregate endpoints.
 
 ## What This Skill Does
 
@@ -15,9 +15,10 @@ It supports four common scenarios:
 
 ## Endpoints Used
 
-The skill is designed around these eight ZooData endpoints:
+The current CLI covers these nine ZooData keyword endpoints:
 
 - `/openapi/v2/keywords/detail`
+- `/openapi/v2/keywords/market-profile` (localhost pre-release metric layer; inspect the target surface)
 - `/openapi/v2/keywords/trend`
 - `/openapi/v2/keywords/extends`
 - `/openapi/v2/keywords/search-results`
@@ -33,6 +34,7 @@ These are draft names inferred from other ZooData tool naming patterns and
 should be manually confirmed against the active session:
 
 - `mcp__zoodata__openapi_v2_keyword_detail`
+- `mcp__zoodata__openapi_v2_keyword_market_profile`
 - `mcp__zoodata__openapi_v2_keyword_trend`
 - `mcp__zoodata__openapi_v2_keyword_extends`
 - `mcp__zoodata__openapi_v2_keyword_search_results`
@@ -43,10 +45,18 @@ should be manually confirmed against the active session:
 
 ## What You Get
 
-- Candidate keyword tiers: `Priority test` / `Selective test` / `Harvest` / `Observe only` / `Avoid`
+- Standalone market-screen candidate pools that request an ASIN before product-specific prioritization
+- ASIN-stage candidate validation tiers: `Priority test` / `Selective test` / `Harvest` / `Observe only` / `Avoid`
 - Single-keyword directional viability assessment across demand, competition, ad density, and SERP structure
 - Reverse ASIN keyword source view with traffic-share-based prioritization
-- Keyword anomaly diagnosis with likely cause analysis
+- Keyword anomaly diagnosis with bounded hypotheses and evidence-authorized actions
+
+Core workflow rules:
+
+- **Metric-first:** use the smallest sufficient metric response before descending to raw rows/series.
+- **Batch-first:** batch compatible keyword subjects up to the live endpoint limit and preserve per-item status.
+- **Evidence progression:** market evidence → subject observation → seller-real evidence.
+- **Evidence-to-action:** aggregate weakness can trigger inspection/diagnosis but cannot authorize a specific asset or operating change without direct target evidence.
 
 Keyword value boundary: ZooData keyword endpoints provide estimated search, exposure, visibility, and rank signals. They do not prove final keyword value or conversion quality for a specific ASIN by themselves. When the current evidence set is ZooData plus Amazon Brand Analytics market-wide signals only, traffic-related conclusions should be treated as directional. Recommended data provision: in Brand View, sort descending by Search Funnel - Impressions → Brand Count, then provide a screenshot or download the CSV for model analysis. If seller-side ABA-SQP data is included, use impressions, clicks, cart adds, purchases, click share, purchase share, and conversion rate as first-party conversion evidence.
 
