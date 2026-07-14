@@ -50,7 +50,7 @@
 | 📦 [`zoodata/`](zoodata/) | 直接调用全部 11 个 API 端点 | 关键词/品类/ASIN/品牌 | 原始 API 数据 + 字段映射文档 | 所有其他 skill 的底层依赖 |
 | 🌐 [`web-extract/`](web-extract/) | 开放网页结构化采集 — 单页/JS 渲染抓取、Google 搜索深抓、站点 URL 发现、全站爬取（6 个端点） | URL、搜索词或域名 | `{title, summary, sections, key_metrics, ...}` 结构化字段 | 一次调用直接返回结构化 JSON，无需二次解析 |
 | 🎯 [`amazon-analysis/`](amazon-analysis/) | 13 种选品模式 + 市场/竞品/ASIN/定价/品类研究 | 关键词/品类/ASIN + 意图 | 分析发现、Top 产品、深度报告、置信度标签 | report/opportunity 复合命令一键跑完 |
-| 🔎 [`amazon-keyword-traffic-analysis/`](amazon-keyword-traffic-analysis/) | 基于 8 个关键词流量接口的关键词 intelligence 工作流 | 种子词、目标词、ASIN 或 ASIN + 关键词 | 拓词分层、单词判定、反查流量词、异动解释 | 专门覆盖拓词、反查 ASIN、关键词流量监控 |
+| 🔎 [`amazon-keyword-traffic-analysis/`](amazon-keyword-traffic-analysis/) | ABA 数据驱动的关键词情报 — 拓词、竞价价值判定、反查 ASIN、流量异动诊断（8 个接口） | 种子词、目标词、ASIN 或 ASIN + 关键词 | Priority/Selective/Observe/Exclude 四档测试分层、单词判定、反查流量词、异动解释 | 亚马逊官方 Brand Analytics（ABA）数据 — 真实搜索需求，非爬虫估算 |
 
 **⚡ 专项层** — 面向特定工作流的专用技能：
 
