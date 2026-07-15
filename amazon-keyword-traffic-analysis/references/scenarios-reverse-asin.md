@@ -40,11 +40,11 @@
 - Term bucketing may use any efficient call pattern, as long as the traffic-source map is grounded in one of the ASIN traffic-list endpoints
 - Reverse-ASIN traffic terms show visibility and estimated traffic contribution, not definitive commercial value or conversion quality
 - When this follows a target-keyword market screen, diagnose the ASIN × target keyword first: semantic/product-form fit, price/rating/reviews/sales basis, organic and sponsored positions, target-term share of observed ASIN traffic, organic/ad exposure mix, recent changes, listing events, and distance from the market barrier.
-- Classify the target term as `Defend`, `Expand`, `Observe`, or `Avoid`, and identify the likely constraint: exposure shortage, ad dependence, weak organic capture, weak relevance, or a possible click/conversion issue. Click/conversion issues remain hypotheses without seller funnel data.
+- Classify the target term as `Defend`, `Expand`, `Observe`, or `Avoid`. Identify a constraint only when discriminating evidence supports it; otherwise state the unresolved question and the minimum next evidence. A visibility pattern alone must not be converted into a generic exposure, ad-dependence, organic-capture, relevance, or click/conversion cause list.
 - Candidate terms may be formed from ASIN traffic terms, target-term extensions, attributes/scenes, user-provided SQP queries, and competitor terms. Do not publish them as recommendations until they have passed batch `keywords/market-profile` validation.
 - Keep traffic-source conclusions and spend/value recommendations directional without seller data. Ask for ABA-SQP only after candidate-profile validation, not at the start of the ASIN diagnosis.
 - Apply the General Conclusion Authority Gate: `Defend` / `Expand` / `Observe` / `Avoid` is an observed posture, not permission to change bids or budgets. Keep final focus, expansion, or pause decisions unresolved until seller calibration.
-- Apply `execution-guide.md § Evidence-to-Action Protocol` to every action. Traffic rows and posture labels alone do not authorize match type, bids, budgets, scaling, pausing, negatives, or uninspected listing changes.
+- Apply `execution-guide.md § Evidence-Seeking Diagnosis Protocol` before explaining a constraint, then apply `§ Evidence-to-Action Protocol` to every action. Traffic rows and posture labels alone do not authorize a cause claim, match type, bids, budgets, scaling, pausing, negatives, or uninspected listing changes.
 - If the user provided ABA-SQP data, use impressions, clicks, cart adds, purchases, click share, purchase share, and conversion rate to refine each traffic-source bucket and do not add the seller-side SQP enrichment request
 
 ### Tool Availability Gate
@@ -105,7 +105,7 @@
 [Which terms currently show a defend posture; do not prescribe protection actions without the required seller/Ads evidence.]
 
 ## Expansion Terms
-[Which terms are expansion candidates for validation; separate `Inspect / Diagnose / Test` from any later execution action.]
+[Which terms are expansion candidates for validation; show only the highest evidence-authorized `Inspect / Diagnose / Test` level and do not force a test when discriminating target evidence is absent.]
 
 ## ORG First-3-Page Changes
 [Fill from `keywords/product-traffic-terms-overview` when available. If unavailable, omit this section.]

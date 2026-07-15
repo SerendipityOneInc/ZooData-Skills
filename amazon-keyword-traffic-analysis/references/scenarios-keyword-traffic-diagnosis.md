@@ -34,15 +34,15 @@
 - `keywords/product-traffic-terms-timeline-review` is preferred when live. Use raw `keywords/product-traffic-terms-timeline` only when the review metric is unavailable or the diagnosis needs series detail omitted by the metric.
 - `keywords/product-traffic-terms-overview` is the preferred core evidence for two-week / previous-period all-keyword impression traffic changes under the ASIN; if unavailable, do not infer previous-period traffic deltas or first-3-page ORG keyword entry/exit
 - `keywords/product-traffic-term-changes` is the planned source for top losing/gaining keyword contribution. If it returns 404, omit contribution claims rather than deriving them from the overview.
-- `keywords/product-traffic-terms-timeline-review` is a planned evidence-summary endpoint. If unavailable and raw timeline fields can support the requested inference, inspect only the required timeline groups and label all cause ranking as Agent inference.
+- `keywords/product-traffic-terms-timeline-review` is a planned evidence-summary endpoint. If unavailable and raw timeline fields can support the requested inference, inspect only the required timeline groups. Report an Agent explanation only when those fields materially distinguish it; otherwise retain the unresolved question.
 - When diagnosing several keywords for one ASIN, batch them through timeline review first when live. If raw series are justified by a named inference, batch only that fallback set—up to 20—through one timeline data request and preserve each item's status.
 - If both ASIN traffic-list endpoints are unavailable, do not infer ASIN-side traffic-share
 - If `keywords/product-traffic-terms-overview` is unavailable, do not infer all-keyword impression traffic changes or ORG first-3-page entry/exit
 - `products/search` must not be used to explain observed rank or page-1 composition changes
-- Diagnosis may use any efficient call pattern, but likely-cause claims must stay within the available evidence class
-- Without seller funnel data, keep traffic-change conclusions and likely causes directional. In a staged target-keyword workflow, ask for ABA-SQP only after candidate-profile validation; in a standalone anomaly diagnosis, one end-of-report seller-data request is allowed when it directly resolves the diagnosed uncertainty.
-- If the user provided ABA-SQP data, use impressions, clicks, cart adds, purchases, click share, purchase share, and conversion rate to refine traffic-change causes and action priority; do not add the seller-side SQP enrichment request
-- Apply `execution-guide.md § Evidence-to-Action Protocol` to every recommendation. Aggregate traffic or funnel movement can authorize inspection/diagnosis but cannot identify a defective listing asset or operating setting by itself.
+- Diagnosis may use any efficient call pattern, but explanations require evidence that materially distinguishes them from alternatives; an available evidence class alone does not make a cause claim valid.
+- Without seller funnel data, keep traffic-change conclusions within observed visibility/placement evidence. In a staged target-keyword workflow, ask for ABA-SQP only after candidate-profile validation; in a standalone anomaly diagnosis, one end-of-report seller-data request is allowed when it directly resolves the named uncertainty.
+- If the user provided ABA-SQP data, use impressions, clicks, cart adds, purchases, click share, purchase share, and conversion rate to locate the unresolved funnel handoff and calibrate action priority. Do not treat SQP alone as proof of the handoff's cause, and do not add the seller-side SQP enrichment request.
+- Apply `execution-guide.md § Evidence-Seeking Diagnosis Protocol` before reporting explanations and `§ Evidence-to-Action Protocol` before every recommendation. Aggregate traffic or funnel movement can identify an unresolved problem domain but cannot identify a cause, defective listing asset, or operating setting by itself.
 - Do not recommend rebuilding or replacing images, title, bullets, A+ content, price, offer, variation, fulfillment, keyword, bid, or campaign settings unless the exact target meets the required authorization level. If it was not directly inspected, stop at `Inspect`.
 
 ### Tool Availability Gate
@@ -92,7 +92,7 @@ For ASIN + keyword diagnosis, inspect these curves when timeline data is availab
 | Price curve | `asinSnapshot.latestPrice` | Check whether price changes align with rank, conversion, or traffic-estimate movement |
 | BSR curve | `asinSnapshot.latestSubBsr`, `asinSnapshot.latestBsr` | Check whether category rank improved or weakened around the anomaly |
 | Sales curve | `asinSnapshot.latestMonthlySaleCount` | Check whether sales momentum moved with traffic exposure |
-| Rating curve | `asinSnapshot.latestRating`, `asinSnapshot.latestRatingCount` | Check whether rating quality or review count changed enough to affect placement/conversion |
+| Rating curve | `asinSnapshot.latestRating`, `asinSnapshot.latestRatingCount` | Check whether rating or review-count movement is time-aligned with placement/conversion evidence; do not assign impact from co-movement alone |
 | Traffic-estimate curve | `traffic.*ImpressionPoint`, `placement.avgOrganicObservation`, `placement.avgAdObservation` | Estimate exposure movement over the 7-day rolling window |
 
 Use keyword-level fields as supporting context for traffic-estimate changes:
@@ -102,32 +102,32 @@ Use keyword-level fields as supporting context for traffic-estimate changes:
 Track these timeline events:
 - Title change event: `asinSnapshot.latestTitle` changed between dates
 - Main image change event: `asinSnapshot.latestMainImageLink` changed between dates
-- Treat title/image events as possible causes or confounders only when their timing aligns with traffic, BSR, sales, or rating movement. A changed value/link does not reveal content quality and cannot authorize a content change without direct inspection.
+- Treat title/image events as time-aligned evidence signals only when their timing aligns with traffic, BSR, sales, or rating movement. Alignment makes them candidates for further discrimination, not causes. A changed value/link does not reveal content quality and cannot authorize a content change without direct inspection.
 
 ### Diagnosis Signals
 
-| Signal | What changed | Possible cause |
-|--------|--------------|----------------|
-| Position drop | `absolutePosition` / `pageIndex` worsened | stronger competitors, lower bid, listing weakness |
-| Exposure drop | `estimateImpressionPoint` fell | lower search demand or worse placement |
-| Ad crowding rose | sponsored share of SERP increased | bidding intensified |
-| Traffic share fell | ASIN keyword share weakened | rank loss or all-keyword traffic shift |
-| Demand fell | trend/search count moved down | keyword itself cooled off |
-| Timeline position worsened | `placement.latestOrganicPosition`, `placement.latestAdPosition`, or `placement.avgOrganicObservation` worsened | ASIN lost organic/ad placement under the keyword |
-| Timeline impression fell | organic/sponsored impression-point fields fell | weaker placement, lower ad presence, or lower keyword demand |
-| Ad activity weakened | `adActivity.adActiveObservationCount`, `adActiveDayCoverageRate`, `adCampaignCount`, or `adCount` fell | ads stopped/paused or coverage dropped |
-| All-keyword traffic changed | overview impression-point fields changed versus `*Prev` fields | ASIN gained/lost broader keyword traffic coverage |
-| ORG first-3-page entry/exit changed | `first3PagesNewOrganicKeywords` or `first3PagesLostOrganicKeywords` changed | ASIN gained/lost important organic keyword visibility |
-| Price moved | `asinSnapshot.latestPrice` changed | price sensitivity may affect conversion, rank, or ad efficiency |
-| BSR moved | `asinSnapshot.latestSubBsr` / `latestBsr` changed | broader category momentum changed alongside keyword traffic |
-| Sales moved | `asinSnapshot.latestMonthlySaleCount` changed | sales momentum changed alongside exposure or conversion |
-| Rating moved | `asinSnapshot.latestRating` / `latestRatingCount` changed | review quality or review volume may affect conversion and placement |
-| Listing event occurred | `asinSnapshot.latestTitle` or `latestMainImageLink` changed | listing content change may have affected relevance, CTR, or conversion |
+| Signal | Observed change | Evidence needed to explain it |
+|--------|-----------------|-------------------------------|
+| Position drop | `absolutePosition` / `pageIndex` worsened | Time-aligned SERP, placement, ad-activity, demand, and subject-event evidence needed to distinguish the driver |
+| Exposure drop | `estimateImpressionPoint` fell | Demand and placement movement over the same window |
+| Ad crowding rose | Sponsored share of SERP increased | Comparable ad-density observations plus target-ASIN ad activity; crowding alone does not prove bidding intensity |
+| Traffic share fell | ASIN keyword share weakened | Position, coverage, impression, and all-keyword movement over the same window |
+| Demand fell | Trend/search count moved down | Multiple comparable weekly points; this explains keyword demand movement, not automatically ASIN movement |
+| Timeline position worsened | `placement.latestOrganicPosition`, `placement.latestAdPosition`, or `placement.avgOrganicObservation` worsened | Channel-separated placement, ad activity, demand, and time-aligned subject/market events |
+| Timeline impression fell | Organic/sponsored impression-point fields fell | Placement, ad presence, and keyword demand over matching grains |
+| Ad activity weakened | `adActivity.adActiveObservationCount`, `adActiveDayCoverageRate`, `adCampaignCount`, or `adCount` fell | Campaign/Ads evidence needed to distinguish pause, budget, bid, eligibility, and observation-coverage explanations |
+| All-keyword traffic changed | Overview impression-point fields changed versus `*Prev` fields | Channel and keyword-row evidence needed before attributing contribution to a specific keyword |
+| ORG first-3-page entry/exit changed | `first3PagesNewOrganicKeywords` or `first3PagesLostOrganicKeywords` changed | Keyword-level position/timeline evidence needed to explain why entry or exit occurred |
+| Price moved | `asinSnapshot.latestPrice` changed | Time alignment plus conversion/placement evidence needed before assigning price impact |
+| BSR moved | `asinSnapshot.latestSubBsr` / `latestBsr` changed | Time alignment with sales, exposure, and category movement; BSR is not a standalone cause |
+| Sales moved | `asinSnapshot.latestMonthlySaleCount` changed | Time alignment with exposure and seller conversion evidence; co-movement is not causality |
+| Rating moved | `asinSnapshot.latestRating` / `latestRatingCount` changed | Review-event and conversion evidence needed before assigning impact |
+| Listing event occurred | `asinSnapshot.latestTitle` or `latestMainImageLink` changed | Direct asset inspection plus time-aligned relevance/CTR/conversion evidence needed before assigning impact |
 
 ### Alert Levels
 
 - `High`
-  target ASIN lost meaningful position/share and at least one supporting cause is observed
+  target ASIN shows a meaningful, sustained position/share loss across comparable observations; explanation confidence is reported separately
 - `Medium`
   noticeable movement but evidence is mixed
 - `Low`
@@ -139,7 +139,7 @@ Track these timeline events:
 # Keyword Traffic Diagnosis Report — [ASIN] × [Keyword]
 
 > Data is based on ZooData keyword snapshots as of [date]. Weekly search and traffic metrics are sampled observations, not exact Amazon Ads billing data. This analysis is for reference only and should not be the sole basis for business decisions.
-> Without seller funnel data, traffic-change causes and actions remain directional. If seller-side ABA-SQP data is included, integrate it directly.
+> Without seller funnel data, keep conclusions within observed visibility and placement evidence. Report an explanation only when discriminating evidence supports it; if seller-side ABA-SQP data is included, integrate it directly without treating the funnel pattern itself as proof of cause.
 
 ## [Localized Data Notes title]
 [Name the current evidence level and the specific diagnosis boundary. If SQP is present, name the fields used.]
@@ -170,16 +170,14 @@ Track these timeline events:
 
 **Dropped out of ORG first 3 pages:** [list from `first3PagesLostOrganicKeywords`, or "none" / "unavailable"]
 
-## Likely Causes
-1. [💡 / 🔍 only]
-2. [💡 / 🔍 only]
-3. [💡 / 🔍 only]
+## Explanation Status
+[Report only evidence-supported explanations. For each one, name the supporting evidence and material alternatives not ruled out. If none is sufficiently supported, state the unresolved question and do not create a cause list.]
 
-## Recommended Actions
-[For each action, label `Inspect / Diagnose / Test / Change / Scale / Stop` and state the target plus supporting evidence. If the target was not directly inspected, use `Inspect`; do not prescribe a target-level change.]
+## Authorized Next Actions
+[Include only actions authorized by the evidence. Label each `Inspect / Diagnose / Test / Change / Scale / Stop` and state the target plus supporting evidence. Omit this section when no action is authorized; keep the single evidence request in `Next Step`.]
 
 ## Next Step
-[In a standalone diagnosis, request only the seller data needed to resolve the named uncertainty. Omit this section when the provided data is sufficient.]
+[In a standalone diagnosis, request only the minimum evidence needed to distinguish the unresolved explanations. Omit this section when the provided evidence is sufficient.]
 
 ## API Usage
 | Endpoint | Calls | Credits |

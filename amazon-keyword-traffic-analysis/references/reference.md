@@ -315,9 +315,9 @@ Important boundaries:
 
 - Keyword opportunity workflow: use `extends` directly for candidate recall, `market-profile` first for weekly market judgment, and trend/SERP metrics when live; descend to targeted raw detail/trend/SERP only for unavailable metrics or contract-omitted evidence required by a named inference. Without seller ABA-SQP, value/spend recommendations remain directional.
 - ASIN keyword health: live production can describe current traffic terms and legacy aggregate current-vs-previous movement. Full keyword change contribution requires the planned `product-traffic-term-changes` endpoint.
-- ASIN anomaly diagnosis: combine overview, current traffic terms, raw timeline, keyword trend, and SERP. Rank plausible explanations; do not claim a server-returned root cause.
+- ASIN anomaly diagnosis: use overview, current traffic terms, raw timeline, keyword trend, and SERP only as required to resolve the named uncertainty. Rank explanations only when the retrieved evidence distinguishes them; otherwise stop at the unresolved question and required next evidence. Do not claim a server-returned root cause.
 - `products/search` is broader ZooData catalog data, not observed keyword SERP evidence.
-- `webtools_search` is web retrieval, not ZooData keyword intelligence.
+- ZooData WebTools is the only page/web-retrieval channel authorized by this skill. Use `/webtools/scrape` for known URLs, `/webtools/scrape-interactive` only when rendering/actions are required, and `/webtools/search` only for URL discovery. These are crawler/retrieval sources, not ZooData keyword intelligence, observed Amazon keyword SERP, traffic, or seller-private evidence. Do not fall back to an external browser or public web search.
 - Do not compare CTR, CVR, rank, or traffic quality against competitors without same-metric, same-keyword, same-marketplace, comparable-period and comparable-placement evidence.
 - ZooData does not supply the seller's private ABA Search Query Performance funnel. Use user-provided impressions, clicks, cart adds, purchases, shares, and conversion rates as first-party enrichment when available.
 

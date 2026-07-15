@@ -11,7 +11,7 @@ It supports four common scenarios:
 1. **Keyword expansion** — start from a seed term and find candidate ad keywords
 2. **Single keyword analysis** — directionally judge whether one keyword is worth testing
 3. **Reverse ASIN keyword analysis** — inspect which keywords are driving an ASIN's visibility
-4. **Keyword traffic diagnosis** — watch an ASIN on a keyword and explain anomalies
+4. **Keyword traffic diagnosis** — watch an ASIN on a keyword, identify unresolved anomalies, and explain them only when discriminating evidence is available
 
 ## Endpoints Used
 
@@ -49,13 +49,14 @@ should be manually confirmed against the active session:
 - ASIN-stage candidate validation tiers: `Priority test` / `Selective test` / `Harvest` / `Observe only` / `Avoid`
 - Single-keyword directional viability assessment across demand, competition, ad density, and SERP structure
 - Reverse ASIN keyword source view with traffic-share-based prioritization
-- Keyword anomaly diagnosis with bounded hypotheses and evidence-authorized actions
+- Keyword anomaly diagnosis that seeks discriminating evidence before reporting bounded hypotheses or evidence-authorized actions
 
 Core workflow rules:
 
 - **Metric-first:** use the smallest sufficient metric response before descending to raw rows/series.
 - **Batch-first:** batch compatible keyword subjects up to the live endpoint limit and preserve per-item status.
 - **Evidence progression:** market evidence → subject observation → seller-real evidence.
+- **Evidence-seeking diagnosis:** observed problem → unresolved question → discriminating evidence → evidence-supported explanation.
 - **Evidence-to-action:** aggregate weakness can trigger inspection/diagnosis but cannot authorize a specific asset or operating change without direct target evidence.
 
 Keyword value boundary: ZooData keyword endpoints provide estimated search, exposure, visibility, and rank signals. They do not prove final keyword value or conversion quality for a specific ASIN by themselves. When the current evidence set is ZooData plus Amazon Brand Analytics market-wide signals only, traffic-related conclusions should be treated as directional. Recommended data provision: in Brand View, sort descending by Search Funnel - Impressions → Brand Count, then provide a screenshot or download the CSV for model analysis. If seller-side ABA-SQP data is included, use impressions, clicks, cart adds, purchases, click share, purchase share, and conversion rate as first-party conversion evidence.

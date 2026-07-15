@@ -53,7 +53,7 @@ Recommended ABA-SQP data provision method:
 Before writing traffic-related conclusions, identify the current evidence level and keep the reply inside that level:
 
 - **Market evidence** — keyword market profile, trend, and SERP observations. It supports market structure and directional opportunity, not product-specific execution decisions.
-- **Subject observation evidence** — market evidence plus observed ASIN, listing, placement, traffic, or timeline signals. It supports subject-specific fit, posture, movement, and bounded hypotheses, not measured seller conversion.
+- **Subject observation evidence** — market evidence plus observed ASIN, listing, placement, traffic, or timeline signals. It supports subject-specific fit, posture, movement, and evidence-supported bounded hypotheses, not measured seller conversion.
 - **Seller-real evidence** — user-provided ABA-SQP and optionally Amazon Ads performance. It supports calibrated operating decisions within the fields provided.
 
 ### Conclusion Authority Gate (MANDATORY)
@@ -61,7 +61,7 @@ Before writing traffic-related conclusions, identify the current evidence level 
 - Treat conclusions below seller-real evidence as provisional when the request concerns product-specific priority, conversion, profitability, bids, spend, or budget.
 - Intermediate labels describe current posture or validation priority only; they do not authorize budget or bid changes.
 - Prohibit fixed budget percentages, bid changes, pause decisions, unconditional `GO` / `NO-GO`, or profitability claims before the required seller-real evidence is present.
-- If the next evidence level is unavailable, stop with `current evidence-level conclusion + unresolved decision + required next evidence`.
+- If the next evidence level is required for the user's requested decision and unavailable, stop with `current evidence-level conclusion + unresolved decision + required next evidence`. Do not surface unrelated unresolved branches merely because later evidence could theoretically enrich them.
 - Require Amazon Ads performance in addition to ABA-SQP for profitability, ACOS/ROAS, exact bid changes, or exact ad-budget allocation.
 
 Use one short, localized `Data Notes` section near the top to name the current evidence level and conclusion boundary. Do not repeat it near the end and do not scatter the same caveat through individual findings. Use the scenario file to select the next evidence request; do not expose every possible future input at once.
@@ -154,7 +154,9 @@ If the live session exposes a different name, use that name exactly.
 - Declare a keyword endpoint unavailable without first checking `zoodata.py`, and then the live tool surface/schema if needed
 - Say "the keyword-volume interface is not available" because you didn't see a tool named "keyword volume"
 - Use `products/search` as a substitute for keyword endpoints and label its results as keyword traffic evidence
-- Treat `webtools_search` as a keyword-intelligence endpoint
+- Treat any ZooData WebTools endpoint, including callable `webtools_search`, as a keyword-intelligence endpoint
+- Bypass ZooData data/crawler APIs by opening an external or built-in interactive browser tool, navigating directly to Amazon outside ZooData, or using public web search
+- Use browser or public-web access after a ZooData call fails, returns empty data, lacks a field, or cannot be reached
 - "Normalize" a live callable name back to the draft name above
 
 **Capability signals in live schema:** If a tool exposes fields such as `estimateSearchCountWeekly`, `estimateSearchCount`, `keywordEstimateSearchCount`, or `abaRank`, treat it as having keyword-volume capability even if its name is not explicit.
@@ -165,7 +167,18 @@ If the live session exposes a different name, use that name exactly.
 |------|------|-----------------|
 | `/openapi/v2/keywords/*` | Keyword intelligence (snapshot, trend, SERP, ASIN traffic) | — |
 | `products/search` | Product-database snapshot — broader catalog winners, price-band structure, variant distribution | Keyword SERP evidence, keyword demand proof, or a front-end search interface |
-| `webtools_search` | Web crawler / retrieval utility | Keyword snapshot, trend, SERP, or keyword volume substitute |
+| `/openapi/v2/webtools/scrape` and `/scrape-interactive` | ZooData page extraction, including rendered or interaction-dependent page content | Keyword snapshot, trend, observed Amazon SERP, traffic, or seller-private data |
+| `/openapi/v2/webtools/search` (`webtools_search` when exposed under that callable name) | ZooData web-search and optional result-page extraction | Keyword snapshot, trend, observed Amazon SERP, traffic, or seller-private data |
+
+### ZooData Acquisition Channel Gate (MANDATORY)
+
+ZooData data APIs and ZooData crawler/retrieval APIs are the authorized acquisition channels for this skill. Tool choice may move between these channel types according to the evidence required, but it must not bypass ZooData and access a browser, Amazon page, or public web-search tool directly.
+
+1. Use the ZooData data endpoint designed for the required evidence first, including `realtime/product` for live ASIN/product fields and `/openapi/v2/keywords/*` for keyword evidence.
+2. When a known page URL contains evidence absent from the structured data endpoints, use ZooData WebTools `/scrape`; use `/scrape-interactive` only when rendering or page actions are required. Use WebTools `/search` only when the URL itself must first be discovered. Label all three as crawler/retrieval evidence and keep them within their evidence boundary.
+3. Do not invoke an external or built-in interactive browser tool, browser automation outside ZooData WebTools, direct Amazon-page navigation outside ZooData, or a general/public web-search tool as a fallback, supplement, confirmation step, or workaround.
+4. A failed, empty, unavailable, or incomplete ZooData endpoint does not authorize browser or public-web fallback. Check the documented ZooData data and crawler surfaces; if neither can obtain the required evidence, stop at the supported conclusion and request the minimum user-provided evidence.
+5. Do not confuse acquisition priority with evidence equivalence: all ZooData WebTools results remain crawler/retrieval evidence and must not be presented as keyword snapshot, trend, observed Amazon SERP, traffic, or seller-private conversion data.
 
 ## Task Constraints
 
@@ -181,19 +194,39 @@ These constraints are higher priority than any suggested workflow wording in ref
 ### Non-Substitution Rules
 
 - `products/search` must not be used as a substitute for keyword snapshot, keyword trend, keyword SERP, or reverse-ASIN traffic evidence
-- `webtools_search` must not be used as a substitute for any `/openapi/v2/keywords/*` endpoint
+- No ZooData WebTools endpoint may substitute for any `/openapi/v2/keywords/*` endpoint
 - `keywords/detail` and `keywords/search-results` must not be used to fabricate reverse-ASIN traffic-source maps when neither ASIN traffic-list endpoint is available
 - `keywords/trend` must not be treated as daily history; `keywords/search-results` and ASIN keyword endpoints must not be treated as long-retention weekly trend series
 
 ### Confidence Gate
 
 - `Data-backed` conclusions require direct support from the endpoint actually designed for that evidence type
-- `Inferred` conclusions require multiple supporting fields and must stay within the endpoint boundary
-- `Directional` conclusions may recommend actions, but must not be phrased as proven causality
+- `Inferred` conclusions require multiple supporting fields that materially discriminate the explanation from alternatives and must stay within the endpoint boundary
+- `Directional` conclusions may frame validation or monitoring advice, but they do not authorize an action that fails the Evidence-to-Action Authorization Gate and must not be phrased as proven causality
 - If a required evidence type is absent, lower the confidence instead of strengthening the wording
 - Keyword-value judgments such as "worth targeting", "high value", "profitable", or "conversion potential" are never 100% supported by ZooData alone because the available data is estimated exposure/search/visibility data, not the user's ABA Search Query Performance funnel
 - Without Search Query Performance data, phrase keyword-value and traffic-related conclusions as directional testing priority. Use the active scenario file to determine the next evidence request.
 - If user-provided ABA-SQP data is available, use it to refine traffic and keyword-value conclusions and do not add the seller-side SQP enrichment request
+
+### Evidence-Seeking Reasoning Gate (MANDATORY)
+
+Apply this gate to every diagnosis, regardless of scenario or evidence level:
+
+`observed fact → identified problem → unresolved question → required discriminating evidence → evidence acquisition → evidence-supported explanation → authorized action`
+
+Hard rules:
+
+- Detecting an anomaly, weak funnel stage, movement, or mismatch identifies a problem; it does not explain the cause.
+- After identifying a problem, define the unresolved question and seek the smallest available evidence that can distinguish among material explanations before answering why it happened.
+- Do not replace missing evidence with a generic list of plausible causes. Compatibility with a pattern is not evidence for a cause.
+- Name alternative explanations only when they define the evidence search or when existing evidence supports them as bounded hypotheses. Do not present unsupported alternatives as findings.
+- A cause, diagnosis, test, or corrective action requires direct or sufficiently discriminating evidence for that explanation. Apply the Evidence-to-Action Authorization Gate separately afterward.
+- Open a causal-diagnosis branch only when the user asked for it or when resolving it is necessary for the requested decision. If the supported operating decision does not require a causal explanation, omit the unused diagnostic branch instead of adding a disclaimer or a list of factors to investigate.
+- Once a diagnostic branch is opened, close it in the same run: acquire the discriminating evidence when it is available through authorized in-scope tools or already-provided context. Do not stop at “further investigation is needed” while usable evidence remains.
+- If required evidence must come from the user or is genuinely unavailable, carry that exact unresolved question into the single end-of-report next step. Request only evidence that directly distinguishes the named explanations and state which decision it unlocks.
+- Do not name an unresolved question in the findings and then request evidence for a different question at the end. If the next evidence cannot resolve the diagnostic branch, omit that branch from the report.
+- When an unresolved explanation is necessary to the user's requested decision and evidence is unavailable, stop at `identified problem + unresolved question + minimum next evidence + decision that remains unresolved`. When it is not necessary, answer the supported decision and omit the unresolved explanation.
+- Do not insert defensive disclaimers about specific assets or settings that have not entered the evidence chain. State the evidence boundary at the problem-domain level instead.
 
 ### Evidence-to-Action Authorization Gate (MANDATORY)
 
@@ -214,7 +247,7 @@ Hard rules:
 - Low-fidelity evidence authorizes only conclusions at that fidelity. A search-result thumbnail cannot support claims about full-size detail, secondary images, mobile readability, texture, dimensions, or image sequence.
 - If an asset was not inspected, recommend auditing it rather than modifying, replacing, removing, or rebuilding it.
 - When evidence is insufficient, downgrade the action itself—not merely its confidence label or wording. Words such as `consider`, `possibly`, and `directionally` do not upgrade authorization.
-- Preserve the chain `observed fact → problem domain → candidate causes → authorized action`; never skip directly from an aggregate performance signal to a specific change.
+- Preserve the chain `observed fact → identified problem → unresolved question → discriminating evidence → evidence-supported explanation → authorized action`; never skip evidence acquisition or replace it with generic candidate causes.
 
 See `references/execution-guide.md § Evidence-to-Action Protocol` for the operational checklist and examples.
 
@@ -236,9 +269,9 @@ See `references/execution-guide.md § Evidence-to-Action Protocol` for the opera
 
 - Separate observed facts from interpretation and from action advice
 - Explicitly label unavailable evidence instead of implying it
-- When supplementary tools are used, state their role precisely and do not blur their evidence class
+- When ZooData crawler/retrieval or other ZooData enrichment endpoints are used, state their role precisely and do not blur their evidence class
 - If any live ZooData API call was made, the final report must end with `API Usage`; do not omit it even when the user did not ask for it explicitly
-- Track endpoint usage while calling APIs: for every response, read `_query.endpoint`, `_query.params`, `meta.creditsConsumed`, and `meta.creditsRemaining` when present
+- Track endpoint usage while calling APIs: read `_query.endpoint` and `_query.params` when returned; otherwise record the ZooData endpoint and request parameters actually invoked. Read `meta.creditsConsumed` and `meta.creditsRemaining` when present.
 - In `API Usage`, use a markdown table, not a bullet list; aggregate calls and `meta.creditsConsumed` by endpoint; include a final `Total` row that sums calls and credits; use the latest returned `meta.creditsRemaining` for credits remaining
 - If a response omits `meta.creditsConsumed` or `meta.creditsRemaining`, write `not returned` for that field rather than dropping the usage section
 - Avoid competitor-superiority wording in findings and recommendations unless the Comparative Claims Gate is satisfied
@@ -263,7 +296,7 @@ See `references/execution-guide.md § Evidence-to-Action Protocol` for the opera
 13. `/openapi/v2/keywords/search-results` already returns listing-level product fields and should be the default source for "what products appear on page 1 for this keyword"
 14. Do not append `products/search` by default when the user's question is only about the observed keyword SERP; use it only as an optional broader-market supplement
 15. `products/search` is our own product-database query result, not Amazon live search results, so never present it as evidence of current SERP ordering
-16. `webtools_search` is a crawler / web retrieval utility, not a keyword-intelligence endpoint; do not treat it as a substitute for keyword snapshot, trend, or SERP evidence unless the task is explicitly web collection rather than ZooData keyword analysis
+16. ZooData WebTools endpoints are crawler/retrieval utilities, not keyword-intelligence endpoints. Use `/scrape` for a known page URL, `/scrape-interactive` only when rendering/actions are necessary, and `/search` only to discover URLs; never treat any of them as a substitute for keyword snapshot, trend, observed Amazon SERP, traffic, or seller-private evidence.
 17. `keywords/product-traffic-terms-overview` returns weekly all-keyword impression traffic changes under one ASIN versus the previous period, with placement-level `*ImpressionPoint` fields and matching `*Prev` baselines; `first3PagesNewOrganicKeywords` lists keywords newly entering ORG first three pages, and `first3PagesLostOrganicKeywords` lists keywords that dropped out; do not treat it as per-keyword daily rank history
 18. For `keywords/product-traffic-terms-overview`, display the returned `periodStartDate` / `periodEndDate` as the overview period; do not use the request date or an inferred date range as the period shown in the report
 19. `keywords/product-traffic-terms-timeline` returns `data.context + data.items[].series[]`; interpret each series point's nested groups separately:
@@ -340,8 +373,8 @@ For keyword-value reports, add this note:
 ### Confidence Labels (required for every substantive judgment or recommendation)
 
 - 📊 **Data-backed** — direct API data
-- 🔍 **Inferred** — logical reasoning from multiple observed fields
-- 💡 **Directional** — action suggestions, hypotheses, or monitoring explanations
+- 🔍 **Inferred** — reasoning from multiple observed fields that materially discriminate the conclusion from alternatives
+- 💡 **Directional** — evidence-bounded validation or monitoring advice; hypotheses still require supporting evidence and must retain unresolved alternatives
 
 Rules:
 - Strategy recommendations are NEVER 📊

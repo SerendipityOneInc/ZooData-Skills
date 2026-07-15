@@ -6,6 +6,7 @@ This file defines the task-constraint protocol for the four keyword scenarios.
 
 - [Execution Mode](#execution-mode)
 - [Evidence-Level Progression](#evidence-level-progression)
+- [Evidence-Seeking Diagnosis Protocol](#evidence-seeking-diagnosis-protocol)
 - [Evidence-to-Action Protocol](#evidence-to-action-protocol)
 - [Seller Data Contract](#seller-data-contract)
 - [Quick Mode Output](#quick-mode-output)
@@ -28,7 +29,7 @@ Apply these rules to every full-mode scenario. Scenario files define their own s
 | Evidence level | Evidence scope | Maximum conclusion authority |
 |----------------|----------------|------------------------------|
 | Market evidence | Keyword demand, trend, market profile, and SERP observations | Market attractiveness, structure, relative difficulty, and directional opportunity |
-| Subject observation evidence | Market evidence plus observed ASIN, listing, placement, traffic, or timeline signals | Subject-specific fit, current posture, movement, and bounded hypotheses |
+| Subject observation evidence | Market evidence plus observed ASIN, listing, placement, traffic, or timeline signals | Subject-specific fit, current posture, movement, and evidence-supported bounded hypotheses |
 | Seller-real evidence | User-provided ABA-SQP funnel and, when relevant, Amazon Ads performance | Calibrated operating decisions, subject to the fields actually provided |
 
 ### General Progression Rules
@@ -40,7 +41,7 @@ Apply these rules to every full-mode scenario. Scenario files define their own s
 - If the user already supplied higher-level evidence, skip unnecessary earlier steps. A scenario sequence is not a mandatory call chain.
 - Reuse compatible evidence already obtained in the conversation. Do not repeat API calls when subject, marketplace, period, filters, and required grain are unchanged.
 - Keep observed facts, Agent inference, provisional action, and final action distinct.
-- If required evidence is unavailable, stop with three logical parts: current evidence-level conclusion, unresolved decision, and required next evidence.
+- If evidence required for the user's requested decision is unavailable, stop with three logical parts: current evidence-level conclusion, unresolved decision, and required next evidence. Omit unresolved branches that are not needed for that decision.
 
 ### General Conclusion Authority Gate
 
@@ -50,6 +51,31 @@ Apply these rules to every full-mode scenario. Scenario files define their own s
 - Use bounded language before seller-real calibration: `merits further validation`, `controlled-test candidate`, `current evidence does not support advancing`, or `awaiting seller evidence`.
 - Reserve `Final calibrated conclusion` for decisions supported by the relevant seller-real fields.
 - Require Amazon Ads performance in addition to ABA-SQP for profitability, ACOS/ROAS, exact bid changes, or exact ad-budget allocation.
+
+## Evidence-Seeking Diagnosis Protocol
+
+Apply this protocol whenever the task asks what is wrong, why a metric moved, or what explains a funnel pattern.
+
+1. Record the observed fact without causal language.
+2. Identify the narrowest problem domain supported by that fact.
+3. Convert the problem into an unresolved question.
+4. Identify the smallest evidence that can distinguish among material explanations.
+5. Acquire that evidence when it is available through authorized in-scope tools or already-provided context; do not finalize while a usable discriminating source remains unchecked.
+6. Form an explanation only from the evidence actually obtained, while retaining material alternatives not yet ruled out.
+7. Apply the Evidence-to-Action Protocol before recommending a test, change, scale, or stop decision.
+
+All evidence acquisition in this protocol must use ZooData-owned acquisition channels. Use the matching structured data API first. For a known page URL, use ZooData WebTools `/scrape`; use `/scrape-interactive` only when rendering or page actions are required, and `/search` only when the URL must first be discovered. Never switch to an external interactive browser, direct Amazon navigation, or public web search. If neither ZooData channel can obtain the discriminating evidence, carry that exact gap into the single next-step request for user-provided evidence.
+
+An anomaly is not a diagnosis. Do not fill an evidence gap with a standard inventory of possible causes. A list of compatible causes is allowed only as an internal evidence-search map or when each reported hypothesis has supporting evidence. If discriminating evidence is unavailable, report the identified problem, the unresolved question, the minimum next evidence, and the decision that cannot yet be made.
+
+### Diagnostic Closure Gate
+
+- Open a diagnostic branch only when the user requested a causal explanation or when the requested operating decision depends on resolving it.
+- If the current evidence already supports the requested operating decision without explaining cause, state that decision and omit unused causal discussion. Do not append “this is not caused by X” or “factors Y/Z require investigation” merely to demonstrate caution.
+- Every diagnostic branch mentioned in the report must end in exactly one of three states: `resolved by cited evidence`, `actively pursued with an in-scope evidence call`, or `carried into the single Next Step with directly matching evidence`.
+- The requested next evidence must discriminate the exact explanations named in the unresolved question. Evidence for Ads economics/order attribution does not by itself resolve detail-page, price, promotion, offer, fulfillment, variation, or asset-quality explanations.
+- If no available or requestable evidence can resolve the branch, omit the branch unless the user's explicit question requires reporting that it is unresolved.
+- Do not continue the report as though a diagnostic branch were closed after writing only “further investigation is needed.”
 
 ## Evidence-to-Action Protocol
 
@@ -62,7 +88,7 @@ For every proposed action, record:
 1. **Target** — exact asset, field, keyword, campaign setting, offer, or business decision affected.
 2. **Direct observation** — whether the target was inspected at sufficient fidelity.
 3. **Defect signal** — the concrete issue observed on that target.
-4. **Alternatives** — other plausible causes consistent with the same performance pattern.
+4. **Alternatives** — material alternative explanations that the evidence search must distinguish; compatibility alone does not make them findings.
 5. **Validation** — comparison, experiment, time series, or first-party measurement that distinguishes the target from alternatives.
 6. **Impact** — reversibility, cost, and downside if the action is wrong.
 
@@ -82,11 +108,15 @@ If any required condition is absent, downgrade the action itself. Do not retain 
 
 | Available evidence | Not authorized | Authorized next action |
 |--------------------|----------------|------------------------|
-| Clicks/cart adds but weak purchases | Rebuild the first three secondary images | Inspect the post-click/purchase handoff across images, copy, reviews, offer, price, variation, fulfillment, and traffic quality |
+| Clicks/cart adds but weak purchases | Rebuild the first three secondary images or list generic conversion causes | Locate the unresolved issue at the post-click/purchase handoff, then request the smallest evidence that can distinguish traffic quality from purchase-condition explanations |
 | Search-result main-image thumbnail only | Rebuild the main image or secondary images | Inspect thumbnail-level subject recognition and request the full image set for asset-level review |
 | High ACOS alone | Lower bids by a fixed percentage | Diagnose search-term CPC, conversion, placement, and attribution; define a reversible bid test only after target-level evidence |
-| Organic rank decline | Pause the keyword | Diagnose demand, placement, inventory, listing events, competition, and ad coverage |
+| Organic rank decline | Pause the keyword or list every compatible cause | Define which movement remains unexplained, then retrieve the smallest time-aligned evidence that can distinguish demand, placement, subject, and market movement |
 | Review deterioration | Redesign the product | Cluster complaint themes and validate frequency, recency, variant scope, and product causality |
+
+Anti-pattern: `Current evidence does not support attributing this to the main image or title; detail-page persuasion, price, promotion, fulfillment, variation, and traffic source require further distinction.` This opens several unsupported branches without pursuing them. If causal diagnosis is not required, omit it and state only the supported operating implication. If it is required, retrieve or request evidence that directly resolves the named branch before continuing.
+
+Acquisition anti-pattern: opening the Amazon detail page in an external browser because SQP shows clicks or cart adds without purchases. First use ZooData structured endpoints such as `realtime/product`; for page evidence absent from structured responses, use ZooData WebTools `/scrape` or `/scrape-interactive` as required. External browser and public-web fallback are prohibited even when those ZooData calls are incomplete or unavailable.
 
 ### Asset-fidelity rule
 
@@ -109,13 +139,13 @@ When seller funnel data is available, compare `impression share → click share 
 
 | Funnel pattern | Interpretation | Default action |
 |----------------|----------------|----------------|
-| Click share > impression share | The search-to-click handoff is comparatively strong; image, price, title, placement, and intent fit remain candidate contributors unless separately inspected | Consider an exposure test only after Ads economics and target-level evidence support it |
+| Click share > impression share | The search-to-click handoff is comparatively strong; this pattern does not by itself explain which factor produced it | Consider an exposure test only after Ads economics and target-level evidence support it |
 | Cart-add share rises again | Product acceptance is comparatively stronger | Upgrade the validation posture; authorize a test/change only through the Evidence-to-Action Protocol |
 | Purchase share rises again | Query-level seller conversion evidence is comparatively stronger | Mark as a focused-expansion candidate; require Ads economics before scaling, match-type, bid, or budget execution |
-| Click share is high but purchase share is low | Post-click/purchase handoff requires diagnosis | Inspect detail-page assets, reviews, offer, price, variation, fulfillment, and traffic quality; do not prescribe a specific change without direct target evidence |
-| Impressions are high but clicks are low | Search-to-click handoff or intent/placement mismatch requires diagnosis | Inspect query intent, placement, main-image thumbnail, visible price/title, and Ads economics before authorizing creative or bid changes |
+| Click share is high but purchase share is low | The unresolved issue is in the post-click/purchase handoff; SQP alone does not identify its cause | Obtain the smallest evidence that distinguishes traffic quality from purchase-condition explanations; if unavailable, stop without enumerating generic causes |
+| Impressions are high but clicks are low | The unresolved issue is in the search-to-click handoff; SQP alone does not identify its cause | Obtain the smallest evidence that distinguishes intent/placement from the visible search offer; if unavailable, stop without selecting a cause |
 | Click and purchase performance are good but market difficulty is high | The query is efficient in the supplied seller funnel but may be expensive to scale | Diagnose Ads economics and define controlled scale thresholds before authorizing expansion |
-| Market profile is favorable but the ASIN funnel is weak | The market may be viable while the ASIN is not capturing it; the responsible factor is unresolved | Diagnose product, listing, offer, traffic quality, and fulfillment before selecting a change or scaling |
+| Market profile is favorable but the ASIN funnel is weak | The market may be viable while the ASIN is not capturing it; the responsible factor is unresolved | Define and acquire the minimum evidence needed to distinguish market capture, traffic quality, and purchase-handoff explanations before selecting a change or scaling |
 
 ## Quick Mode Output
 
@@ -151,6 +181,8 @@ Before running any Full-mode keyword task:
 - [ ] Use the next-step request defined by the active scenario; do not infer a universal fixed sequence
 - [ ] Track every live API response for usage accounting: `_query.endpoint`, `_query.params`, `meta.creditsConsumed`, and `meta.creditsRemaining`
 - [ ] Separate traffic facts from strategy advice using confidence labels
+- [ ] Apply the Evidence-Seeking Diagnosis Protocol: state the unresolved question, acquire discriminating evidence, and do not substitute a generic cause list when evidence is missing
+- [ ] Apply the Diagnostic Closure Gate: every diagnostic branch is resolved, actively pursued, or matched to the single final evidence request; omit branches irrelevant to the requested decision
 - [ ] Apply the Evidence-to-Action Protocol to every recommendation; verify target observation, defect signal, alternatives, validation, and authorized action level
 - [ ] Include `API Usage` as the final report section; if credit fields are missing, write `not returned` instead of omitting the section
 
@@ -261,7 +293,7 @@ When some endpoints return data but others are unavailable:
 - Do not say "the keyword-volume interface is not available" unless you have checked the exposed schema/docs and confirmed the required fields are unavailable
 - Prohibit reasoning such as "I do not see a tool named keyword volume, so volume cannot be analyzed"
 - Prohibit capability claims such as "`products/search` proves this keyword has demand" unless the report explicitly labels that evidence as a secondary product-database signal rather than a keyword snapshot
-- Prohibit classifying `products/search` as a front-end SERP tool or `webtools_search` as a keyword-intelligence endpoint; both have different evidence roles and must be named accordingly
+- Prohibit classifying `products/search` as a front-end SERP tool or any ZooData WebTools endpoint as a keyword-intelligence endpoint; these sources have different evidence roles and must be named accordingly
 
 ### Scenario Routing Rule
 
@@ -282,6 +314,7 @@ When some endpoints return data but others are unavailable:
 - Every conclusion must be directly supported by the endpoint designed for that evidence type
 - If an endpoint returned no data or was unavailable, state the gap explicitly; do not downgrade silently
 - Do not bridge a missing evidence type with a loosely related endpoint
+- After detecting a problem, seek evidence that distinguishes explanations before stating a cause; if none is available, stop at the unresolved problem and request the minimum next evidence instead of listing generic causes
 
 ### Non-Substitution Rule
 
@@ -294,7 +327,7 @@ When some endpoints return data but others are unavailable:
 
 - `Data-backed` means directly supported by the correct endpoint for that claim type
 - `Inferred` means evidence-backed reasoning, not endpoint substitution
-- `Directional` means advice or plausible explanation, never proven causality
+- `Directional` means evidence-bounded validation or monitoring advice. It does not permit an unsupported explanation, and it never means proven causality.
 - Strong wording is not allowed when the claim depends on optional enrichers that were not available
 
 ### Comparative Claims Rule
@@ -377,7 +410,7 @@ When some endpoints return data but others are unavailable:
 
 ### Monitoring Explanation Rule
 
-When explaining keyword anomalies, check causes in this order:
+When investigating keyword anomalies, check evidence domains in this order:
 
 1. Search demand moved
 2. Ad density changed
@@ -389,7 +422,7 @@ When explaining keyword anomalies, check causes in this order:
 8. The ASIN's all-keyword impression traffic changed versus the previous period
 9. Keywords entered or dropped out of ORG first three pages
 
-If multiple causes are plausible, rank them rather than presenting one as certain.
+Treat this order as an evidence-search sequence, not a cause checklist. Rank explanations only when the retrieved evidence materially supports and distinguishes them; otherwise report the unresolved question and the next evidence required.
 
 For ASIN + keyword movement, prefer `keywords/product-traffic-terms-timeline` as the ASIN-side movement source before stitching together isolated observations. For all-keyword ASIN traffic changes and ORG first-3-page entry/exit, use `keywords/product-traffic-terms-overview`; do not infer first-3-page organic gains/losses from SERP snapshots alone.
 
