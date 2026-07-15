@@ -2,10 +2,10 @@
 name: zoodata
 description: >
   API endpoint reference for the ZooData data platform. Provides the 12
-  commerce endpoints plus 8 keyword intelligence endpoints (categories,
+  commerce endpoints plus 9 keyword intelligence endpoints (categories,
   markets, products, competitors, realtime ASIN, AI review analysis, raw
   reviews, price band, brand, history, keyword detail/trend/extends/search
-  results/product traffic/competitor keywords, traffic overview/timeline),
+  results/market profile/product traffic/competitor keywords, traffic overview/timeline),
   their inputs/outputs,
   parameter quirks, Quick Start (auth, base URL), how credits are tracked
   (meta.creditsConsumed field), and the Local Review Toolkit (Map/Reduce
@@ -29,7 +29,7 @@ metadata:
 
 # ZooData — Commerce Data Infrastructure for AI Agents
 
-200M+ Amazon products. 20 endpoints. One API key.
+200M+ Amazon products. 21 endpoints. One API key.
 
 ## Quick Start
 1. Get key: [zoodata.ai/api-keys](https://zoodata.ai/en/api-keys) (1,000 free credits)
@@ -90,7 +90,7 @@ When `zoodata.py` returns `{"code": 402, "message": "API quota exhausted or subs
    - Top-up link: https://zoodata.ai/en/pricing
 3. **Do not fabricate or guess** the missing data to "complete" the report. Mark partial findings explicitly as partial. **No "training-data fallback" / "industry common-sense" filler** — substituting public-knowledge prose for missing endpoint data is still fabrication.
 
-## 20 Endpoints
+## 21 Endpoints
 
 | # | Endpoint | Purpose | Key Output |
 |---|----------|---------|------------|
@@ -107,13 +107,14 @@ When `zoodata.py` returns `{"code": 402, "message": "API quota exhausted or subs
 | 11 | `products/brand-detail` | Per-brand breakdown | brands[] with sales, revenue, sampleProducts |
 | 12 | `products/history` | Time series (single ASIN per call) | timestamps[], price[], bsr[], monthlySalesFloor[], rating[], ratingCount[], sellerCount[], title/imageUrl/bestSeller/newRelease/aPlus/inventoryStatus changelogs |
 | 13 | `/openapi/v2/keywords/detail` | Keyword summary from the nearest available weekly snapshot | `estimateSearchCountWeekly`, `abaRank`, `marketCharacteristics`, `adCount`; may return `data: null` |
-| 14 | `/openapi/v2/keywords/trend` | Weekly keyword time series | `estimateSearchCount`, `abaRank`, `rankChangeCount`, `periodStartDate`, `periodEndDate` |
-| 15 | `/openapi/v2/keywords/extends` | Keyword expansion / long-tail discovery | related keywords ranked by `relevanceScore` / `estimateSearchCount`; may return empty array |
-| 16 | `/openapi/v2/keywords/search-results` | Daily keyword SERP snapshot | `asin`, `exploreType`, `absolutePosition`, `estimateImpressionPoint`, listing fields |
-| 17 | `/openapi/v2/keywords/competitor-product-keywords` | Keyword set where an ASIN appears as a competitor | `keyword`, `avgPosition`, `keywordEstimateSearchCount`, `trafficShare` |
-| 18 | `/openapi/v2/keywords/product-traffic-terms` | Traffic-driving keywords for an ASIN | same live response shape as competitor-product-keywords |
-| 19 | `/openapi/v2/keywords/product-traffic-terms-overview` | Weekly ASIN all-keyword traffic-change overview | current vs previous-period placement-level impression points, ORG first-3-page keyword entries/exits |
-| 20 | `/openapi/v2/keywords/product-traffic-terms-timeline` | ASIN + keyword daily timeline | position/impression points, listing snapshot, keyword weekly metrics, ad activity |
+| 14 | `/openapi/v2/keywords/market-profile` | Pre-release multidimensional weekly keyword profile | demand scale, Top3 concentration, ad activity, organic-entry difficulty, saturation, brand structure, organic benchmark, coverage |
+| 15 | `/openapi/v2/keywords/trend` | Weekly keyword time series | `estimateSearchCount`, `abaRank`, `rankChangeCount`, `periodStartDate`, `periodEndDate` |
+| 16 | `/openapi/v2/keywords/extends` | Keyword expansion / long-tail discovery | related keywords ranked by `relevanceScore` / `estimateSearchCount`; may return empty array |
+| 17 | `/openapi/v2/keywords/search-results` | Daily keyword SERP snapshot | `asin`, `exploreType`, `absolutePosition`, `estimateImpressionPoint`, listing fields |
+| 18 | `/openapi/v2/keywords/competitor-product-keywords` | Keyword set where an ASIN appears as a competitor | `keyword`, `avgPosition`, `keywordEstimateSearchCount`, `trafficShare` |
+| 19 | `/openapi/v2/keywords/product-traffic-terms` | Traffic-driving keywords for an ASIN | same live response shape as competitor-product-keywords |
+| 20 | `/openapi/v2/keywords/product-traffic-terms-overview` | Weekly ASIN all-keyword traffic-change overview | current vs previous-period placement-level impression points, ORG first-3-page keyword entries/exits |
+| 21 | `/openapi/v2/keywords/product-traffic-terms-timeline` | ASIN + keyword daily timeline | position/impression points, listing snapshot, keyword weekly metrics, ad activity |
 
 ## Known Quirks
 - `topN`, `listingAge`, `newProductPeriod` are **strings** (`"10"` not `10`)
@@ -129,6 +130,7 @@ When `zoodata.py` returns `{"code": 402, "message": "API quota exhausted or subs
 - `reviews/analysis`: `mode` required ("asin"/"category"), use `asins` (plural array) not `asin`
 - `realtime/reviews`: returns 10 reviews/page fixed (no `pageSize` param); 1 credit/page; cursor-paginated; hard cap = 100 reviews (10 pages); supports `marketplace` US/UK only
 - `keywords/detail` resolves the input `date` to the nearest available weekly snapshot at or before that date, and may legitimately return `data: null` even with `success: true`
+- `keywords/market-profile` is pre-release on localhost as of 2026-07-14 and is not yet published; it accepts one of `keyword` / `keywords[]` (max 20), requires `date`, supports weekly granularity only, and returns input-ordered `data.items[]`
 - `keywords/extends` also resolves the input `date` to the nearest available weekly snapshot, requires `query` (not `keyword`), supports `queryType` = `phrase` or `fuzzy`, and may legitimately return `data: []`
 - `keywords/search-results`, `keywords/competitor-product-keywords`, and `keywords/product-traffic-terms` use daily observations over a sliding ~7-day window, not a long-retention historical store
 - Keyword endpoints are keyword-query workflows; for inputs named `keyword` or `query`, use the Amazon search query / keyword phrase being analyzed
@@ -142,7 +144,7 @@ When `zoodata.py` returns `{"code": 402, "message": "API quota exhausted or subs
 
 ## Keyword Intelligence Endpoints
 
-These eight endpoints were verified against the live API surface and fill the gap between raw
+These nine endpoints fill the gap between raw
 catalog data and search-demand/search-visibility intelligence.
 
 Keyword value boundary:
@@ -164,6 +166,19 @@ Keyword value boundary:
   `organicSkuCount`, `adCampaignCount`, `adCount`
 - Live validation note: for `keyword="yoga mat"` and several June 2026 dates, the endpoint returned
   `success: true` with `data: null`
+
+### `/openapi/v2/keywords/market-profile` (metric layer, localhost pre-release)
+- Availability: exposed on `http://localhost:8080` as of 2026-07-14; not yet published to production
+- Input: exactly one of `keyword` or `keywords[]` (1–20), required `date`, optional `marketplace`, `granularity=week`
+- Response shape: `data.context + data.items[]`, preserving request order
+- Context fields: `requestedDate`, `resolvedDate`, `dataWindow.currentPeriod`, `scoringSpec`, marketplace/site/granularity
+- Item fields: `identity`, `status`, `marketProfile`, `emptyReason`, `errorCode`, `errorMessage`
+- `marketProfile` dimensions: `marketContext`, `demandScale`, `top3Concentration`, `adActivity`, `top20OrganicEntryDifficulty`, `supplySaturation`, `brandStructure`, `organicProductBenchmark`
+- Interpret scores only with `context.scoringSpec` (`id`, `version`, `scoreType`, `scoreRange`, `referenceScope`). Current profile objects use camelCase fields; check each dimension's `supported`, `calculationStatus`, `unsupportedReason`, `score`, and `level` independently because there is no aggregate coverage object. `marketContext.annualSeasonality` is a detection summary with its own availability boundary, not history. This is weekly snapshot evidence, not trend, root-cause, recommendation, or seller-private ABA-SQP data.
+- Empty keywords return `status=empty`, `marketProfile=null`, `emptyReason=keyword_not_observed_in_snapshot`; billing is per `status=ok` item using returned credit metadata
+- Three-layer boundary: use data-layer `keywords/detail` for source snapshot fields, metric-layer `keywords/market-profile` for stable deterministic profile objects, and the Agent + skill layer for evidence composition, confidence, explanations, limitations, and actions
+- Metric-first access: call the matching metric before its source data endpoint. Descend only when the Agent needs an indicator or evidence grain omitted by the metric contract, the metric endpoint is unavailable and transparent data-based calculation is valid, no metric exists, or raw evidence is explicitly requested. Incomplete metric calculation coverage is a conclusion limit—not by itself a reason to call same-source data.
+- Batch-first execution: after selecting the endpoint, collect all subjects with identical non-subject context and prefer its batch contract over repeated single calls. Deduplicate case-insensitively, preserve order, chunk compatible sets at the endpoint limit (20 for current keyword batches), and merge results back into global input order. Batch support never justifies an extra cross-layer call.
 
 ### `/openapi/v2/keywords/trend`
 - Input: `keyword`, `dateFrom`, `dateTo`, optional `marketplace`

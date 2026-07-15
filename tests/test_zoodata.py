@@ -146,7 +146,7 @@ SUBCOMMANDS = [
     "pricing-analysis", "daily-radar", "listing-audit", "opportunity-scan",
     "review-deepdive", "analyze", "price-band-overview", "price-band-detail",
     "brand-overview", "brand-detail", "history",
-    "keyword-detail", "keyword-trend", "keyword-extends",
+    "keyword-detail", "keyword-market-profile", "keyword-trend", "keyword-extends",
     "keyword-search-results", "keyword-competitor-product-keywords",
     "keyword-product-traffic-terms",
     "product-traffic-terms-overview", "product-traffic-terms-timeline",
@@ -289,7 +289,44 @@ class TestEndpointRouting(unittest.TestCase):
             "keyword": "yoga mat",
             "date": "2026-06-29",
             "marketplace": "US",
+            "granularity": "week",
         })
+
+    def test_keyword_detail_batch(self):
+        r = run_cli("keyword-detail", "--keywords", "yoga mat,pilates mat", "--date", "2026-06-29")
+        self.assertEqual(r["params"]["keywords"], ["yoga mat", "pilates mat"])
+
+    def test_keyword_detail_batch_rejects_duplicates(self):
+        with self.assertRaises(SystemExit):
+            run_cli("keyword-detail", "--keywords", "Yoga Mat,yoga mat", "--date", "2026-06-29")
+
+    def test_keyword_detail_batch_rejects_more_than_20(self):
+        with self.assertRaises(SystemExit):
+            run_cli("keyword-detail", "--keywords", ",".join(f"term{i}" for i in range(21)), "--date", "2026-06-29")
+
+    def test_keyword_market_profile(self):
+        r = run_cli("keyword-market-profile", "--keyword", "yoga mat", "--date", "2026-06-29")
+        self.assertEqual(r["endpoint"], "keywords/market-profile")
+        self.assertEqual(r["params"], {
+            "keyword": "yoga mat",
+            "date": "2026-06-29",
+            "marketplace": "US",
+            "granularity": "week",
+        })
+
+    def test_keyword_market_profile_batch(self):
+        r = run_cli(
+            "keyword-market-profile",
+            "--keywords", "yoga mat,pilates mat",
+            "--date", "2026-06-29",
+            "--marketplace", "UK",
+        )
+        self.assertEqual(r["params"]["keywords"], ["yoga mat", "pilates mat"])
+        self.assertEqual(r["params"]["marketplace"], "UK")
+
+    def test_keyword_market_profile_batch_rejects_duplicates(self):
+        with self.assertRaises(SystemExit):
+            run_cli("keyword-market-profile", "--keywords", "Yoga Mat,yoga mat", "--date", "2026-06-29")
 
     def test_keyword_trend(self):
         r = run_cli("keyword-trend",
@@ -299,6 +336,7 @@ class TestEndpointRouting(unittest.TestCase):
         self.assertEqual(r["endpoint"], "keywords/trend")
         self.assertEqual(r["params"]["dateFrom"], "2026-06-01")
         self.assertEqual(r["params"]["dateTo"], "2026-06-29")
+        self.assertEqual(r["params"]["granularity"], "week")
 
     def test_keyword_extends(self):
         r = run_cli("keyword-extends",
@@ -311,6 +349,10 @@ class TestEndpointRouting(unittest.TestCase):
         self.assertEqual(r["params"]["queryType"], "fuzzy")
         self.assertEqual(r["params"]["pageSize"], 50)
 
+    def test_keyword_extends_date_optional(self):
+        r = run_cli("keyword-extends", "--query", "yoga mat")
+        self.assertNotIn("date", r["params"])
+
     def test_keyword_search_results(self):
         r = run_cli("keyword-search-results",
                     "--keyword", "yoga mat",
@@ -318,6 +360,7 @@ class TestEndpointRouting(unittest.TestCase):
                     "--explore-types", "ORG,SP")
         self.assertEqual(r["endpoint"], "keywords/search-results")
         self.assertEqual(r["params"]["exploreTypes"], ["ORG", "SP"])
+        self.assertEqual(r["params"]["lookbackDays"], 7)
 
     def test_keyword_competitor_product_keywords(self):
         r = run_cli("keyword-competitor-product-keywords",
@@ -335,6 +378,7 @@ class TestEndpointRouting(unittest.TestCase):
                     "--date", "2026-06-29")
         self.assertEqual(r["endpoint"], "keywords/product-traffic-terms")
         self.assertEqual(r["params"]["asin"], "B01CGLCGRA")
+        self.assertEqual(r["params"]["sortBy"], "trafficShare")
 
     def test_product_traffic_terms_overview(self):
         r = run_cli("product-traffic-terms-overview",
@@ -352,10 +396,7 @@ class TestEndpointRouting(unittest.TestCase):
                     "--asin", "B01CGLCGRA",
                     "--keyword", "yoga mat",
                     "--date-from", "2026-06-23",
-                    "--date-to", "2026-06-29",
-                    "--page", "2",
-                    "--page-size", "50",
-                    "--sort-order", "desc")
+                    "--date-to", "2026-06-29")
         self.assertEqual(r["endpoint"], "keywords/product-traffic-terms-timeline")
         self.assertEqual(r["params"], {
             "asin": "B01CGLCGRA",
@@ -363,11 +404,17 @@ class TestEndpointRouting(unittest.TestCase):
             "dateFrom": "2026-06-23",
             "dateTo": "2026-06-29",
             "marketplace": "US",
-            "page": 2,
-            "pageSize": 50,
-            "sortBy": "date",
-            "sortOrder": "desc",
+            "granularity": "lately_day",
+            "lookbackDays": 7,
         })
+
+    def test_product_traffic_terms_timeline_batch(self):
+        r = run_cli("product-traffic-terms-timeline",
+                    "--asin", "B01CGLCGRA",
+                    "--keywords", "yoga mat,pilates mat",
+                    "--date-from", "2026-06-23",
+                    "--date-to", "2026-06-29")
+        self.assertEqual(r["params"]["keywords"], ["yoga mat", "pilates mat"])
 
 
 # ---------------------------------------------------------------------------
@@ -613,6 +660,34 @@ class TestCheckCommand(unittest.TestCase):
             zoodata.cmd_check(args)
 
         self.assertEqual(captured["endpoints"]["categories"]["status"], "failed")
+
+    def test_keyword_check_includes_market_profile_on_localhost_only(self):
+        args = type("Args", (), {
+            "format": "json",
+            "endpoints": False,
+            "keyword_endpoints": True,
+            "keyword": "yoga mat",
+            "date": "2026-06-29",
+            "asin": None,
+        })()
+
+        for base_url, expected in [
+            ("http://localhost:8080/openapi/v2", True),
+            ("https://api.zoodata.ai/openapi/v2", False),
+        ]:
+            calls = []
+
+            def fake_api_call(endpoint, params):
+                calls.append(endpoint)
+                return {"success": True, "data": [], "meta": {}}
+
+            with patch.object(zoodata, "BASE_URL", base_url), \
+                 patch.object(zoodata, "_resolve_credential", return_value="test_key"), \
+                 patch.object(zoodata, "api_call", side_effect=fake_api_call), \
+                 patch.object(zoodata, "output"):
+                zoodata.cmd_check(args)
+
+            self.assertEqual("keywords/market-profile" in calls, expected)
 
 
 class TestCategoriesMarketplace(unittest.TestCase):

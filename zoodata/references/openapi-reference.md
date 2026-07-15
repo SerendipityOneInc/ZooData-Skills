@@ -294,7 +294,7 @@ TaggedReview vs RealtimeReview: `reviews/search` uses snapshot data with AI tags
 
 ## Keyword Intelligence Endpoints
 
-These endpoints were live-validated against the current OpenAPI surface.
+Published endpoints were live-validated against the current OpenAPI surface. `keywords/market-profile` is a localhost pre-release exception documented below.
 
 Tool-surface note:
 - API documentation and live endpoint availability do not guarantee that the current agent session exposes matching callable tools
@@ -325,6 +325,36 @@ Keyword value boundary for all keyword endpoints:
 Key fields: `estimateSearchCountWeekly`, `abaRank`, `abaTop3ClickShareRate`, `abaTop3ConversionShareRate`,
 `marketCharacteristics`, `totalSkuCnt`, `brandCount`, `organicSkuCount`, `adCampaignCount`, `adCount`,
 `periodStartDate`, `periodEndDate`, `observedAt`
+
+---
+
+## 12b. /openapi/v2/keywords/market-profile (metric layer, localhost pre-release)
+
+Availability: exposed on `http://localhost:8080` as of 2026-07-14; not yet published to production.
+
+| Parameter | Type | Required | Note |
+|-----------|------|----------|------|
+| keyword | String | Conditional | One keyword; exactly one of `keyword` / `keywords` |
+| keywords | List\<String\> | Conditional | Batch of 1–20 keywords; preserves request order |
+| date | String | **Yes** | Lookup date `YYYY-MM-DD`; resolves to the latest weekly snapshot on or before this date |
+| marketplace | String | No | `US` / `UK`, default `US` |
+| granularity | String | No | `week` only |
+
+**Response:** `data.context + data.items[]` for both single and batch requests.
+
+Context fields: `marketplace`, `site`, `requestedDate`, `resolvedDate`, `granularity`, `dataWindow.currentPeriod`, and `scoringSpec` (`id`, `version`, `scoreType`, `scoreRange`, `referenceScope`).
+
+Each item has `identity`, `status`, `marketProfile`, `emptyReason`, `errorCode`, and `errorMessage`. `marketProfile` contains `marketContext`, `demandScale`, `top3Concentration`, `adActivity`, `top20OrganicEntryDifficulty`, `supplySaturation`, `brandStructure`, and `organicProductBenchmark`.
+
+Use returned scores only with `context.scoringSpec`. Profile objects currently use camelCase fields. Each scored dimension exposes `supported`, `score`, `level`, `interpretation`, `scoreDirection`, `calculationStatus`, and `unsupportedReason`; evaluate it independently and treat any explicit unavailable signal as a conclusion boundary. `marketContext` may also return `annualSeasonality` with `isAvailable`, `unavailableReason`, `pairedWeekCount`, level, and score. It is a seasonality-detection summary, not a trend series. This endpoint returns deterministic weekly snapshot evidence, not trend, root cause, recommendations, or seller-private ABA-SQP conversion data. Empty items are not billed; use returned `meta.creditsConsumed` / `meta.creditsConsumedExact`.
+
+Three-layer boundary: `keywords/detail` is the traceable data layer; `keywords/market-profile` is the stable deterministic metric layer; the Agent + skill layer combines evidence and produces confidence, explanations, limitations, and recommendations.
+
+Metric-first rule: use `market-profile` before `detail` for supported market judgments. Do not descend merely because a metric dimension has incomplete calculation coverage; both are source-related, so the missing metric input will usually remain missing. Descend only when a named Agent inference requires raw fields omitted by the metric contract, the metric endpoint is unavailable, or the user requests source evidence.
+
+Batch-first rule: once an endpoint is selected, prefer its batch form for all subjects sharing marketplace, date/range, granularity, window, filters, and sort context. Deduplicate while preserving order, chunk at 20, and use single calls only for one subject or incompatible contexts.
+
+CLI: `zoodata.py keyword-market-profile --keywords "yoga mat,pilates mat" --date 2026-06-29 --marketplace US`
 
 ---
 

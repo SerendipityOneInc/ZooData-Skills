@@ -18,14 +18,15 @@ Usage:
     python zoodata.py product --asin B09V3KXJPB
     python zoodata.py report --keyword "pet supplies"
     python zoodata.py opportunity --keyword "pet supplies"
-    python zoodata.py keyword-detail --keyword "yoga mat" --date 2025-06-01
-    python zoodata.py keyword-trend --keyword "yoga mat" --date-from 2025-01-01 --date-to 2025-06-01
-    python zoodata.py keyword-extends --query "yoga mat" --date 2025-06-01
+    python zoodata.py keyword-detail --keywords "yoga mat,pilates mat" --date 2026-07-12
+    python zoodata.py keyword-market-profile --keywords "yoga mat,pilates mat" --date 2026-07-12
+    python zoodata.py keyword-trend --keywords "yoga mat,pilates mat" --date-from 2026-06-01 --date-to 2026-07-12
+    python zoodata.py keyword-extends --query "yoga mat"
     python zoodata.py keyword-search-results --keyword "yoga mat" --date 2025-06-01
     python zoodata.py keyword-competitor-product-keywords --asin B09V3KXJPB --date 2025-06-01
     python zoodata.py keyword-product-traffic-terms --asin B09V3KXJPB --date 2025-06-01
     python zoodata.py product-traffic-terms-overview --asin B09V3KXJPB --date 2025-06-01
-    python zoodata.py product-traffic-terms-timeline --asin B09V3KXJPB --keyword "yoga mat" --date 2025-06-01
+    python zoodata.py product-traffic-terms-timeline --asin B09V3KXJPB --keywords "yoga mat,pilates mat" --date-from 2026-07-06 --date-to 2026-07-12
 
 Environment:
     ZOODATA_API_KEY — Required. Get one at https://zoodata.ai/en/api-keys
@@ -47,6 +48,7 @@ from datetime import date
 DEFAULT_BASE_URL = "https://api.zoodata.ai/openapi/v2"
 API_BASE_PATH = "/openapi/v2"
 KEYWORD_DATE_RANGE_MAX_DAYS = 93
+KEYWORD_TIMELINE_MAX_DAYS = 61
 
 
 def _resolve_base_url():
@@ -2375,11 +2377,17 @@ def cmd_check(args):
     if args.keyword_endpoints:
         keyword = args.keyword or "yoga mat"
         date = args.date or time.strftime("%Y-%m-%d", time.localtime(time.time() - 86400))
-        endpoints.extend([
+        keyword_probes = [
             ("keywords/detail", {"keyword": keyword, "date": date}, "Keyword snapshot"),
             ("keywords/extends", {"query": keyword, "date": date, "queryType": "phrase", "pageSize": 1}, "Keyword expansion"),
             ("keywords/search-results", {"keyword": keyword, "date": date, "pageSize": 1}, "Keyword SERP"),
-        ])
+        ]
+        if re.match(r"^https?://(?:localhost|127\.0\.0\.1)(?::|/)", BASE_URL):
+            keyword_probes.insert(
+                1,
+                ("keywords/market-profile", {"keyword": keyword, "date": date}, "Keyword market profile (pre-release)"),
+            )
+        endpoints.extend(keyword_probes)
         if args.asin:
             endpoints.extend([
                 ("keywords/product-traffic-terms", {"asin": args.asin, "date": date, "pageSize": 1}, "ASIN traffic terms"),
@@ -2541,6 +2549,21 @@ def _split_csv(value):
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
+def _keyword_subject(args, max_items=20):
+    """Return the single or batch keyword request field after local validation."""
+    if getattr(args, "keyword", None):
+        return "keyword", args.keyword.strip()
+    keywords = _split_csv(getattr(args, "keywords", None)) or []
+    if not keywords:
+        raise SystemExit("ERROR: --keywords must contain at least one non-empty keyword")
+    if len(keywords) > max_items:
+        raise SystemExit(f"ERROR: --keywords accepts at most {max_items} keywords, got {len(keywords)}")
+    normalized = [keyword.casefold() for keyword in keywords]
+    if len(set(normalized)) != len(normalized):
+        raise SystemExit("ERROR: --keywords contains case-insensitive duplicates")
+    return "keywords", keywords
+
+
 def _require_yyyy_mm_dd(value, name):
     """Fail fast on malformed dates before sending validation-bad requests."""
     if not DATE_RE.match(value or ""):
@@ -2572,11 +2595,27 @@ def cmd_keyword_detail(args):
     """Get weekly keyword snapshot metrics."""
     _require_yyyy_mm_dd(args.date, "--date")
     params = {
-        "keyword": args.keyword,
         "date": args.date,
         "marketplace": args.marketplace,
+        "granularity": "week",
     }
+    subject_field, subject_value = _keyword_subject(args)
+    params[subject_field] = subject_value
     result = api_call("keywords/detail", params)
+    output(result, args.format)
+
+
+def cmd_keyword_market_profile(args):
+    """Get server-calculated multidimensional keyword market profiles."""
+    _require_yyyy_mm_dd(args.date, "--date")
+    params = {
+        "date": args.date,
+        "marketplace": args.marketplace,
+        "granularity": "week",
+    }
+    subject_field, subject_value = _keyword_subject(args)
+    params[subject_field] = subject_value
+    result = api_call("keywords/market-profile", params)
     output(result, args.format)
 
 
@@ -2586,21 +2625,23 @@ def cmd_keyword_trend(args):
     _require_yyyy_mm_dd(args.date_to, "--date-to")
     _require_date_range_within(args.date_from, args.date_to, KEYWORD_DATE_RANGE_MAX_DAYS, "keyword-trend")
     params = {
-        "keyword": args.keyword,
         "dateFrom": args.date_from,
         "dateTo": args.date_to,
         "marketplace": args.marketplace,
+        "granularity": "week",
     }
+    subject_field, subject_value = _keyword_subject(args)
+    params[subject_field] = subject_value
     result = api_call("keywords/trend", params)
     output(result, args.format)
 
 
 def cmd_keyword_extends(args):
     """Get keyword expansion candidates."""
-    _require_yyyy_mm_dd(args.date, "--date")
+    if args.date:
+        _require_yyyy_mm_dd(args.date, "--date")
     params = {
         "query": args.query,
-        "date": args.date,
         "marketplace": args.marketplace,
         "page": args.page,
         "pageSize": args.page_size,
@@ -2608,6 +2649,8 @@ def cmd_keyword_extends(args):
         "sortBy": args.sort_by,
         "sortOrder": args.sort_order,
     }
+    if args.date:
+        params["date"] = args.date
     result = api_call("keywords/extends", params)
     output(result, args.format)
 
@@ -2619,6 +2662,8 @@ def cmd_keyword_search_results(args):
         "keyword": args.keyword,
         "date": args.date,
         "marketplace": args.marketplace,
+        "granularity": "lately_day",
+        "lookbackDays": 7,
         "page": args.page,
         "pageSize": args.page_size,
         "exploreTypes": _split_csv(args.explore_types),
@@ -2635,6 +2680,8 @@ def _asin_keyword_params(args):
         "asin": args.asin,
         "date": args.date,
         "marketplace": args.marketplace,
+        "granularity": "lately_day",
+        "lookbackDays": 7,
         "page": args.page,
         "pageSize": args.page_size,
         "exploreTypes": _split_csv(args.explore_types),
@@ -2669,26 +2716,25 @@ def cmd_product_traffic_terms_overview(args):
 
 
 def cmd_product_traffic_terms_timeline(args):
-    """Get product traffic-term timeline for one ASIN + keyword."""
+    """Get product traffic-term timeline for one ASIN + one or more keywords."""
     _require_yyyy_mm_dd(args.date_from, "--date-from")
     _require_yyyy_mm_dd(args.date_to, "--date-to")
     _require_date_range_within(
         args.date_from,
         args.date_to,
-        KEYWORD_DATE_RANGE_MAX_DAYS,
+        KEYWORD_TIMELINE_MAX_DAYS,
         "product-traffic-terms-timeline",
     )
     params = {
         "asin": args.asin,
-        "keyword": args.keyword,
         "dateFrom": args.date_from,
         "dateTo": args.date_to,
         "marketplace": args.marketplace,
-        "page": args.page,
-        "pageSize": args.page_size,
-        "sortBy": args.sort_by,
-        "sortOrder": args.sort_order,
+        "granularity": "lately_day",
+        "lookbackDays": 7,
     }
+    subject_field, subject_value = _keyword_subject(args)
+    params[subject_field] = subject_value
     result = api_call("keywords/product-traffic-terms-timeline", params)
     output(result, args.format)
 
@@ -2936,14 +2982,31 @@ Examples:
 
     # ── keyword-detail ──
     p_kd = sub.add_parser("keyword-detail", help="Keyword weekly snapshot", allow_abbrev=False)
-    p_kd.add_argument("--keyword", required=True, help="Keyword (required)")
+    kd_subject = p_kd.add_mutually_exclusive_group(required=True)
+    kd_subject.add_argument("--keyword", help="One keyword")
+    kd_subject.add_argument("--keywords", help="Keywords (comma-separated, max 20)")
     p_kd.add_argument("--date", required=True, help="Lookup date (YYYY-MM-DD)")
     p_kd.add_argument("--marketplace", choices=["US", "UK"], default="US", help="Marketplace (default: US)")
     p_kd.set_defaults(func=cmd_keyword_detail)
 
+    # ── keyword-market-profile ──
+    p_kmp = sub.add_parser(
+        "keyword-market-profile",
+        help="Server-calculated multidimensional keyword market profile",
+        allow_abbrev=False,
+    )
+    kmp_subject = p_kmp.add_mutually_exclusive_group(required=True)
+    kmp_subject.add_argument("--keyword", help="One keyword")
+    kmp_subject.add_argument("--keywords", help="Keywords (comma-separated, max 20)")
+    p_kmp.add_argument("--date", required=True, help="Lookup date (YYYY-MM-DD)")
+    p_kmp.add_argument("--marketplace", choices=["US", "UK"], default="US", help="Marketplace (default: US)")
+    p_kmp.set_defaults(func=cmd_keyword_market_profile)
+
     # ── keyword-trend ──
     p_kt = sub.add_parser("keyword-trend", help="Keyword weekly trend", allow_abbrev=False)
-    p_kt.add_argument("--keyword", required=True, help="Keyword (required)")
+    kt_subject = p_kt.add_mutually_exclusive_group(required=True)
+    kt_subject.add_argument("--keyword", help="One keyword")
+    kt_subject.add_argument("--keywords", help="Keywords (comma-separated, max 20)")
     p_kt.add_argument("--date-from", required=True, help="Start date (YYYY-MM-DD; max 93-day range)")
     p_kt.add_argument("--date-to", required=True, help="End date (YYYY-MM-DD; max 93-day range)")
     p_kt.add_argument("--marketplace", choices=["US", "UK"], default="US", help="Marketplace (default: US)")
@@ -2952,12 +3015,12 @@ Examples:
     # ── keyword-extends ──
     p_ke = sub.add_parser("keyword-extends", help="Keyword expansion", allow_abbrev=False)
     p_ke.add_argument("--query", required=True, help="Seed keyword (required)")
-    p_ke.add_argument("--date", required=True, help="Lookup date (YYYY-MM-DD)")
+    p_ke.add_argument("--date", help="Legacy lookup date (optional; service uses latest snapshot)")
     p_ke.add_argument("--marketplace", choices=["US", "UK"], default="US", help="Marketplace (default: US)")
     p_ke.add_argument("--page", type=int, default=1, help="Page number (default: 1)")
     p_ke.add_argument("--page-size", type=int, default=20, help="Page size (default: 20, max 100)")
     p_ke.add_argument("--query-type", choices=["phrase", "fuzzy"], default="phrase", help="Expansion mode (default: phrase)")
-    p_ke.add_argument("--sort-by", choices=["relevanceScore", "estimateSearchCount", "abaRank", "observedAt", "keyword"], default="relevanceScore")
+    p_ke.add_argument("--sort-by", choices=["relevanceScore", "estimateSearchCount", "abaRank", "keyword"], default="relevanceScore")
     p_ke.add_argument("--sort-order", choices=["asc", "desc"], default="desc")
     p_ke.set_defaults(func=cmd_keyword_extends)
 
@@ -2969,7 +3032,7 @@ Examples:
     p_ksr.add_argument("--page", type=int, default=1, help="Page number (default: 1)")
     p_ksr.add_argument("--page-size", type=int, default=20, help="Page size (default: 20, max 100)")
     p_ksr.add_argument("--explore-types", help="Comma-separated placements: ORG,SP,SB,SBV,SPR")
-    p_ksr.add_argument("--sort-by", choices=["absolutePosition", "estimateImpressionPoint", "observedAt", "price", "rating", "ratingCount", "recentSales", "asin", "title"], default="absolutePosition")
+    p_ksr.add_argument("--sort-by", choices=["absolutePosition", "estimateImpressionPoint", "latestObservedAt", "price", "rating", "ratingCount", "recentSales", "asin", "title"], default="absolutePosition")
     p_ksr.add_argument("--sort-order", choices=["asc", "desc"], default="asc")
     p_ksr.set_defaults(func=cmd_keyword_search_results)
 
@@ -2982,7 +3045,7 @@ Examples:
     p_kcpk.add_argument("--page-size", type=int, default=20, help="Page size (default: 20, max 100)")
     p_kcpk.add_argument("--explore-types", help="Comma-separated placements: ORG,SP,SB,SBV,SPR")
     p_kcpk.add_argument("--keyword-contains", help="Optional substring filter")
-    p_kcpk.add_argument("--sort-by", choices=["estimateImpressionPoint", "absolutePosition", "avgPosition", "keywordEstimateSearchCount", "keywordAbaRank", "observedAt", "keyword"], default="estimateImpressionPoint")
+    p_kcpk.add_argument("--sort-by", choices=["trafficShare", "estimateImpressionPoint", "absolutePosition", "avgPosition", "keywordEstimateSearchCount", "keywordAbaRank", "latestObservedAt", "keyword"], default="trafficShare")
     p_kcpk.add_argument("--sort-order", choices=["asc", "desc"], default="desc")
     p_kcpk.set_defaults(func=cmd_keyword_competitor_product_keywords)
 
@@ -2995,7 +3058,7 @@ Examples:
     p_kptt.add_argument("--page-size", type=int, default=20, help="Page size (default: 20, max 100)")
     p_kptt.add_argument("--explore-types", help="Comma-separated placements: ORG,SP,SB,SBV,SPR")
     p_kptt.add_argument("--keyword-contains", help="Optional substring filter")
-    p_kptt.add_argument("--sort-by", choices=["estimateImpressionPoint", "absolutePosition", "avgPosition", "keywordEstimateSearchCount", "keywordAbaRank", "observedAt", "keyword"], default="estimateImpressionPoint")
+    p_kptt.add_argument("--sort-by", choices=["trafficShare", "estimateImpressionPoint", "absolutePosition", "avgPosition", "keywordEstimateSearchCount", "keywordAbaRank", "latestObservedAt", "keyword"], default="trafficShare")
     p_kptt.add_argument("--sort-order", choices=["asc", "desc"], default="desc")
     p_kptt.set_defaults(func=cmd_keyword_product_traffic_terms)
 
@@ -3009,14 +3072,12 @@ Examples:
     # ── product-traffic-terms-timeline ──
     p_pttt = sub.add_parser("product-traffic-terms-timeline", help="ASIN + keyword traffic-term timeline", allow_abbrev=False)
     p_pttt.add_argument("--asin", required=True, help="ASIN (required)")
-    p_pttt.add_argument("--keyword", required=True, help="Exact keyword (required)")
-    p_pttt.add_argument("--date-from", required=True, help="Start date (YYYY-MM-DD; max 93-day range)")
-    p_pttt.add_argument("--date-to", required=True, help="End date (YYYY-MM-DD; max 93-day range)")
+    pttt_subject = p_pttt.add_mutually_exclusive_group(required=True)
+    pttt_subject.add_argument("--keyword", help="One exact keyword")
+    pttt_subject.add_argument("--keywords", help="Exact keywords (comma-separated, max 20)")
+    p_pttt.add_argument("--date-from", required=True, help="Start date (YYYY-MM-DD; max 61-day range)")
+    p_pttt.add_argument("--date-to", required=True, help="End date (YYYY-MM-DD; max 61-day range)")
     p_pttt.add_argument("--marketplace", choices=["US", "UK"], default="US", help="Marketplace (default: US)")
-    p_pttt.add_argument("--page", type=int, default=1, help="Page number (default: 1)")
-    p_pttt.add_argument("--page-size", type=int, default=20, help="Page size (default: 20, max 100)")
-    p_pttt.add_argument("--sort-by", choices=["date"], default="date", help="Sort field (default: date)")
-    p_pttt.add_argument("--sort-order", choices=["asc", "desc"], default="asc", help="Sort direction (default: asc)")
     p_pttt.set_defaults(func=cmd_product_traffic_terms_timeline)
 
     # ── check (API self-check) ──
