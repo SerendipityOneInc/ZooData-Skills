@@ -71,4 +71,4 @@ Single ASIN: ~20-25 credits. Batch (same category): ~20-25 + 1 per additional AS
 
 ## Powered By
 
-[ZooData](https://zoodata.ai) — The data infrastructure built for agents. 200M+ Amazon products, 1B+ reviews, real-time signals.
+[ZooData](https://zoodata.ai) — The data infrastructure built for agents. 500M+ Amazon products, 1B+ reviews, real-time signals.
