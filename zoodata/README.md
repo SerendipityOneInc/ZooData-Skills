@@ -1,6 +1,6 @@
 # ZooData — Commerce Data Infrastructure for AI Agents
 
-> 200M+ Amazon products. 20 endpoints. One API key.
+> 500M+ Amazon products. 20 endpoints. One API key.
 
 ## What This Skill Does
 
@@ -82,4 +82,4 @@ Varies per endpoint. Each call consumes credits — check `meta.creditsConsumed`
 
 ## Powered By
 
-[ZooData](https://zoodata.ai) — The data infrastructure built for agents. 200M+ Amazon products, 1B+ reviews, real-time signals.
+[ZooData](https://zoodata.ai) — The data infrastructure built for agents. 500M+ Amazon products, 1B+ reviews, real-time signals.

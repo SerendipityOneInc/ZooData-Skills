@@ -63,4 +63,4 @@ Full Scan: ~40-60 credits (~2-3 per subcategory × 20). Quick Check: ~20-30 cred
 
 ## Powered By
 
-[ZooData](https://zoodata.ai) — The data infrastructure built for agents. 200M+ Amazon products, 1B+ reviews, real-time signals.
+[ZooData](https://zoodata.ai) — The data infrastructure built for agents. 500M+ Amazon products, 1B+ reviews, real-time signals.

@@ -72,4 +72,4 @@ Select **Amazon Daily Market Radar** when prompted.
 
 ## Powered By
 
-[ZooData](https://zoodata.ai) — The data infrastructure built for agents. 200M+ Amazon products, 1B+ reviews, real-time signals.
+[ZooData](https://zoodata.ai) — The data infrastructure built for agents. 500M+ Amazon products, 1B+ reviews, real-time signals.

@@ -8,7 +8,7 @@
 
 <p align="center">
   <b>The data infrastructure built for agents.</b><br/>
-  Currently powering Amazon commerce with 200M+ products, 1B+ reviews, and real-time signals.
+  Currently powering Amazon commerce with 500M+ products, 1B+ reviews, and real-time signals.
 </p>
 
 <p align="center">
@@ -31,7 +31,7 @@
 
 ## What is ZooData?
 
-[ZooData](https://zoodata.ai) is the data infrastructure built for agents. Not a scraping API. Not a human dashboard. A purpose-built data layer that gives your AI agents direct access to Amazon commerce signals — 200M+ indexed products, 2+ years of history, and 1B+ reviews pre-processed into structured insights. Clean JSON, real-time, agent-ready.
+[ZooData](https://zoodata.ai) is the data infrastructure built for agents. Not a scraping API. Not a human dashboard. A purpose-built data layer that gives your AI agents direct access to Amazon commerce signals — 500M+ indexed products, 2+ years of history, and 1B+ reviews pre-processed into structured insights. Clean JSON, real-time, agent-ready.
 
 
 https://github.com/user-attachments/assets/305a161b-7a53-49b8-afdc-4469a4fbf361
