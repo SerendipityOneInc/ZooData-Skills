@@ -74,7 +74,7 @@ When `zoodata.py` returns code 402: follow the **"On 402 Credit Exhausted"** pro
 
 ## 14 Product Selection Modes
 
-> **Modes are CLI-local presets, NOT API parameters.** `zoodata.py` expands `--mode` into real filter fields (`monthlySalesMin`, `salesGrowthRateMin`, …) before calling the API. Never send `mode` (or `salesMin` — the API field is `monthlySalesMin`) in a raw HTTP request to `/openapi/v2/products/search`; the API rejects unknown fields with 422. If you bypass the CLI, copy the filter expansion from `PRODUCT_MODES` in `scripts/zoodata.py`, and pass `categoryPath` as a JSON array (`["Electronics"]`), not a string.
+> **Modes are CLI-local presets, NOT API parameters.** `zoodata.py` expands `--mode` into real filter fields (`monthlySalesMin`, `salesGrowthRateMin`, …) before calling the API. Never send `mode` (or `salesMin` — the API field is `monthlySalesMin`) in a raw HTTP request to `/openapi/v2/products/search`; the API rejects unknown fields with 422. Watch the near-miss pair: `--ratings-max` (review count) maps to `ratingCountMax`, while `ratingMax` is a *different valid field* (max star rating) — mixing them up returns wrong results silently instead of a 422. If you bypass the CLI, copy the filter expansion from `PRODUCT_MODES` in `scripts/zoodata.py`, and pass `categoryPath` as a JSON array (`["Electronics"]`), not a string.
 
 | Mode | One-line Description |
 |------|---------------------|

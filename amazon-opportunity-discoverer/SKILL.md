@@ -82,6 +82,8 @@ When `zoodata.py` returns code 402: follow the **"On 402 Credit Exhausted"** pro
 ### User Criteria → Filter Params
 Always translate: "300+ monthly sales" → `--sales-min 300`, "reviews <100" → `--ratings-max 100`, "$15-35" → `--price-min 15 --price-max 35`. If user has specific criteria, use custom filters (Approach B/C), NOT default modes.
 
+> **CLI flags and modes are client-side, NOT API fields.** `zoodata.py` expands them before calling the API: `--sales-min` → `monthlySalesMin`; `--ratings-max` (review count) → `ratingCountMax` — not `ratingMax`, which is a *different valid field* (max star rating) that returns wrong results silently; modes → the filter sets in `PRODUCT_MODES` in `scripts/zoodata.py`. Never send `mode`, `salesMin`, or `ratingsMax` in a raw HTTP request to `/openapi/v2/products/search` — the API rejects unknown fields with 422.
+
 ### Data-Driven Category Selection (no specific category given)
 Scan with `market --keyword "{broad}" --topn 10`, rank subcategories by: newSkuRate>10%, topBrandSalesRate<60%, fbaRate>50%, avgPrice $10-50, avgMonthlySales>200. Pick top 3-5.
 

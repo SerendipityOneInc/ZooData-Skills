@@ -67,6 +67,8 @@ When `zoodata.py` returns code 402: follow the **"On 402 Credit Exhausted"** pro
 7. Output full trend report (see Output Spec)
 8. Offer Auto-Monitor setup
 
+> `--mode emerging` / `--mode new-release` are CLI-local presets — `zoodata.py` expands them into real filter fields (see `PRODUCT_MODES` in `scripts/zoodata.py`) before calling the API. `mode` is NOT an API parameter; a raw HTTP request to `products/search` must send the expanded filter fields instead (unknown fields → 422).
+
 ## Mode 2: Quick Check (scheduled)
 
 1. Read `{skill_base_dir}/scan-data/watchlist.json` + `{skill_base_dir}/scan-data/baseline.json`
