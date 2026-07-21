@@ -10,7 +10,7 @@ description: >
   winning products, untapped niches, product ideas, market gaps.
   Requires ZOODATA_API_KEY.
 metadata:
-  version: "1.0.3"
+  version: "1.0.4"
   author: SerendipityOneInc
   homepage: https://github.com/SerendipityOneInc/ZooData-Skills
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}

@@ -34,7 +34,7 @@ description: >
   Requires ZOODATA_API_KEY. Get a free key with 1,000 credits at
   https://zoodata.ai/en/api-keys.
 metadata:
-  version: "0.2.0"
+  version: "0.2.1"
   author: SerendipityOneInc
   homepage: https://github.com/SerendipityOneInc/ZooData-Skills
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}

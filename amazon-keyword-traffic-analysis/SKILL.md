@@ -6,6 +6,11 @@ description: >
   ASIN keyword health, keyword traffic changes, or why an ASIN changed under a keyword. Supports
   batch keyword snapshot, multidimensional market profile, trend, and ASIN-keyword timeline
   workflows. Requires ZOODATA_API_KEY.
+metadata:
+  version: "0.1.2"
+  author: SerendipityOneInc
+  homepage: https://github.com/SerendipityOneInc/ZooData-Skills
+  openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}
 ---
 
 # ZooData — Amazon Keyword Intelligence
