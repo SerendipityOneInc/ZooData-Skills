@@ -31,3 +31,49 @@ jobs:
           done < <(find . -name 'SKILL.md' | sort)
 
           exit $FAILED
+
+  check-frontmatter:
+    name: Check SKILL.md frontmatter completeness
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate name / description / metadata across all SKILL.md
+        run: |
+          python3 - <<'PY'
+          import glob, os, re, sys
+          fail = 0
+          for f in sorted(glob.glob("**/SKILL.md", recursive=True)):
+              if "/.agents/" in f or f.startswith(".agents/"):
+                  continue
+              d = os.path.basename(os.path.dirname(f))
+              t = open(f, encoding="utf-8").read()
+              m = re.match(r"^---\n(.*?)\n---", t, re.S)
+              if not m:
+                  print(f"ERROR {f}: no YAML frontmatter"); fail = 1; continue
+              fm = m.group(1)
+              name = re.search(r"^name:\s*(\S+)", fm, re.M)
+              if not name:
+                  print(f"ERROR {f}: missing name"); fail = 1
+              else:
+                  nm = name.group(1)
+                  if not re.match(r"^[a-z0-9-]{1,64}$", nm):
+                      print(f"ERROR {f}: name '{nm}' not kebab-case / >64 chars"); fail = 1
+                  if nm != d:
+                      print(f"ERROR {f}: name '{nm}' != parent directory '{d}'"); fail = 1
+              dm = re.search(r"^description:\s*(.*?)(?=^\w[\w-]*:|\Z)", fm + "\n", re.S | re.M)
+              desc = re.sub(r"\s+", " ", dm.group(1)).strip() if dm else ""
+              if not desc:
+                  print(f"ERROR {f}: missing/empty description"); fail = 1
+              elif len(desc) > 1024:
+                  print(f"ERROR {f}: description {len(desc)} chars > 1024 (keep concise)"); fail = 1
+              if not re.search(r"^metadata:", fm, re.M):
+                  print(f"ERROR {f}: missing metadata block"); fail = 1
+              else:
+                  if not re.search(r"version:", fm):
+                      print(f"ERROR {f}: missing metadata.version"); fail = 1
+                  if "openclaw" not in fm:
+                      print(f"ERROR {f}: missing metadata.openclaw (ClawHub credential contract)"); fail = 1
+          print("frontmatter check: OK" if not fail else "frontmatter check: FAILED")
+          sys.exit(fail)
+          PY
