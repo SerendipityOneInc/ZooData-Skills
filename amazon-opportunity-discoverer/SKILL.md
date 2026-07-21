@@ -35,7 +35,7 @@ Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zooda
 ## API Pitfalls (see zoodata skill for full list)
 - categoryPath is auto-resolved via `categories`, with fallback to top search result. If `category_source` is `inferred_from_search`, confirm with user — keyword-only queries contaminate results
 - All keyword-based endpoints MUST include `--category` when locked
-- **`mode`/`--sales-min`/`--ratings-max` are CLI-local, expanded client-side** — NOT API fields (raw request → 422; `ratingMax` ≠ `ratingCountMax`). Follow the **`mode`/CLI-flags** pitfall (#9) in `zoodata/SKILL.md`
+- **`mode`/`--sales-min`/`--ratings-max` are CLI-local, expanded client-side** — NOT API fields (raw request → 422; `ratingMax` ≠ `ratingCountMax`). Follow the **`mode`/CLI-flags** pitfalls (#9–#10) in `zoodata/SKILL.md`
 - Revenue = `sampleAvgMonthlyRevenue` directly. Sales = `monthlySalesFloor` (lower bound)
 - `reviews/analysis` needs 50+ reviews. Fallback chain when sample is insufficient:
   1. **Lightweight**: `realtime/product` ratingBreakdown — only star distribution, no themes

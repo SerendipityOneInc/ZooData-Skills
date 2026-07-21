@@ -50,7 +50,8 @@ metadata:
       Local Review Toolkit below — see "Local Review Toolkit" section
 7. **Aggregation endpoints** (price-band, brand) without categoryPath produce severely distorted data
 8. **Price-band and brand endpoints only accept `keyword`** (not categoryPath) — cross-validate returned products
-9. **`mode` and CLI flags are CLI-local, NOT API fields** → `zoodata.py` expands them client-side before the request. Modes → filter sets in `PRODUCT_MODES` (`{skill_base_dir}/scripts/zoodata.py`, 13 presets); `--sales-min` → `monthlySalesMin`; `--ratings-max` (review count) → `ratingCountMax`, **not** `ratingMax` (a different valid field — max star rating — that returns wrong results silently, no 422). Sending `mode`/`salesMin`/`ratingsMax` in a raw request → 422. Pass `categoryPath` as a JSON array (`["Electronics"]`), never a string.
+9. **`mode` is CLI-local, NOT an API parameter** → `zoodata.py` expands `--mode` client-side into the filter sets in `PRODUCT_MODES` (`{skill_base_dir}/scripts/zoodata.py`, 13 presets) before the request; sending `mode` raw → 422
+10. **CLI filter flags ≠ API field names** → `--sales-min` → `monthlySalesMin`; `--ratings-max` (review count) → `ratingCountMax`, **not** `ratingMax` (a different valid field — max star rating — that returns wrong results silently, no 422). Pass `categoryPath` as a JSON array (`["Electronics"]`), never a string. Unknown fields (`salesMin`, `ratingsMax`, …) → 422
 
 ## On Missing Key (no credentials configured)
 
