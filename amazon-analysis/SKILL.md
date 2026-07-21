@@ -74,7 +74,7 @@ When `zoodata.py` returns code 402: follow the **"On 402 Credit Exhausted"** pro
 
 ## 13 Product Selection Modes
 
-> **Modes are CLI-local presets, NOT API parameters.** `zoodata.py` expands `--mode` into real filter fields before the call — copy them from `PRODUCT_MODES` in `scripts/zoodata.py` if you bypass the CLI. Before any raw `products/search` request, follow the **`mode`/CLI-flags-are-CLI-local** pitfall in `zoodata/SKILL.md` (Critical API Pitfalls #9): `mode`/`salesMin`/`ratingsMax` raw → 422, `ratingMax` ≠ `ratingCountMax`, `categoryPath` must be a JSON array.
+> **Modes are CLI-local presets, NOT API parameters.** `zoodata.py` expands `--mode` into real filter fields before the call — copy them from `PRODUCT_MODES` in `{skill_base_dir}/scripts/zoodata.py` if you bypass the CLI. Before any raw `products/search` request, follow the **`mode`/CLI-flags-are-CLI-local** pitfall in `zoodata/SKILL.md` (Critical API Pitfalls #9): `mode`/`salesMin`/`ratingsMax` raw → 422, `ratingMax` ≠ `ratingCountMax`, `categoryPath` must be a JSON array.
 
 | Mode | One-line Description |
 |------|---------------------|
