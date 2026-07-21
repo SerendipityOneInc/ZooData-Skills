@@ -8,6 +8,9 @@ description: >
   Use when user asks about: find products to sell, product opportunity, what should I sell,
   niche discovery, profitable products, selection strategy, product scanner, opportunity scan,
   winning products, untapped niches, product ideas, market gaps.
+  Pick this to DISCOVER what to sell when the user has no specific target yet (ranked candidate
+  list). To evaluate a niche they already named, use amazon-market-entry-analyzer; to track
+  category trends over time, use amazon-market-trend-scanner.
   Requires ZOODATA_API_KEY.
 metadata:
   version: "1.0.4"

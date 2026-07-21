@@ -8,6 +8,9 @@ description: >
   Use when user asks about: market trends, category trends, trending
   categories, what's hot, emerging categories, trend scanner,
   which categories are growing, where the market is heading.
+  Pick this to track how categories shift OVER TIME (trends, momentum, emerging niches). To
+  evaluate one specific niche right now, use amazon-market-entry-analyzer; to discover products
+  to sell, use amazon-opportunity-discoverer.
   Requires ZOODATA_API_KEY.
 metadata:
   version: "1.0.3"
