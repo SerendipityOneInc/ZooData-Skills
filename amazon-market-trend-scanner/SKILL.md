@@ -44,6 +44,7 @@ Required: 1+ category paths or keywords. Optional: scan depth, metric preference
 2. **All keyword endpoints MUST include `--category`**; omitting it distorts aggregation
 3. **Use API fields directly**: revenue=`sampleAvgMonthlyRevenue`, sales=`monthlySalesFloor`
 4. **Key metrics per subcategory**: sampleAvgMonthlySales, sampleNewSkuRate, topBrandSalesRate, sampleAvgPrice, sampleAPlusRate, totalSkuCount, sampleFbaRate
+5. **`--mode` presets are CLI-local, NOT API params** — `zoodata.py` expands them via `PRODUCT_MODES` before the call; a raw `products/search` request must send the expanded filter fields (`mode` raw → 422). Follow the **`mode`/CLI-flags** pitfall (#9) in `zoodata/SKILL.md`
 
 ## On Missing Key
 
@@ -66,8 +67,6 @@ When `zoodata.py` returns code 402: follow the **"On 402 Credit Exhausted"** pro
 6. Save baseline → `{skill_base_dir}/scan-data/baseline.json`, config → `{skill_base_dir}/scan-data/watchlist.json`
 7. Output full trend report (see Output Spec)
 8. Offer Auto-Monitor setup
-
-> `--mode emerging` / `--mode new-release` are CLI-local presets — `zoodata.py` expands them into real filter fields (see `PRODUCT_MODES` in `scripts/zoodata.py`) before calling the API. `mode` is NOT an API parameter; a raw HTTP request to `products/search` must send the expanded filter fields instead (unknown fields → 422).
 
 ## Mode 2: Quick Check (scheduled)
 

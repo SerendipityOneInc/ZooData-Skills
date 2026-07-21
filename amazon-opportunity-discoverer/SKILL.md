@@ -35,6 +35,7 @@ Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zooda
 ## API Pitfalls (see zoodata skill for full list)
 - categoryPath is auto-resolved via `categories`, with fallback to top search result. If `category_source` is `inferred_from_search`, confirm with user — keyword-only queries contaminate results
 - All keyword-based endpoints MUST include `--category` when locked
+- **`mode`/`--sales-min`/`--ratings-max` are CLI-local, expanded client-side** — NOT API fields (raw request → 422; `ratingMax` ≠ `ratingCountMax`). Follow the **`mode`/CLI-flags** pitfall (#9) in `zoodata/SKILL.md`
 - Revenue = `sampleAvgMonthlyRevenue` directly. Sales = `monthlySalesFloor` (lower bound)
 - `reviews/analysis` needs 50+ reviews. Fallback chain when sample is insufficient:
   1. **Lightweight**: `realtime/product` ratingBreakdown — only star distribution, no themes
@@ -80,9 +81,7 @@ When `zoodata.py` returns code 402: follow the **"On 402 Credit Exhausted"** pro
 | Advanced + Aggressive | fast-movers, speculative, top-bsr | any | any |
 
 ### User Criteria → Filter Params
-Always translate: "300+ monthly sales" → `--sales-min 300`, "reviews <100" → `--ratings-max 100`, "$15-35" → `--price-min 15 --price-max 35`. If user has specific criteria, use custom filters (Approach B/C), NOT default modes.
-
-> **CLI flags and modes are client-side, NOT API fields.** `zoodata.py` expands them before calling the API: `--sales-min` → `monthlySalesMin`; `--ratings-max` (review count) → `ratingCountMax` — not `ratingMax`, which is a *different valid field* (max star rating) that returns wrong results silently; modes → the filter sets in `PRODUCT_MODES` in `scripts/zoodata.py`. Never send `mode`, `salesMin`, or `ratingsMax` in a raw HTTP request to `/openapi/v2/products/search` — the API rejects unknown fields with 422.
+Always translate: "300+ monthly sales" → `--sales-min 300`, "reviews <100" → `--ratings-max 100`, "$15-35" → `--price-min 15 --price-max 35`. If user has specific criteria, use custom filters (Approach B/C), NOT default modes. (`--sales-min`/`--ratings-max`/`--modes` are CLI-local — see API Pitfalls before any raw call.)
 
 ### Data-Driven Category Selection (no specific category given)
 Scan with `market --keyword "{broad}" --topn 10`, rank subcategories by: newSkuRate>10%, topBrandSalesRate<60%, fbaRate>50%, avgPrice $10-50, avgMonthlySales>200. Pick top 3-5.

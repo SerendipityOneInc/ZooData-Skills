@@ -50,6 +50,7 @@ metadata:
       Local Review Toolkit below — see "Local Review Toolkit" section
 7. **Aggregation endpoints** (price-band, brand) without categoryPath produce severely distorted data
 8. **Price-band and brand endpoints only accept `keyword`** (not categoryPath) — cross-validate returned products
+9. **`mode` and CLI flags are CLI-local, NOT API fields** → `zoodata.py` expands them client-side before the request. Modes → filter sets in `PRODUCT_MODES` (`amazon-analysis/scripts/zoodata.py`, 13 presets); `--sales-min` → `monthlySalesMin`; `--ratings-max` (review count) → `ratingCountMax`, **not** `ratingMax` (a different valid field — max star rating — that returns wrong results silently, no 422). Sending `mode`/`salesMin`/`ratingsMax` in a raw request → 422. Pass `categoryPath` as a JSON array (`["Electronics"]`), never a string.
 
 ## On Missing Key (no credentials configured)
 
