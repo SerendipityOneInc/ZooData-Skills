@@ -62,11 +62,12 @@ Same as competitors, plus:
 
 | Parameter | Type | Note |
 |-----------|------|------|
-| mode | String | 14 preset modes (see SKILL.md) |
 | keywordMatchType | String | `fuzzy` / `phrase` / `exact` |
 | listingAge | **String** | Max age in days ⚠️ must be string |
 
 Filter pairs (all optional, Min/Max): `monthlySales`, `revenue`, `salesGrowthRate`, `bsr`, `subBsr`, `bsrGrowthRate`, `price`, `rating`, `ratingCount`, `fbaShipping`, `variantCount`, `grossMargin`, `sellerCount`
+
+> `mode` is **NOT** an API parameter. The 13 CLI presets in `zoodata.py` expand client-side into the filter pairs above before the request is sent; passing `mode` in a raw request returns 422.
 
 Additional: `includeBrands`, `excludeBrands`, `fulfillment` (`["FBA"]`/`["FBM"]`), `badges` (`["New Release"]`/`["Best Seller"]`)
 

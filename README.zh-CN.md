@@ -107,7 +107,7 @@ export ZOODATA_API_KEY='hms_live_xxx'   # 在 zoodata.ai/en/api-keys 免费获�
 或者直接用命令行：
 
 ```bash
-python amazon-analysis/scripts/zoodata.py products --keyword "wireless earbuds" --mode competitive_landscape
+python amazon-analysis/scripts/zoodata.py products --keyword "wireless earbuds" --mode fast-movers
 ```
 
 ## API 接口

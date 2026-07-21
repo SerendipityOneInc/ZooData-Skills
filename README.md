@@ -110,7 +110,7 @@ Ask your AI agent:
 Or use the CLI directly:
 
 ```bash
-python amazon-analysis/scripts/zoodata.py products --keyword "wireless earbuds" --mode competitive_landscape
+python amazon-analysis/scripts/zoodata.py products --keyword "wireless earbuds" --mode fast-movers
 ```
 
 ## API Endpoints

@@ -2,7 +2,7 @@
 name: amazon-opportunity-discoverer
 description: >
   Automated product opportunity scanner for Amazon sellers.
-  Scans categories using 14 preset selection strategies, validates candidates with
+  Scans categories using 13 preset selection strategies, validates candidates with
   real-time data, brand analysis, and price structure, then ranks opportunities
   by composite score (1-100). Uses all 11 ZooData API endpoints.
   Use when user asks about: find products to sell, product opportunity, what should I sell,
@@ -55,7 +55,7 @@ Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zooda
      - **Small-sample rule (reviewCount<50)**: demote single-mention items 📊→🔍; NEVER attach table-level or section-header 📊 when any row inside is 🔍; suppress "🔴 Critical" verdicts on count=1
      - **Scope**: fallback replaces ONLY the `/reviews/analysis` aggregation. This skill's primary workflow outputs (opportunity scoring, mode-based selection, ranked candidate list) remain valid — do not re-run them.
 - Deduplicate ASINs across modes — same product appears in multiple scans
-- Each mode has **built-in filters that STACK** with user filters (e.g. beginner: $15-60, sales≥300)
+- Each mode has **built-in filters that STACK** with user filters (e.g. high-demand-low-barrier: sales≥300, reviews≤50)
 
 ## On Missing Key
 
@@ -73,8 +73,8 @@ When `zoodata.py` returns code 402: follow the **"On 402 Credit Exhausted"** pro
 ### Profile → Strategy Mapping
 | Profile | Primary Modes | Price | Max Reviews |
 |---------|--------------|-------|-------------|
-| Beginner + Conservative | beginner, long-tail, fbm-friendly | $15-60 | <50 |
-| Beginner + Moderate | beginner, emerging, low-price | $10-50 | <100 |
+| Beginner + Conservative | high-demand-low-barrier, long-tail, fbm-friendly | $15-60 | <50 |
+| Beginner + Moderate | high-demand-low-barrier, emerging, low-price | $10-50 | <100 |
 | Intermediate + Moderate | fast-movers, underserved, single-variant | $15-80 | <200 |
 | Intermediate + Aggressive | high-demand-low-barrier, speculative | $10-100 | <500 |
 | Advanced + Aggressive | fast-movers, speculative, top-bsr | any | any |
@@ -110,7 +110,7 @@ Scan with `market --keyword "{broad}" --topn 10`, rank subcategories by: newSkuR
 
 ## Composite Command
 ```bash
-python3 {skill_base_dir}/scripts/zoodata.py opportunity-scan --keyword "{kw}" --category "{path}" --modes "beginner,emerging,underserved"
+python3 {skill_base_dir}/scripts/zoodata.py opportunity-scan --keyword "{kw}" --category "{path}" --modes "high-demand-low-barrier,emerging,underserved"
 ```
 Or with custom filters: `--sales-min 300 --ratings-max 100 --price-min 15 --price-max 35`
 

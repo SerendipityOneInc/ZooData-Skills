@@ -4,7 +4,7 @@
 
 ## What This Skill Does
 
-The foundational data layer for all ZooData agent skills. Provides direct access to 20 API endpoints covering category browsing, market metrics, product search (14 modes), competitor lookup, real-time ASIN detail, AI review analysis, price band analysis, brand intelligence, product history, and keyword intelligence. Use this skill when you need raw API access or want to understand what data is available.
+The foundational data layer for all ZooData agent skills. Provides direct access to 20 API endpoints covering category browsing, market metrics, product search (20+ filter fields), competitor lookup, real-time ASIN detail, AI review analysis, price band analysis, brand intelligence, product history, and keyword intelligence. Use this skill when you need raw API access or want to understand what data is available.
 
 ### What Makes This Different
 
@@ -53,7 +53,7 @@ Select **ZooData** when prompted.
 |---|----------|---------|
 | 1 | `categories` | Browse/search category tree |
 | 2 | `markets/search` | Market-level metrics (sales, price, concentration) |
-| 3 | `products/search` | Product search with 14 selection modes |
+| 3 | `products/search` | Product search with 20+ filter fields (13 CLI presets) |
 | 4 | `products/competitors` | Competitor discovery |
 | 5 | `realtime/product` | Live ASIN detail (rating, BSR, Buy Box, variants) |
 | 6 | `reviews/analysis` | AI review insights (sentiment, pain points, keywords) |

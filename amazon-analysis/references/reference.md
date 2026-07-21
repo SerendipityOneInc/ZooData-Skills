@@ -76,7 +76,7 @@ All endpoints return: `{success, data, error, meta}` with `meta.creditsRemaining
 ## 3. products/search — Shared Product Object
 
 **Key Request Params:**
-- `keyword`, `categoryPath`, `mode` (14 presets), `keywordMatchType`
+- `keyword`, `categoryPath`, `keywordMatchType` (`mode` is a CLI-only preset — `zoodata.py` expands it into the filter pairs below client-side; it is NOT an API field and returns 422 if sent raw)
 - Filter pairs: `monthlySalesMin/Max`, `priceMin/Max`, `ratingMin/Max`, etc.
 - `pageSize` (max 20), `page`, `sortBy`, `sortOrder`
 - `includeBrands`, `excludeBrands`

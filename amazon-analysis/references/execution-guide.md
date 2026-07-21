@@ -22,7 +22,7 @@ Load when performing comprehensive product selection, market analysis, or compet
 
 Before running any Full-mode product selection or market analysis, **complete this checklist**:
 
-- [ ] **Step 1 — Mode Selection:** Check the Product Selection Mode Mapping table in SKILL.md. If ANY of the 14 preset modes matches the user's intent, **USE IT** (`--mode xxx`). Do NOT manually piece together filters when a preset mode exists.
+- [ ] **Step 1 — Mode Selection:** Check the Product Selection Mode Mapping table in SKILL.md. If ANY of the 13 preset modes matches the user's intent, **USE IT** (`--mode xxx`). Do NOT manually piece together filters when a preset mode exists.
 - [ ] **Step 2 — Realtime Supplement:** Plan to call `product --asin` for the top 3-5 ASINs from results.
 - [ ] **Step 3 — Review Analysis:** Plan to call `analyze --asins` for top ASINs to get consumer insights (especially painPoints, improvements, buyingFactors).
 - [ ] **Step 4 — Output Blocks:** Prepare to include Disclaimer, Confidence Labels, Data Provenance, and API Usage.

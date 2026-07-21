@@ -72,26 +72,25 @@ When `zoodata.py` returns code 401: follow the **"On 401 Invalid Key"** protocol
 
 When `zoodata.py` returns code 402: follow the **"On 402 Credit Exhausted"** protocol in `zoodata/SKILL.md` — STOP further calls, report partial findings already gathered, do not fabricate missing data.
 
-## 14 Product Selection Modes
+## 13 Product Selection Modes
 
 > **Modes are CLI-local presets, NOT API parameters.** `zoodata.py` expands `--mode` into real filter fields (`monthlySalesMin`, `salesGrowthRateMin`, …) before calling the API. Never send `mode` (or `salesMin` — the API field is `monthlySalesMin`) in a raw HTTP request to `/openapi/v2/products/search`; the API rejects unknown fields with 422. Watch the near-miss pair: `--ratings-max` (review count) maps to `ratingCountMax`, while `ratingMax` is a *different valid field* (max star rating) — mixing them up returns wrong results silently instead of a 422. If you bypass the CLI, copy the filter expansion from `PRODUCT_MODES` in `scripts/zoodata.py`, and pass `categoryPath` as a JSON array (`["Electronics"]`), not a string.
 
 | Mode | One-line Description |
 |------|---------------------|
-| `hot-products` | High sales + strong growth momentum |
-| `rising-stars` | Low base + rapid growth trajectory |
-| `underserved` | Monthly sales≥300, rating≤3.7 — improvable products |
-| `high-demand-low-barrier` | Monthly sales≥300, reviews≤50 — easy entry |
-| `beginner` | $15-60, FBA, monthly sales≥300 — new seller friendly |
 | `fast-movers` | Monthly sales≥300, growth≥10% — quick turnover |
 | `emerging` | Monthly sales≤600, growth≥10%, ≤6 months old |
 | `single-variant` | Growth≥20%, 1 variant, ≤6 months — small & rising |
+| `high-demand-low-barrier` | Monthly sales≥300, reviews≤50 — easy entry |
 | `long-tail` | BSR 10K-50K, ≤$30, exclusive sellers — niche |
+| `underserved` | Monthly sales≥300, rating≤3.7 — improvable products |
 | `new-release` | Monthly sales≤500, New Release tag |
-| `low-price` | ≤$10 products |
-| `top-bsr` | BSR≤1000 best sellers |
 | `fbm-friendly` | Monthly sales≥300, self-fulfilled |
+| `low-price` | ≤$10 products |
 | `broad-catalog` | BSR growth≥99%, reviews≤10, ≤90 days |
+| `selective-catalog` | BSR growth≥99%, ≤90 days |
+| `speculative` | Monthly sales≥600, ≥3 sellers |
+| `top-bsr` | BSR≤1000 best sellers |
 
 Modes can combine with explicit filters (`--price-max`, `--sales-min`, etc). Overrides win.
 
