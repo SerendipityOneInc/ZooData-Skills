@@ -78,17 +78,17 @@ DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 # Each maps to a set of products/search filter parameters
 PRODUCT_MODES = {
     "fast-movers":              {"monthlySalesMin": 300, "salesGrowthRateMin": 0.1},
-    "emerging":                 {"monthlySalesMax": 600, "salesGrowthRateMin": 0.1, "listingAge": "180"},
-    "single-variant":           {"salesGrowthRateMin": 0.2, "variantCountMax": 1, "listingAge": "180"},
-    "high-demand-low-barrier":  {"monthlySalesMin": 300, "ratingCountMax": 50, "listingAge": "180"},
+    "emerging":                 {"monthlySalesMax": 600, "salesGrowthRateMin": 0.1, "listingAge": "180d"},
+    "single-variant":           {"salesGrowthRateMin": 0.2, "variantCountMax": 1, "listingAge": "180d"},
+    "high-demand-low-barrier":  {"monthlySalesMin": 300, "ratingCountMax": 50, "listingAge": "180d"},
     "long-tail":                {"bsrMin": 10000, "bsrMax": 50000, "priceMax": 30, "sellerCountMax": 1, "monthlySalesMax": 300},
-    "underserved":              {"monthlySalesMin": 300, "ratingMax": 3.7, "listingAge": "180"},
-    "new-release":              {"monthlySalesMax": 500, "badges": ["New Release"], "fulfillments": ["FBA", "FBM"]},
-    "fbm-friendly":             {"monthlySalesMin": 300, "fulfillments": ["FBM"], "listingAge": "180"},
+    "underserved":              {"monthlySalesMin": 300, "ratingMax": 3.7, "listingAge": "180d"},
+    "new-release":              {"monthlySalesMax": 500, "badges": ["newRelease"], "fulfillments": ["FBA", "FBM"]},
+    "fbm-friendly":             {"monthlySalesMin": 300, "fulfillments": ["FBM"], "listingAge": "180d"},
     "low-price":                {"priceMax": 10},
-    "broad-catalog":            {"bsrGrowthRateMin": 0.99, "ratingCountMax": 10, "listingAge": "90"},
-    "selective-catalog":        {"bsrGrowthRateMin": 0.99, "listingAge": "90"},
-    "speculative":              {"monthlySalesMin": 600, "sellerCountMin": 3, "listingAge": "180"},
+    "broad-catalog":            {"bsrGrowthRateMin": 0.99, "ratingCountMax": 10, "listingAge": "90d"},
+    "selective-catalog":        {"bsrGrowthRateMin": 0.99, "listingAge": "90d"},
+    "speculative":              {"monthlySalesMin": 600, "sellerCountMin": 3, "listingAge": "180d"},
     # "beginner" mode disabled — excludeKeywords filter not working
     "top-bsr":                  {"subBsrMax": 1000},
 }
@@ -2800,8 +2800,8 @@ Examples:
     p_prod.add_argument("--rating-min", type=float, help="Min rating")
     p_prod.add_argument("--rating-max", type=float, help="Max rating")
     p_prod.add_argument("--growth-min", type=float, help="Min sales growth rate")
-    p_prod.add_argument("--listing-age", help="Max listing age in days (string)")
-    p_prod.add_argument("--badges", nargs="+", help="Badge filters (e.g. 'New Release')")
+    p_prod.add_argument("--listing-age", help="Max listing age: 30d, 90d, 180d, 1y, or 2y")
+    p_prod.add_argument("--badges", nargs="+", help="Badge filters: bestSeller, amazonChoice, newRelease, aPlus, video")
     p_prod.add_argument("--fulfillment", nargs="+", help="Fulfillment filter (FBA, FBM)")
     p_prod.add_argument("--include-brands", help="Include brands (comma-separated)")
     p_prod.add_argument("--exclude-brands", help="Exclude brands (comma-separated)")
