@@ -2776,7 +2776,7 @@ Examples:
 
     # Common args
     parser.add_argument("--format", choices=["json", "compact"], default="json",
-                        help="Output format (default: json)")
+                        help="Output format (default: json). Global flag — must come BEFORE the subcommand")
 
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -2795,7 +2795,7 @@ Examples:
     p_mkt.add_argument("--topn", type=int, default=10, help="Top N for concentration analysis (default: 10)")
     p_mkt.add_argument("--page-size", type=int, default=20)
     p_mkt.add_argument("--page", type=int, default=1, help="Page number (default: 1)")
-    p_mkt.add_argument("--sort", help="Sort field")
+    p_mkt.add_argument("--sort", help="Sort field: monthlySalesFloor, monthlyRevenueFloor, bsr, price, rating, ratingCount, listingDate")
     p_mkt.add_argument("--order", choices=["asc", "desc"], default="desc")
     p_mkt.set_defaults(func=cmd_market)
 
@@ -2820,7 +2820,7 @@ Examples:
     p_prod.add_argument("--exclude-brands", help="Exclude brands (comma-separated)")
     p_prod.add_argument("--page-size", type=int, default=20)
     p_prod.add_argument("--page", type=int, default=1, help="Page number (default: 1)")
-    p_prod.add_argument("--sort", help="Sort field (default: monthlySales)")
+    p_prod.add_argument("--sort", help="Sort field (default: monthlySalesFloor): monthlySalesFloor, monthlyRevenueFloor, bsr, price, rating, ratingCount, listingDate")
     p_prod.add_argument("--order", choices=["asc", "desc"], default="desc")
     p_prod.set_defaults(func=cmd_products)
 
@@ -2834,7 +2834,7 @@ Examples:
     p_comp.add_argument("--marketplace", default="US", help="Marketplace (default: US)")
     p_comp.add_argument("--page", type=int, default=1, help="Page number")
     p_comp.add_argument("--page-size", type=int, default=20)
-    p_comp.add_argument("--sort", help="Sort field (default: monthlySalesFloor)")
+    p_comp.add_argument("--sort", help="Sort field (default: monthlySalesFloor): monthlySalesFloor, monthlyRevenueFloor, bsr, price, rating, ratingCount, listingDate")
     p_comp.add_argument("--order", choices=["asc", "desc"], default="desc")
     p_comp.set_defaults(func=cmd_competitors)
 

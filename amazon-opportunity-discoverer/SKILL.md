@@ -108,7 +108,7 @@ Scan with `market --keyword "{broad}" --topn 10`, rank subcategories by: newSkuR
 | 40-59 | B | ⚠️ Moderate — needs differentiation |
 | 0-39 | C | ❌ Weak — skip |
 
-**Quick-Scan Mode** (~10 credits): 2 modes × 1 page, skip realtime/trend. Label as "directional only."
+**Quick-Scan Mode** (~10 credits): 2 modes × 1 page, skip realtime/trend. Label as "directional only." **Implementation: run per-mode `products --mode <m> --page-size 20` calls — do NOT use the `opportunity-scan` composite for Quick-Scan** (it always executes the full 6-step pipeline including realtime×10 + trend + reviews, ~25-30 credits, and has no skip flags).
 
 ## Composite Command
 ```bash
