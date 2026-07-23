@@ -110,6 +110,25 @@ class TestParseCategory(unittest.TestCase):
         self.assertEqual(zoodata.parse_category("  Pet Supplies , Dogs "),
                          ["Pet Supplies", "Dogs"])
 
+    def test_arrow_protects_comma_in_category_name(self):
+        """Amazon category names can contain commas; '>' must not split them.
+        Regression: comma-split broke 'Headphones, Earbuds & Accessories'."""
+        self.assertEqual(
+            zoodata.parse_category("Electronics > Headphones, Earbuds & Accessories > Earbud Headphones"),
+            ["Electronics", "Headphones, Earbuds & Accessories", "Earbud Headphones"])
+
+    def test_json_array_input(self):
+        self.assertEqual(zoodata.parse_category('["Sports & Outdoors"]'),
+                         ["Sports & Outdoors"])
+
+    def test_json_array_with_comma_in_name(self):
+        self.assertEqual(
+            zoodata.parse_category('["Health & Household", "Vitamins, Minerals & Supplements", "Collagen"]'),
+            ["Health & Household", "Vitamins, Minerals & Supplements", "Collagen"])
+
+    def test_malformed_json_falls_through_to_separator_parsing(self):
+        self.assertEqual(zoodata.parse_category("[not json"), ["[not json"])
+
 
 # ---------------------------------------------------------------------------
 # 2. PRODUCT_MODES completeness
