@@ -125,6 +125,7 @@ When `zoodata.py` returns `{"code": 402, "message": "API quota exhausted or subs
 - `bsr` (int) in products vs `bestsellersRank` (array) in realtime
 - `buyboxWinner.price` — NOT top-level `price` in realtime
 - `realtime/product` does NOT return: monthlySalesFloor, fbaFee, sellerCount
+- `realtime/product` cold-start: first call for an uncached ASIN may return `success: true` with an EMPTY `data` (`asin: ""`) while the live fetch warms up — retry once after a few seconds before concluding "no data" (still billed 1 credit per call)
 - `reviewCountMin/Max` filters currently broken (API-56)
 - `reviews/analysis` may 500 for certain ASINs (API-58) — retry different ASIN
 - Rate limit: 100 req/min, 10 req/sec burst
