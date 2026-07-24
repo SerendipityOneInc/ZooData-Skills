@@ -28,9 +28,11 @@ If the user asks only for raw related terms, stop after candidate recall and do 
 
 - Use data-layer `keywords/extends` because candidate rows are the deliverable. Try `queryType=fuzzy` after an empty phrase result before concluding low expandability.
 - Use batch `keywords/market-profile` first for candidate market judgment when exposed. Use `detail` only when the metric is unavailable or a named inference needs raw fields omitted by its contract.
-- Prefer `trend-metrics` and `search-results-metrics` when live. Descend only for unavailable metrics or contract-omitted points/rows required for a named inference.
+- Prefer `trend-profile` and `search-results-metrics` when live. Descend only for unavailable metrics or contract-omitted points/rows required for a named inference.
 - Never use `extends` rows to fabricate `rootDemand`; only a verified `root-aggregate` root-universe response can support that claim.
 - Treat market-profile unsupported dimensions as unavailable; do not call same-source detail merely to repair missing metric inputs.
+- Publish a candidate tier only when its market-profile item is `available` and the required dimensions have complete `levelEvidence`. Treat `not_found` as unvalidated coverage, not low demand or an avoid signal.
+- Keep `marketCharacteristics.volatility` separate from `annualSeasonality`; do not invent peak periods when the returned list is empty. A batch HTTP 500 does not authorize automatic per-candidate fan-out.
 - Deduplicate candidates case-insensitively, batch compatible subjects up to 20, preserve input order/status, and retain empty/error items.
 - Candidate labels are validation priority, not final expansion, match-type, bid, budget, launch, pause, or negative-keyword decisions.
 - Do not output `Auto / Broad / Phrase / Exact` recommendations from market evidence alone. Match type is a campaign-setting hypothesis that requires the Evidence-to-Action Protocol and relevant seller/Ads evidence.

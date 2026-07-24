@@ -2,7 +2,7 @@
 name: zoodata
 description: >
   API endpoint reference for the ZooData data platform. Provides the 12
-  commerce endpoints plus 9 keyword intelligence endpoints (categories,
+  commerce endpoints plus 10 keyword intelligence endpoints (categories,
   markets, products, competitors, realtime ASIN, AI review analysis, raw
   reviews, price band, brand, history, keyword detail/trend/extends/search
   results/market profile/product traffic/competitor keywords, traffic overview/timeline),
@@ -29,7 +29,7 @@ metadata:
 
 # ZooData — Commerce Data Infrastructure for AI Agents
 
-200M+ Amazon products. 21 endpoints. One API key.
+200M+ Amazon products. 22 endpoints. One API key.
 
 ## Quick Start
 1. Get key: [zoodata.ai/api-keys](https://zoodata.ai/en/api-keys) (1,000 free credits)
@@ -90,7 +90,7 @@ When `zoodata.py` returns `{"code": 402, "message": "API quota exhausted or subs
    - Top-up link: https://zoodata.ai/en/pricing
 3. **Do not fabricate or guess** the missing data to "complete" the report. Mark partial findings explicitly as partial. **No "training-data fallback" / "industry common-sense" filler** — substituting public-knowledge prose for missing endpoint data is still fabrication.
 
-## 21 Endpoints
+## 22 Endpoints
 
 | # | Endpoint | Purpose | Key Output |
 |---|----------|---------|------------|
@@ -109,6 +109,7 @@ When `zoodata.py` returns `{"code": 402, "message": "API quota exhausted or subs
 | 13 | `/openapi/v2/keywords/detail` | Keyword summary from the nearest available weekly snapshot | `estimateSearchCountWeekly`, `abaRank`, `marketCharacteristics`, `adCount`; may return `data: null` |
 | 14 | `/openapi/v2/keywords/market-profile` | Pre-release multidimensional weekly keyword profile | demand scale, Top3 concentration, ad activity, organic-entry difficulty, saturation, brand structure, organic benchmark, coverage |
 | 15 | `/openapi/v2/keywords/trend` | Weekly keyword time series | `estimateSearchCount`, `abaRank`, `rankChangeCount`, `periodStartDate`, `periodEndDate` |
+| 15b | `/openapi/v2/keywords/trend-profile` | Server-calculated trend profile over fixed weekly windows | trend shape, volatility, normalized slope, direction consistency, ABA-rank evidence |
 | 16 | `/openapi/v2/keywords/extends` | Keyword expansion / long-tail discovery | related keywords ranked by `relevanceScore` / `estimateSearchCount`; may return empty array |
 | 17 | `/openapi/v2/keywords/search-results` | Daily keyword SERP snapshot | `asin`, `exploreType`, `absolutePosition`, `estimateImpressionPoint`, listing fields |
 | 18 | `/openapi/v2/keywords/competitor-product-keywords` | Keyword set where an ASIN appears as a competitor | `keyword`, `avgPosition`, `keywordEstimateSearchCount`, `trafficShare` |
@@ -131,6 +132,7 @@ When `zoodata.py` returns `{"code": 402, "message": "API quota exhausted or subs
 - `realtime/reviews`: returns 10 reviews/page fixed (no `pageSize` param); 1 credit/page; cursor-paginated; hard cap = 100 reviews (10 pages); supports `marketplace` US/UK only
 - `keywords/detail` resolves the input `date` to the nearest available weekly snapshot at or before that date, and may legitimately return `data: null` even with `success: true`
 - `keywords/market-profile` is pre-release on localhost as of 2026-07-14 and is not yet published; it accepts one of `keyword` / `keywords[]` (max 20), requires `date`, supports weekly granularity only, and returns input-ordered `data.items[]`
+- `keywords/trend-profile` is available on localhost and not yet published; it accepts one of `keyword` / `keywords[]` (max 20), requires `date` and 1–4 unique `windowPeriods` selected from 4/8/12/26, and supports weekly granularity only
 - `keywords/extends` also resolves the input `date` to the nearest available weekly snapshot, requires `query` (not `keyword`), supports `queryType` = `phrase` or `fuzzy`, and may legitimately return `data: []`
 - `keywords/search-results`, `keywords/competitor-product-keywords`, and `keywords/product-traffic-terms` use daily observations over a sliding ~7-day window, not a long-retention historical store
 - Keyword endpoints are keyword-query workflows; for inputs named `keyword` or `query`, use the Amazon search query / keyword phrase being analyzed
@@ -172,10 +174,12 @@ Keyword value boundary:
 - Input: exactly one of `keyword` or `keywords[]` (1–20), required `date`, optional `marketplace`, `granularity=week`
 - Response shape: `data.context + data.items[]`, preserving request order
 - Context fields: `requestedDate`, `resolvedDate`, `dataWindow.currentPeriod`, `scoringSpec`, marketplace/site/granularity
-- Item fields: `identity`, `status`, `marketProfile`, `emptyReason`, `errorCode`, `errorMessage`
-- `marketProfile` dimensions: `marketContext`, `demandScale`, `top3Concentration`, `adActivity`, `top20OrganicEntryDifficulty`, `supplySaturation`, `brandStructure`, `organicProductBenchmark`
-- Interpret scores only with `context.scoringSpec` (`id`, `version`, `scoreType`, `scoreRange`, `referenceScope`). Current profile objects use camelCase fields; check each dimension's `supported`, `calculationStatus`, `unsupportedReason`, `score`, and `level` independently because there is no aggregate coverage object. `marketContext.annualSeasonality` is a detection summary with its own availability boundary, not history. This is weekly snapshot evidence, not trend, root-cause, recommendation, or seller-private ABA-SQP data.
-- Empty keywords return `status=empty`, `marketProfile=null`, `emptyReason=keyword_not_observed_in_snapshot`; billing is per `status=ok` item using returned credit metadata
+- Item fields: `identity`, `status=available|not_found`, `marketProfile`, `unavailableReason`
+- `marketProfile` dimensions: `marketCharacteristics`, `demandScale`, `top3Concentration`, `adActivity`, `top20OrganicEntryDifficulty`, `supplySaturation`, `brandStructure`, `organicProductBenchmark`
+- Interpret scores only with `context.scoringSpec` (`id`, `version`, `scoreType`, `scoreRange`, `referenceScope`). Scored dimensions expose `supported`, `calculationStatus`, `unsupportedReason`, `level`, `interpretation`, and `levelEvidence.score.{value,direction}`. There is no aggregate coverage object.
+- `marketCharacteristics.volatility` and `marketCharacteristics.annualSeasonality` are independent evidence objects. Do not collapse their classifications, let one override the other, or invent peak periods from an empty list.
+- Unmatched keywords return `status=not_found`, `marketProfile=null`, `unavailableReason=keyword_not_observed`, and zero consumed credits; resolved context and `scoringSpec` may be null
+- A subject-specific calculation failure can currently produce HTTP 500 for the whole batch. Treat it as a service failure, not `not_found`; do not automatically fan out all subjects into single calls.
 - Three-layer boundary: use data-layer `keywords/detail` for source snapshot fields, metric-layer `keywords/market-profile` for stable deterministic profile objects, and the Agent + skill layer for evidence composition, confidence, explanations, limitations, and actions
 - Metric-first access: call the matching metric before its source data endpoint. Descend only when the Agent needs an indicator or evidence grain omitted by the metric contract, the metric endpoint is unavailable and transparent data-based calculation is valid, no metric exists, or raw evidence is explicitly requested. Incomplete metric calculation coverage is a conclusion limit—not by itself a reason to call same-source data.
 - Batch-first execution: after selecting the endpoint, collect all subjects with identical non-subject context and prefer its batch contract over repeated single calls. Deduplicate case-insensitively, preserve order, chunk compatible sets at the endpoint limit (20 for current keyword batches), and merge results back into global input order. Batch support never justifies an extra cross-layer call.
@@ -188,6 +192,14 @@ Keyword value boundary:
 - Key fields from live response/schema: `observedAt`, `periodStartDate`, `periodEndDate`,
   `estimateSearchCount`, `estimateSearchChangeCount`, `estimateSearchChangeRate`, `abaRank`,
   `prevAbaRank`, `prevEstimateSearchCount`, `rankChangeCount`
+
+### `/openapi/v2/keywords/trend-profile` (metric layer, localhost pre-release)
+- Input: exactly one of `keyword` / `keywords[]` (1–20), required `date`, required unique `windowPeriods[]` selected from 4/8/12/26, optional `marketplace`, `granularity=week`
+- Response: `data.context + data.items[].rows[]`; every requested window returns one row with `rowContext`, `status=available|unavailable|not_found`, `unavailableReason`, and `trendProfile`
+- Available profiles contain independently guarded `searchDemand` and `abaRank` dimensions with `trend`, `trendPattern`, and `{value,direction}` entries under `trendEvidence`
+- Evidence includes first/last/change values, normalized slope, direction consistency, aligned/eligible period counts, plus demand volatility/window position or ABA best/worst rank
+- Use this metric endpoint before raw `keywords/trend` for trend-shape and volatility judgments. Descend only for required weekly points or fields omitted from the profile.
+- Preserve null unavailable reasons rather than inventing one. Billing is per keyword with at least one available window; use returned credit metadata.
 
 ### `/openapi/v2/keywords/extends`
 - Input: `query`, `date`, optional `marketplace`, `page`, `pageSize`, `queryType`, `sortBy`, `sortOrder`

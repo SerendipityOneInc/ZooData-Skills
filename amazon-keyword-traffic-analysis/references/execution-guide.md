@@ -171,7 +171,7 @@ Before running any Full-mode keyword task:
 - [ ] If you need session tool parity or fallback, inspect the active tool surface and read the live schema / field descriptions for candidate keyword tools before selecting or judging capability
 - [ ] Classify the task: seed keyword / target keyword / ASIN / ASIN + keyword
 - [ ] Confirm marketplace; default to `US` if absent
-- [ ] For endpoints independently justified by the inference plan, group compatible subjects into batch calls. `detail`, `market-profile`, and `trend` accept up to 20 keywords; timeline accepts one ASIN plus up to 20 keywords. Batch support does not justify calling multiple layers.
+- [ ] For endpoints independently justified by the inference plan, group compatible subjects into batch calls. `detail`, `market-profile`, `trend-profile`, and `trend` accept up to 20 keywords; timeline accepts one ASIN plus up to 20 keywords. Batch support does not justify calling multiple layers.
 - [ ] Before the first call to a batch-capable endpoint, collect the complete compatible subject set; do not issue per-keyword calls when one batch or sequential 20-item chunks can serve the same context
 - [ ] Check `reference.md § Production availability`; never route to a planned metric endpoint merely because it appears in the design.
 - [ ] Confirm the date lens: weekly snapshot, recent 4-8 weeks, or latest sliding window; for keyword lookups that require `date` or `dateTo`, prefer T-1 or earlier and avoid the current date unless explicitly requested. In user-facing progress updates, simply state the selected marketplace/date without extra rationale unless the user asks why.
@@ -196,13 +196,13 @@ Before calling endpoints, identify the input shape and requested judgment so the
 |----------------|---------------------|-----------------------------------------|
 | `keywords/extends` | Expansion candidates with relevance tiers; try both `phrase` and `fuzzy` before concluding low expandability | Cannot expand from this seed; no candidate list possible |
 | `keywords/detail` | Demand snapshot: weekly search volume, ABA rank, ad density, market structure | Cannot assess demand size or competition density for this keyword |
-| Metric layer `keywords/market-profile` when exposed on the target surface | Server-calculated weekly demand scale, Top3 concentration, ad activity, organic-entry difficulty, supply saturation, brand structure, organic benchmark, and market-context seasonality detection; interpret scores through `context.scoringSpec` and each dimension's own status fields | Mark a dimension unavailable when `supported=false`, `calculationStatus=unavailable`, `level=unknown`, `score=null`, or `unsupportedReason` is present. Use `detail` only if it exposes different raw evidence required for a named inference; do not assume it can repair missing metric inputs |
+| Metric layer `keywords/market-profile` when exposed on the target surface | Server-calculated weekly demand scale, Top3 concentration, ad activity, organic-entry difficulty, supply saturation, brand structure, organic benchmark, and independent volatility/annual-seasonality evidence; interpret scores through `context.scoringSpec` and `levelEvidence.score.{value,direction}` | Require item `status=available`. Mark a dimension unavailable when `supported=false`, `calculationStatus!=complete`, `level=unknown`, score value is null, or `unsupportedReason` is present. Keep volatility and annual-seasonality conclusions separate. Use `detail` only if it exposes different raw evidence required for a named inference |
 | `keywords/trend` | Demand direction across multiple weeks | Keep demand direction weak; snapshot-only; do not claim growth or decline |
 | `keywords/search-results` | Observed SERP: page-1 product mix, brand concentration, ad vs organic composition, intent shape | Cannot assess page-1 crowding, brand dominance, or intent fit |
 | `keywords/product-traffic-terms` or `keywords/competitor-product-keywords` | ASIN traffic-source map: which keywords drive visibility, traffic share, rank quality | Cannot build traffic-source map; do not substitute with keyword-detail or search-results |
 | `keywords/product-traffic-terms-timeline` | ASIN × keyword position/exposure/ad-activity timeline across dates | Keep ASIN-side movement claims directional only; cannot trace timeline |
 | `keywords/product-traffic-terms-overview` | All-keyword impression traffic changes vs previous period; ORG first-3-page keyword entries/exits | Cannot assess previous-period traffic delta or ORG first-3-page changes; omit those sections |
-| `keywords/trend-metrics` when live | Server-calculated trend shape, volatility, lifecycle, seasonality coverage | Compute only transparent descriptive/change statistics from raw trend; do not claim server lifecycle output |
+| `keywords/trend-profile` | Server-calculated trend shape, volatility, slope, and direction consistency by fixed weekly window | Use raw trend only for required weekly points or omitted fields; do not claim lifecycle or seasonality output |
 | `keywords/search-results-metrics` when live | Server-calculated SERP structure, concentration, top ASIN/brand and target-ASIN evidence | Aggregate visible SERP rows transparently; do not invent metric objects or entry conclusions |
 | `keywords/product-traffic-term-changes` when live | Keyword losers/gainers and contribution within a defined scope | Current terms + flat overview cannot prove keyword change contribution; omit contribution claims |
 | `keywords/product-traffic-terms-timeline-review` when live | Drill-down evidence signals for specified ASIN + keyword items | Analyze raw timeline groups; label hypotheses as Agent inference, not API root cause |
@@ -255,6 +255,7 @@ When some endpoints return data but others are unavailable:
 - Use these subcommands as the first choice for execution:
   - `keyword-detail`
   - `keyword-market-profile` when the target surface exposes the pre-release endpoint
+  - `keyword-trend-profile`
   - `keyword-trend`
   - `keyword-extends`
   - `keyword-search-results`
@@ -263,7 +264,10 @@ When some endpoints return data but others are unavailable:
   - `product-traffic-terms-overview`
   - `product-traffic-terms-timeline`
 - Use MCP callable tools as verification or fallback when you need to compare the live session surface or the local CLI path is unavailable
-- `market-profile` is currently a localhost pre-release **metric-layer** endpoint with a CLI subcommand; inspect the target surface before calling and do not assume production availability.
+- `market-profile` and `trend-profile` are currently localhost pre-release **metric-layer** endpoints with CLI subcommands; inspect the target surface before calling and do not assume production availability.
+- For `market-profile`, inspect in this order: item `status` → resolved context and `scoringSpec` → dimension support/status → `level` → `levelEvidence.score.value/direction`. A `not_found` item is an observation-coverage result, not a low-demand judgment.
+- Interpret `marketCharacteristics.volatility` and `marketCharacteristics.annualSeasonality` independently. Preserve their returned classifications and evidence; do not manufacture peak periods or resolve apparent disagreement without additional discriminating evidence.
+- If a `market-profile` batch returns HTTP 500, do not relabel it as an empty result and do not automatically retry all subjects individually. Perform at most one diagnostic split only when isolating a failing subject is necessary; otherwise stop that metric judgment and report the service failure.
 - Other planned metric endpoints have no CLI subcommands while production returns 404. Probe them only when the task materially benefits and the live surface may have changed; otherwise use the verified data endpoints.
 - Do not declare a keyword capability missing until you have checked the local CLI entry and, when relevant, the live tool surface/schema
 - Do not force a fixed endpoint order when the evidence gate can be satisfied more efficiently another way
@@ -299,7 +303,7 @@ When some endpoints return data but others are unavailable:
 
 - Scenarios describe common input patterns and their recommended endpoint chains — they are reference guides, not mandatory pre-classification steps
 - Start from input shape, not scenario label:
-  - seed keyword only → use data-layer `extends` for candidate recall because rows are the deliverable; batch shortlisted terms through metric-layer `market-profile` first; call `detail` only when a named inference requires raw fields omitted by the metric contract; prefer `trend-metrics`/`search-results-metrics` when live and descend only for contract-omitted evidence or row-level requests
+  - seed keyword only → use data-layer `extends` for candidate recall because rows are the deliverable; batch shortlisted terms through metric-layer `market-profile` and `trend-profile` when those judgments are required; call raw endpoints only for contract-omitted evidence or row-level requests
   - target keyword → use `market-profile` first for weekly market judgment; use `detail` only if the metric endpoint is unavailable or a named inference requires raw fields omitted by its contract; unsupported calculation dimensions end those metric conclusions unless data provides distinct evidence for a different inference
   - ASIN only → use metric-layer `product-traffic-terms-overview` first for aggregate movement; call one ASIN traffic-list data endpoint only when the task asks which keywords drive traffic; enrich selected terms with `market-profile` first and use `detail` only for explicitly required raw fields omitted by the metric
   - ASIN + keyword → choose the metric matching the requested judgment (`market-profile`, `search-results-metrics`, or timeline review when live); call raw SERP, traffic-list, or timeline data only when the metric contract omits information required for a named inference, the metric endpoint is unavailable, or row/series evidence is requested; an unsupported/unavailable metric dimension alone is not a fallback trigger

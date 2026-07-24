@@ -43,7 +43,7 @@ Terminology:
 | Judgment / deliverable | Metric-first source | Data fallback or direct-data exception |
 |---|---|---|
 | Weekly keyword market structure | `keywords/market-profile` | `keywords/detail` only when a required inference needs raw snapshot fields omitted by the metric, or the metric endpoint itself is unavailable; not merely because a profile dimension is unsupported/unavailable |
-| Trend shape, volatility, lifecycle | `keywords/trend-metrics` when live | `keywords/trend` when the metric is unavailable, or the Agent needs weekly points/fields omitted from the metric for a specific inference |
+| Trend shape and volatility | `keywords/trend-profile` | `keywords/trend` only when the Agent needs weekly points or fields omitted from the profile for a specific inference |
 | SERP structure/concentration | `keywords/search-results-metrics` when live | `keywords/search-results` for unavailable metric or requested product/placement rows |
 | Root-universe demand | `keywords/root-aggregate` when live | No equivalent fallback; `extends` is candidate recall, not root-demand proof |
 | ASIN aggregate traffic change | `keywords/product-traffic-terms-overview` | Use its verified live contract; do not infer missing keyword contribution from traffic-list rows |
@@ -57,6 +57,7 @@ Terminology:
 |---|---|---|---|
 | `keywords/detail` | data | available | `data.context + data.items[]` |
 | `keywords/market-profile` | metric | localhost pre-release; not published | `data.context + data.items[].marketProfile` |
+| `keywords/trend-profile` | metric | localhost pre-release; not published | `data.context + data.items[].rows[]` |
 | `keywords/trend` | data | available | `data.context + data.items[].series[]` |
 | `keywords/extends` | data | available | `data.context + data.query + data.queryType + data.rows[]` |
 | `keywords/search-results` | data | available | `data.context + data.identity + data.rows[]` |
@@ -64,7 +65,6 @@ Terminology:
 | `keywords/competitor-product-keywords` | data | available | same shape as `product-traffic-terms` |
 | `keywords/product-traffic-terms-timeline` | data | available | `data.context + data.items[].series[]` |
 | `keywords/product-traffic-terms-overview` | aggregate | available, legacy shape | flat `data` object with current and `*Prev` fields |
-| `keywords/trend-metrics` | metric | unavailable | HTTP 404 |
 | `keywords/search-results-metrics` | metric | unavailable | HTTP 404 |
 | `keywords/root-aggregate` | metric | unavailable | HTTP 404 |
 | `keywords/product-traffic-term-changes` | metric | unavailable | HTTP 404 |
@@ -92,6 +92,7 @@ The following live endpoints support batch subjects:
 |---|---|---|---:|
 | `keywords/detail` | `keyword` | `keywords[]` | 20 |
 | `keywords/market-profile` | `keyword` | `keywords[]` | 20 |
+| `keywords/trend-profile` | `keyword` | `keywords[]` | 20 |
 | `keywords/trend` | `keyword` | `keywords[]` | 20 |
 | `keywords/product-traffic-terms-timeline` | `asin + keyword` | `asin + keywords[]` | 20 keywords for one ASIN |
 
@@ -116,6 +117,10 @@ python {skill_base_dir}/scripts/zoodata.py keyword-detail \
 
 python {skill_base_dir}/scripts/zoodata.py keyword-market-profile \
   --keywords "yoga mat,pilates mat" --date 2026-07-12 --marketplace US
+
+python {skill_base_dir}/scripts/zoodata.py keyword-trend-profile \
+  --keywords "yoga mat,pilates mat" --date 2026-07-12 \
+  --window-periods 4,12 --marketplace US
 
 python {skill_base_dir}/scripts/zoodata.py keyword-trend \
   --keywords "yoga mat,pilates mat" \
@@ -177,14 +182,17 @@ Request:
 Response:
 
 - `data.context`: marketplace, site, requested/resolved date, weekly period, and `scoringSpec` (`id`, `version`, `scoreType`, `scoreRange`, `referenceScope`)
-- `data.items[]`: input-order identity, `status=ok|empty|error`, `marketProfile`, and empty/error fields
-- `marketProfile`: `marketContext`, `demandScale`, `top3Concentration`, `adActivity`, `top20OrganicEntryDifficulty`, `supplySaturation`, `brandStructure`, and `organicProductBenchmark`
-- current profile objects use camelCase fields. Each scored dimension returns `supported`, `score`, `level`, `interpretation`, `scoreDirection`, `calculationStatus`, and `unsupportedReason`
+- `data.items[]`: input-order identity, `status=available|not_found`, `marketProfile`, and `unavailableReason`
+- `marketProfile`: `marketCharacteristics`, `demandScale`, `top3Concentration`, `adActivity`, `top20OrganicEntryDifficulty`, `supplySaturation`, `brandStructure`, and `organicProductBenchmark`
+- current profile objects use camelCase fields. Each scored dimension returns `supported`, `level`, `interpretation`, `calculationStatus`, `unsupportedReason`, and `levelEvidence.score.{value,direction}`
 - internal objects are versioned by `context.scoringSpec`; interpret scores with its returned model id/version, normalized range, and reference scope rather than as timeless universal thresholds
-- inspect every dimension independently. Treat `supported=false`, `calculationStatus=unavailable`, `level=unknown`, `score=null`, or non-null `unsupportedReason` as unavailable; the current contract has no aggregate `calculationCoverage` object
-- `marketContext` may include `volatilityType`, `peakPeriods`, `annualSeasonality`, `sourceValue`, `confidence`, `inputFieldNames`, `reasons`, and `unsupportedReason`. `annualSeasonality` has its own `isAvailable` / `unavailableReason` boundary and is a detection summary, not a returned trend series
+- inspect every dimension independently. Treat `supported=false`, `calculationStatus!=complete`, `level=unknown`, null `levelEvidence.score.value`, or non-null `unsupportedReason` as unavailable; the current contract has no aggregate `calculationCoverage` object
+- `marketCharacteristics.volatility` exposes its own support/status boundary, `type`, source value, and mapping-confidence evidence
+- `marketCharacteristics.annualSeasonality` independently exposes support/status, `classification`, year-over-year correlation, eligible pair count, peak-pattern detection, and `peakPeriods`. Do not let either seasonality object overwrite the other. `seasonalPeakPatternDetected=true` alone does not override `classification`, and an empty `peakPeriods` array cannot support named peak periods.
 
-This endpoint returns deterministic weekly snapshot evidence. It does not return history, strategy advice, root cause, recommended actions, or seller-private ABA-SQP conversion data. An unmatched keyword returns `status=empty`, `marketProfile=null`, and `emptyReason=keyword_not_observed_in_snapshot`. Billing is per `status=ok` item; a localhost batch with one `ok` and one `empty` item consumed 1 credit. Use returned `meta.creditsConsumed` / `meta.creditsConsumedExact` rather than estimating.
+This endpoint returns deterministic weekly snapshot evidence. It does not return history, strategy advice, root cause, recommended actions, or seller-private ABA-SQP conversion data. An unmatched keyword returns `status=not_found`, `marketProfile=null`, and `unavailableReason=keyword_not_observed`; context fields such as `resolvedDate`, `dataWindow`, and `scoringSpec` may then be null. Not-found items are not billed. Use returned `meta.creditsConsumed` / `meta.creditsConsumedExact` rather than estimating.
+
+Current localhost failure boundary: a subject-specific calculation error can return HTTP 500 for the entire batch instead of an item-level error. Treat that as a service failure, not `not_found`. Do not fan out the entire batch automatically; allow at most one diagnostic split only when isolating the failing subject is required for the task.
 
 Layer boundary: obtain stable server-calculated multidimensional profile objects from metric-layer `keywords/market-profile` first. An unsupported/unavailable dimension limits the conclusion but does not itself justify calling data-layer `keywords/detail`, because both are snapshot-source related. Access `detail` only when a required Agent inference needs raw fields omitted by the metric contract, the metric endpoint is unavailable for a metric-specific reason, or the user requests traceable source fields. Combine evidence, explain limitations, assign confidence, and recommend actions only in the Agent + skill layer.
 
@@ -201,7 +209,26 @@ Response:
 - `data.context`: requested/resolved range and weekly granularity
 - `data.items[].series[]`: `periodStartDate`, `periodEndDate`, `estimateSearchCount`, `abaRank`, `abaTop3ClickShareRate`, `abaTop3ConversionShareRate`
 
-This is raw weekly history. Compute slopes or lifecycle labels transparently in the Agent layer until `trend-metrics` is live.
+This is raw weekly history. Use it only when weekly points or fields omitted by `trend-profile` are required.
+
+### Metric layer: `keywords/trend-profile`
+
+Request:
+
+- exactly one of `keyword` or `keywords[]` (1–20)
+- required as-of `date` (`YYYY-MM-DD`)
+- required `windowPeriods[]`: 1–4 unique values selected from `4`, `8`, `12`, `26`
+- `marketplace=US|UK`, default `US`; `granularity=week` only
+
+Response:
+
+- `data.context`: marketplace/site, requested/resolved date, weekly granularity, and requested windows
+- `data.items[]`: input-ordered keyword identity and one `rows[]` entry per requested window
+- each row contains `rowContext`, `status=available|unavailable|not_found`, `unavailableReason`, and `trendProfile`
+- available profiles contain `searchDemand` and `abaRank`; inspect `supported`, `calculationStatus`, and `unsupportedReason` independently
+- `trendEvidence` fields are `{ value, direction }` pairs covering first/last/change evidence, normalized slope, direction consistency, and eligible/aligned period counts
+
+Use this endpoint first for server-calculated trend shape and volatility. Do not reduce `trend` to a first-to-last comparison: normalized slope and direction-consistency evidence may support a different window-level label. Preserve null `unavailableReason` / `observedPeriodCount` values without inventing a reason. Billing is per keyword with at least one available row; use returned credit metadata.
 
 ### Data layer: `keywords/extends`
 
@@ -298,7 +325,6 @@ Use these only after live verification succeeds.
 
 | Endpoint | Planned deterministic objects | Never substitute with |
 |---|---|---|
-| `keywords/trend-metrics` | descriptive/change/rank stats, trend shape, outliers, `demandLifecycle` | raw series presented as server metrics |
 | `keywords/search-results-metrics` | `serpStructure`, organic stats, top ASINs/brands, target-ASIN evidence, competition evidence | strategy conclusion or raw rows |
 | `keywords/root-aggregate` | root-universe series and `rootDemand` | summing `extends` candidates |
 | `keywords/product-traffic-term-changes` | top losers/gainers, change rows and contribution within filter scope | overview aggregate or timeline inference |
@@ -329,6 +355,7 @@ Use `python {skill_base_dir}/scripts/zoodata.py` after reading subcommand help.
 |---|---|
 | `keywords/detail` | `keyword-detail` |
 | `keywords/market-profile` | `keyword-market-profile` |
+| `keywords/trend-profile` | `keyword-trend-profile` |
 | `keywords/trend` | `keyword-trend` |
 | `keywords/extends` | `keyword-extends` |
 | `keywords/search-results` | `keyword-search-results` |
