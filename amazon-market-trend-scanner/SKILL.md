@@ -8,9 +8,12 @@ description: >
   Use when user asks about: market trends, category trends, trending
   categories, what's hot, emerging categories, trend scanner,
   which categories are growing, where the market is heading.
+  Pick this to track how categories shift OVER TIME (trends, momentum, emerging niches). To
+  evaluate one specific niche right now, use amazon-market-entry-analyzer; to discover products
+  to sell, use amazon-opportunity-discoverer.
   Requires ZOODATA_API_KEY.
 metadata:
-  version: "1.0.2"
+  version: "1.0.3"
   author: SerendipityOneInc
   homepage: https://github.com/SerendipityOneInc/ZooData-Skills
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}
@@ -44,6 +47,7 @@ Required: 1+ category paths or keywords. Optional: scan depth, metric preference
 2. **All keyword endpoints MUST include `--category`**; omitting it distorts aggregation
 3. **Use API fields directly**: revenue=`sampleAvgMonthlyRevenue`, sales=`monthlySalesFloor`
 4. **Key metrics per subcategory**: sampleAvgMonthlySales, sampleNewSkuRate, topBrandSalesRate, sampleAvgPrice, sampleAPlusRate, totalSkuCount, sampleFbaRate
+5. **`--mode` presets are CLI-local, NOT API params** — `zoodata.py` expands them via `PRODUCT_MODES` before the call; a raw `products/search` request must send the expanded filter fields (`mode` raw → 422). Follow the **`mode`/CLI-flags** pitfall (#9) in `zoodata/SKILL.md`
 
 ## On Missing Key
 

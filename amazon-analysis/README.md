@@ -1,14 +1,14 @@
 # Amazon Analysis — Full-Spectrum Research & Seller Intelligence
 
-> 14 product selection strategies. One skill to rule them all.
+> 13 product selection strategies. One skill to rule them all.
 
 ## What This Skill Does
 
-The Swiss Army knife of Amazon product research. Supports 14 built-in selection modes — from hot products and rising stars to long-tail niches and FBM-friendly picks. Combines market research, product selection, competitor analysis, ASIN evaluation, pricing reference, and category research into a single unified workflow.
+The Swiss Army knife of Amazon product research. Supports 13 built-in selection modes — from fast-movers and emerging products to long-tail niches and FBM-friendly picks. Combines market research, product selection, competitor analysis, ASIN evaluation, pricing reference, and category research into a single unified workflow.
 
 ### What Makes This Different
 
-- **14 selection modes**: hot-products, rising-stars, underserved, high-demand-low-barrier, beginner, fast-movers, emerging, single-variant, long-tail, new-release, low-price, top-bsr, fbm-friendly, broad-catalog
+- **13 selection modes**: fast-movers, emerging, single-variant, high-demand-low-barrier, long-tail, underserved, new-release, fbm-friendly, low-price, broad-catalog, selective-catalog, speculative, top-bsr
 - **Composite commands**: `report` and `opportunity` run multi-endpoint pipelines in one shot
 - **Flexible filtering**: Modes stack with explicit filters (`--price-max`, `--sales-min`, etc.)
 - **Confidence tagging**: Every data point tagged as 📊 Data-backed, 🔍 Inferred, or 💡 Directional
@@ -32,7 +32,7 @@ Select **Amazon Analysis** when prompted.
 ## Example Prompts
 
 - *"Analyze the yoga mat market on Amazon"*
-- *"Use the rising-stars mode to find products in the $15-30 range"*
+- *"Use the emerging mode to find products in the $15-30 range"*
 - *"Find beginner-friendly products in kitchen gadgets under $25"*
 - *"Run a full report on keyword 'silicone spatula'"*
 - *"Use the underserved mode to find improvable products rated below 3.7"*
@@ -53,7 +53,7 @@ Select **Amazon Analysis** when prompted.
 |----------|---------|
 | `categories` | Lock category path before analysis |
 | `markets/search` | Market-level metrics and context |
-| `products/search` | Product scanning with 14 selection modes |
+| `products/search` | Product scanning with 20+ filter fields (13 CLI presets) |
 | `products/competitors` | Competitive landscape |
 | `realtime/product` | Live ASIN validation |
 | `reviews/analysis` | Consumer pain points and sentiment |

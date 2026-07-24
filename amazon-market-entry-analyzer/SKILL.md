@@ -8,9 +8,12 @@ description: >
   Use when user asks about: market entry, can I sell, should I enter, market viability,
   is this niche worth it, category analysis, market opportunity, market assessment,
   niche evaluation, product category research.
+  Pick this to EVALUATE a specific niche/category the user already named (one GO/CAUTION/AVOID
+  verdict). To discover what to sell with no target in mind, use amazon-opportunity-discoverer;
+  to track how categories shift over time, use amazon-market-trend-scanner.
   Requires ZOODATA_API_KEY.
 metadata:
-  version: "1.0.3"
+  version: "1.0.4"
   author: SerendipityOneInc
   homepage: https://github.com/SerendipityOneInc/ZooData-Skills
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}

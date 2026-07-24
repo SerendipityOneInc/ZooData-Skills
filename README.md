@@ -110,7 +110,7 @@ Ask your AI agent:
 Or use the CLI directly:
 
 ```bash
-python amazon-analysis/scripts/zoodata.py products --keyword "wireless earbuds" --mode competitive_landscape
+python amazon-analysis/scripts/zoodata.py products --keyword "wireless earbuds" --mode fast-movers
 ```
 
 ## API Endpoints
@@ -121,7 +121,7 @@ python amazon-analysis/scripts/zoodata.py products --keyword "wireless earbuds" 
 
 | Endpoint | Description | Example Use Case |
 |----------|-------------|-----------------|
-| 🔍 `products/search` | Product search with 13 preset modes, 20+ filters | *"Find running shoes under $80 with 4+ stars"* |
+| 🔍 `products/search` | Product search with 20+ filters (13 preset modes via the CLI) | *"Find running shoes under $80 with 4+ stars"* |
 | 📊 `markets/search` | Market-level metrics — concentration, brand share, pricing | *"How competitive is the yoga mat market?"* |
 | 🏷️ `products/competitors` | Competitor discovery by keyword, brand, or ASIN | *"Who are the top sellers in this niche?"* |
 | ⚡ `realtime/product` | Real-time product details — reviews, features, variants | *"Get current details for ASIN B0D5CRV4KL"* |
@@ -135,7 +135,7 @@ python amazon-analysis/scripts/zoodata.py products --keyword "wireless earbuds" 
 
 ## 13 Product Search Modes
 
-The `products/search` endpoint supports 13 preset modes for different research strategies:
+The skill CLI (`zoodata.py --mode`) provides 13 preset modes for different research strategies. Modes are expanded into concrete filter fields (`monthlySalesMin`, `salesGrowthRateMin`, …) on the client side — `mode` is **not** an API parameter, and sending it to `/openapi/v2/products/search` returns 422:
 
 | Mode | Strategy | Target |
 |------|----------|--------|

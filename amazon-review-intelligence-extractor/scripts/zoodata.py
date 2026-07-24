@@ -78,17 +78,17 @@ DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 # Each maps to a set of products/search filter parameters
 PRODUCT_MODES = {
     "fast-movers":              {"monthlySalesMin": 300, "salesGrowthRateMin": 0.1},
-    "emerging":                 {"monthlySalesMax": 600, "salesGrowthRateMin": 0.1, "listingAge": "180"},
-    "single-variant":           {"salesGrowthRateMin": 0.2, "variantCountMax": 1, "listingAge": "180"},
-    "high-demand-low-barrier":  {"monthlySalesMin": 300, "ratingCountMax": 50, "listingAge": "180"},
+    "emerging":                 {"monthlySalesMax": 600, "salesGrowthRateMin": 0.1, "listingAge": "180d"},
+    "single-variant":           {"salesGrowthRateMin": 0.2, "variantCountMax": 1, "listingAge": "180d"},
+    "high-demand-low-barrier":  {"monthlySalesMin": 300, "ratingCountMax": 50, "listingAge": "180d"},
     "long-tail":                {"bsrMin": 10000, "bsrMax": 50000, "priceMax": 30, "sellerCountMax": 1, "monthlySalesMax": 300},
-    "underserved":              {"monthlySalesMin": 300, "ratingMax": 3.7, "listingAge": "180"},
-    "new-release":              {"monthlySalesMax": 500, "badges": ["New Release"], "fulfillments": ["FBA", "FBM"]},
-    "fbm-friendly":             {"monthlySalesMin": 300, "fulfillments": ["FBM"], "listingAge": "180"},
+    "underserved":              {"monthlySalesMin": 300, "ratingMax": 3.7, "listingAge": "180d"},
+    "new-release":              {"monthlySalesMax": 500, "badges": ["newRelease"], "fulfillments": ["FBA", "FBM"]},
+    "fbm-friendly":             {"monthlySalesMin": 300, "fulfillments": ["FBM"], "listingAge": "180d"},
     "low-price":                {"priceMax": 10},
-    "broad-catalog":            {"bsrGrowthRateMin": 0.99, "ratingCountMax": 10, "listingAge": "90"},
-    "selective-catalog":        {"bsrGrowthRateMin": 0.99, "listingAge": "90"},
-    "speculative":              {"monthlySalesMin": 600, "sellerCountMin": 3, "listingAge": "180"},
+    "broad-catalog":            {"bsrGrowthRateMin": 0.99, "ratingCountMax": 10, "listingAge": "90d"},
+    "selective-catalog":        {"bsrGrowthRateMin": 0.99, "listingAge": "90d"},
+    "speculative":              {"monthlySalesMin": 600, "sellerCountMin": 3, "listingAge": "180d"},
     # "beginner" mode disabled — excludeKeywords filter not working
     "top-bsr":                  {"subBsrMax": 1000},
 }
@@ -421,15 +421,28 @@ def output(data, fmt="json"):
 
 def parse_category(cat_str: str) -> list:
     """Parse category path string into a list.
-    
+
     Supported formats:
-      - 'Pet Supplies,Dogs,Toys'           (comma-separated)
-      - 'Pet Supplies > Dogs > Toys'       (spaced arrow)
+      - '["Pet Supplies", "Dogs"]'         (JSON array — unambiguous, safest)
+      - 'Pet Supplies > Dogs > Toys'       (spaced arrow — recommended)
       - 'Pet Supplies>Dogs>Toys'           (bare arrow, no spaces)
+      - 'Pet Supplies,Dogs,Toys'           (comma-separated — AVOID for names
+        that contain commas, e.g. "Headphones, Earbuds & Accessories";
+        use '>' or JSON array for those)
     """
     if not cat_str:
         return []
-    # Support comma, ' > ' (spaced), and '>' (bare) separators
+    # JSON array input — exact segments, no separator ambiguity
+    stripped = cat_str.strip()
+    if stripped.startswith("[") and stripped.endswith("]"):
+        try:
+            parsed = json.loads(stripped)
+            if isinstance(parsed, list):
+                return [str(c).strip() for c in parsed if str(c).strip()]
+        except (json.JSONDecodeError, ValueError):
+            pass  # not valid JSON — fall through to separator parsing
+    # Arrow separators take priority: category names never contain '>',
+    # but they DO contain commas (e.g. "Headphones, Earbuds & Accessories")
     if " > " in cat_str:
         return [c.strip() for c in cat_str.split(" > ")]
     if ">" in cat_str:
@@ -2793,33 +2806,33 @@ Examples:
 
     # Common args
     parser.add_argument("--format", choices=["json", "compact"], default="json",
-                        help="Output format (default: json)")
+                        help="Output format (default: json). Global flag — must come BEFORE the subcommand")
 
     sub = parser.add_subparsers(dest="command", required=True)
 
     # ── categories ──
     p_cat = sub.add_parser("categories", help="Query Amazon category tree", allow_abbrev=False)
     p_cat.add_argument("--keyword", help="Search categories by keyword")
-    p_cat.add_argument("--category", help="Exact category path (comma-separated)")
+    p_cat.add_argument("--category", help="Category path, '>' separated (names may contain commas, e.g. \"Electronics > Headphones, Earbuds & Accessories\"); JSON array also accepted")
     p_cat.add_argument("--parent", help="Get child categories (comma-separated parent path)")
     p_cat.add_argument("--marketplace", default="US", help="Marketplace (default: US)")
     p_cat.set_defaults(func=cmd_categories)
 
     # ── market ──
     p_mkt = sub.add_parser("market", help="Search market-level data for a category", allow_abbrev=False)
-    p_mkt.add_argument("--category", help="Category path (comma-separated)")
+    p_mkt.add_argument("--category", help="Category path, '>' separated (names may contain commas, e.g. \"Electronics > Headphones, Earbuds & Accessories\"); JSON array also accepted")
     p_mkt.add_argument("--keyword", help="Category keyword")
     p_mkt.add_argument("--topn", type=int, default=10, help="Top N for concentration analysis (default: 10)")
     p_mkt.add_argument("--page-size", type=int, default=20)
     p_mkt.add_argument("--page", type=int, default=1, help="Page number (default: 1)")
-    p_mkt.add_argument("--sort", help="Sort field")
+    p_mkt.add_argument("--sort", help="Sort field: monthlySalesFloor, monthlyRevenueFloor, bsr, price, rating, ratingCount, listingDate")
     p_mkt.add_argument("--order", choices=["asc", "desc"], default="desc")
     p_mkt.set_defaults(func=cmd_market)
 
     # ── products ──
     p_prod = sub.add_parser("products", help="Search products with filters (product selection)", allow_abbrev=False)
     p_prod.add_argument("--keyword", help="Search keyword")
-    p_prod.add_argument("--category", help="Category path (comma-separated)")
+    p_prod.add_argument("--category", help="Category path, '>' separated (names may contain commas, e.g. \"Electronics > Headphones, Earbuds & Accessories\"); JSON array also accepted")
     p_prod.add_argument("--mode", help=f"Preset filter mode: {', '.join(sorted(PRODUCT_MODES.keys()))}")
     p_prod.add_argument("--sales-min", type=int, help="Min monthly sales")
     p_prod.add_argument("--sales-max", type=int, help="Max monthly sales")
@@ -2830,14 +2843,14 @@ Examples:
     p_prod.add_argument("--rating-min", type=float, help="Min rating")
     p_prod.add_argument("--rating-max", type=float, help="Max rating")
     p_prod.add_argument("--growth-min", type=float, help="Min sales growth rate")
-    p_prod.add_argument("--listing-age", help="Max listing age in days (string)")
-    p_prod.add_argument("--badges", nargs="+", help="Badge filters (e.g. 'New Release')")
+    p_prod.add_argument("--listing-age", help="Max listing age: 30d, 90d, 180d, 1y, or 2y")
+    p_prod.add_argument("--badges", nargs="+", help="Badge filters: bestSeller, amazonChoice, newRelease, aPlus, video")
     p_prod.add_argument("--fulfillment", nargs="+", help="Fulfillment filter (FBA, FBM)")
     p_prod.add_argument("--include-brands", help="Include brands (comma-separated)")
     p_prod.add_argument("--exclude-brands", help="Exclude brands (comma-separated)")
     p_prod.add_argument("--page-size", type=int, default=20)
     p_prod.add_argument("--page", type=int, default=1, help="Page number (default: 1)")
-    p_prod.add_argument("--sort", help="Sort field (default: monthlySales)")
+    p_prod.add_argument("--sort", help="Sort field (default: monthlySalesFloor): monthlySalesFloor, monthlyRevenueFloor, bsr, price, rating, ratingCount, listingDate")
     p_prod.add_argument("--order", choices=["asc", "desc"], default="desc")
     p_prod.set_defaults(func=cmd_products)
 
@@ -2846,12 +2859,12 @@ Examples:
     p_comp.add_argument("--keyword", help="Search keyword")
     p_comp.add_argument("--brand", help="Brand filter")
     p_comp.add_argument("--asin", help="ASIN filter")
-    p_comp.add_argument("--category", help="Category path (comma-separated)")
+    p_comp.add_argument("--category", help="Category path, '>' separated (names may contain commas, e.g. \"Electronics > Headphones, Earbuds & Accessories\"); JSON array also accepted")
     p_comp.add_argument("--date-range", default="30d", help="Date range (default: 30d)")
     p_comp.add_argument("--marketplace", default="US", help="Marketplace (default: US)")
     p_comp.add_argument("--page", type=int, default=1, help="Page number")
     p_comp.add_argument("--page-size", type=int, default=20)
-    p_comp.add_argument("--sort", help="Sort field (default: monthlySalesFloor)")
+    p_comp.add_argument("--sort", help="Sort field (default: monthlySalesFloor): monthlySalesFloor, monthlyRevenueFloor, bsr, price, rating, ratingCount, listingDate")
     p_comp.add_argument("--order", choices=["asc", "desc"], default="desc")
     p_comp.set_defaults(func=cmd_competitors)
 
@@ -2877,41 +2890,41 @@ Examples:
     # ── market-entry (composite: full analysis) ──
     p_me = sub.add_parser("market-entry", help="Full market entry analysis (runs ALL endpoints automatically)", allow_abbrev=False)
     p_me.add_argument("--keyword", help="Product keyword or niche")
-    p_me.add_argument("--category", help="Category path (e.g. 'Sports & Outdoors>Sports Sunglasses')")
+    p_me.add_argument("--category", help="Category path, '>' separated (names may contain commas, e.g. \"Electronics > Headphones, Earbuds & Accessories\"); JSON array also accepted")
     p_me.set_defaults(func=cmd_market_entry)
 
     # ── competitor-analysis (composite) ──
     p_ca = sub.add_parser("competitor-analysis", help="Full competitor war room analysis", allow_abbrev=False)
     p_ca.add_argument("--keyword", help="Product keyword to discover competitors")
     p_ca.add_argument("--my-asin", help="Your product ASIN (optional)")
-    p_ca.add_argument("--category", help="Category path")
+    p_ca.add_argument("--category", help="Category path, '>' separated (names may contain commas, e.g. \"Electronics > Headphones, Earbuds & Accessories\"); JSON array also accepted")
     p_ca.set_defaults(func=cmd_competitor_analysis)
 
     # ── pricing-analysis (composite) ──
     p_pa = sub.add_parser("pricing-analysis", help="Full pricing analysis with competitor benchmarking", allow_abbrev=False)
     p_pa.add_argument("--my-asin", required=True, help="Your product ASIN")
     p_pa.add_argument("--keyword", help="Product keyword for market context")
-    p_pa.add_argument("--category", help="Category path")
+    p_pa.add_argument("--category", help="Category path, '>' separated (names may contain commas, e.g. \"Electronics > Headphones, Earbuds & Accessories\"); JSON array also accepted")
     p_pa.set_defaults(func=cmd_pricing_analysis)
 
     # ── daily-radar (composite) ──
     p_dr = sub.add_parser("daily-radar", help="Daily market monitoring scan (runs all tracking endpoints)", allow_abbrev=False)
     p_dr.add_argument("--asins", required=True, help="Tracked ASINs (comma-separated, your products + competitors)")
     p_dr.add_argument("--keyword", help="Category keyword for market monitoring")
-    p_dr.add_argument("--category", help="Category path")
+    p_dr.add_argument("--category", help="Category path, '>' separated (names may contain commas, e.g. \"Electronics > Headphones, Earbuds & Accessories\"); JSON array also accepted")
     p_dr.set_defaults(func=cmd_daily_radar)
 
     # ── listing-audit (composite) ──
     p_la = sub.add_parser("listing-audit", help="Full listing audit against category leaders", allow_abbrev=False)
     p_la.add_argument("--my-asin", required=True, help="ASIN to audit")
     p_la.add_argument("--keyword", help="Primary keyword for benchmark context")
-    p_la.add_argument("--category", help="Category path")
+    p_la.add_argument("--category", help="Category path, '>' separated (names may contain commas, e.g. \"Electronics > Headphones, Earbuds & Accessories\"); JSON array also accepted")
     p_la.set_defaults(func=cmd_listing_audit)
 
     # ── opportunity-scan (composite) ──
     p_os = sub.add_parser("opportunity-scan", help="Multi-mode product opportunity discovery", allow_abbrev=False)
     p_os.add_argument("--keyword", help="Category keyword to scan")
-    p_os.add_argument("--category", help="Category path")
+    p_os.add_argument("--category", help="Category path, '>' separated (names may contain commas, e.g. \"Electronics > Headphones, Earbuds & Accessories\"); JSON array also accepted")
     p_os.add_argument("--modes", help="Scan modes (comma-separated, e.g. emerging,underserved,high-demand-low-barrier). Omit to use custom filters only.")
     p_os.add_argument("--sales-min", type=int, help="Min monthly sales (e.g. 300)")
     p_os.add_argument("--sales-max", type=int, help="Max monthly sales")
@@ -2927,7 +2940,7 @@ Examples:
     p_rd.add_argument("--target-asin", help="ASIN to analyze in depth")
     p_rd.add_argument("--keyword", help="Keyword to find target (if no ASIN)")
     p_rd.add_argument("--comp-asins", help="Competitor ASINs for comparison (comma-separated)")
-    p_rd.add_argument("--category", help="Category path")
+    p_rd.add_argument("--category", help="Category path, '>' separated (names may contain commas, e.g. \"Electronics > Headphones, Earbuds & Accessories\"); JSON array also accepted")
     p_rd.set_defaults(func=cmd_review_deepdive)
 
     # ── reviews-raw (realtime/reviews with cursor pagination, up to 100 reviews) ──
@@ -2966,7 +2979,7 @@ Examples:
     p_analyze = sub.add_parser("analyze", help="AI-powered review analysis", allow_abbrev=False)
     p_analyze.add_argument("--asin", help="Single ASIN")
     p_analyze.add_argument("--asins", help="Multiple ASINs (comma-separated)")
-    p_analyze.add_argument("--category", help="Category path")
+    p_analyze.add_argument("--category", help="Category path, '>' separated (names may contain commas, e.g. \"Electronics > Headphones, Earbuds & Accessories\"); JSON array also accepted")
     p_analyze.add_argument("--label-type", help="Filter dimensions (comma-separated)")
     p_analyze.add_argument("--period", help="Time period: 1m, 3m, 6m, 1y, 2y", default="6m")
     p_analyze.set_defaults(func=cmd_analyze)
@@ -2974,7 +2987,7 @@ Examples:
     # ── price-band-overview ──
     p_pbo = sub.add_parser("price-band-overview", help="Price band overview (hottest & best opportunity)", allow_abbrev=False)
     p_pbo.add_argument("--keyword", help="Search keyword")
-    p_pbo.add_argument("--category", help="Category path")
+    p_pbo.add_argument("--category", help="Category path, '>' separated (names may contain commas, e.g. \"Electronics > Headphones, Earbuds & Accessories\"); JSON array also accepted")
     p_pbo.add_argument("--page-size", type=int, default=20)
     p_pbo.add_argument("--page", type=int, default=1, help="Page number (default: 1)")
     p_pbo.set_defaults(func=cmd_price_band_overview)
@@ -2982,7 +2995,7 @@ Examples:
     # ── price-band-detail ──
     p_pbd = sub.add_parser("price-band-detail", help="Price band detailed breakdown", allow_abbrev=False)
     p_pbd.add_argument("--keyword", help="Search keyword")
-    p_pbd.add_argument("--category", help="Category path")
+    p_pbd.add_argument("--category", help="Category path, '>' separated (names may contain commas, e.g. \"Electronics > Headphones, Earbuds & Accessories\"); JSON array also accepted")
     p_pbd.add_argument("--page-size", type=int, default=20)
     p_pbd.add_argument("--page", type=int, default=1, help="Page number (default: 1)")
     p_pbd.set_defaults(func=cmd_price_band_detail)
@@ -2990,7 +3003,7 @@ Examples:
     # ── brand-overview ──
     p_bo = sub.add_parser("brand-overview", help="Brand landscape overview", allow_abbrev=False)
     p_bo.add_argument("--keyword", help="Search keyword")
-    p_bo.add_argument("--category", help="Category path")
+    p_bo.add_argument("--category", help="Category path, '>' separated (names may contain commas, e.g. \"Electronics > Headphones, Earbuds & Accessories\"); JSON array also accepted")
     p_bo.add_argument("--page-size", type=int, default=20)
     p_bo.add_argument("--page", type=int, default=1, help="Page number (default: 1)")
     p_bo.set_defaults(func=cmd_brand_overview)
@@ -2998,7 +3011,7 @@ Examples:
     # ── brand-detail ──
     p_bd = sub.add_parser("brand-detail", help="Brand ranking with per-brand stats", allow_abbrev=False)
     p_bd.add_argument("--keyword", help="Search keyword")
-    p_bd.add_argument("--category", help="Category path")
+    p_bd.add_argument("--category", help="Category path, '>' separated (names may contain commas, e.g. \"Electronics > Headphones, Earbuds & Accessories\"); JSON array also accepted")
     p_bd.add_argument("--page-size", type=int, default=20)
     p_bd.add_argument("--page", type=int, default=1, help="Page number (default: 1)")
     p_bd.set_defaults(func=cmd_brand_detail)

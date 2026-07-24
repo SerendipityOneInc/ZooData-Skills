@@ -15,7 +15,7 @@ Method: All POST with JSON body
 | Parameter | Type | Note |
 |-----------|------|------|
 | categoryKeyword | String | Search by keyword |
-| categoryPath | String | Exact path lookup |
+| categoryPath | List\<String\> | Exact path lookup, e.g. `["Electronics", "Computers"]` |
 | parentCategoryPath | List\<String\> | Browse children |
 | _(no params)_ | — | Returns root categories |
 
@@ -62,13 +62,14 @@ Same as competitors, plus:
 
 | Parameter | Type | Note |
 |-----------|------|------|
-| mode | String | 14 preset modes (see SKILL.md) |
 | keywordMatchType | String | `fuzzy` / `phrase` / `exact` |
-| listingAge | **String** | Max age in days ⚠️ must be string |
+| listingAge | **Enum String** | One of `30d` / `90d` / `180d` / `1y` / `2y` (⚠️ bare numbers like `180` → 422) |
 
 Filter pairs (all optional, Min/Max): `monthlySales`, `revenue`, `salesGrowthRate`, `bsr`, `subBsr`, `bsrGrowthRate`, `price`, `rating`, `ratingCount`, `fbaShipping`, `variantCount`, `grossMargin`, `sellerCount`
 
-Additional: `includeBrands`, `excludeBrands`, `fulfillment` (`["FBA"]`/`["FBM"]`), `badges` (`["New Release"]`/`["Best Seller"]`)
+> `mode` is **NOT** an API parameter. The 13 CLI presets in `zoodata.py` expand client-side into the filter pairs above before the request is sent; passing `mode` in a raw request returns 422.
+
+Additional: `includeBrands`, `excludeBrands`, `fulfillment` (`["FBA"]`/`["FBM"]`/`["AMZ"]`), `badges` — enum values `["bestSeller"]` / `["amazonChoice"]` / `["newRelease"]` / `["aPlus"]` / `["video"]` (⚠️ `"New Release"` with a space → 422)
 
 ---
 

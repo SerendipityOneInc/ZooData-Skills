@@ -2,15 +2,18 @@
 name: amazon-opportunity-discoverer
 description: >
   Automated product opportunity scanner for Amazon sellers.
-  Scans categories using 14 preset selection strategies, validates candidates with
+  Scans categories using 13 preset selection strategies, validates candidates with
   real-time data, brand analysis, and price structure, then ranks opportunities
   by composite score (1-100). Uses all 11 ZooData API endpoints.
   Use when user asks about: find products to sell, product opportunity, what should I sell,
   niche discovery, profitable products, selection strategy, product scanner, opportunity scan,
   winning products, untapped niches, product ideas, market gaps.
+  Pick this to DISCOVER what to sell when the user has no specific target yet (ranked candidate
+  list). To evaluate a niche they already named, use amazon-market-entry-analyzer; to track
+  category trends over time, use amazon-market-trend-scanner.
   Requires ZOODATA_API_KEY.
 metadata:
-  version: "1.0.3"
+  version: "1.0.4"
   author: SerendipityOneInc
   homepage: https://github.com/SerendipityOneInc/ZooData-Skills
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}
@@ -35,6 +38,7 @@ Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zooda
 ## API Pitfalls (see zoodata skill for full list)
 - categoryPath is auto-resolved via `categories`, with fallback to top search result. If `category_source` is `inferred_from_search`, confirm with user — keyword-only queries contaminate results
 - All keyword-based endpoints MUST include `--category` when locked
+- **`mode`/`--sales-min`/`--ratings-max` are CLI-local, expanded client-side** — NOT API fields (raw request → 422; `ratingMax` ≠ `ratingCountMax`). Follow the **`mode`/CLI-flags** pitfalls (#9–#10) in `zoodata/SKILL.md`
 - Revenue = `sampleAvgMonthlyRevenue` directly. Sales = `monthlySalesFloor` (lower bound)
 - `reviews/analysis` needs 50+ reviews. Fallback chain when sample is insufficient:
   1. **Lightweight**: `realtime/product` ratingBreakdown — only star distribution, no themes
@@ -55,7 +59,7 @@ Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zooda
      - **Small-sample rule (reviewCount<50)**: demote single-mention items 📊→🔍; NEVER attach table-level or section-header 📊 when any row inside is 🔍; suppress "🔴 Critical" verdicts on count=1
      - **Scope**: fallback replaces ONLY the `/reviews/analysis` aggregation. This skill's primary workflow outputs (opportunity scoring, mode-based selection, ranked candidate list) remain valid — do not re-run them.
 - Deduplicate ASINs across modes — same product appears in multiple scans
-- Each mode has **built-in filters that STACK** with user filters (e.g. beginner: $15-60, sales≥300)
+- Each mode has **built-in filters that STACK** with user filters (e.g. high-demand-low-barrier: sales≥300, reviews≤50)
 
 ## On Missing Key
 
@@ -73,14 +77,14 @@ When `zoodata.py` returns code 402: follow the **"On 402 Credit Exhausted"** pro
 ### Profile → Strategy Mapping
 | Profile | Primary Modes | Price | Max Reviews |
 |---------|--------------|-------|-------------|
-| Beginner + Conservative | beginner, long-tail, fbm-friendly | $15-60 | <50 |
-| Beginner + Moderate | beginner, emerging, low-price | $10-50 | <100 |
+| Beginner + Conservative | high-demand-low-barrier, long-tail, fbm-friendly | $15-60 | <50 |
+| Beginner + Moderate | high-demand-low-barrier, emerging, low-price | $10-50 | <100 |
 | Intermediate + Moderate | fast-movers, underserved, single-variant | $15-80 | <200 |
 | Intermediate + Aggressive | high-demand-low-barrier, speculative | $10-100 | <500 |
 | Advanced + Aggressive | fast-movers, speculative, top-bsr | any | any |
 
 ### User Criteria → Filter Params
-Always translate: "300+ monthly sales" → `--sales-min 300`, "reviews <100" → `--ratings-max 100`, "$15-35" → `--price-min 15 --price-max 35`. If user has specific criteria, use custom filters (Approach B/C), NOT default modes.
+Always translate: "300+ monthly sales" → `--sales-min 300`, "reviews <100" → `--ratings-max 100`, "$15-35" → `--price-min 15 --price-max 35`. If user has specific criteria, use custom filters (Approach B/C), NOT default modes. (`--sales-min`/`--ratings-max`/`--modes` are CLI-local — see API Pitfalls before any raw call.)
 
 ### Data-Driven Category Selection (no specific category given)
 Scan with `market --keyword "{broad}" --topn 10`, rank subcategories by: newSkuRate>10%, topBrandSalesRate<60%, fbaRate>50%, avgPrice $10-50, avgMonthlySales>200. Pick top 3-5.
@@ -104,11 +108,11 @@ Scan with `market --keyword "{broad}" --topn 10`, rank subcategories by: newSkuR
 | 40-59 | B | ⚠️ Moderate — needs differentiation |
 | 0-39 | C | ❌ Weak — skip |
 
-**Quick-Scan Mode** (~10 credits): 2 modes × 1 page, skip realtime/trend. Label as "directional only."
+**Quick-Scan Mode** (~10 credits): 2 modes × 1 page, skip realtime/trend. Label as "directional only." **Implementation: run per-mode `products --mode <m> --page-size 20` calls — do NOT use the `opportunity-scan` composite for Quick-Scan** (it always executes the full 6-step pipeline including realtime×10 + trend + reviews, ~25-30 credits, and has no skip flags).
 
 ## Composite Command
 ```bash
-python3 {skill_base_dir}/scripts/zoodata.py opportunity-scan --keyword "{kw}" --category "{path}" --modes "beginner,emerging,underserved"
+python3 {skill_base_dir}/scripts/zoodata.py opportunity-scan --keyword "{kw}" --category "{path}" --modes "high-demand-low-barrier,emerging,underserved"
 ```
 Or with custom filters: `--sales-min 300 --ratings-max 100 --price-min 15 --price-max 35`
 

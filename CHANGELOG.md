@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed — amazon-keyword-traffic-analysis marketing copy
+
+`description` rewritten to lead with value hooks — ABA-backed data, Priority/Selective/Observe/Exclude test tiers, bid-worthiness verdicts, reverse-ASIN traffic terms — while preserving every trigger phrase for agent routing. Skill README restructured to lead with outcomes and example prompts; agent implementation details (draft MCP tool names, tool-selection rules) moved to a trailing "Agent Implementation Notes" section; data-boundary disclaimers consolidated under "Data Source & Boundaries". No workflow or endpoint content changed.
+
+### Changed — Patch version bumps for ClawHub republish
+
+All 12 skills' `metadata.version` bumped one patch level. All SKILL.md files changed since the last publish (frontmatter spec compliance, APIClaw → ZooData rebrand, On Missing Key protocol, etc.), so installed copies will hit `openclaw skills update` fingerprint mismatch; republishing with a version bump gives clients a clean upgrade path instead of requiring `--force` (same approach as #56).
+
 ### Changed — SKILL.md Frontmatter Spec Compliance
 
 Frontmatter of all 10 SKILL.md files restructured to comply with the [Agent Skills open standard](https://agentskills.io/specification). The spec recognizes only `name`, `description`, `license`, `compatibility`, `metadata`, and `allowed-tools` as top-level fields; previously the files used `version`, `author`, `homepage` at the top level. These are now nested under the spec-recognized `metadata` field (the spec's official example shows `version` and `author` as `metadata` sub-keys). The `openclaw` runtime contract (`requires.env`, `primaryEnv`) is preserved as inline JSON at `metadata.openclaw` — relocated, not rewritten.

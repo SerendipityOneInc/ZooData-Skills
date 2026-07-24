@@ -1,40 +1,26 @@
 ---
 name: web-extract
 description: >
-  Extract structured JSON from web pages, search engines, and entire
-  sites — the agent gets ready-to-consume {title, summary, sections,
-  key_metrics, outgoing_links, author, date, page_type, ...} fields in
-  ONE call, with NO second LLM pass needed to parse markdown or HTML
-  into structure. Six endpoints: scrape (single URL), scrape-interactive
-  (JS-rendered pages with click/scroll/wait/type/JS actions), search
-  (Google SERP + optional deep-scrape per result), map (URL discovery
-  on a domain), crawl + crawl-status (async multi-page recursive crawl
-  with depth and path filters). Markdown and raw HTML are available
-  when the user explicitly asks for prose or DOM access.
+  Extract structured JSON from web pages, search engines, and entire sites
+  in ONE call — {title, summary, sections, key_metrics, outgoing_links,
+  author, date, page_type, ...} fields, no second LLM pass to parse HTML.
+  Six endpoints: scrape (single URL), scrape-interactive (JS-rendered pages
+  with click/scroll/type), search (Google SERP + deep-scrape), map (URL
+  discovery), crawl + crawl-status (async recursive crawl). Markdown/raw
+  HTML on request.
 
-  USE this when the user needs page DATA for downstream work — product
-  pricing/specs, article fields, link graphs, docs-site full text,
-  competitor pages, JS-heavy SPAs, Google search results with content,
-  any "give me the structured data from this page/site" task.
+  USE when the user needs page DATA — product pricing/specs, article fields,
+  link graphs, JS-heavy SPAs, Google results with content. Prefer over
+  browser-act (automation/screenshots) and WebFetch (static, no JS, no
+  structured fields). Not for citation-rich research (use deep-research).
 
-  PREFER OVER browser-act (which is for browser automation, screenshots,
-  and form-filling — not structured extraction) and built-in WebFetch
-  (static fetch only — no JS render, no structured fields, you'd have to
-  re-LLM the markdown to get structure). DON'T use for: multi-source
-  citation-rich research reports (use deep-research instead), or tasks
-  that need visual verification / screenshots (use browser-act).
+  Trigger (EN): scrape this URL, extract data from page, crawl this site,
+  deep-scrape search results, map a domain's URLs, render this JS page.
+  触发词：抓取/爬取/网页提取/结构化抽取/搜索带内容/全站爬取/JS 渲染抓取/点击后抓取.
 
-  Trigger phrases (EN): scrape this URL, extract data from page, crawl
-  this site, get structured fields from a webpage, deep-scrape search
-  results, map this domain's URLs, render this JS page, fetch with
-  click/scroll, structured web extraction.
-  触发词 (中文)：抓取/爬取/扒下来/网页提取/结构化抽取/搜索带内容/
-  全站爬取/拉取整个站点/JS 渲染抓取/点击后抓取/带交互抓取.
-
-  Requires ZOODATA_API_KEY. Get a free key with 1,000 credits at
-  https://zoodata.ai/en/api-keys.
+  Requires ZOODATA_API_KEY (free key: https://zoodata.ai/en/api-keys).
 metadata:
-  version: "0.2.0"
+  version: "0.2.1"
   author: SerendipityOneInc
   homepage: https://github.com/SerendipityOneInc/ZooData-Skills
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}

@@ -18,7 +18,7 @@ description: >
   credit usage, how the Local Review Toolkit works, how to get started.
   Requires ZOODATA_API_KEY.
 metadata:
-  version: "1.1.3"
+  version: "1.1.4"
   author: SerendipityOneInc
   homepage: https://github.com/SerendipityOneInc/ZooData-Skills
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}
@@ -50,6 +50,8 @@ metadata:
       Local Review Toolkit below — see "Local Review Toolkit" section
 7. **Aggregation endpoints** (price-band, brand) without categoryPath produce severely distorted data
 8. **Price-band and brand endpoints only accept `keyword`** (not categoryPath) — cross-validate returned products
+9. **`mode` is CLI-local, NOT an API parameter** → `zoodata.py` expands `--mode` client-side into the filter sets in `PRODUCT_MODES` (`{skill_base_dir}/scripts/zoodata.py`, 13 presets) before the request; sending `mode` raw → 422
+10. **CLI filter flags ≠ API field names** → `--sales-min` → `monthlySalesMin`; `--ratings-max` (review count) → `ratingCountMax`, **not** `ratingMax` (a different valid field — max star rating — that returns wrong results silently, no 422). Pass `categoryPath` as a JSON array (`["Electronics"]`), never a string. Unknown fields (`salesMin`, `ratingsMax`, …) → 422
 
 ## On Missing Key (no credentials configured)
 
@@ -96,7 +98,7 @@ When `zoodata.py` returns `{"code": 402, "message": "API quota exhausted or subs
 |---|----------|---------|------------|
 | 1 | `categories` | Browse/search category tree | categoryPath, productCount |
 | 2 | `markets/search` | Market-level metrics | sampleAvgMonthlySales, sampleAvgPrice, topSalesRate, sampleNewSkuRate |
-| 3 | `products/search` | Product search (14 modes) | asin, price, monthlySalesFloor, rating, ratingCount, fbaFee |
+| 3 | `products/search` | Product search (20+ filter fields) | asin, price, monthlySalesFloor, rating, ratingCount, fbaFee |
 | 4 | `products/competitors` | Competitor discovery | same fields as products/search |
 | 5 | `realtime/product` | Live ASIN detail | rating, features, bestsellersRank[], buyboxWinner.price, variants |
 | 6 | `reviews/analysis` | AI review insights (11 dims) | sentimentDistribution, consumerInsights, topKeywords |
@@ -124,6 +126,7 @@ When `zoodata.py` returns `{"code": 402, "message": "API quota exhausted or subs
 - `bsr` (int) in products vs `bestsellersRank` (array) in realtime
 - `buyboxWinner.price` — NOT top-level `price` in realtime
 - `realtime/product` does NOT return: monthlySalesFloor, fbaFee, sellerCount
+- `realtime/product` cold-start: first call for an uncached ASIN may return `success: true` with an EMPTY `data` (`asin: ""`) while the live fetch warms up — retry once after a few seconds before concluding "no data" (still billed 1 credit per call)
 - `reviewCountMin/Max` filters currently broken (API-56)
 - `reviews/analysis` may 500 for certain ASINs (API-58) — retry different ASIN
 - Rate limit: 100 req/min, 10 req/sec burst

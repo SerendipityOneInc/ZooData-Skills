@@ -4,7 +4,7 @@
 
 ## What This Skill Does
 
-Automated product opportunity scanner tailored to your seller profile. Tell it your budget, experience level, and risk tolerance — it selects the right strategies from 14 preset modes, scans categories, validates candidates with real-time data, and ranks opportunities by a 7-dimension composite score (1-100). From beginner-friendly picks to advanced aggressive plays.
+Automated product opportunity scanner tailored to your seller profile. Tell it your budget, experience level, and risk tolerance — it selects the right strategies from 13 preset modes, scans categories, validates candidates with real-time data, and ranks opportunities by a 7-dimension composite score (1-100). From beginner-friendly picks to advanced aggressive plays.
 
 ### What Makes This Different
 

@@ -3,7 +3,7 @@ Test suite for zoodata/scripts/zoodata.py
 
 Coverage:
   - parse_category: all supported separators and edge cases
-  - PRODUCT_MODES: all 14 modes accepted without error
+  - PRODUCT_MODES: all 13 modes accepted; enum values match backend contract
   - argparse: all subcommands have valid --help; allow_abbrev=False regression
   - param construction: each subcommand passes the right keys to api_call
   - output format: json and compact both produce valid JSON
@@ -110,6 +110,25 @@ class TestParseCategory(unittest.TestCase):
         self.assertEqual(zoodata.parse_category("  Pet Supplies , Dogs "),
                          ["Pet Supplies", "Dogs"])
 
+    def test_arrow_protects_comma_in_category_name(self):
+        """Amazon category names can contain commas; '>' must not split them.
+        Regression: comma-split broke 'Headphones, Earbuds & Accessories'."""
+        self.assertEqual(
+            zoodata.parse_category("Electronics > Headphones, Earbuds & Accessories > Earbud Headphones"),
+            ["Electronics", "Headphones, Earbuds & Accessories", "Earbud Headphones"])
+
+    def test_json_array_input(self):
+        self.assertEqual(zoodata.parse_category('["Sports & Outdoors"]'),
+                         ["Sports & Outdoors"])
+
+    def test_json_array_with_comma_in_name(self):
+        self.assertEqual(
+            zoodata.parse_category('["Health & Household", "Vitamins, Minerals & Supplements", "Collagen"]'),
+            ["Health & Household", "Vitamins, Minerals & Supplements", "Collagen"])
+
+    def test_malformed_json_falls_through_to_separator_parsing(self):
+        self.assertEqual(zoodata.parse_category("[not json"), ["[not json"])
+
 
 # ---------------------------------------------------------------------------
 # 2. PRODUCT_MODES completeness
@@ -135,6 +154,28 @@ class TestProductModes(unittest.TestCase):
              self.assertRaises(SystemExit) as cm:
             zoodata.main()
         self.assertNotEqual(cm.exception.code, 0)
+
+    # Backend enum contracts — mirror hermes-service
+    # app/api/openapi/schemas/products.py (LISTING_AGE_VALUES / BADGE_VALUES / FULFILLMENT_VALUES).
+    # These guard against the CLI emitting preset values the API rejects with 422.
+    BACKEND_LISTING_AGE = {"30d", "90d", "180d", "1y", "2y"}
+    BACKEND_BADGES = {"bestSeller", "amazonChoice", "newRelease", "aPlus", "video"}
+    BACKEND_FULFILLMENTS = {"AMZ", "FBA", "FBM"}
+
+    def test_mode_enum_values_match_backend_contract(self):
+        """Every enum-constrained filter value in a preset must be one the backend accepts.
+        Regression: modes once sent listingAge '180' and badges ['New Release'] → hard 422."""
+        for mode, filters in zoodata.PRODUCT_MODES.items():
+            with self.subTest(mode=mode):
+                if "listingAge" in filters:
+                    self.assertIn(filters["listingAge"], self.BACKEND_LISTING_AGE,
+                                  f"{mode}: listingAge {filters['listingAge']!r} not a backend enum value")
+                for badge in filters.get("badges", []):
+                    self.assertIn(badge, self.BACKEND_BADGES,
+                                  f"{mode}: badge {badge!r} not a backend enum value")
+                for ful in filters.get("fulfillments", []):
+                    self.assertIn(ful, self.BACKEND_FULFILLMENTS,
+                                  f"{mode}: fulfillment {ful!r} not a backend enum value")
 
 
 # ---------------------------------------------------------------------------

@@ -107,7 +107,7 @@ export ZOODATA_API_KEY='hms_live_xxx'   # 在 zoodata.ai/en/api-keys 免费获�
 或者直接用命令行：
 
 ```bash
-python amazon-analysis/scripts/zoodata.py products --keyword "wireless earbuds" --mode competitive_landscape
+python amazon-analysis/scripts/zoodata.py products --keyword "wireless earbuds" --mode fast-movers
 ```
 
 ## API 接口
@@ -118,7 +118,7 @@ python amazon-analysis/scripts/zoodata.py products --keyword "wireless earbuds" 
 
 | 接口 | 说明 | 使用场景 |
 |------|------|----------|
-| 🔍 `products/search` | 商品搜索，13 种预设模式，20+ 筛选条件 | *"找 80 美元以下、4 星以上的跑步鞋"* |
+| 🔍 `products/search` | 商品搜索，20+ 筛选条件（CLI 另提供 13 种预设模式） | *"找 80 美元以下、4 星以上的跑步鞋"* |
 | 📊 `markets/search` | 市场维度指标——集中度、品牌份额、定价分布 | *"瑜伽垫市场竞争激烈吗？"* |
 | 🏷️ `products/competitor-lookup` | 按关键词、品牌或 ASIN 发现竞品 | *"这个细分类目的头部卖家有哪些？"* |
 | ⚡ `realtime/product` | 实时商品详情——评论、功能、变体 | *"查一下 ASIN B0D5CRV4KL 的最新信息"* |
@@ -132,7 +132,7 @@ python amazon-analysis/scripts/zoodata.py products --keyword "wireless earbuds" 
 
 ## 13 种选品模式
 
-`products/search` 接口支持 13 种预设模式，覆盖不同的选品策略：
+技能 CLI（`zoodata.py --mode`）提供 13 种预设模式，覆盖不同的选品策略。模式在客户端展开为真实筛选字段（`monthlySalesMin`、`salesGrowthRateMin` 等）——`mode` **不是** API 参数，直接发给 `/openapi/v2/products/search` 会返回 422：
 
 | 模式 | 策略 | 适用人群 |
 |------|------|----------|
