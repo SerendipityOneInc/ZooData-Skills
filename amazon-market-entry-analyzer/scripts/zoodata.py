@@ -2383,10 +2383,14 @@ def cmd_check(args):
             ("keywords/search-results", {"keyword": keyword, "date": date, "pageSize": 1}, "Keyword SERP"),
         ]
         if re.match(r"^https?://(?:localhost|127\.0\.0\.1)(?::|/)", BASE_URL):
-            keyword_probes.insert(
-                1,
+            keyword_probes[1:1] = [
                 ("keywords/market-profile", {"keyword": keyword, "date": date}, "Keyword market profile (pre-release)"),
-            )
+                (
+                    "keywords/trend-profile",
+                    {"keyword": keyword, "date": date, "windowPeriods": [4], "granularity": "week"},
+                    "Keyword trend profile (pre-release)",
+                ),
+            ]
         endpoints.extend(keyword_probes)
         if args.asin:
             endpoints.extend([
@@ -2616,6 +2620,32 @@ def cmd_keyword_market_profile(args):
     subject_field, subject_value = _keyword_subject(args)
     params[subject_field] = subject_value
     result = api_call("keywords/market-profile", params)
+    output(result, args.format)
+
+
+def cmd_keyword_trend_profile(args):
+    """Get server-calculated keyword trend profiles for fixed weekly windows."""
+    _require_yyyy_mm_dd(args.date, "--date")
+    raw_periods = _split_csv(args.window_periods) or []
+    try:
+        window_periods = [int(period) for period in raw_periods]
+    except ValueError:
+        raise SystemExit("ERROR: --window-periods accepts only comma-separated values from 4,8,12,26")
+    if not 1 <= len(window_periods) <= 4:
+        raise SystemExit("ERROR: --window-periods requires 1 to 4 values")
+    if any(period not in {4, 8, 12, 26} for period in window_periods):
+        raise SystemExit("ERROR: --window-periods accepts only 4,8,12,26")
+    if len(set(window_periods)) != len(window_periods):
+        raise SystemExit("ERROR: --window-periods must not contain duplicates")
+    params = {
+        "date": args.date,
+        "windowPeriods": window_periods,
+        "marketplace": args.marketplace,
+        "granularity": "week",
+    }
+    subject_field, subject_value = _keyword_subject(args)
+    params[subject_field] = subject_value
+    result = api_call("keywords/trend-profile", params)
     output(result, args.format)
 
 
@@ -3001,6 +3031,24 @@ Examples:
     p_kmp.add_argument("--date", required=True, help="Lookup date (YYYY-MM-DD)")
     p_kmp.add_argument("--marketplace", choices=["US", "UK"], default="US", help="Marketplace (default: US)")
     p_kmp.set_defaults(func=cmd_keyword_market_profile)
+
+    # ── keyword-trend-profile ──
+    p_ktp = sub.add_parser(
+        "keyword-trend-profile",
+        help="Server-calculated keyword trend profile for fixed weekly windows",
+        allow_abbrev=False,
+    )
+    ktp_subject = p_ktp.add_mutually_exclusive_group(required=True)
+    ktp_subject.add_argument("--keyword", help="One keyword")
+    ktp_subject.add_argument("--keywords", help="Keywords (comma-separated, max 20)")
+    p_ktp.add_argument("--date", required=True, help="As-of date (YYYY-MM-DD)")
+    p_ktp.add_argument(
+        "--window-periods",
+        required=True,
+        help="Comma-separated weekly windows selected from 4,8,12,26",
+    )
+    p_ktp.add_argument("--marketplace", choices=["US", "UK"], default="US", help="Marketplace (default: US)")
+    p_ktp.set_defaults(func=cmd_keyword_trend_profile)
 
     # ── keyword-trend ──
     p_kt = sub.add_parser("keyword-trend", help="Keyword weekly trend", allow_abbrev=False)
