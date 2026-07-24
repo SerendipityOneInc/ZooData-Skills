@@ -33,8 +33,9 @@
 - `product-traffic-terms-overview` is aggregate evidence. Production currently returns a legacy flat object; calculate simple channel totals/shares/changes transparently and do not claim grouped `trafficStructure`, `aggregateChanges`, or `keywordConcentration` were returned.
 - `keywords/product-traffic-term-changes` is the planned source for keyword losers/gainers and contribution. If it is unavailable, do not infer keyword-level change contribution from the current traffic list or flat overview.
 - Use metric-layer `product-traffic-terms-overview` first when the request is aggregate movement/structure. Call one ASIN traffic-list data endpoint only when keyword rows are the requested deliverable; no current metric replaces that row list.
-- Enrich selected traffic terms through metric-layer `keywords/market-profile` first. Call `detail` only when a named inference needs raw snapshot fields omitted by the metric, and call raw `trend` only when a trend metric is unavailable or weekly points are required.
+- Enrich selected traffic terms through metric-layer `keywords/market-profile` first and use `keywords/trend-profile` for trend judgments. Call `detail` or raw `trend` only when a named inference needs fields or weekly points omitted by the matching profile.
 - Do not descend from `market-profile` merely because a dimension is unsupported/unavailable; same-source data is unlikely to restore the missing metric input.
+- Enrichment requires `market-profile status=available` and complete evidence for the dimension used. `not_found` leaves that term unvalidated rather than proving weak demand. Keep volatility and annual-seasonality evidence separate, and do not fan out a batch HTTP 500 automatically.
 - `keywords/detail` and `keywords/search-results` may enrich prioritization and SERP context, but they cannot replace ASIN keyword evidence
 - `products/search` is supplementary only when the user explicitly asks for broader market context beyond observed keyword SERP behavior
 - Term bucketing may use any efficient call pattern, as long as the traffic-source map is grounded in one of the ASIN traffic-list endpoints

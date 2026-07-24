@@ -65,6 +65,7 @@ Select **ZooData** when prompted.
 | 12 | `products/history` | Daily price/BSR/sales snapshots |
 | 13 | `keywords/detail` | Keyword weekly snapshot |
 | 14 | `keywords/trend` | Keyword weekly trend |
+| 14b | `keywords/trend-profile` | Keyword trend profile for fixed weekly windows |
 | 15 | `keywords/extends` | Keyword expansion |
 | 16 | `keywords/search-results` | Keyword SERP snapshot |
 | 17 | `keywords/competitor-product-keywords` | Competitor ASIN keyword coverage |

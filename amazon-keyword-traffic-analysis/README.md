@@ -15,10 +15,11 @@ It supports four common scenarios:
 
 ## Endpoints Used
 
-The current CLI covers these nine ZooData keyword endpoints:
+The current CLI covers these ten ZooData keyword endpoints:
 
 - `/openapi/v2/keywords/detail`
 - `/openapi/v2/keywords/market-profile` (localhost pre-release metric layer; inspect the target surface)
+- `/openapi/v2/keywords/trend-profile` (localhost pre-release metric layer; inspect the target surface)
 - `/openapi/v2/keywords/trend`
 - `/openapi/v2/keywords/extends`
 - `/openapi/v2/keywords/search-results`
@@ -35,6 +36,7 @@ should be manually confirmed against the active session:
 
 - `mcp__zoodata__openapi_v2_keyword_detail`
 - `mcp__zoodata__openapi_v2_keyword_market_profile`
+- `mcp__zoodata__openapi_v2_keyword_trend_profile`
 - `mcp__zoodata__openapi_v2_keyword_trend`
 - `mcp__zoodata__openapi_v2_keyword_extends`
 - `mcp__zoodata__openapi_v2_keyword_search_results`

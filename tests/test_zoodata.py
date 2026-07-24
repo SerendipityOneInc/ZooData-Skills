@@ -146,7 +146,7 @@ SUBCOMMANDS = [
     "pricing-analysis", "daily-radar", "listing-audit", "opportunity-scan",
     "review-deepdive", "analyze", "price-band-overview", "price-band-detail",
     "brand-overview", "brand-detail", "history",
-    "keyword-detail", "keyword-market-profile", "keyword-trend", "keyword-extends",
+    "keyword-detail", "keyword-market-profile", "keyword-trend-profile", "keyword-trend", "keyword-extends",
     "keyword-search-results", "keyword-competitor-product-keywords",
     "keyword-product-traffic-terms",
     "product-traffic-terms-overview", "product-traffic-terms-timeline",
@@ -337,6 +337,34 @@ class TestEndpointRouting(unittest.TestCase):
         self.assertEqual(r["params"]["dateFrom"], "2026-06-01")
         self.assertEqual(r["params"]["dateTo"], "2026-06-29")
         self.assertEqual(r["params"]["granularity"], "week")
+
+    def test_keyword_trend_profile(self):
+        r = run_cli(
+            "keyword-trend-profile",
+            "--keywords", "yoga mat,pilates mat",
+            "--date", "2026-07-15",
+            "--window-periods", "4,12,26",
+            "--marketplace", "UK",
+        )
+        self.assertEqual(r["endpoint"], "keywords/trend-profile")
+        self.assertEqual(r["params"]["keywords"], ["yoga mat", "pilates mat"])
+        self.assertEqual(r["params"]["windowPeriods"], [4, 12, 26])
+        self.assertEqual(r["params"]["marketplace"], "UK")
+        self.assertEqual(r["params"]["granularity"], "week")
+
+    def test_keyword_trend_profile_rejects_duplicate_windows(self):
+        with self.assertRaises(SystemExit):
+            run_cli(
+                "keyword-trend-profile", "--keyword", "yoga mat",
+                "--date", "2026-07-15", "--window-periods", "4,4",
+            )
+
+    def test_keyword_trend_profile_rejects_invalid_window(self):
+        with self.assertRaises(SystemExit):
+            run_cli(
+                "keyword-trend-profile", "--keyword", "yoga mat",
+                "--date", "2026-07-15", "--window-periods", "6",
+            )
 
     def test_keyword_extends(self):
         r = run_cli("keyword-extends",

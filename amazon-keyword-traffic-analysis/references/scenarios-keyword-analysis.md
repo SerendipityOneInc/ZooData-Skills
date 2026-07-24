@@ -74,12 +74,13 @@ If evidence required for the requested decision is missing, end with exactly thr
 - Minimum evidence is judgment-specific, not a fixed pair of data endpoints. Use metric-layer `keywords/market-profile` first for weekly market judgment and `keywords/search-results-metrics` when live for SERP structure judgment.
 - Use `keywords/detail` only when `market-profile` is unavailable or a named inference requires raw snapshot fields that the metric contract omits. Do not call it merely because one profile dimension is unsupported/unavailable.
 - Use raw `keywords/search-results` when the SERP metric is unavailable or the inference requires product/placement rows; do not call it merely to confirm a sufficient SERP metric.
-- Prefer `keywords/trend-metrics` when live. Use raw `keywords/trend` only when the metric is unavailable or the Agent needs weekly points/fields omitted from the metric; otherwise do not make strong demand-direction claims.
+- Prefer `keywords/trend-profile`. Use raw `keywords/trend` only when the Agent needs weekly points or fields omitted from the profile; otherwise do not make strong demand-direction claims.
 - Use one batch call when comparing multiple target keywords; read each `data.items[]` status independently
 - If a metric returns an unsupported dimension because its calculation inputs are missing, mark that conclusion unavailable. Only descend when the data contract provides different evidence needed for another valid inference.
 - Page-1 product rows must come from `keywords/search-results`; aggregate SERP structure should come from `keywords/search-results-metrics` when live.
 - `products/search` is allowed only as broader market context when the user explicitly asks for that broader view
-- Interpret `marketProfile` scores only with returned `context.scoringSpec`, and gate every dimension through its own `supported`, `calculationStatus`, `unsupportedReason`, `score`, and `level`; never treat the profile or `annualSeasonality` summary as a trend series, root cause, or strategy output.
+- Interpret `marketProfile` only for items with `status=available`. Read scores through returned `context.scoringSpec` and each dimension's `supported`, `calculationStatus`, `unsupportedReason`, `level`, and `levelEvidence.score.{value,direction}`. Treat `marketCharacteristics.volatility` and `annualSeasonality` as independent evidence; never turn either into a trend series, root cause, or strategy output.
+- `status=not_found` means the keyword was not observed and does not qualify for a recommendation tier. It is not evidence of low demand. A batch HTTP 500 is a service failure; do not silently fan it out into repeated single-keyword calls.
 - The analysis may use any efficient call pattern, but the final verdict must stay within the available evidence scope
 - ZooData evidence is estimated search/exposure/visibility data, not the user's ASIN-specific ABA Search Query Performance funnel. The first reply is a market-level directional judgment, not a final keyword-value or budget judgment.
 - After the market screening, ask only for the user's ASIN. Do not request ABA-SQP in the first reply.

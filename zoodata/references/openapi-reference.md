@@ -344,9 +344,11 @@ Availability: exposed on `http://localhost:8080` as of 2026-07-14; not yet publi
 
 Context fields: `marketplace`, `site`, `requestedDate`, `resolvedDate`, `granularity`, `dataWindow.currentPeriod`, and `scoringSpec` (`id`, `version`, `scoreType`, `scoreRange`, `referenceScope`).
 
-Each item has `identity`, `status`, `marketProfile`, `emptyReason`, `errorCode`, and `errorMessage`. `marketProfile` contains `marketContext`, `demandScale`, `top3Concentration`, `adActivity`, `top20OrganicEntryDifficulty`, `supplySaturation`, `brandStructure`, and `organicProductBenchmark`.
+Each item has `identity`, `status=available|not_found`, `marketProfile`, and `unavailableReason`. `marketProfile` contains `marketCharacteristics`, `demandScale`, `top3Concentration`, `adActivity`, `top20OrganicEntryDifficulty`, `supplySaturation`, `brandStructure`, and `organicProductBenchmark`.
 
-Use returned scores only with `context.scoringSpec`. Profile objects currently use camelCase fields. Each scored dimension exposes `supported`, `score`, `level`, `interpretation`, `scoreDirection`, `calculationStatus`, and `unsupportedReason`; evaluate it independently and treat any explicit unavailable signal as a conclusion boundary. `marketContext` may also return `annualSeasonality` with `isAvailable`, `unavailableReason`, `pairedWeekCount`, level, and score. It is a seasonality-detection summary, not a trend series. This endpoint returns deterministic weekly snapshot evidence, not trend, root cause, recommendations, or seller-private ABA-SQP conversion data. Empty items are not billed; use returned `meta.creditsConsumed` / `meta.creditsConsumedExact`.
+Use returned scores only with `context.scoringSpec`. Each scored dimension exposes `supported`, `level`, `interpretation`, `calculationStatus`, `unsupportedReason`, and `levelEvidence.score.{value,direction}`; evaluate it independently and treat any explicit unavailable signal as a conclusion boundary. `marketCharacteristics.volatility` exposes type and mapping-confidence evidence. `marketCharacteristics.annualSeasonality` separately exposes classification, year-over-year correlation, eligible-pair count, peak-pattern detection, and peak periods. Do not merge the two classifications or invent peak periods. This endpoint returns deterministic weekly snapshot evidence, not trend, root cause, recommendations, or seller-private ABA-SQP conversion data.
+
+An unmatched keyword returns `status=not_found`, `marketProfile=null`, `unavailableReason=keyword_not_observed`, zero consumed credits, and may return null resolved context / scoring spec. A subject-specific calculation error can currently return HTTP 500 for the entire batch; treat that as a service failure rather than an empty item, and do not automatically fan out the batch. Use returned `meta.creditsConsumed` / `meta.creditsConsumedExact`.
 
 Three-layer boundary: `keywords/detail` is the traceable data layer; `keywords/market-profile` is the stable deterministic metric layer; the Agent + skill layer combines evidence and produces confidence, explanations, limitations, and recommendations.
 
@@ -375,6 +377,23 @@ Interpretation note:
 Key fields: `observedAt`, `periodStartDate`, `periodEndDate`, `estimateSearchCount`,
 `estimateSearchChangeCount`, `estimateSearchChangeRate`, `abaRank`, `prevAbaRank`,
 `prevEstimateSearchCount`, `rankChangeCount`
+
+---
+
+## 13b. /openapi/v2/keywords/trend-profile (metric layer, localhost pre-release)
+
+| Parameter | Type | Required | Note |
+|-----------|------|----------|------|
+| keyword | String | Conditional | Exactly one of `keyword` / `keywords` |
+| keywords | String[] | Conditional | 1–20, mutually exclusive with `keyword` |
+| date | String | **Yes** | As-of date `YYYY-MM-DD` |
+| windowPeriods | Integer[] | **Yes** | 1–4 unique values from `4`, `8`, `12`, `26` |
+| marketplace | String | No | `US` / `UK`, default `US` |
+| granularity | String | No | `week` only |
+
+**Response:** `data.context + data.items[].rows[]`. Each keyword has one row per requested window. Rows return `status=available|unavailable|not_found`, `rowContext`, `unavailableReason`, and `trendProfile`. Available profiles expose guarded `searchDemand` and `abaRank` dimensions. Their `trendEvidence` values include an explicit direction plus slope and consistency evidence, so do not infer the server label from endpoint movement alone. Preserve null unavailable reasons without inventing one.
+
+Use this metric endpoint first for trend shape and volatility; call raw `keywords/trend` only when weekly points or omitted fields are required.
 
 ---
 

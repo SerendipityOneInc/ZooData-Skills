@@ -26,11 +26,11 @@
 
 ### Task Constraints
 
-- Minimum evidence is claim-specific. Prefer `search-results-metrics` for SERP structure, `market-profile` for weekly market context, `product-traffic-terms-overview` for ASIN aggregate movement, and `product-traffic-terms-timeline-review` when live for timeline evidence summary.
+- Minimum evidence is claim-specific. Prefer `search-results-metrics` for SERP structure, `market-profile` for weekly market context, `trend-profile` for demand/rank trend judgments, `product-traffic-terms-overview` for ASIN aggregate movement, and `product-traffic-terms-timeline-review` when live for timeline evidence summary.
 - Use raw `search-results`, `detail`, or timeline data only when the matching metric is unavailable or omits rows/fields/series required for a named diagnosis inference.
 - A metric dimension's unsupported/unavailable status limits the conclusion; it does not automatically authorize a same-source data call.
 - Two or more observations are required for anything stronger than directional movement commentary
-- If `keywords/trend` is unavailable, keep demand-change interpretation weak
+- If `keywords/trend-profile` is unavailable, use raw `keywords/trend` only for transparent point-level interpretation; if neither is available, keep demand-change interpretation weak
 - `keywords/product-traffic-terms-timeline-review` is preferred when live. Use raw `keywords/product-traffic-terms-timeline` only when the review metric is unavailable or the diagnosis needs series detail omitted by the metric.
 - `keywords/product-traffic-terms-overview` is the preferred core evidence for two-week / previous-period all-keyword impression traffic changes under the ASIN; if unavailable, do not infer previous-period traffic deltas or first-3-page ORG keyword entry/exit
 - `keywords/product-traffic-term-changes` is the planned source for top losing/gaining keyword contribution. If it returns 404, omit contribution claims rather than deriving them from the overview.
