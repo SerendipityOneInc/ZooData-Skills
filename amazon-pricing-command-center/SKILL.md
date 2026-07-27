@@ -32,10 +32,10 @@ Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zooda
 ## Capabilities & Data Flow
 
 - **Network**: only `https://api.zoodata.ai` (Bearer `ZOODATA_API_KEY`). Setting `ZOODATA_BASE_URL` to any other host triggers a CLI warning — do not point it at hosts you don't trust.
-- **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). The shared CLI exposes ALL ZooData endpoints as subcommands; this skill's workflows use: `categories`, `product`, `products`, `competitors`, `market`, `price-band-overview`, `price-band-detail`, `history`, `analyze`, `check`. Do not invoke unrelated subcommands for this skill's tasks.
+- **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). The shared CLI exposes ALL ZooData endpoints as subcommands; this skill's workflows use: `categories`, `product`, `products`, `competitors`, `market`, `price-band-overview`, `price-band-detail`, `brand-overview`, `brand-detail`, `history`, `analyze`, `check`. Do not invoke unrelated subcommands for this skill's tasks.
 - **Local files**: none; reads the optional credential store `~/.zoodata/config.json`.
 - **Sent to the API**: keywords, category paths, ASINs, marketplace/date and numeric filter values only. **Never sent**: budget, experience level, risk tolerance, or any other user-profile text — profile inputs map client-side to numeric filters.
-- **Credits**: every API call consumes account credits. For broad or ambiguous requests, state the estimated credit cost and confirm with the user before running multi-call scans. The composite `pricing-analysis` command executes ~20 API calls (~15-25 credits) in ONE invocation and has NO skip/trim flags — under a credit cap, use the granular commands instead.
+- **Credits**: every API call consumes account credits. This skill drives the endpoints granularly (no single composite command); a per-ASIN pricing analysis orchestrates ~11 endpoints for ~20-25 credits, and batch runs scale by unique category (see API Budget below). For batch or broad requests, state the estimated credit cost and confirm with the user before running.
 
 ## Input
 - **Required**: one or more ASINs (your products). No keyword needed — category is auto-detected.

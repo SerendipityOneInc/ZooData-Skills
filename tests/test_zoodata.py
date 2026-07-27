@@ -683,6 +683,32 @@ class TestBaseUrlResolution(unittest.TestCase):
                 "http://localhost:8080/openapi/v2",
             )
 
+    def _stderr_of_resolve(self, env):
+        import contextlib
+        import io
+        buf = io.StringIO()
+        with patch.dict("os.environ", env, clear=True), \
+             contextlib.redirect_stderr(buf):
+            zoodata._resolve_base_url()
+        return buf.getvalue()
+
+    def test_untrusted_host_warns_about_bearer_token(self):
+        stderr = self._stderr_of_resolve({"ZOODATA_BASE_URL": "https://evil.example.com"})
+        self.assertIn("WARNING", stderr)
+        self.assertIn("evil.example.com", stderr)
+        self.assertIn("Bearer", stderr)
+
+    def test_default_host_is_silent(self):
+        self.assertEqual(self._stderr_of_resolve({}), "")
+
+    def test_zoodata_subdomain_is_trusted_and_silent(self):
+        stderr = self._stderr_of_resolve({"ZOODATA_BASE_URL": "https://staging.zoodata.ai"})
+        self.assertEqual(stderr, "")
+
+    def test_localhost_is_trusted_and_silent(self):
+        stderr = self._stderr_of_resolve({"ZOODATA_BASE_URL": "http://localhost:8080"})
+        self.assertEqual(stderr, "")
+
 
 class TestCheckCommand(unittest.TestCase):
     def test_check_defaults_to_credentials_only_without_api_call(self):
