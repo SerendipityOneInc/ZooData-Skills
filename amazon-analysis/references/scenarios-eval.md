@@ -177,7 +177,7 @@ python3 scripts/zoodata.py competitors --asin B09XXXXX
 > Trigger: "category pain points" / "what do users want" / "consumer portrait" / "category user analysis" / "who is buying"
 
 ```bash
-python3 scripts/zoodata.py analyze --category "Pet Supplies,Dogs,Toys" --period 90d
+python3 scripts/zoodata.py analyze --category "Pet Supplies > Dogs > Toys" --period 90d
 ```
 
 **Use case:** Understand the consumer landscape of a category **before** product selection. Not about specific ASINs, but about what users in this category care about, complain about, and value.

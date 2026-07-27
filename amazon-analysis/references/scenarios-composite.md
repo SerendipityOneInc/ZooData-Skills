@@ -28,7 +28,7 @@
 python3 scripts/zoodata.py categories --keyword "pet toys"
 
 # Step 2: Market conditions
-python3 scripts/zoodata.py market --category "Pet Supplies,Dogs,Toys" --topn 10
+python3 scripts/zoodata.py market --category "Pet Supplies > Dogs > Toys" --topn 10
 
 # Step 3: Run 2-3 modes based on user profile
 # Beginner → beginner + high-demand-low-barrier
@@ -135,10 +135,10 @@ python3 scripts/zoodata.py competitors --keyword "wireless earbuds" --page-size 
 python3 scripts/zoodata.py categories --keyword "yoga mat"
 
 # Step 2: Market aggregate
-python3 scripts/zoodata.py market --category "Sports & Outdoors,Exercise & Fitness,Yoga,Yoga Mats" --topn 10
+python3 scripts/zoodata.py market --category "Sports & Outdoors > Exercise & Fitness > Yoga > Yoga Mats" --topn 10
 
 # Step 3: Product landscape
-python3 scripts/zoodata.py products --keyword "yoga mat" --category "Sports & Outdoors,Exercise & Fitness,Yoga,Yoga Mats" --page-size 30
+python3 scripts/zoodata.py products --keyword "yoga mat" --category "Sports & Outdoors > Exercise & Fitness > Yoga > Yoga Mats" --page-size 30
 
 # Step 4: Price band analysis
 python3 scripts/zoodata.py price-band-overview --keyword "yoga mat"
@@ -155,7 +155,7 @@ python3 scripts/zoodata.py product --asin B09XXXXX
 python3 scripts/zoodata.py history --asin B09XXXXX --period 90d
 
 # Step 8: Consumer insights
-python3 scripts/zoodata.py analyze --category "Sports & Outdoors,Exercise & Fitness,Yoga,Yoga Mats" --period 90d
+python3 scripts/zoodata.py analyze --category "Sports & Outdoors > Exercise & Fitness > Yoga > Yoga Mats" --period 90d
 ```
 
 **Cross-validation checks:**

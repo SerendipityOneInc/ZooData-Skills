@@ -13,7 +13,7 @@ description: >
     deliverable in mind
   Uses {skill_base_dir}/scripts/zoodata.py. Requires ZOODATA_API_KEY.
 metadata:
-  version: "1.1.8"
+  version: "1.1.9"
   author: SerendipityOneInc
   homepage: https://github.com/SerendipityOneInc/ZooData-Skills
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}
@@ -34,6 +34,14 @@ metadata:
 ## Credential
 
 Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zoodata.ai/en/api-keys). Stored in `{skill_base_dir}/config.json` in skill root.
+
+## Capabilities & Data Flow
+
+- **Network**: only `https://api.zoodata.ai` (Bearer `ZOODATA_API_KEY`). Setting `ZOODATA_BASE_URL` to any other host triggers a CLI warning — do not point it at hosts you don't trust.
+- **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). The shared CLI exposes ALL ZooData endpoints as subcommands; this skill's workflows use: `categories`, `market`, `products`, `competitors`, `product`, `analyze`, `report`, `opportunity`, `history`, `check`, plus the review fallback toolkit (`reviews-raw` / `review-tag-prompt` / `review-reduce-prompt` / `review-aggregate`). Do not invoke unrelated subcommands for this skill's tasks.
+- **Local files**: a temporary `/tmp/review_<ASIN>_<timestamp>/` working dir during the review fallback; reads the optional credential store `~/.zoodata/config.json`.
+- **Sent to the API**: keywords, category paths, ASINs, marketplace/date and numeric filter values only. **Never sent**: budget, experience level, risk tolerance, or any other user-profile text — profile inputs map client-side to numeric filters.
+- **Credits**: every API call consumes account credits. For broad or ambiguous requests, state the estimated credit cost and confirm with the user before running multi-call scans.
 
 ## Input
 

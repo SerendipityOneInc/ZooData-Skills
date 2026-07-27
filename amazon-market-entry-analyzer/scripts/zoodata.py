@@ -54,6 +54,16 @@ KEYWORD_TIMELINE_MAX_DAYS = 61
 def _resolve_base_url():
     """Resolve API base URL, allowing local test hosts via ZOODATA_BASE_URL."""
     configured = os.environ.get("ZOODATA_BASE_URL", DEFAULT_BASE_URL).strip().rstrip("/")
+    try:
+        from urllib.parse import urlparse
+        host = urlparse(configured if "://" in configured else f"https://{configured}").hostname or ""
+    except Exception:
+        host = ""
+    trusted = host == "zoodata.ai" or host.endswith(".zoodata.ai") or host in ("localhost", "127.0.0.1")
+    if configured.rstrip("/") != DEFAULT_BASE_URL.rstrip("/") and not trusted:
+        print(f"WARNING: ZOODATA_BASE_URL points at non-default host '{host}'. "
+              "Your API key will be sent there as a Bearer token — only proceed if you trust this host.",
+              file=sys.stderr)
     if configured.endswith(API_BASE_PATH):
         return configured
     return f"{configured}{API_BASE_PATH}"
@@ -142,12 +152,12 @@ def get_api_key():
     print("", file=sys.stderr)
     print("Please configure your API Key using one of these methods:", file=sys.stderr)
     print("", file=sys.stderr)
-    print("  Method 1: User-home config (recommended — shared across all skills)", file=sys.stderr)
+    print("  Method 1: Environment variable (recommended — no file written)", file=sys.stderr)
+    print("    export ZOODATA_API_KEY='hms_live_yourkey'", file=sys.stderr)
+    print("", file=sys.stderr)
+    print("  Method 2: User-home config (persistent, shared across all skills)", file=sys.stderr)
     print("    mkdir -p ~/.zoodata", file=sys.stderr)
     print('    echo \'{"api_key":"hms_live_yourkey"}\' > ~/.zoodata/config.json', file=sys.stderr)
-    print("", file=sys.stderr)
-    print("  Method 2: Environment variable (session only)", file=sys.stderr)
-    print("    export ZOODATA_API_KEY='hms_live_yourkey'", file=sys.stderr)
     print("", file=sys.stderr)
     print("Get a free key at https://zoodata.ai/en/api-keys", file=sys.stderr)
     sys.exit(1)
@@ -2792,7 +2802,7 @@ def main():
         epilog="""
 Examples:
   %(prog)s categories --keyword "pet supplies"
-  %(prog)s market --category "Pet Supplies,Dogs" --topn 10
+  %(prog)s market --category "Pet Supplies > Dogs" --topn 10
   %(prog)s products --keyword "yoga mat" --mode emerging
   %(prog)s products --keyword "yoga mat" --sales-min 300 --ratings-max 50
   %(prog)s competitors --keyword "wireless earbuds" --brand Anker
@@ -2825,7 +2835,7 @@ Examples:
     p_mkt.add_argument("--topn", type=int, default=10, help="Top N for concentration analysis (default: 10)")
     p_mkt.add_argument("--page-size", type=int, default=20)
     p_mkt.add_argument("--page", type=int, default=1, help="Page number (default: 1)")
-    p_mkt.add_argument("--sort", help="Sort field: monthlySalesFloor, monthlyRevenueFloor, bsr, price, rating, ratingCount, listingDate")
+    p_mkt.add_argument("--sort", choices=['totalSkuCount', 'sampleSkuCount', 'sampleAvgPrice', 'sampleAvgMonthlySales', 'sampleAvgMonthlyRevenue', 'sampleTotalMonthlySales', 'sampleAvgBsr', 'sampleAvgRating', 'sampleAvgRatingCount', 'sampleBrandCount', 'sampleSellerCount', 'sampleFbaRate', 'sampleNewSkuRate', 'topAvgMonthlySales', 'topAvgMonthlyRevenue', 'topSalesRate', 'topBrandSalesRate', 'topSellerSalesRate'], metavar="FIELD", help="Sort field (markets enum), e.g. sampleAvgMonthlySales, topBrandSalesRate")
     p_mkt.add_argument("--order", choices=["asc", "desc"], default="desc")
     p_mkt.set_defaults(func=cmd_market)
 
@@ -2850,7 +2860,7 @@ Examples:
     p_prod.add_argument("--exclude-brands", help="Exclude brands (comma-separated)")
     p_prod.add_argument("--page-size", type=int, default=20)
     p_prod.add_argument("--page", type=int, default=1, help="Page number (default: 1)")
-    p_prod.add_argument("--sort", help="Sort field (default: monthlySalesFloor): monthlySalesFloor, monthlyRevenueFloor, bsr, price, rating, ratingCount, listingDate")
+    p_prod.add_argument("--sort", choices=['monthlySalesFloor', 'monthlyRevenueFloor', 'bsr', 'price', 'rating', 'ratingCount', 'listingDate'], metavar="FIELD", help="Sort field (default: monthlySalesFloor): monthlySalesFloor, monthlyRevenueFloor, bsr, price, rating, ratingCount, listingDate")
     p_prod.add_argument("--order", choices=["asc", "desc"], default="desc")
     p_prod.set_defaults(func=cmd_products)
 
@@ -2864,7 +2874,7 @@ Examples:
     p_comp.add_argument("--marketplace", default="US", help="Marketplace (default: US)")
     p_comp.add_argument("--page", type=int, default=1, help="Page number")
     p_comp.add_argument("--page-size", type=int, default=20)
-    p_comp.add_argument("--sort", help="Sort field (default: monthlySalesFloor): monthlySalesFloor, monthlyRevenueFloor, bsr, price, rating, ratingCount, listingDate")
+    p_comp.add_argument("--sort", choices=['monthlySalesFloor', 'monthlyRevenueFloor', 'bsr', 'price', 'rating', 'ratingCount', 'listingDate'], metavar="FIELD", help="Sort field (default: monthlySalesFloor): monthlySalesFloor, monthlyRevenueFloor, bsr, price, rating, ratingCount, listingDate")
     p_comp.add_argument("--order", choices=["asc", "desc"], default="desc")
     p_comp.set_defaults(func=cmd_competitors)
 
