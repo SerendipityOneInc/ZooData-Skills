@@ -36,7 +36,7 @@ Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zooda
 - **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). The shared CLI exposes ALL ZooData endpoints as subcommands; this skill's workflows use: `opportunity-scan`, `categories`, `market`, `products`, `product`, `check`, plus the review fallback toolkit (`reviews-raw` / `review-tag-prompt` / `review-reduce-prompt` / `review-aggregate`). Do not invoke unrelated subcommands for this skill's tasks.
 - **Local files**: a temporary `/tmp/review_<ASIN>_<timestamp>/` working dir during the review fallback; reads the optional credential store `~/.zoodata/config.json`.
 - **Sent to the API**: keywords, category paths, ASINs, marketplace/date and numeric filter values only. **Never sent**: budget, experience level, risk tolerance, or any other user-profile text — profile inputs map client-side to numeric filters.
-- **Credits**: every API call consumes account credits. For broad or ambiguous requests, state the estimated credit cost and confirm with the user before running multi-call scans.
+- **Credits**: every API call consumes account credits. For broad or ambiguous requests, state the estimated credit cost and confirm with the user before running multi-call scans. The composite `opportunity-scan` command executes ~15+ API calls across up to 9 loops (~25-30 credits observed) in ONE invocation and has NO skip/trim flags — under a credit cap, use the granular commands instead.
 
 ## Input
 - **Required**: keyword or category + budget (Low/Med/High) + experience (Beginner/Intermediate/Advanced)

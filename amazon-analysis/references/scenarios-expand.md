@@ -17,7 +17,7 @@
 python3 scripts/zoodata.py categories --parent "Pet Supplies,Dogs"
 
 # Step 2: Evaluate each
-python3 scripts/zoodata.py market --category "Pet Supplies,Dogs,Feeding & Watering" --topn 10
+python3 scripts/zoodata.py market --category "Pet Supplies > Dogs > Feeding & Watering" --topn 10
 ```
 
 ---
@@ -33,7 +33,7 @@ python3 scripts/zoodata.py market --keyword "new category keyword" --topn 10
 ## 7.3 Trend Discovery
 
 ```bash
-python3 scripts/zoodata.py products --keyword "pet supplies" --growth-min 0.2 --listing-age 180 --page-size 20
+python3 scripts/zoodata.py products --keyword "pet supplies" --growth-min 0.2 --listing-age 180d --page-size 20
 ```
 
 ---
