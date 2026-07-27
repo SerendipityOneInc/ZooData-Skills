@@ -54,6 +54,16 @@ KEYWORD_TIMELINE_MAX_DAYS = 61
 def _resolve_base_url():
     """Resolve API base URL, allowing local test hosts via ZOODATA_BASE_URL."""
     configured = os.environ.get("ZOODATA_BASE_URL", DEFAULT_BASE_URL).strip().rstrip("/")
+    try:
+        from urllib.parse import urlparse
+        host = urlparse(configured if "://" in configured else f"https://{configured}").hostname or ""
+    except Exception:
+        host = ""
+    trusted = host == "zoodata.ai" or host.endswith(".zoodata.ai") or host in ("localhost", "127.0.0.1")
+    if configured.rstrip("/") != DEFAULT_BASE_URL.rstrip("/") and not trusted:
+        print(f"WARNING: ZOODATA_BASE_URL points at non-default host '{host}'. "
+              "Your API key will be sent there as a Bearer token — only proceed if you trust this host.",
+              file=sys.stderr)
     if configured.endswith(API_BASE_PATH):
         return configured
     return f"{configured}{API_BASE_PATH}"
@@ -142,12 +152,12 @@ def get_api_key():
     print("", file=sys.stderr)
     print("Please configure your API Key using one of these methods:", file=sys.stderr)
     print("", file=sys.stderr)
-    print("  Method 1: User-home config (recommended — shared across all skills)", file=sys.stderr)
+    print("  Method 1: Environment variable (recommended — no file written)", file=sys.stderr)
+    print("    export ZOODATA_API_KEY='hms_live_yourkey'", file=sys.stderr)
+    print("", file=sys.stderr)
+    print("  Method 2: User-home config (persistent, shared across all skills)", file=sys.stderr)
     print("    mkdir -p ~/.zoodata", file=sys.stderr)
     print('    echo \'{"api_key":"hms_live_yourkey"}\' > ~/.zoodata/config.json', file=sys.stderr)
-    print("", file=sys.stderr)
-    print("  Method 2: Environment variable (session only)", file=sys.stderr)
-    print("    export ZOODATA_API_KEY='hms_live_yourkey'", file=sys.stderr)
     print("", file=sys.stderr)
     print("Get a free key at https://zoodata.ai/en/api-keys", file=sys.stderr)
     sys.exit(1)

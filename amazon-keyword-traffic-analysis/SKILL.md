@@ -7,7 +7,7 @@ description: >
   batch keyword snapshot, multidimensional market profile, trend, and ASIN-keyword timeline
   workflows. Requires ZOODATA_API_KEY.
 metadata:
-  version: "0.1.2"
+  version: "0.1.3"
   author: SerendipityOneInc
   homepage: https://github.com/SerendipityOneInc/ZooData-Skills
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}
@@ -31,6 +31,14 @@ metadata:
 ## Credential
 
 Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zoodata.ai/en/api-keys).
+
+## Capabilities & Data Flow
+
+- **Network**: only `https://api.zoodata.ai` (Bearer `ZOODATA_API_KEY`). Setting `ZOODATA_BASE_URL` to any other host triggers a CLI warning — do not point it at hosts you don't trust.
+- **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). The shared CLI exposes ALL ZooData endpoints as subcommands; this skill's workflows use: `keyword-detail`, `keyword-market-profile`, `keyword-trend`, `keyword-trend-profile`, `keyword-extends`, `keyword-search-results`, `keyword-competitor-product-keywords`, `keyword-product-traffic-terms`, `product-traffic-terms-overview`, `product-traffic-terms-timeline`, `check`. Do not invoke unrelated subcommands for this skill's tasks.
+- **Local files**: none; reads the optional credential store `~/.zoodata/config.json`.
+- **Sent to the API**: keywords, category paths, ASINs, marketplace/date and numeric filter values only. **Never sent**: budget, experience level, risk tolerance, or any other user-profile text — profile inputs map client-side to numeric filters.
+- **Credits**: every API call consumes account credits. For broad or ambiguous requests, state the estimated credit cost and confirm with the user before running multi-call scans.
 
 ## Input
 

@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added — Security-audit response: Capabilities & Data Flow declarations (all 12 skills)
+
+ClawHub's SkillSpector audit flagged an under-declared capability surface (env-only metadata vs actual network/execution/file behavior) and missing data-flow transparency. Every SKILL.md now carries a standardized "Capabilities & Data Flow" section declaring: exact network host, the bundled shared CLI and which subcommands the skill's workflows use, local files written, what is/isn't sent to the API (user profile text never leaves the machine — it maps client-side to numeric filters), and a credit-cost confirmation rule for broad requests.
+
+### Changed — CLI hardening
+- `ZOODATA_BASE_URL` pointing at a non-zoodata.ai / non-localhost host now prints a Bearer-token warning before any request.
+- Missing-key hint now recommends the environment variable first; the `~/.zoodata/config.json` home config is listed as the persistent alternative.
+- Patch version bump on all 12 skills for ClawHub republish.
+
+
 ### Changed — amazon-keyword-traffic-analysis marketing copy
 
 `description` rewritten to lead with value hooks — ABA-backed data, Priority/Selective/Observe/Exclude test tiers, bid-worthiness verdicts, reverse-ASIN traffic terms — while preserving every trigger phrase for agent routing. Skill README restructured to lead with outcomes and example prompts; agent implementation details (draft MCP tool names, tool-selection rules) moved to a trailing "Agent Implementation Notes" section; data-boundary disclaimers consolidated under "Data Source & Boundaries". No workflow or endpoint content changed.
