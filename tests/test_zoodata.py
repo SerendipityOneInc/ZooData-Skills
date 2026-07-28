@@ -622,24 +622,68 @@ class TestMarketEntryCategoryFallback(unittest.TestCase):
 
 
 class TestCredentialResolution(unittest.TestCase):
-    """Regression: cmd_check used to read ~/.zoodata/config.json but
-    get_api_key read {skill_dir}/config.json. The two paths never overlapped,
-    so users could see "check OK" then watch every real call fail. After the
-    fix both functions go through _resolve_credential() with the same chain."""
+    """`_resolve_credential()` resolves the ZooData key from four sources, in
+    order: ZOODATA_API_KEY env, APICLAW_API_KEY env (deprecated),
+    ~/.zoodata/config.json, ~/.apiclaw/config.json (deprecated). The legacy
+    APICLAW sources still work but emit a deprecation warning. The in-bundle
+    {skill_dir}/config.json fallback was removed for good: the skill directory
+    ships inside the published bundle, so a key placed there would leak."""
+
+    def setUp(self):
+        # Reset the once-per-process deprecation dedup so warnings fire per test.
+        zoodata._DEPRECATION_WARNED.clear()
+
+    def _resolve_capturing_stderr(self):
+        import contextlib
+        import io
+        buf = io.StringIO()
+        with contextlib.redirect_stderr(buf):
+            key = zoodata._resolve_credential()
+        return key, buf.getvalue()
 
     def test_env_zoodata_takes_precedence(self):
         with patch.dict("os.environ", {"ZOODATA_API_KEY": "z"}, clear=True):
             self.assertEqual(zoodata._resolve_credential(), "z")
 
-    def test_env_legacy_apiclaw_is_a_fallback(self):
-        with patch.dict("os.environ", {"APICLAW_API_KEY": "legacy"}, clear=True):
-            self.assertEqual(zoodata._resolve_credential(), "legacy")
-
-    def test_zoodata_env_beats_apiclaw_env(self):
+    def test_zoodata_env_beats_legacy_apiclaw_env(self):
         with patch.dict("os.environ",
                         {"ZOODATA_API_KEY": "new", "APICLAW_API_KEY": "old"},
                         clear=True):
             self.assertEqual(zoodata._resolve_credential(), "new")
+
+    def test_legacy_apiclaw_env_is_a_deprecated_fallback(self):
+        """APICLAW_API_KEY still resolves but warns about deprecation."""
+        with patch.dict("os.environ", {"APICLAW_API_KEY": "legacy"}, clear=True), \
+             patch("os.path.exists", return_value=False):
+            key, stderr = self._resolve_capturing_stderr()
+        self.assertEqual(key, "legacy")
+        self.assertIn("APICLAW_API_KEY", stderr)
+        self.assertIn("deprecated", stderr)
+
+    def test_legacy_apiclaw_home_config_is_a_deprecated_fallback(self):
+        """~/.apiclaw/config.json still resolves (after ~/.zoodata) but warns."""
+        apiclaw_home = os.path.expanduser("~/.apiclaw/config.json")
+        with patch.dict("os.environ", {}, clear=True), \
+             patch("os.path.exists", side_effect=lambda p: p == apiclaw_home), \
+             patch("builtins.open", mock_open(read_data='{"api_key":"legacy_home"}')):
+            key, stderr = self._resolve_capturing_stderr()
+        self.assertEqual(key, "legacy_home")
+        self.assertIn(".apiclaw", stderr)
+        self.assertIn("deprecated", stderr)
+
+    def test_skill_dir_config_is_not_a_source(self):
+        """The in-bundle {skill_dir}/config.json fallback was removed so a
+        committed key can never ship inside the published skill. Only
+        ~/.zoodata/config.json is consulted; a config.json anywhere else
+        (e.g. next to scripts/) is ignored even when it exists."""
+        home_zoodata = os.path.expanduser("~/.zoodata/config.json")
+        apiclaw_home = os.path.expanduser("~/.apiclaw/config.json")
+        # Neither home config exists; only a config.json sitting elsewhere
+        # (e.g. next to scripts/, the removed fallback) would "exist".
+        with patch.dict("os.environ", {}, clear=True), \
+             patch("os.path.exists", side_effect=lambda p: p not in (home_zoodata, apiclaw_home)), \
+             patch("builtins.open", mock_open(read_data='{"api_key":"bundled"}')):
+            self.assertIsNone(zoodata._resolve_credential())
 
     def test_user_home_config_works_when_no_env(self):
         """The regression: before the fix, real API calls didn't look here
@@ -654,6 +698,15 @@ class TestCredentialResolution(unittest.TestCase):
     def test_returns_none_when_nothing_configured(self):
         with patch.dict("os.environ", {}, clear=True), \
              patch("os.path.exists", return_value=False):
+            self.assertIsNone(zoodata._resolve_credential())
+
+    def test_explicit_null_api_key_does_not_crash(self):
+        """A config with `{"api_key": null}` must return None, not crash on
+        None.strip()."""
+        home_zoodata = os.path.expanduser("~/.zoodata/config.json")
+        with patch.dict("os.environ", {}, clear=True), \
+             patch("os.path.exists", side_effect=lambda p: p == home_zoodata), \
+             patch("builtins.open", mock_open(read_data='{"api_key": null}')):
             self.assertIsNone(zoodata._resolve_credential())
 
 
@@ -692,11 +745,12 @@ class TestBaseUrlResolution(unittest.TestCase):
             zoodata._resolve_base_url()
         return buf.getvalue()
 
-    def test_untrusted_host_warns_about_bearer_token(self):
+    def test_untrusted_host_warns_key_is_withheld(self):
         stderr = self._stderr_of_resolve({"ZOODATA_BASE_URL": "https://evil.example.com"})
         self.assertIn("WARNING", stderr)
         self.assertIn("evil.example.com", stderr)
         self.assertIn("Bearer", stderr)
+        self.assertIn("NOT be sent", stderr)
 
     def test_default_host_is_silent(self):
         self.assertEqual(self._stderr_of_resolve({}), "")
@@ -708,6 +762,35 @@ class TestBaseUrlResolution(unittest.TestCase):
     def test_localhost_is_trusted_and_silent(self):
         stderr = self._stderr_of_resolve({"ZOODATA_BASE_URL": "http://localhost:8080"})
         self.assertEqual(stderr, "")
+
+    def test_is_trusted_host_accepts_zoodata_and_localhost(self):
+        for url in ("https://api.zoodata.ai/openapi/v2",
+                    "https://staging.zoodata.ai",
+                    "https://zoodata.ai",
+                    "http://localhost:8080",
+                    "http://127.0.0.1:9000"):
+            self.assertTrue(zoodata._is_trusted_host(url), url)
+
+    def test_is_trusted_host_rejects_arbitrary_and_spoofed_hosts(self):
+        # Bearer token must never go to these — note the subdomain-spoof cases.
+        for url in ("https://evil.example.com",
+                    "https://zoodata.ai.evil.com",
+                    "https://notzoodata.ai"):
+            self.assertFalse(zoodata._is_trusted_host(url), url)
+
+    def test_api_call_refuses_untrusted_host_before_sending_key(self):
+        """When the base URL is untrusted, api_call must sys.exit(1) BEFORE
+        resolving/sending the key — the Bearer token is withheld, not just warned."""
+        import contextlib
+        import io
+        buf = io.StringIO()
+        with patch.object(zoodata, "BASE_URL_TRUSTED", False), \
+             patch.object(zoodata, "get_api_key") as get_key, \
+             contextlib.redirect_stderr(buf):
+            with self.assertRaises(SystemExit):
+                zoodata.api_call("categories", {})
+        get_key.assert_not_called()  # key resolution never reached
+        self.assertIn("refusing", buf.getvalue())
 
 
 class TestCheckCommand(unittest.TestCase):
@@ -800,6 +883,74 @@ class TestCategoriesMarketplace(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
+class TestCreditAggregation(unittest.TestCase):
+    """Composite commands fan out to many endpoints; the run's total credit
+    consumption must be summed and stamped onto the top-level meta."""
+
+    def _reset(self):
+        zoodata._CREDITS.consumed = 0.0
+        zoodata._CREDITS.consumed_exact = 0.0
+        zoodata._CREDITS.remaining = None
+        zoodata._CREDITS.remaining_exact = None
+        zoodata._CREDITS.calls = 0
+
+    setUp = _reset
+    tearDown = _reset  # avoid leaking accumulated state to other test classes
+
+    def test_tracker_sums_display_and_exact_separately(self):
+        t = zoodata._CreditTracker()
+        t.record({"creditsConsumed": 1, "creditsRemaining": 100})
+        t.record({"creditsConsumedExact": 2.0, "creditsRemainingExact": 98.0})
+        self.assertEqual(t.consumed, 3.0)         # 1 + (fallback 2.0)
+        self.assertEqual(t.consumed_exact, 3.0)   # (fallback 1) + 2.0
+        self.assertEqual(t.remaining, 100)        # last display remaining
+        self.assertEqual(t.remaining_exact, 98.0)
+        self.assertEqual(t.calls, 2)
+
+    def test_tracker_ignores_non_dict_and_missing_fields(self):
+        t = zoodata._CreditTracker()
+        t.record(None)
+        t.record({})
+        t.record({"foo": 1})
+        self.assertEqual(t.calls, 0)
+        self.assertEqual(t.consumed, 0.0)
+
+    def test_annotate_stamps_composite_total_onto_meta(self):
+        for rem in (500, 499, 498):  # three internal calls, 1 credit each
+            zoodata._CREDITS.record({"creditsConsumed": 1, "creditsRemaining": rem})
+        payload = {"meta": {"keyword": "x", "steps_completed": []}, "market": {}}
+        zoodata._annotate_credits(payload)
+        self.assertEqual(payload["meta"]["creditsConsumed"], 3)
+        self.assertEqual(payload["meta"]["creditsRemaining"], 498)
+        self.assertEqual(payload["meta"]["apiCalls"], 3)
+
+    def test_annotate_preserves_single_call_display_value(self):
+        # A single call whose display credit (1) differs from exact (0.5) must
+        # keep BOTH — annotate must not overwrite the rounded display with exact.
+        zoodata._CREDITS.record({"creditsConsumed": 1, "creditsConsumedExact": 0.5,
+                                 "creditsRemaining": 9})
+        payload = {"meta": {"foo": "bar"}}
+        zoodata._annotate_credits(payload)
+        self.assertEqual(payload["meta"]["creditsConsumed"], 1)
+        self.assertEqual(payload["meta"]["creditsConsumedExact"], 0.5)
+
+    def test_annotate_synthesises_meta_when_absent(self):
+        # reviews-raw and similar emit no top-level meta; the total must still
+        # be surfaced, not silently dropped.
+        zoodata._CREDITS.record({"creditsConsumed": 1, "creditsRemaining": 9})
+        zoodata._CREDITS.record({"creditsConsumed": 1, "creditsRemaining": 8})
+        payload = {"success": True, "data": {}}  # no meta
+        zoodata._annotate_credits(payload)
+        self.assertIn("meta", payload)
+        self.assertEqual(payload["meta"]["creditsConsumed"], 2)
+        self.assertEqual(payload["meta"]["apiCalls"], 2)
+
+    def test_annotate_is_noop_without_api_calls(self):
+        payload = {"meta": {"keyword": "x"}}
+        zoodata._annotate_credits(payload)  # calls == 0
+        self.assertNotIn("creditsConsumed", payload["meta"])
+
+
 # Standalone runner
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":

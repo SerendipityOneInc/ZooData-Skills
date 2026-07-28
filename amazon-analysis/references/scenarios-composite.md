@@ -1,7 +1,7 @@
 # Amazon Seller Comprehensive Analysis & Case Studies
 
 > Amazon product recommendation workflows and real-world FBA/FBM seller case studies.
-> Load when handling comprehensive product recommendations or Chinese seller case studies.
+> Load when handling comprehensive product recommendations or seller origin case studies.
 > For API parameters, see `reference.md`.
 >
 > ⚠️ **Always resolve categoryPath before running these queries.** Tag conclusions with 📊/🔍/💡 confidence labels.
@@ -77,51 +77,51 @@ python3 scripts/zoodata.py price-band-overview --keyword "pet toys"
 
 ---
 
-## 3.4 Chinese Seller Case Study
+## 3.4 Seller Origin Case Study (by country code)
 
-> Trigger: "Are there Chinese sellers who succeeded" / "Chinese sellers cases" / "Chinese sellers"
+> Trigger: "Are there Chinese sellers who succeeded" / "sellers from a specific country" / "seller origin analysis"
 
 ```bash
 python3 scripts/zoodata.py competitors --keyword "wireless earbuds" --page-size 50
-# → Filter results by buyBoxSellerCountryCode field
+# → Filter results by the buyBoxSellerCountryCode field
 ```
 
-**buyBoxSellerCountryCode Filtering Logic**:
-- Primary: `buyBoxSellerCountryCode` contains "CN" / "China" / Chinese city names: Shenzhen, Guangzhou, Hangzhou, Yiwu, Dongguan, Xiamen, Shanghai, Beijing, Ningbo, Fuzhou
-- Sort by `monthlySalesFloor`, find Top 5 Chinese sellers by sales volume
+**Origin filtering — use the `buyBoxSellerCountryCode` field only**:
+- Filter by the reported `buyBoxSellerCountryCode` (e.g. `CN` for China-based sellers). This is the only reliable origin signal.
+- Sort qualifying sellers by `monthlySalesFloor` to find the top performers by sales volume.
 
-**⚠️ Fallback when buyBoxSellerCountryCode is null** (common — many ASINs don't have this field):
-- Check `buyBoxSellerName` or `brand` for Chinese seller patterns: all-pinyin names, names ending in "-Direct"/"-Store"/"-Official", or gibberish letter combinations
-- Cross-reference with product categories typical of Chinese sellers (electronics accessories, phone cases, etc.)
-- If buyBoxSellerCountryCode coverage is too low (<30% of results), note this limitation in output
+**⚠️ When `buyBoxSellerCountryCode` is null** (common — many ASINs lack it):
+- Do NOT infer a seller's country from names, brand text, spelling/pinyin, name suffixes, or product category — those are unreliable and biased proxies.
+- Report only the sellers whose country code is present, and state the coverage explicitly (e.g. "origin known for 12/50 results; the rest are unclassified"). Never present an inferred origin as fact.
 
-**Analysis Dimensions**:
-- Chinese sellers count ratio (vs total sellers)
-- Common traits of top Chinese sellers (price range, review count, listing time)
-- Listing strategies of successful Chinese sellers (can use `product --asin XXX` for details)
+**Analysis Dimensions** (over sellers with a known country code):
+- Count and ratio of sellers from the target country vs. the classified total
+- Common traits of the top performers (price range, review count, listing age)
+- Listing strategies of the top performers (use `product --asin XXX` for details)
 - Replicable strategy points
 
 **Output Template**
 
 ```markdown
-# 🇨🇳 [Category] Chinese Seller Case Analysis
+# [Category] Seller Origin Case Analysis
 
-## Chinese Seller Overview
+## Origin Coverage
 | Metric | Value |
 |-----|------|
-| Chinese Seller Count | X / Total Y (Z% ratio) |
-| Top Chinese Seller Average Monthly Sales | X units |
-| Top Chinese Seller Average Price | $X |
+| Country code known | X / Total Y (Z% coverage) |
+| Sellers from [country] | X |
+| Top [country] seller average monthly sales | X units |
+| Top [country] seller average price | $X |
 
-## Top 5 Chinese Seller Products
+## Top 5 [country] Seller Products
 | # | ASIN | Brand | Price | Monthly Sales | Rating | Reviews | Listing Date |
 |---|------|------|------|-------|------|------|---------|
 
 ## Success Strategy Analysis
-[Common traits analysis + Replicable strategies]
+[Common traits + replicable strategies, over sellers with a known country code]
 
 ## Action Recommendations
-[Specific recommendations based on Chinese seller cases]
+[Recommendations grounded in observed data; note origin-coverage limits]
 ```
 
 ---

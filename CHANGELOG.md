@@ -4,6 +4,34 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed — Accurate credit reporting for composite commands
+
+Composite commands (`report`, `market-entry`, `competitor-analysis`, `pricing-analysis`, `daily-radar`, `listing-audit`, `opportunity-scan`, …) fan out to many endpoints, but their output surfaced only one internal call's `meta.creditsConsumed` (or none) — a live audit found e.g. `market-entry` reporting `1` while actually consuming `23`. A run-scoped credit tracker now hooks the single HTTP call site and accumulates every internal call's real consumption; `output()` stamps the total onto the top-level `meta` (`creditsConsumed`, `creditsConsumedExact`, `creditsRemaining`, `apiCalls`). Single-endpoint responses are unchanged in meaning (the total equals that one call). Account billing was always correct — this fixes the *reported* total so agents can tell users the true cost.
+
+The same tracker was ported to `web-extract`'s standalone `webtools.py`: the multi-call `crawl-wait` (submit + poll) previously reported no credit info at all (`meta: {"polled": true}`); it now surfaces the true total (live-verified: 2 credits for a 1-page crawl). Single-call webtools commands (`search`/`scrape`/`map`) are unchanged.
+
+### Security — Removed bundled API key + credential-source hardening
+
+A live, full-scope ZooData API key had been hand-placed into `zoodata/config.json` and shipped inside the published `zoodata` bundle (v1.1.4–v1.1.5), because `clawhub sync` bundles the skill folder from disk and does **not** honor `.gitignore`. The key has been revoked. Hardening:
+
+- **Removed the `{skill_dir}/config.json` credential fallback** from the shared CLI (present since v1.0.0). The skill directory ships inside the published bundle, so it must never be a credential source — a key placed there leaks publicly.
+- **Added `.clawhubignore`** (excluding `config.json`) to every skill directory so a stray config can never be bundled again; `.gitignore` does not apply to `clawhub sync`.
+- **Deprecated (not removed) the legacy `APICLAW_API_KEY` env var and `~/.apiclaw/config.json`.** They still resolve but now print a one-time deprecation warning; migrate to `ZOODATA_API_KEY` / `~/.zoodata/config.json`. They will be removed in a future release. The same soft-deprecation was applied to `web-extract`'s separate `webtools.py` CLI for consistency.
+- **`ZOODATA_BASE_URL` pointing at an untrusted host now withholds the key entirely.** Previously the CLI warned but still sent the Bearer token; now requests to any host other than `zoodata.ai` / `*.zoodata.ai` / localhost are refused before the key is transmitted, so credentials can never reach an arbitrary host. The 11 SKILL.md "Capabilities & Data Flow" declarations that carry a base-url note were updated to state this refusal (they previously said "triggers a CLI warning"); `web-extract` has no such declaration because its `webtools.py` hardcodes the base URL with no `ZOODATA_BASE_URL` override.
+- Hardened `_read_config_api_key` against a `{"api_key": null}` config (previously crashed on `None.strip()`); added tests for the untrusted-host refusal path and the null-key case.
+
+**Migration / impact on existing installs (only after `openclaw skills update`):**
+- `ZOODATA_API_KEY` env or `~/.zoodata/config.json` users — no change.
+- `APICLAW_API_KEY` env or `~/.apiclaw/config.json` users — still work, now warn.
+- Anyone who placed a key in the **skill directory's** `config.json` — that path no longer resolves; move the key to `ZOODATA_API_KEY` or `~/.zoodata/config.json`.
+
+### Changed — LLM security-review content fixes (needs-review clearance)
+
+ClawHub's LLM review flagged 7 skills. Content corrections:
+- **amazon-analysis** — the "Chinese Seller Case Study" scenario reframed to seller-origin analysis driven **only** by the `buyBoxSellerCountryCode` data field; removed the name/pinyin/suffix/category stereotyping heuristics and now discloses origin coverage instead of guessing. Two execution-guide fallbacks that told the agent to hide data limitations from users now require transparent disclosure. The over-broad "can I do this" risk-assessment trigger tightened to qualified phrases requiring a product/ASIN/niche.
+- **amazon-listing-audit-pro** and **amazon-market-trend-scanner** — `references/reference.md` was a verbatim copy of the Market Entry Analyzer reference (wrong title, "uses all 11 endpoints" claim). Retitled to each skill and reframed as a shared field reference, with a note that the skill's workflows use only the subcommands listed in SKILL.md.
+- **amazon-competitor-intelligence-monitor** — excluded the `monitor-data/` runtime-state directory (leftover test baseline/config) from the published bundle via `.clawhubignore`.
+
 ### Added — Security-audit response: Capabilities & Data Flow declarations (all 12 skills)
 
 ClawHub's SkillSpector audit flagged an under-declared capability surface (env-only metadata vs actual network/execution/file behavior) and missing data-flow transparency. Every SKILL.md now carries a standardized "Capabilities & Data Flow" section declaring: exact network host, the bundled shared CLI and which subcommands the skill's workflows use, local files written, what is/isn't sent to the API (user profile text never leaves the machine — it maps client-side to numeric filters), and a credit-cost confirmation rule for broad requests.

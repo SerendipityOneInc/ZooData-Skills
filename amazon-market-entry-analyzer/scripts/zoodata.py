@@ -51,18 +51,29 @@ KEYWORD_DATE_RANGE_MAX_DAYS = 93
 KEYWORD_TIMELINE_MAX_DAYS = 61
 
 
-def _resolve_base_url():
-    """Resolve API base URL, allowing local test hosts via ZOODATA_BASE_URL."""
-    configured = os.environ.get("ZOODATA_BASE_URL", DEFAULT_BASE_URL).strip().rstrip("/")
+def _host_of(url):
     try:
         from urllib.parse import urlparse
-        host = urlparse(configured if "://" in configured else f"https://{configured}").hostname or ""
+        return (urlparse(url if "://" in url else f"https://{url}").hostname or "").lower()
     except Exception:
-        host = ""
-    trusted = host == "zoodata.ai" or host.endswith(".zoodata.ai") or host in ("localhost", "127.0.0.1")
-    if configured.rstrip("/") != DEFAULT_BASE_URL.rstrip("/") and not trusted:
-        print(f"WARNING: ZOODATA_BASE_URL points at non-default host '{host}'. "
-              "Your API key will be sent there as a Bearer token — only proceed if you trust this host.",
+        return ""
+
+
+def _is_trusted_host(url):
+    """True only for ZooData hosts and localhost — the sole destinations the API
+    key (Bearer token) may be sent to. Any other host is untrusted and the key
+    is withheld (see api_call), so credentials never reach an arbitrary host."""
+    host = _host_of(url)
+    return host == "zoodata.ai" or host.endswith(".zoodata.ai") or host in ("localhost", "127.0.0.1")
+
+
+def _resolve_base_url():
+    """Resolve API base URL, allowing zoodata.ai / localhost hosts via ZOODATA_BASE_URL."""
+    configured = os.environ.get("ZOODATA_BASE_URL", DEFAULT_BASE_URL).strip().rstrip("/")
+    if configured.rstrip("/") != DEFAULT_BASE_URL.rstrip("/") and not _is_trusted_host(configured):
+        print(f"WARNING: ZOODATA_BASE_URL points at untrusted host '{_host_of(configured)}'. "
+              "Your API key (Bearer token) will NOT be sent there — requests to untrusted "
+              "hosts are refused. Use a zoodata.ai host or localhost.",
               file=sys.stderr)
     if configured.endswith(API_BASE_PATH):
         return configured
@@ -70,6 +81,7 @@ def _resolve_base_url():
 
 
 BASE_URL = _resolve_base_url()  # ZooData API base URL
+BASE_URL_TRUSTED = _is_trusted_host(BASE_URL)  # gates Bearer-token transmission
 API_DOCS = "https://api.zoodata.ai/api-docs"   # API documentation URL
 MAX_RETRIES = 3       # Maximum number of retry attempts for failed requests
 RETRY_DELAY = 2       # Initial retry delay in seconds; doubles on each retry
@@ -105,39 +117,65 @@ PRODUCT_MODES = {
 
 # ─── API Client ──────────────────────────────────────────────────────────────
 
+_DEPRECATION_WARNED = set()
+
+
+def _warn_deprecated_source(label, replacement):
+    """Warn once per process when a legacy credential source is used."""
+    if label in _DEPRECATION_WARNED:
+        return
+    _DEPRECATION_WARNED.add(label)
+    print(
+        f"WARNING: {label} is deprecated and will be removed in a future "
+        f"release. Use {replacement} instead.",
+        file=sys.stderr,
+    )
+
+
+def _read_config_api_key(path):
+    """Return the api_key from a JSON config file, or None if absent/unreadable."""
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return (json.load(f).get("api_key") or "").strip() or None
+    except (json.JSONDecodeError, IOError):
+        return None
+
+
 def _resolve_credential():
     """
     Resolve the ZooData API key. Returns the key string or None.
     Used by BOTH get_api_key() and cmd_check() so the two stay in sync —
     a divergence here was a real bug (check said configured, real calls failed).
+
+    Sources, in order:
+      1. ZOODATA_API_KEY env var
+      2. APICLAW_API_KEY env var    (deprecated — warns)
+      3. ~/.zoodata/config.json
+      4. ~/.apiclaw/config.json     (deprecated — warns)
+
+    The former {skill_dir}/config.json fallback was removed for security: the
+    skill directory ships inside the published bundle, so a key placed there
+    would be published publicly.
     """
-    for var in ("ZOODATA_API_KEY", "APICLAW_API_KEY"):
-        key = os.environ.get(var, "").strip()
-        if key:
-            return key
+    key = os.environ.get("ZOODATA_API_KEY", "").strip()
+    if key:
+        return key
 
-    for candidate in ("~/.zoodata/config.json", "~/.apiclaw/config.json"):
-        path = os.path.expanduser(candidate)
-        if os.path.exists(path):
-            try:
-                with open(path, "r", encoding="utf-8") as f:
-                    key = json.load(f).get("api_key", "").strip()
-                if key:
-                    return key
-            except (json.JSONDecodeError, IOError):
-                pass
+    key = os.environ.get("APICLAW_API_KEY", "").strip()
+    if key:
+        _warn_deprecated_source("APICLAW_API_KEY", "ZOODATA_API_KEY")
+        return key
 
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    skill_dir = os.path.dirname(script_dir)
-    skill_config = os.path.join(skill_dir, "config.json")
-    if os.path.exists(skill_config):
-        try:
-            with open(skill_config, "r", encoding="utf-8") as f:
-                key = json.load(f).get("api_key", "").strip()
-            if key:
-                return key
-        except (json.JSONDecodeError, IOError) as e:
-            print(f"WARNING: Failed to read {skill_config}: {e}", file=sys.stderr)
+    key = _read_config_api_key(os.path.expanduser("~/.zoodata/config.json"))
+    if key:
+        return key
+
+    key = _read_config_api_key(os.path.expanduser("~/.apiclaw/config.json"))
+    if key:
+        _warn_deprecated_source("~/.apiclaw/config.json", "~/.zoodata/config.json")
+        return key
 
     return None
 
@@ -163,6 +201,69 @@ def get_api_key():
     sys.exit(1)
 
 
+class _CreditTracker:
+    """Accumulates real API credit consumption across every api_call() in one
+    CLI invocation. Composite commands fan out to many endpoints, so without a
+    running total their output would surface only one internal call's figure
+    (or none). Hooking every request here — the sole HTTP site — never misses
+    an internal call, even review pages that the merged output drops."""
+
+    def __init__(self):
+        self.consumed = 0.0          # sum of display `creditsConsumed`
+        self.consumed_exact = 0.0    # sum of `creditsConsumedExact`
+        self.remaining = None        # last display `creditsRemaining`
+        self.remaining_exact = None  # last `creditsRemainingExact`
+        self.calls = 0
+
+    def record(self, meta):
+        if not isinstance(meta, dict):
+            return
+        d = meta.get("creditsConsumed")
+        e = meta.get("creditsConsumedExact")
+        d = d if isinstance(d, (int, float)) else None
+        e = e if isinstance(e, (int, float)) else None
+        # Keep display and exact tallies separate; fall each back to the other
+        # when the API omits one, so neither total is understated.
+        disp = d if d is not None else e
+        exact = e if e is not None else d
+        if disp is not None:
+            self.consumed += disp
+            self.consumed_exact += exact if exact is not None else disp
+            self.calls += 1
+        rd = meta.get("creditsRemaining")
+        if isinstance(rd, (int, float)):
+            self.remaining = rd
+        re_ = meta.get("creditsRemainingExact")
+        if isinstance(re_, (int, float)):
+            self.remaining_exact = re_
+
+
+_CREDITS = _CreditTracker()
+
+
+def _annotate_credits(payload):
+    """Stamp the invocation's total credit consumption onto a dict payload's
+    top-level `meta` so every command that hits the API reports an accurate
+    total. For a single-endpoint response the display/exact totals equal that
+    call's own figures (no change in meaning); for a composite they sum every
+    internal call. A `meta` block is synthesised when the payload has none
+    (e.g. `reviews-raw`, which fans out over review pages)."""
+    if not isinstance(payload, dict) or _CREDITS.calls == 0:
+        return
+    meta = payload.get("meta")
+    if not isinstance(meta, dict):
+        meta = {}
+        payload["meta"] = meta
+    disp = _CREDITS.consumed
+    meta["creditsConsumed"] = int(disp) if float(disp).is_integer() else disp
+    meta["creditsConsumedExact"] = _CREDITS.consumed_exact
+    if _CREDITS.remaining is not None:
+        meta["creditsRemaining"] = _CREDITS.remaining
+    if _CREDITS.remaining_exact is not None:
+        meta["creditsRemainingExact"] = _CREDITS.remaining_exact
+    meta["apiCalls"] = _CREDITS.calls
+
+
 def api_call(endpoint: str, params: dict) -> dict:
     """
     Make a POST request to ZooData API with retry and error handling.
@@ -173,6 +274,13 @@ def api_call(endpoint: str, params: dict) -> dict:
     global _last_request_time
 
     url = f"{BASE_URL}/{endpoint}"
+
+    if not BASE_URL_TRUSTED:
+        print(f"ERROR: refusing to send your API key to untrusted host '{_host_of(BASE_URL)}'. "
+              "Set ZOODATA_BASE_URL to a zoodata.ai host or localhost, or unset it.",
+              file=sys.stderr)
+        sys.exit(1)
+
     api_key = get_api_key()
 
     # Clean params: remove None values
@@ -207,6 +315,7 @@ def api_call(endpoint: str, params: dict) -> dict:
             req = urllib.request.Request(url, data=body, headers=headers, method="POST")
             with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
+                _CREDITS.record(data.get("meta"))
                 if data.get("success"):
                     # Inject _query metadata so AI knows exactly what was sent
                     data["_query"] = {
@@ -419,6 +528,7 @@ def _error_result(status: int, message: str, action: str, endpoint: str, params:
 
 def output(data, fmt="json"):
     """Print output in the requested format."""
+    _annotate_credits(data)
     if fmt == "json":
         print(json.dumps(data, indent=2, ensure_ascii=False))
     elif fmt == "compact":
@@ -2377,7 +2487,7 @@ def cmd_check(args):
         print("✅ API Key: configured", file=sys.stderr)
     else:
         print("❌ API Key: Not found", file=sys.stderr)
-        print("   Checked: env ZOODATA_API_KEY, env APICLAW_API_KEY, ~/.zoodata/config.json, ~/.apiclaw/config.json, {skill_dir}/config.json", file=sys.stderr)
+        print("   Checked: env ZOODATA_API_KEY, ~/.zoodata/config.json (also legacy env APICLAW_API_KEY, ~/.apiclaw/config.json — deprecated)", file=sys.stderr)
         print("   Get one at: https://zoodata.ai/en/api-keys", file=sys.stderr)
         sys.exit(1)
 

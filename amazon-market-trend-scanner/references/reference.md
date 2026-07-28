@@ -1,22 +1,27 @@
-# Market Entry Analyzer — API Field Reference
+# Market Trend Scanner — API Field Reference
 
 > Load this file only when you need exact field names or response structure.
+> This is the shared ZooData endpoint field reference. This skill's workflows
+> use only the subcommands listed in SKILL.md (`categories`, `market`,
+> `products`, `check`); the endpoints below are documented purely for
+> field-name / response-structure lookup, not as a claim that this skill
+> invokes all of them.
 
-## Endpoints Used (11 of 11 — ALL)
+## ZooData Endpoint Field Reference
 
-| # | Endpoint | Purpose in This Skill | Step |
-|---|----------|-----------------------|------|
-| 1 | `categories` | Find category path for market search | Step 1a |
-| 2 | `markets/search` | Market size, competition metrics, new product rate | Step 1b |
-| 3 | `products/search` | Product supply (100+ via pagination), brand drill, price drill | Step 3, 4b, 7 |
-| 4 | `products/competitors` | Top competitor list | Step 4a |
-| 5 | `realtime/product` | Live detail for Top 5 competitors | Step 4c |
-| 6 | `reviews/analysis` | Consumer pain points, buying factors | Step 6 |
-| 7 | `products/price-band-overview` | Hottest & best opportunity price bands | Step 2a |
-| 8 | `products/price-band-detail` | Per-band SKU/sales/brand/rating breakdown | Step 2b |
-| 9 | `products/brand-overview` | Brand count, CR10, top brand avg price/rating | Step 1c |
-| 10 | `products/brand-detail` | Per-brand SKU/sales/revenue/share ranking | Step 1d |
-| 11 | `products/history` | 30-day price/BSR/sales trend for Top 3 | Step 5 |
+| # | Endpoint | Purpose |
+|---|----------|---------|
+| 1 | `categories` | Category path lookup |
+| 2 | `markets/search` | Market size, competition metrics, new product rate |
+| 3 | `products/search` | Product supply (100+ via pagination), brand/price drill |
+| 4 | `products/competitors` | Top competitor list |
+| 5 | `realtime/product` | Live product detail |
+| 6 | `reviews/analysis` | Consumer pain points, buying factors |
+| 7 | `products/price-band-overview` | Price-band opportunity overview |
+| 8 | `products/price-band-detail` | Per-band SKU/sales/brand/rating breakdown |
+| 9 | `products/brand-overview` | Brand count, CR10, top brand avg price/rating |
+| 10 | `products/brand-detail` | Per-brand SKU/sales/revenue/share ranking |
+| 11 | `products/history` | 30-day price/BSR/sales trend |
 
 Base URL: `https://api.zoodata.ai/openapi/v2`
 Auth: `Bearer $ZOODATA_API_KEY`

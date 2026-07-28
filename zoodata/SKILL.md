@@ -18,7 +18,7 @@ description: >
   credit usage, how the Local Review Toolkit works, how to get started.
   Requires ZOODATA_API_KEY.
 metadata:
-  version: "1.1.5"
+  version: "1.1.6"
   author: SerendipityOneInc
   homepage: https://github.com/SerendipityOneInc/ZooData-Skills
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}
@@ -40,7 +40,7 @@ metadata:
 
 ## Capabilities & Data Flow
 
-- **Network**: only `https://api.zoodata.ai` (Bearer `ZOODATA_API_KEY`). Setting `ZOODATA_BASE_URL` to any other host triggers a CLI warning — do not point it at hosts you don't trust.
+- **Network**: only `https://api.zoodata.ai` (Bearer `ZOODATA_API_KEY`). Setting `ZOODATA_BASE_URL` to an untrusted host (anything other than `api.zoodata.ai` / `*.zoodata.ai` / localhost) makes the CLI **refuse the request and withhold the key** — the Bearer token is never sent to an untrusted host.
 - **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). The shared CLI exposes ALL ZooData endpoints as subcommands; this skill's workflows use: all subcommands — this is the data-layer reference skill, so the full CLI surface is the declared surface. Do not invoke unrelated subcommands for this skill's tasks.
 - **Local files**: none by default; reads the optional credential store `~/.zoodata/config.json`; the Local Review Toolkit uses a temporary `/tmp/review_<ASIN>_<timestamp>/` working dir during the review fallback.
 - **Sent to the API**: keywords, category paths, ASINs, marketplace/date and numeric filter values only. **Never sent**: budget, experience level, risk tolerance, or any other user-profile text — profile inputs map client-side to numeric filters.
