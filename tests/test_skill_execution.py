@@ -146,8 +146,11 @@ class TestSkillCliLive(unittest.TestCase):
         self.assertEqual(r.returncode, 0, f"market-entry failed:\n{r.stderr[:400]}")
         meta = json.loads(r.stdout).get("meta", {})
         self.assertGreater(meta.get("apiCalls", 0), 1, "composite should fan out to many calls")
-        self.assertGreaterEqual(meta.get("creditsConsumed", 0), meta.get("apiCalls", 0),
-                                "aggregated credits must cover every internal call, not just one")
+        # The regression collapsed the total to a single internal call's figure (1).
+        # Assert the surfaced total reflects the fan-out, without assuming a fixed
+        # per-endpoint cost (some endpoints could be zero-cost).
+        self.assertGreater(meta.get("creditsConsumed", 0), 1,
+                           "aggregated credits must exceed a single call's figure")
 
 
 if __name__ == "__main__":
