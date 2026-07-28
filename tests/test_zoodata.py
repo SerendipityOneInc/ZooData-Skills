@@ -883,6 +883,52 @@ class TestCategoriesMarketplace(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
+class TestCreditAggregation(unittest.TestCase):
+    """Composite commands fan out to many endpoints; the run's total credit
+    consumption must be summed and stamped onto the top-level meta."""
+
+    def setUp(self):
+        zoodata._CREDITS.consumed = 0.0
+        zoodata._CREDITS.remaining = None
+        zoodata._CREDITS.calls = 0
+
+    def test_tracker_sums_consumed_and_tracks_remaining(self):
+        t = zoodata._CreditTracker()
+        t.record({"creditsConsumed": 1, "creditsRemaining": 100})
+        t.record({"creditsConsumedExact": 2.0, "creditsRemainingExact": 98.0})
+        self.assertEqual(t.consumed, 3.0)
+        self.assertEqual(t.remaining, 98.0)
+        self.assertEqual(t.calls, 2)
+
+    def test_tracker_ignores_non_dict_and_missing_fields(self):
+        t = zoodata._CreditTracker()
+        t.record(None)
+        t.record({})
+        t.record({"foo": 1})
+        self.assertEqual(t.calls, 0)
+        self.assertEqual(t.consumed, 0.0)
+
+    def test_annotate_stamps_composite_total_onto_meta(self):
+        for rem in (500, 499, 498):  # three internal calls, 1 credit each
+            zoodata._CREDITS.record({"creditsConsumed": 1, "creditsRemaining": rem})
+        payload = {"meta": {"keyword": "x", "steps_completed": []}, "market": {}}
+        zoodata._annotate_credits(payload)
+        self.assertEqual(payload["meta"]["creditsConsumed"], 3)
+        self.assertEqual(payload["meta"]["creditsRemaining"], 498)
+        self.assertEqual(payload["meta"]["apiCalls"], 3)
+
+    def test_annotate_is_noop_without_api_calls(self):
+        payload = {"meta": {"keyword": "x"}}
+        zoodata._annotate_credits(payload)  # calls == 0
+        self.assertNotIn("creditsConsumed", payload["meta"])
+
+    def test_annotate_skips_payload_without_meta(self):
+        zoodata._CREDITS.record({"creditsConsumed": 1, "creditsRemaining": 9})
+        payload = {"data": []}
+        zoodata._annotate_credits(payload)  # no top-level meta -> untouched
+        self.assertNotIn("meta", payload)
+
+
 # Standalone runner
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":

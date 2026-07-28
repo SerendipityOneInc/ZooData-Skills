@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed — Accurate credit reporting for composite commands
+
+Composite commands (`report`, `market-entry`, `competitor-analysis`, `pricing-analysis`, `daily-radar`, `listing-audit`, `opportunity-scan`, …) fan out to many endpoints, but their output surfaced only one internal call's `meta.creditsConsumed` (or none) — a live audit found e.g. `market-entry` reporting `1` while actually consuming `23`. A run-scoped credit tracker now hooks the single HTTP call site and accumulates every internal call's real consumption; `output()` stamps the total onto the top-level `meta` (`creditsConsumed`, `creditsConsumedExact`, `creditsRemaining`, `apiCalls`). Single-endpoint responses are unchanged in meaning (the total equals that one call). Account billing was always correct — this fixes the *reported* total so agents can tell users the true cost.
+
 ### Security — Removed bundled API key + credential-source hardening
 
 A live, full-scope ZooData API key had been hand-placed into `zoodata/config.json` and shipped inside the published `zoodata` bundle (v1.1.4–v1.1.5), because `clawhub sync` bundles the skill folder from disk and does **not** honor `.gitignore`. The key has been revoked. Hardening:

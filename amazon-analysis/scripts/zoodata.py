@@ -201,6 +201,56 @@ def get_api_key():
     sys.exit(1)
 
 
+class _CreditTracker:
+    """Accumulates real API credit consumption across every api_call() in one
+    CLI invocation. Composite commands fan out to many endpoints, so without a
+    running total their output would surface only one internal call's figure
+    (or none). Hooking every request here — the sole HTTP site — never misses
+    an internal call, even review pages that the merged output drops."""
+
+    def __init__(self):
+        self.consumed = 0.0
+        self.remaining = None
+        self.calls = 0
+
+    def record(self, meta):
+        if not isinstance(meta, dict):
+            return
+        c = meta.get("creditsConsumedExact")
+        if c is None:
+            c = meta.get("creditsConsumed")
+        if isinstance(c, (int, float)):
+            self.consumed += c
+            self.calls += 1
+        r = meta.get("creditsRemainingExact")
+        if r is None:
+            r = meta.get("creditsRemaining")
+        if isinstance(r, (int, float)):
+            self.remaining = r
+
+
+_CREDITS = _CreditTracker()
+
+
+def _annotate_credits(payload):
+    """Stamp the invocation's total credit consumption onto a dict payload's
+    top-level `meta` so composite commands report an accurate total. For a
+    single-endpoint response this equals that call's own figure (no change in
+    meaning); for a composite it replaces a partial/absent figure with the sum
+    of every internal call."""
+    if not isinstance(payload, dict) or _CREDITS.calls == 0:
+        return
+    meta = payload.get("meta")
+    if not isinstance(meta, dict):
+        return
+    total = _CREDITS.consumed
+    meta["creditsConsumed"] = int(total) if float(total).is_integer() else total
+    meta["creditsConsumedExact"] = total
+    if _CREDITS.remaining is not None:
+        meta["creditsRemaining"] = _CREDITS.remaining
+    meta["apiCalls"] = _CREDITS.calls
+
+
 def api_call(endpoint: str, params: dict) -> dict:
     """
     Make a POST request to ZooData API with retry and error handling.
@@ -252,6 +302,7 @@ def api_call(endpoint: str, params: dict) -> dict:
             req = urllib.request.Request(url, data=body, headers=headers, method="POST")
             with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
+                _CREDITS.record(data.get("meta"))
                 if data.get("success"):
                     # Inject _query metadata so AI knows exactly what was sent
                     data["_query"] = {
@@ -464,6 +515,7 @@ def _error_result(status: int, message: str, action: str, endpoint: str, params:
 
 def output(data, fmt="json"):
     """Print output in the requested format."""
+    _annotate_credits(data)
     if fmt == "json":
         print(json.dumps(data, indent=2, ensure_ascii=False))
     elif fmt == "compact":
