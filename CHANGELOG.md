@@ -11,6 +11,7 @@ A live, full-scope ZooData API key had been hand-placed into `zoodata/config.jso
 - **Removed the `{skill_dir}/config.json` credential fallback** from the shared CLI (present since v1.0.0). The skill directory ships inside the published bundle, so it must never be a credential source — a key placed there leaks publicly.
 - **Added `.clawhubignore`** (excluding `config.json`) to every skill directory so a stray config can never be bundled again; `.gitignore` does not apply to `clawhub sync`.
 - **Deprecated (not removed) the legacy `APICLAW_API_KEY` env var and `~/.apiclaw/config.json`.** They still resolve but now print a one-time deprecation warning; migrate to `ZOODATA_API_KEY` / `~/.zoodata/config.json`. They will be removed in a future release.
+- **`ZOODATA_BASE_URL` pointing at an untrusted host now withholds the key entirely.** Previously the CLI warned but still sent the Bearer token; now requests to any host other than `zoodata.ai` / `*.zoodata.ai` / localhost are refused before the key is transmitted, so credentials can never reach an arbitrary host.
 
 **Migration / impact on existing installs (only after `openclaw skills update`):**
 - `ZOODATA_API_KEY` env or `~/.zoodata/config.json` users — no change.

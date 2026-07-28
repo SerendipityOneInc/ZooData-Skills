@@ -736,11 +736,12 @@ class TestBaseUrlResolution(unittest.TestCase):
             zoodata._resolve_base_url()
         return buf.getvalue()
 
-    def test_untrusted_host_warns_about_bearer_token(self):
+    def test_untrusted_host_warns_key_is_withheld(self):
         stderr = self._stderr_of_resolve({"ZOODATA_BASE_URL": "https://evil.example.com"})
         self.assertIn("WARNING", stderr)
         self.assertIn("evil.example.com", stderr)
         self.assertIn("Bearer", stderr)
+        self.assertIn("NOT be sent", stderr)
 
     def test_default_host_is_silent(self):
         self.assertEqual(self._stderr_of_resolve({}), "")
@@ -752,6 +753,21 @@ class TestBaseUrlResolution(unittest.TestCase):
     def test_localhost_is_trusted_and_silent(self):
         stderr = self._stderr_of_resolve({"ZOODATA_BASE_URL": "http://localhost:8080"})
         self.assertEqual(stderr, "")
+
+    def test_is_trusted_host_accepts_zoodata_and_localhost(self):
+        for url in ("https://api.zoodata.ai/openapi/v2",
+                    "https://staging.zoodata.ai",
+                    "https://zoodata.ai",
+                    "http://localhost:8080",
+                    "http://127.0.0.1:9000"):
+            self.assertTrue(zoodata._is_trusted_host(url), url)
+
+    def test_is_trusted_host_rejects_arbitrary_and_spoofed_hosts(self):
+        # Bearer token must never go to these — note the subdomain-spoof cases.
+        for url in ("https://evil.example.com",
+                    "https://zoodata.ai.evil.com",
+                    "https://notzoodata.ai"):
+            self.assertFalse(zoodata._is_trusted_host(url), url)
 
 
 class TestCheckCommand(unittest.TestCase):

@@ -51,18 +51,29 @@ KEYWORD_DATE_RANGE_MAX_DAYS = 93
 KEYWORD_TIMELINE_MAX_DAYS = 61
 
 
-def _resolve_base_url():
-    """Resolve API base URL, allowing local test hosts via ZOODATA_BASE_URL."""
-    configured = os.environ.get("ZOODATA_BASE_URL", DEFAULT_BASE_URL).strip().rstrip("/")
+def _host_of(url):
     try:
         from urllib.parse import urlparse
-        host = urlparse(configured if "://" in configured else f"https://{configured}").hostname or ""
+        return (urlparse(url if "://" in url else f"https://{url}").hostname or "").lower()
     except Exception:
-        host = ""
-    trusted = host == "zoodata.ai" or host.endswith(".zoodata.ai") or host in ("localhost", "127.0.0.1")
-    if configured.rstrip("/") != DEFAULT_BASE_URL.rstrip("/") and not trusted:
-        print(f"WARNING: ZOODATA_BASE_URL points at non-default host '{host}'. "
-              "Your API key will be sent there as a Bearer token — only proceed if you trust this host.",
+        return ""
+
+
+def _is_trusted_host(url):
+    """True only for ZooData hosts and localhost — the sole destinations the API
+    key (Bearer token) may be sent to. Any other host is untrusted and the key
+    is withheld (see api_call), so credentials never reach an arbitrary host."""
+    host = _host_of(url)
+    return host == "zoodata.ai" or host.endswith(".zoodata.ai") or host in ("localhost", "127.0.0.1")
+
+
+def _resolve_base_url():
+    """Resolve API base URL, allowing zoodata.ai / localhost hosts via ZOODATA_BASE_URL."""
+    configured = os.environ.get("ZOODATA_BASE_URL", DEFAULT_BASE_URL).strip().rstrip("/")
+    if configured.rstrip("/") != DEFAULT_BASE_URL.rstrip("/") and not _is_trusted_host(configured):
+        print(f"WARNING: ZOODATA_BASE_URL points at untrusted host '{_host_of(configured)}'. "
+              "Your API key (Bearer token) will NOT be sent there — requests to untrusted "
+              "hosts are refused. Use a zoodata.ai host or localhost.",
               file=sys.stderr)
     if configured.endswith(API_BASE_PATH):
         return configured
@@ -70,6 +81,7 @@ def _resolve_base_url():
 
 
 BASE_URL = _resolve_base_url()  # ZooData API base URL
+BASE_URL_TRUSTED = _is_trusted_host(BASE_URL)  # gates Bearer-token transmission
 API_DOCS = "https://api.zoodata.ai/api-docs"   # API documentation URL
 MAX_RETRIES = 3       # Maximum number of retry attempts for failed requests
 RETRY_DELAY = 2       # Initial retry delay in seconds; doubles on each retry
@@ -199,6 +211,13 @@ def api_call(endpoint: str, params: dict) -> dict:
     global _last_request_time
 
     url = f"{BASE_URL}/{endpoint}"
+
+    if not BASE_URL_TRUSTED:
+        print(f"ERROR: refusing to send your API key to untrusted host '{_host_of(BASE_URL)}'. "
+              "Set ZOODATA_BASE_URL to a zoodata.ai host or localhost, or unset it.",
+              file=sys.stderr)
+        sys.exit(1)
+
     api_key = get_api_key()
 
     # Clean params: remove None values
