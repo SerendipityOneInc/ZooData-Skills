@@ -622,24 +622,68 @@ class TestMarketEntryCategoryFallback(unittest.TestCase):
 
 
 class TestCredentialResolution(unittest.TestCase):
-    """Regression: cmd_check used to read ~/.zoodata/config.json but
-    get_api_key read {skill_dir}/config.json. The two paths never overlapped,
-    so users could see "check OK" then watch every real call fail. After the
-    fix both functions go through _resolve_credential() with the same chain."""
+    """`_resolve_credential()` resolves the ZooData key from four sources, in
+    order: ZOODATA_API_KEY env, APICLAW_API_KEY env (deprecated),
+    ~/.zoodata/config.json, ~/.apiclaw/config.json (deprecated). The legacy
+    APICLAW sources still work but emit a deprecation warning. The in-bundle
+    {skill_dir}/config.json fallback was removed for good: the skill directory
+    ships inside the published bundle, so a key placed there would leak."""
+
+    def setUp(self):
+        # Reset the once-per-process deprecation dedup so warnings fire per test.
+        zoodata._DEPRECATION_WARNED.clear()
+
+    def _resolve_capturing_stderr(self):
+        import contextlib
+        import io
+        buf = io.StringIO()
+        with contextlib.redirect_stderr(buf):
+            key = zoodata._resolve_credential()
+        return key, buf.getvalue()
 
     def test_env_zoodata_takes_precedence(self):
         with patch.dict("os.environ", {"ZOODATA_API_KEY": "z"}, clear=True):
             self.assertEqual(zoodata._resolve_credential(), "z")
 
-    def test_env_legacy_apiclaw_is_a_fallback(self):
-        with patch.dict("os.environ", {"APICLAW_API_KEY": "legacy"}, clear=True):
-            self.assertEqual(zoodata._resolve_credential(), "legacy")
-
-    def test_zoodata_env_beats_apiclaw_env(self):
+    def test_zoodata_env_beats_legacy_apiclaw_env(self):
         with patch.dict("os.environ",
                         {"ZOODATA_API_KEY": "new", "APICLAW_API_KEY": "old"},
                         clear=True):
             self.assertEqual(zoodata._resolve_credential(), "new")
+
+    def test_legacy_apiclaw_env_is_a_deprecated_fallback(self):
+        """APICLAW_API_KEY still resolves but warns about deprecation."""
+        with patch.dict("os.environ", {"APICLAW_API_KEY": "legacy"}, clear=True), \
+             patch("os.path.exists", return_value=False):
+            key, stderr = self._resolve_capturing_stderr()
+        self.assertEqual(key, "legacy")
+        self.assertIn("APICLAW_API_KEY", stderr)
+        self.assertIn("deprecated", stderr)
+
+    def test_legacy_apiclaw_home_config_is_a_deprecated_fallback(self):
+        """~/.apiclaw/config.json still resolves (after ~/.zoodata) but warns."""
+        apiclaw_home = os.path.expanduser("~/.apiclaw/config.json")
+        with patch.dict("os.environ", {}, clear=True), \
+             patch("os.path.exists", side_effect=lambda p: p == apiclaw_home), \
+             patch("builtins.open", mock_open(read_data='{"api_key":"legacy_home"}')):
+            key, stderr = self._resolve_capturing_stderr()
+        self.assertEqual(key, "legacy_home")
+        self.assertIn(".apiclaw", stderr)
+        self.assertIn("deprecated", stderr)
+
+    def test_skill_dir_config_is_not_a_source(self):
+        """The in-bundle {skill_dir}/config.json fallback was removed so a
+        committed key can never ship inside the published skill. Only
+        ~/.zoodata/config.json is consulted; a config.json anywhere else
+        (e.g. next to scripts/) is ignored even when it exists."""
+        home_zoodata = os.path.expanduser("~/.zoodata/config.json")
+        apiclaw_home = os.path.expanduser("~/.apiclaw/config.json")
+        # Neither home config exists; only a config.json sitting elsewhere
+        # (e.g. next to scripts/, the removed fallback) would "exist".
+        with patch.dict("os.environ", {}, clear=True), \
+             patch("os.path.exists", side_effect=lambda p: p not in (home_zoodata, apiclaw_home)), \
+             patch("builtins.open", mock_open(read_data='{"api_key":"bundled"}')):
+            self.assertIsNone(zoodata._resolve_credential())
 
     def test_user_home_config_works_when_no_env(self):
         """The regression: before the fix, real API calls didn't look here

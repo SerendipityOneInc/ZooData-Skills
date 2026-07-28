@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Security — Removed bundled API key + credential-source hardening
+
+A live, full-scope ZooData API key had been hand-placed into `zoodata/config.json` and shipped inside the published `zoodata` bundle (v1.1.4–v1.1.5), because `clawhub sync` bundles the skill folder from disk and does **not** honor `.gitignore`. The key has been revoked. Hardening:
+
+- **Removed the `{skill_dir}/config.json` credential fallback** from the shared CLI (present since v1.0.0). The skill directory ships inside the published bundle, so it must never be a credential source — a key placed there leaks publicly.
+- **Added `.clawhubignore`** (excluding `config.json`) to every skill directory so a stray config can never be bundled again; `.gitignore` does not apply to `clawhub sync`.
+- **Deprecated (not removed) the legacy `APICLAW_API_KEY` env var and `~/.apiclaw/config.json`.** They still resolve but now print a one-time deprecation warning; migrate to `ZOODATA_API_KEY` / `~/.zoodata/config.json`. They will be removed in a future release.
+
+**Migration / impact on existing installs (only after `openclaw skills update`):**
+- `ZOODATA_API_KEY` env or `~/.zoodata/config.json` users — no change.
+- `APICLAW_API_KEY` env or `~/.apiclaw/config.json` users — still work, now warn.
+- Anyone who placed a key in the **skill directory's** `config.json` — that path no longer resolves; move the key to `ZOODATA_API_KEY` or `~/.zoodata/config.json`.
+
 ### Added — Security-audit response: Capabilities & Data Flow declarations (all 12 skills)
 
 ClawHub's SkillSpector audit flagged an under-declared capability surface (env-only metadata vs actual network/execution/file behavior) and missing data-flow transparency. Every SKILL.md now carries a standardized "Capabilities & Data Flow" section declaring: exact network host, the bundled shared CLI and which subcommands the skill's workflows use, local files written, what is/isn't sent to the API (user profile text never leaves the machine — it maps client-side to numeric filters), and a credit-cost confirmation rule for broad requests.
