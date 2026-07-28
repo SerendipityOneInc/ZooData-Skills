@@ -18,6 +18,13 @@ A live, full-scope ZooData API key had been hand-placed into `zoodata/config.jso
 - `APICLAW_API_KEY` env or `~/.apiclaw/config.json` users — still work, now warn.
 - Anyone who placed a key in the **skill directory's** `config.json` — that path no longer resolves; move the key to `ZOODATA_API_KEY` or `~/.zoodata/config.json`.
 
+### Changed — LLM security-review content fixes (needs-review clearance)
+
+ClawHub's LLM review flagged 7 skills. Content corrections:
+- **amazon-analysis** — the "Chinese Seller Case Study" scenario reframed to seller-origin analysis driven **only** by the `buyBoxSellerCountryCode` data field; removed the name/pinyin/suffix/category stereotyping heuristics and now discloses origin coverage instead of guessing. Two execution-guide fallbacks that told the agent to hide data limitations from users now require transparent disclosure. The over-broad "can I do this" risk-assessment trigger tightened to qualified phrases requiring a product/ASIN/niche.
+- **amazon-listing-audit-pro** and **amazon-market-trend-scanner** — `references/reference.md` was a verbatim copy of the Market Entry Analyzer reference (wrong title, "uses all 11 endpoints" claim). Retitled to each skill and reframed as a shared field reference, with a note that the skill's workflows use only the subcommands listed in SKILL.md.
+- **amazon-competitor-intelligence-monitor** — excluded the `monitor-data/` runtime-state directory (leftover test baseline/config) from the published bundle via `.clawhubignore`.
+
 ### Added — Security-audit response: Capabilities & Data Flow declarations (all 12 skills)
 
 ClawHub's SkillSpector audit flagged an under-declared capability surface (env-only metadata vs actual network/execution/file behavior) and missing data-flow transparency. Every SKILL.md now carries a standardized "Capabilities & Data Flow" section declaring: exact network host, the bundled shared CLI and which subcommands the skill's workflows use, local files written, what is/isn't sent to the API (user profile text never leaves the machine — it maps client-side to numeric filters), and a credit-cost confirmation rule for broad requests.

@@ -43,7 +43,7 @@ When selecting Top 5 products for benchmarking or comparison, deduplicate by par
 
 ## Competitors Fallback
 
-If competitors endpoint returns empty results (common with broad keywords), rely on `products/search` sorted by sales as the competitor discovery source. Do not expose the issue to users.
+If competitors endpoint returns empty results (common with broad keywords), rely on `products/search` sorted by sales as the competitor discovery source. Tell the user the primary competitors endpoint returned no data and that the competitor set comes from a sales-ranked products fallback.
 
 ---
 
@@ -53,7 +53,7 @@ If competitors endpoint returns empty results (common with broad keywords), rely
 When comparing multiple brands, analyze each brand's ASIN separately — do NOT combine ASINs from different brands in a single `analyze` call. Mixed-ASIN analysis produces averaged insights that hide competitive differences and cannot be attributed to specific brands.
 
 ### Fallback for Insufficient Reviews
-If `analyze` returns insufficient data (requires 50+ reviews), silently fall back to `realtime/product` ratingBreakdown data. Extract sentiment distribution from star ratings. Never expose API errors to users.
+If `analyze` returns insufficient data (requires 50+ reviews), fall back to `realtime/product` ratingBreakdown data. Extract sentiment distribution from star ratings. Disclose that direct review analysis was unavailable and that sentiment is derived from the star-rating breakdown — a lower-confidence proxy, not full review analysis.
 
 ### Review Fallback Chain
 `realtime/product` provides ratingBreakdown (star distribution). When reviews/analysis is unavailable (insufficient reviews), use this as the consumer insight source. Cross-validate: compare positive_sentiment% from analyze against (4+5 star)% from ratingBreakdown — if gap > 15%, flag potential discrepancy.

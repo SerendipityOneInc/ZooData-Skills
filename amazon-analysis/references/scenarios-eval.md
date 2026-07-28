@@ -94,7 +94,7 @@ python3 scripts/zoodata.py product --asin B09XXXXX
 
 ## 4.4 Risk Assessment
 
-> Trigger: "What are the risks" / "can I do this" / "risk assessment"
+> Trigger: "risks of selling this product on Amazon" / "Amazon product risk assessment" / "FBA risk analysis" / "is this ASIN/niche worth entering" (requires a specific product, ASIN, or keyword/niche — do not activate on bare, unqualified questions like "can I do this")
 
 ```bash
 # Step 1: Competitive landscape (primary data: sales, margins, seller count)
