@@ -11,7 +11,7 @@ description: >
   review comparison, negative reviews, customer complaints, buying factors, user profile.
   Requires ZOODATA_API_KEY.
 metadata:
-  version: "1.0.5"
+  version: "1.0.6"
   author: SerendipityOneInc
   homepage: https://github.com/SerendipityOneInc/ZooData-Skills
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}

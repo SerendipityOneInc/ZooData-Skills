@@ -7,7 +7,7 @@ description: >
   batch keyword snapshot, multidimensional market profile, trend, and ASIN-keyword timeline
   workflows. Requires ZOODATA_API_KEY.
 metadata:
-  version: "0.1.3"
+  version: "0.1.4"
   author: SerendipityOneInc
   homepage: https://github.com/SerendipityOneInc/ZooData-Skills
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}

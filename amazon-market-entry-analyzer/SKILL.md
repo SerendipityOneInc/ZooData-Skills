@@ -13,7 +13,7 @@ description: >
   to track how categories shift over time, use amazon-market-trend-scanner.
   Requires ZOODATA_API_KEY.
 metadata:
-  version: "1.0.5"
+  version: "1.0.6"
   author: SerendipityOneInc
   homepage: https://github.com/SerendipityOneInc/ZooData-Skills
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}

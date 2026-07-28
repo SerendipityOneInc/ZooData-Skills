@@ -13,7 +13,7 @@ description: >
     deliverable in mind
   Uses {skill_base_dir}/scripts/zoodata.py. Requires ZOODATA_API_KEY.
 metadata:
-  version: "1.1.9"
+  version: "1.1.10"
   author: SerendipityOneInc
   homepage: https://github.com/SerendipityOneInc/ZooData-Skills
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}
