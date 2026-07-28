@@ -887,17 +887,24 @@ class TestCreditAggregation(unittest.TestCase):
     """Composite commands fan out to many endpoints; the run's total credit
     consumption must be summed and stamped onto the top-level meta."""
 
-    def setUp(self):
+    def _reset(self):
         zoodata._CREDITS.consumed = 0.0
+        zoodata._CREDITS.consumed_exact = 0.0
         zoodata._CREDITS.remaining = None
+        zoodata._CREDITS.remaining_exact = None
         zoodata._CREDITS.calls = 0
 
-    def test_tracker_sums_consumed_and_tracks_remaining(self):
+    setUp = _reset
+    tearDown = _reset  # avoid leaking accumulated state to other test classes
+
+    def test_tracker_sums_display_and_exact_separately(self):
         t = zoodata._CreditTracker()
         t.record({"creditsConsumed": 1, "creditsRemaining": 100})
         t.record({"creditsConsumedExact": 2.0, "creditsRemainingExact": 98.0})
-        self.assertEqual(t.consumed, 3.0)
-        self.assertEqual(t.remaining, 98.0)
+        self.assertEqual(t.consumed, 3.0)         # 1 + (fallback 2.0)
+        self.assertEqual(t.consumed_exact, 3.0)   # (fallback 1) + 2.0
+        self.assertEqual(t.remaining, 100)        # last display remaining
+        self.assertEqual(t.remaining_exact, 98.0)
         self.assertEqual(t.calls, 2)
 
     def test_tracker_ignores_non_dict_and_missing_fields(self):
@@ -917,16 +924,31 @@ class TestCreditAggregation(unittest.TestCase):
         self.assertEqual(payload["meta"]["creditsRemaining"], 498)
         self.assertEqual(payload["meta"]["apiCalls"], 3)
 
+    def test_annotate_preserves_single_call_display_value(self):
+        # A single call whose display credit (1) differs from exact (0.5) must
+        # keep BOTH — annotate must not overwrite the rounded display with exact.
+        zoodata._CREDITS.record({"creditsConsumed": 1, "creditsConsumedExact": 0.5,
+                                 "creditsRemaining": 9})
+        payload = {"meta": {"foo": "bar"}}
+        zoodata._annotate_credits(payload)
+        self.assertEqual(payload["meta"]["creditsConsumed"], 1)
+        self.assertEqual(payload["meta"]["creditsConsumedExact"], 0.5)
+
+    def test_annotate_synthesises_meta_when_absent(self):
+        # reviews-raw and similar emit no top-level meta; the total must still
+        # be surfaced, not silently dropped.
+        zoodata._CREDITS.record({"creditsConsumed": 1, "creditsRemaining": 9})
+        zoodata._CREDITS.record({"creditsConsumed": 1, "creditsRemaining": 8})
+        payload = {"success": True, "data": {}}  # no meta
+        zoodata._annotate_credits(payload)
+        self.assertIn("meta", payload)
+        self.assertEqual(payload["meta"]["creditsConsumed"], 2)
+        self.assertEqual(payload["meta"]["apiCalls"], 2)
+
     def test_annotate_is_noop_without_api_calls(self):
         payload = {"meta": {"keyword": "x"}}
         zoodata._annotate_credits(payload)  # calls == 0
         self.assertNotIn("creditsConsumed", payload["meta"])
-
-    def test_annotate_skips_payload_without_meta(self):
-        zoodata._CREDITS.record({"creditsConsumed": 1, "creditsRemaining": 9})
-        payload = {"data": []}
-        zoodata._annotate_credits(payload)  # no top-level meta -> untouched
-        self.assertNotIn("meta", payload)
 
 
 # Standalone runner

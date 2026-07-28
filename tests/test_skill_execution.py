@@ -45,7 +45,9 @@ def _declared_subcommands(skill_dir: Path):
     surface ("all subcommands") or has no such line.
     """
     text = (skill_dir / "SKILL.md").read_text()
-    m = re.search(r"this skill's workflows use:\s*(.+?)(?:\n\n|\Z)", text, re.S)
+    # Match only to end of the declaration line — NOT across blank lines (re.S
+    # would over-capture later bullets and could inject false subcommands).
+    m = re.search(r"this skill's workflows use:\s*(.+)", text)
     if not m:
         return None
     frag = m.group(1)
@@ -133,6 +135,19 @@ class TestSkillCliLive(unittest.TestCase):
                 r = _run(cli, "categories", "--marketplace", "US", timeout=60)
                 self.assertEqual(r.returncode, 0, f"{name} categories failed:\n{r.stderr}")
                 self.assertNotIn("Traceback (most recent call last)", r.stderr)
+
+    def test_composite_workflow_reports_aggregated_credits(self):
+        """A real composite run (market-entry fans out over ~all endpoints) must
+        execute end-to-end AND surface an aggregated credit total in its meta —
+        the regression the _CreditTracker fix targets (was reported as 1)."""
+        import json
+        cli = REPO / "amazon-market-entry-analyzer" / "scripts" / "zoodata.py"
+        r = _run(cli, "market-entry", "--keyword", "yoga mat", timeout=300)
+        self.assertEqual(r.returncode, 0, f"market-entry failed:\n{r.stderr[:400]}")
+        meta = json.loads(r.stdout).get("meta", {})
+        self.assertGreater(meta.get("apiCalls", 0), 1, "composite should fan out to many calls")
+        self.assertGreaterEqual(meta.get("creditsConsumed", 0), meta.get("apiCalls", 0),
+                                "aggregated credits must cover every internal call, not just one")
 
 
 if __name__ == "__main__":

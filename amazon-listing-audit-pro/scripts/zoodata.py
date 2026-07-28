@@ -209,24 +209,33 @@ class _CreditTracker:
     an internal call, even review pages that the merged output drops."""
 
     def __init__(self):
-        self.consumed = 0.0
-        self.remaining = None
+        self.consumed = 0.0          # sum of display `creditsConsumed`
+        self.consumed_exact = 0.0    # sum of `creditsConsumedExact`
+        self.remaining = None        # last display `creditsRemaining`
+        self.remaining_exact = None  # last `creditsRemainingExact`
         self.calls = 0
 
     def record(self, meta):
         if not isinstance(meta, dict):
             return
-        c = meta.get("creditsConsumedExact")
-        if c is None:
-            c = meta.get("creditsConsumed")
-        if isinstance(c, (int, float)):
-            self.consumed += c
+        d = meta.get("creditsConsumed")
+        e = meta.get("creditsConsumedExact")
+        d = d if isinstance(d, (int, float)) else None
+        e = e if isinstance(e, (int, float)) else None
+        # Keep display and exact tallies separate; fall each back to the other
+        # when the API omits one, so neither total is understated.
+        disp = d if d is not None else e
+        exact = e if e is not None else d
+        if disp is not None:
+            self.consumed += disp
+            self.consumed_exact += exact if exact is not None else disp
             self.calls += 1
-        r = meta.get("creditsRemainingExact")
-        if r is None:
-            r = meta.get("creditsRemaining")
-        if isinstance(r, (int, float)):
-            self.remaining = r
+        rd = meta.get("creditsRemaining")
+        if isinstance(rd, (int, float)):
+            self.remaining = rd
+        re_ = meta.get("creditsRemainingExact")
+        if isinstance(re_, (int, float)):
+            self.remaining_exact = re_
 
 
 _CREDITS = _CreditTracker()
@@ -234,20 +243,24 @@ _CREDITS = _CreditTracker()
 
 def _annotate_credits(payload):
     """Stamp the invocation's total credit consumption onto a dict payload's
-    top-level `meta` so composite commands report an accurate total. For a
-    single-endpoint response this equals that call's own figure (no change in
-    meaning); for a composite it replaces a partial/absent figure with the sum
-    of every internal call."""
+    top-level `meta` so every command that hits the API reports an accurate
+    total. For a single-endpoint response the display/exact totals equal that
+    call's own figures (no change in meaning); for a composite they sum every
+    internal call. A `meta` block is synthesised when the payload has none
+    (e.g. `reviews-raw`, which fans out over review pages)."""
     if not isinstance(payload, dict) or _CREDITS.calls == 0:
         return
     meta = payload.get("meta")
     if not isinstance(meta, dict):
-        return
-    total = _CREDITS.consumed
-    meta["creditsConsumed"] = int(total) if float(total).is_integer() else total
-    meta["creditsConsumedExact"] = total
+        meta = {}
+        payload["meta"] = meta
+    disp = _CREDITS.consumed
+    meta["creditsConsumed"] = int(disp) if float(disp).is_integer() else disp
+    meta["creditsConsumedExact"] = _CREDITS.consumed_exact
     if _CREDITS.remaining is not None:
         meta["creditsRemaining"] = _CREDITS.remaining
+    if _CREDITS.remaining_exact is not None:
+        meta["creditsRemainingExact"] = _CREDITS.remaining_exact
     meta["apiCalls"] = _CREDITS.calls
 
 
