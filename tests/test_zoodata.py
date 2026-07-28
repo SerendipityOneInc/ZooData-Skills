@@ -700,6 +700,15 @@ class TestCredentialResolution(unittest.TestCase):
              patch("os.path.exists", return_value=False):
             self.assertIsNone(zoodata._resolve_credential())
 
+    def test_explicit_null_api_key_does_not_crash(self):
+        """A config with `{"api_key": null}` must return None, not crash on
+        None.strip()."""
+        home_zoodata = os.path.expanduser("~/.zoodata/config.json")
+        with patch.dict("os.environ", {}, clear=True), \
+             patch("os.path.exists", side_effect=lambda p: p == home_zoodata), \
+             patch("builtins.open", mock_open(read_data='{"api_key": null}')):
+            self.assertIsNone(zoodata._resolve_credential())
+
 
 class TestBaseUrlResolution(unittest.TestCase):
     def test_default_base_url_points_to_openapi_v2(self):
@@ -768,6 +777,20 @@ class TestBaseUrlResolution(unittest.TestCase):
                     "https://zoodata.ai.evil.com",
                     "https://notzoodata.ai"):
             self.assertFalse(zoodata._is_trusted_host(url), url)
+
+    def test_api_call_refuses_untrusted_host_before_sending_key(self):
+        """When the base URL is untrusted, api_call must sys.exit(1) BEFORE
+        resolving/sending the key — the Bearer token is withheld, not just warned."""
+        import contextlib
+        import io
+        buf = io.StringIO()
+        with patch.object(zoodata, "BASE_URL_TRUSTED", False), \
+             patch.object(zoodata, "get_api_key") as get_key, \
+             contextlib.redirect_stderr(buf):
+            with self.assertRaises(SystemExit):
+                zoodata.api_call("categories", {})
+        get_key.assert_not_called()  # key resolution never reached
+        self.assertIn("refusing", buf.getvalue())
 
 
 class TestCheckCommand(unittest.TestCase):

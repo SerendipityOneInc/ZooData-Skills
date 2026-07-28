@@ -138,7 +138,7 @@ def _read_config_api_key(path):
         return None
     try:
         with open(path, "r", encoding="utf-8") as f:
-            return json.load(f).get("api_key", "").strip() or None
+            return (json.load(f).get("api_key") or "").strip() or None
     except (json.JSONDecodeError, IOError):
         return None
 

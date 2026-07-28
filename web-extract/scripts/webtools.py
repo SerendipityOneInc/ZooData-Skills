@@ -54,23 +54,39 @@ _last_request_time = 0.0
 
 # ─── Auth ────────────────────────────────────────────────────────────────────
 
+_DEPRECATION_WARNED = set()
+
+
+def _warn_deprecated_source(label, replacement):
+    """Warn once per process when a legacy credential source is used."""
+    if label in _DEPRECATION_WARNED:
+        return
+    _DEPRECATION_WARNED.add(label)
+    print(f"WARNING: {label} is deprecated and will be removed in a future "
+          f"release. Use {replacement} instead.", file=sys.stderr)
+
+
 def get_api_key():
-    key = (
-        os.environ.get("ZOODATA_API_KEY", "").strip()
-        or os.environ.get("APICLAW_API_KEY", "").strip()
-    )
+    key = os.environ.get("ZOODATA_API_KEY", "").strip()
     if key:
         return key
-    for path in ("~/.zoodata/config.json", "~/.apiclaw/config.json"):
+    key = os.environ.get("APICLAW_API_KEY", "").strip()
+    if key:
+        _warn_deprecated_source("APICLAW_API_KEY", "ZOODATA_API_KEY")
+        return key
+    for path, replacement in (("~/.zoodata/config.json", None),
+                              ("~/.apiclaw/config.json", "~/.zoodata/config.json")):
         p = os.path.expanduser(path)
         if os.path.exists(p):
             try:
                 with open(p, "r", encoding="utf-8") as f:
-                    k = json.load(f).get("api_key", "").strip()
-                    if k:
-                        return k
+                    k = (json.load(f).get("api_key") or "").strip()
             except (json.JSONDecodeError, IOError):
-                pass
+                k = ""
+            if k:
+                if replacement:
+                    _warn_deprecated_source(path, replacement)
+                return k
     print("ERROR: ZOODATA_API_KEY not set. Get one at "
           "https://zoodata.ai/en/api-keys", file=sys.stderr)
     sys.exit(2)
