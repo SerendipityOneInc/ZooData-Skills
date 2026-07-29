@@ -11,15 +11,17 @@
 
 | # | Endpoint | Purpose |
 |---|----------|---------|
-| 1 | `markets/search` | Market size, competition metrics, new product rate |
-| 2 | `products/search` | Product supply (100+ via pagination), brand/price drill |
-| 3 | `products/competitors` | Top competitor list |
-| 4 | `realtime/product` | Live product detail |
-| 5 | `reviews/analysis` | Consumer pain points, buying factors |
-| 6 | `products/price-band-overview` | Price-band opportunity overview |
-| 7 | `products/price-band-detail` | Per-band SKU/sales/brand/rating breakdown |
-| 8 | `products/brand-overview` | Brand count, CR10, top brand avg price/rating |
-| 9 | `products/brand-detail` | Per-brand SKU/sales/revenue/share ranking |
+| 1 | `categories` | Category path lookup |
+| 2 | `markets/search` | Market size, competition metrics, new product rate |
+| 3 | `products/search` | Product supply (100+ via pagination), brand/price drill |
+| 4 | `products/competitors` | Top competitor list |
+| 5 | `realtime/product` | Live product detail |
+| 6 | `reviews/analysis` | Consumer pain points, buying factors |
+| 7 | `products/price-band-overview` | Price-band opportunity overview |
+| 8 | `products/price-band-detail` | Per-band SKU/sales/brand/rating breakdown |
+| 9 | `products/brand-overview` | Brand count, CR10, top brand avg price/rating |
+| 10 | `products/brand-detail` | Per-brand SKU/sales/revenue/share ranking |
+| 11 | `products/history` | 30-day price/BSR/sales trend |
 
 Base URL: `https://api.zoodata.ai/openapi/v2`
 Auth: `Bearer $ZOODATA_API_KEY`
@@ -28,7 +30,27 @@ All endpoints return: `{success, data, error, meta}` with `meta.creditsRemaining
 
 ---
 
-## 1. markets/search
+## 1. categories
+
+**Request:** (mutually exclusive modes)
+- No params → root categories
+- `categoryKeyword`: String → search by keyword
+- `categoryPath`: List<String> → exact path
+- `parentCategoryPath`: List<String> → child categories
+
+**Response:**
+| Field | Type | Used For |
+|-------|------|----------|
+| `categoryId` | string | Category ID |
+| `categoryName` | string | Category name |
+| `categoryPath` | list | Full path from root |
+| `hasChildren` | bool | Has subcategories |
+| `level` | int | Depth (1=root) |
+| `productCount` | int | Products in category |
+
+---
+
+## 2. markets/search
 
 **Key Request Params:**
 - `categoryPath`: List<String> (e.g. `["Pet Supplies", "Dogs"]`)
@@ -56,7 +78,7 @@ All endpoints return: `{success, data, error, meta}` with `meta.creditsRemaining
 
 ---
 
-## 2. products/search — Shared Product Object
+## 3. products/search — Shared Product Object
 
 **Key Request Params:**
 - `keyword`, `categoryPath`, `keywordMatchType` (`mode` is a CLI-only preset — `zoodata.py` expands it into the filter pairs below client-side; it is NOT an API field and returns 422 if sent raw)
@@ -85,14 +107,14 @@ All endpoints return: `{success, data, error, meta}` with `meta.creditsRemaining
 
 ---
 
-## 3. products/competitors
+## 4. products/competitors
 
 Same response as products/search. Different use: discovery by keyword/brand/asin.
 Request params: `keyword`, `brand`, `asin`, `categoryPath`, `sortBy`, `pageSize`
 
 ---
 
-## 4. realtime/product
+## 5. realtime/product
 
 **Request:**
 - `asin`: String (required)
@@ -119,7 +141,7 @@ Request params: `keyword`, `brand`, `asin`, `categoryPath`, `sortBy`, `pageSize`
 
 ---
 
-## 5. reviews/analysis
+## 6. reviews/analysis
 
 **Request:**
 - `mode`: `"asin"` or `"category"`
@@ -143,7 +165,7 @@ Request params: `keyword`, `brand`, `asin`, `categoryPath`, `sortBy`, `pageSize`
 
 ---
 
-## 6. products/price-band-overview
+## 7. products/price-band-overview
 
 **Request:** Same params as products/search (keyword, category, filters)
 
@@ -159,7 +181,7 @@ Request params: `keyword`, `brand`, `asin`, `categoryPath`, `sortBy`, `pageSize`
 
 ---
 
-## 7. products/price-band-detail
+## 8. products/price-band-detail
 
 **Response:**
 - `sampleSkuCount`, `sampleTotalMonthlySales`
@@ -167,7 +189,7 @@ Request params: `keyword`, `brand`, `asin`, `categoryPath`, `sortBy`, `pageSize`
 
 ---
 
-## 8. products/brand-overview
+## 9. products/brand-overview
 
 **Response:**
 | Field | Type | Used For |
@@ -179,7 +201,7 @@ Request params: `keyword`, `brand`, `asin`, `categoryPath`, `sortBy`, `pageSize`
 
 ---
 
-## 9. products/brand-detail
+## 10. products/brand-detail
 
 **Response:**
 - `sampleSkuCount`, `sampleTotalMonthlySales`, `sampleBrandCount`
@@ -188,6 +210,27 @@ Request params: `keyword`, `brand`, `asin`, `categoryPath`, `sortBy`, `pageSize`
 **BrandStats:** `{brandName, sampleSkuCount, sampleGroupMonthlySales, sampleGroupMonthlyRevenue, sampleSalesRate, sampleAvgPrice, minPrice, maxPrice, sampleAvgRating, sampleAvgRatingCount, sampleProducts}`
 
 **sampleProducts:** List of Product objects for this brand within the sample. Each product contains the full Shared Product Object fields (asin, title, price, bsr, monthlySalesFloor, rating, ratingCount, fulfillment, etc). This enables brand-level product matrix analysis without a separate products/search call.
+
+---
+
+## 11. products/history
+
+**Request:**
+- `asins`: List<String> (required)
+- `startDate`: String "YYYY-MM-DD" (required)
+- `endDate`: String "YYYY-MM-DD" (required)
+⚠️ Does NOT accept `dateRange` — must use startDate + endDate
+
+**Response (array of daily snapshots):**
+| Field | Type | Used For |
+|-------|------|----------|
+| `asin` | string | Product ID |
+| `price` | float | Price on that day |
+| `bsr` | int | BSR on that day |
+| `subBsr` | int | Sub-category BSR |
+| `recentSales` | int | Recent sales count |
+| `updatedAt` | string | Unix timestamp (string) |
+| `createdAt` | string | Unix timestamp (string) |
 
 ---
 

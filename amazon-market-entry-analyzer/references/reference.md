@@ -2,7 +2,10 @@
 
 > Load this file only when you need exact field names or response structure.
 
-## Endpoints Used (11 of 11 — ALL)
+## ZooData Endpoint Field Reference
+
+> This skill's market-entry workflow spans all of the commerce endpoints below;
+> they are documented here for field-name / response-structure lookup.
 
 | # | Endpoint | Purpose |
 |---|----------|---------|
@@ -16,6 +19,7 @@
 | 8 | `products/price-band-detail` | Per-band SKU/sales/brand/rating breakdown |
 | 9 | `products/brand-overview` | Brand count, CR10, top-brand avg price/rating |
 | 10 | `products/brand-detail` | Per-brand SKU/sales/revenue/share ranking |
+| 11 | `products/history` | 30-day price/BSR/sales trend |
 
 Base URL: `https://api.zoodata.ai/openapi/v2`
 Auth: `Bearer $ZOODATA_API_KEY`
@@ -204,6 +208,27 @@ Request params: `keyword`, `brand`, `asin`, `categoryPath`, `sortBy`, `pageSize`
 **BrandStats:** `{brandName, sampleSkuCount, sampleGroupMonthlySales, sampleGroupMonthlyRevenue, sampleSalesRate, sampleAvgPrice, minPrice, maxPrice, sampleAvgRating, sampleAvgRatingCount, sampleProducts}`
 
 **sampleProducts:** List of Product objects for this brand within the sample. Each product contains the full Shared Product Object fields (asin, title, price, bsr, monthlySalesFloor, rating, ratingCount, fulfillment, etc). This enables brand-level product matrix analysis without a separate products/search call.
+
+---
+
+## 11. products/history
+
+**Request:**
+- `asins`: List<String> (required)
+- `startDate`: String "YYYY-MM-DD" (required)
+- `endDate`: String "YYYY-MM-DD" (required)
+⚠️ Does NOT accept `dateRange` — must use startDate + endDate
+
+**Response (array of daily snapshots):**
+| Field | Type | Used For |
+|-------|------|----------|
+| `asin` | string | Product ID |
+| `price` | float | Price on that day |
+| `bsr` | int | BSR on that day |
+| `subBsr` | int | Sub-category BSR |
+| `recentSales` | int | Recent sales count |
+| `updatedAt` | string | Unix timestamp (string) |
+| `createdAt` | string | Unix timestamp (string) |
 
 ---
 

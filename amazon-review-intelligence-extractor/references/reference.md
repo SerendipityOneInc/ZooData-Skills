@@ -17,7 +17,10 @@
 | 5 | `realtime/product` | Live product detail |
 | 6 | `reviews/analysis` | Consumer pain points, buying factors |
 | 7 | `products/price-band-overview` | Price-band opportunity overview |
-| 8 | `products/brand-overview` | Brand count, CR10, top-brand avg price/rating |
+| 8 | `products/price-band-detail` | Per-band SKU/sales/brand/rating breakdown |
+| 9 | `products/brand-overview` | Brand count, CR10, top-brand avg price/rating |
+| 10 | `products/brand-detail` | Per-brand SKU/sales/revenue/share ranking |
+| 11 | `products/history` | 30-day price/BSR/sales trend |
 
 Base URL: `https://api.zoodata.ai/openapi/v2`
 Auth: `Bearer $ZOODATA_API_KEY`
@@ -226,7 +229,15 @@ Differs from `realtime/reviews`: BigQuery snapshot (T+1 delay) but already AI-ta
 
 ---
 
-## 8. products/brand-overview
+## 8. products/price-band-detail
+
+**Response:**
+- `sampleSkuCount`, `sampleTotalMonthlySales`
+- `priceBands`: array of 5 band objects (same structure as above)
+
+---
+
+## 9. products/brand-overview
 
 **Response:**
 | Field | Type | Used For |
@@ -238,11 +249,46 @@ Differs from `realtime/reviews`: BigQuery snapshot (T+1 delay) but already AI-ta
 
 ---
 
+## 10. products/brand-detail
+
+**Response:**
+- `sampleSkuCount`, `sampleTotalMonthlySales`, `sampleBrandCount`
+- `brands`: array of brand objects
+
+**BrandStats:** `{brandName, sampleSkuCount, sampleGroupMonthlySales, sampleGroupMonthlyRevenue, sampleSalesRate, sampleAvgPrice, minPrice, maxPrice, sampleAvgRating, sampleAvgRatingCount, sampleProducts}`
+
+**sampleProducts:** List of Product objects for this brand within the sample. Each product contains the full Shared Product Object fields (asin, title, price, bsr, monthlySalesFloor, rating, ratingCount, fulfillment, etc). This enables brand-level product matrix analysis without a separate products/search call.
+
+---
+
+## 11. products/history
+
+**Request:**
+- `asins`: List<String> (required)
+- `startDate`: String "YYYY-MM-DD" (required)
+- `endDate`: String "YYYY-MM-DD" (required)
+⚠️ Does NOT accept `dateRange` — must use startDate + endDate
+
+**Response (array of daily snapshots):**
+| Field | Type | Used For |
+|-------|------|----------|
+| `asin` | string | Product ID |
+| `price` | float | Price on that day |
+| `bsr` | int | BSR on that day |
+| `subBsr` | int | Sub-category BSR |
+| `recentSales` | int | Recent sales count |
+| `updatedAt` | string | Unix timestamp (string) |
+| `createdAt` | string | Unix timestamp (string) |
+
+---
+
 ## Cross-Validation Matrix
 
 | Data Point | Primary Source | Validation Source |
 |-----------|---------------|-------------------|
 | Market size | markets/search | products/search (total count) |
 | Brand concentration | brand-overview (sampleTop10BrandSalesRate) | markets/search (topBrandSalesRate) |
+| Price distribution | price-band-detail | products/search (price field) |
+| Competition level | markets (topSalesRate) | brand-detail (top brand shares) |
 | Consumer demand | reviews/analysis | products (sales + growth) |
 | Avg rating quality | markets (sampleAvgRating) | brand-overview (sampleTop10AvgRating) |
