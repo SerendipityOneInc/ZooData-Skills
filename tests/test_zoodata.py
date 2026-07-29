@@ -15,10 +15,12 @@ Run from repo root:
 """
 
 import importlib.util
+import io
 import json
 import os
 import sys
 import unittest
+import urllib.error
 from unittest.mock import mock_open, patch
 
 # ---------------------------------------------------------------------------
@@ -429,7 +431,8 @@ class TestEndpointRouting(unittest.TestCase):
                     "--explore-types", "ORG,SP")
         self.assertEqual(r["endpoint"], "keywords/search-results")
         self.assertEqual(r["params"]["exploreTypes"], ["ORG", "SP"])
-        self.assertEqual(r["params"]["lookbackDays"], 7)
+        self.assertEqual(r["params"]["granularity"], "week")
+        self.assertNotIn("lookbackDays", r["params"])
 
     def test_keyword_competitor_product_keywords(self):
         r = run_cli("keyword-competitor-product-keywords",
@@ -440,6 +443,8 @@ class TestEndpointRouting(unittest.TestCase):
         self.assertEqual(r["endpoint"], "keywords/competitor-product-keywords")
         self.assertEqual(r["params"]["keywordContains"], "yoga")
         self.assertEqual(r["params"]["exploreTypes"], ["ORG"])
+        self.assertEqual(r["params"]["granularity"], "week")
+        self.assertNotIn("lookbackDays", r["params"])
 
     def test_keyword_product_traffic_terms(self):
         r = run_cli("keyword-product-traffic-terms",
@@ -448,6 +453,8 @@ class TestEndpointRouting(unittest.TestCase):
         self.assertEqual(r["endpoint"], "keywords/product-traffic-terms")
         self.assertEqual(r["params"]["asin"], "B01CGLCGRA")
         self.assertEqual(r["params"]["sortBy"], "trafficShare")
+        self.assertEqual(r["params"]["granularity"], "week")
+        self.assertNotIn("lookbackDays", r["params"])
 
     def test_product_traffic_terms_overview(self):
         r = run_cli("product-traffic-terms-overview",
@@ -473,8 +480,7 @@ class TestEndpointRouting(unittest.TestCase):
             "dateFrom": "2026-06-23",
             "dateTo": "2026-06-29",
             "marketplace": "US",
-            "granularity": "lately_day",
-            "lookbackDays": 7,
+            "granularity": "week",
         })
 
     def test_product_traffic_terms_timeline_batch(self):
@@ -508,6 +514,73 @@ class TestOutputFormat(unittest.TestCase):
     def test_json_is_indented(self):
         out = run_cli_stdout("json", "market", "--keyword", "yoga")
         self.assertGreater(out.count("\n"), 1)
+
+
+class TestApiErrorPropagation(unittest.TestCase):
+
+    def test_http_422_preserves_structured_server_response(self):
+        server_response = {
+            "success": False,
+            "error": {
+                "code": "VALIDATION_ERROR",
+                "message": "Remove `lookbackDays` and set `granularity` to `week`.",
+                "details": [{"field": "lookbackDays", "type": "extra_forbidden"}],
+            },
+            "meta": {"requestId": "req_test"},
+        }
+        http_error = urllib.error.HTTPError(
+            "https://api.zoodata.ai/openapi/v2/keywords/search-results",
+            422,
+            "Unprocessable Entity",
+            {},
+            io.BytesIO(json.dumps(server_response).encode("utf-8")),
+        )
+
+        with patch.object(zoodata, "get_api_key", return_value="test_key"), \
+             patch.object(zoodata.urllib.request, "urlopen", side_effect=http_error), \
+             patch.object(zoodata.time, "sleep"):
+            result = zoodata.api_call("keywords/search-results", {
+                "keyword": "yoga mat",
+                "date": "2026-07-23",
+                "granularity": "lately_day",
+                "lookbackDays": 7,
+            })
+
+        self.assertEqual(result["error"], server_response["error"])
+        self.assertEqual(result["meta"], server_response["meta"])
+        self.assertEqual(result["_query"]["params"]["lookbackDays"], 7)
+
+    def test_structured_api_error_prints_full_json_before_nonzero_exit(self):
+        error = {
+            "success": False,
+            "error": {
+                "code": "VALIDATION_ERROR",
+                "message": "Remove `lookbackDays` and set `granularity` to `week`.",
+                "details": [{"field": "lookbackDays", "type": "extra_forbidden"}],
+            },
+            "meta": {"requestId": "req_test"},
+            "_query": {
+                "endpoint": "keywords/search-results",
+                "params": {
+                    "keyword": "yoga mat",
+                    "date": "2026-07-23",
+                    "granularity": "week",
+                },
+            },
+        }
+        stdout = io.StringIO()
+
+        with patch.object(zoodata, "api_call", return_value=error), \
+             patch.object(sys, "argv", [
+                 "zoodata.py", "keyword-search-results",
+                 "--keyword", "yoga mat", "--date", "2026-07-23",
+             ]), \
+             patch("sys.stdout", stdout), \
+             self.assertRaises(SystemExit) as raised:
+            zoodata.main()
+
+        self.assertEqual(raised.exception.code, 1)
+        self.assertEqual(json.loads(stdout.getvalue()), error)
 
 
 # ---------------------------------------------------------------------------
@@ -839,7 +912,7 @@ class TestCheckCommand(unittest.TestCase):
 
         self.assertEqual(captured["endpoints"]["categories"]["status"], "failed")
 
-    def test_keyword_check_includes_market_profile_on_localhost_only(self):
+    def test_keyword_check_includes_published_profile_endpoints_on_all_hosts(self):
         args = type("Args", (), {
             "format": "json",
             "endpoints": False,
@@ -849,9 +922,9 @@ class TestCheckCommand(unittest.TestCase):
             "asin": None,
         })()
 
-        for base_url, expected in [
-            ("http://localhost:8080/openapi/v2", True),
-            ("https://api.zoodata.ai/openapi/v2", False),
+        for base_url in [
+            "http://localhost:8080/openapi/v2",
+            "https://api.zoodata.ai/openapi/v2",
         ]:
             calls = []
 
@@ -865,7 +938,8 @@ class TestCheckCommand(unittest.TestCase):
                  patch.object(zoodata, "output"):
                 zoodata.cmd_check(args)
 
-            self.assertEqual("keywords/market-profile" in calls, expected)
+            self.assertIn("keywords/market-profile", calls)
+            self.assertIn("keywords/trend-profile", calls)
 
 
 class TestCategoriesMarketplace(unittest.TestCase):
