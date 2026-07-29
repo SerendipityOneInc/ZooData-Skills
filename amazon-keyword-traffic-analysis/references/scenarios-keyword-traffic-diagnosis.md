@@ -78,7 +78,7 @@ Interpretation rules:
 - Keep the three timeline metric groups separate:
   - `keywordMetrics` belongs to its nested `metricWindow`
   - `asinSnapshot` is tied to `series[].date`
-  - `traffic`, `placement`, and `adActivity` cover the rolling 7-day window ending on `series[].date`
+  - `traffic`, `placement`, and `adActivity` belong to the returned weekly period
 - Do not compare these three groups as if they shared the same time grain
 - Use `keywordMetrics` to support interpretation of traffic movement, not as direct evidence of ASIN price/BSR/sales/rating changes
 
@@ -92,7 +92,7 @@ For ASIN + keyword diagnosis, inspect these curves when timeline data is availab
 | BSR curve | `asinSnapshot.latestSubBsr`, `asinSnapshot.latestBsr` | Check whether category rank improved or weakened around the anomaly |
 | Sales curve | `asinSnapshot.latestMonthlySaleCount` | Check whether sales momentum moved with traffic exposure |
 | Rating curve | `asinSnapshot.latestRating`, `asinSnapshot.latestRatingCount` | Check whether rating or review-count movement is time-aligned with placement/conversion evidence; do not assign impact from co-movement alone |
-| Traffic-estimate curve | `traffic.*ImpressionPoint`, `placement.avgOrganicObservation`, `placement.avgAdObservation` | Estimate exposure movement over the 7-day rolling window |
+| Traffic-estimate curve | `traffic.*ImpressionPoint`, `placement.avgOrganicObservation`, `placement.avgAdObservation` | Estimate exposure movement over the returned weekly period |
 
 Use keyword-level fields as supporting context for traffic-estimate changes:
 - `keywordMetrics.keywordEstimateSearchCount`, `keywordMetrics.keywordAbaRank`, and Top3 share fields explain whether the provided keyword's demand context changed during its metric period

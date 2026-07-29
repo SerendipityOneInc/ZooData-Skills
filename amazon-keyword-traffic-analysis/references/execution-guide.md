@@ -360,7 +360,8 @@ When some endpoints return data but others are unavailable:
 - HTTP 422 is a parameter validation error, not a retryable transient failure.
 - Do not retry the same 422 request repeatedly.
 - Read the returned error detail and correct the call before retrying.
-- First checks for keyword workflows: exact CLI flag names from `--help`, full `YYYY-MM-DD` dates, `dateFrom <= dateTo`, all required fields present, and endpoint-specific range limits.
+- The CLI prints the structured server error on stdout and exits non-zero; inspect its code/message/details and `_query.params`.
+- First checks for keyword workflows: removed `lookbackDays`, obsolete `granularity=lately_day`, exact CLI flag names from `--help`, full `YYYY-MM-DD` dates, `dateFrom <= dateTo`, all required fields present, and endpoint-specific range limits.
 - `keyword-trend` accepts up to 93 days; `product-traffic-terms-timeline` accepts up to 61 days. Do not probe longer ranges just to learn the limit from HTTP 422.
 - For batch endpoints, also check that exactly one of `keyword`/`keywords[]` is present, the batch has at most 20 subjects, and it contains no case-insensitive duplicates.
 - For `keyword-trend`, the canonical CLI pattern is:
@@ -384,15 +385,15 @@ When some endpoints return data but others are unavailable:
 - Use the current date only when the user explicitly requests today's lookup, and label it as potentially incomplete if the returned data is missing or sparse
 - `keywords/detail` is a weekly snapshot. `keywords/extends` uses the latest weekly snapshot and does not require a request date.
 - `keywords/trend` is weekly time series
-- `keywords/search-results` and ASIN keyword endpoints are recent daily observations
+- `keywords/search-results` and ASIN keyword endpoints use weekly granularity in the CLI; use returned period boundaries
 - `keywords/product-traffic-terms-overview` is the preferred core evidence for two-week / previous-period ASIN all-keyword impression traffic changes; compare current placement-level impression-point fields to matching `*Prev` fields for previous-period movement
 - For `keywords/product-traffic-terms-overview`, display the period from response `periodStartDate` / `periodEndDate` exactly; never substitute the request date or an inferred range as the overview period
 - In `keywords/product-traffic-terms-overview`, `first3PagesNewOrganicKeywords` lists keywords newly entering ORG first three pages, and `first3PagesLostOrganicKeywords` lists keywords that dropped out of ORG first three pages
 - `keywords/product-traffic-terms-timeline` is the preferred ASIN + keyword timeline input; requested ranges cannot exceed 61 days and one call may include up to 20 keywords for one ASIN
-- In `keywords/product-traffic-terms-timeline`, `keywordMetrics` uses its nested `metricWindow`, `asinSnapshot` is tied to `series[].date`, and `traffic` / `placement` / `adActivity` are rolling 7-day observations ending on that date
+- In `keywords/product-traffic-terms-timeline`, `keywordMetrics` uses its nested `metricWindow`, `asinSnapshot` is tied to `series[].date`, and `traffic` / `placement` / `adActivity` belong to the returned weekly period
 - For timeline diagnosis, inspect price, BSR, sales, rating, and traffic-estimate curves separately; use keyword-level fields only as supporting context for traffic-estimate changes
 - Treat `asinSnapshot.latestTitle` and `asinSnapshot.latestMainImageLink` changes as listing events, not continuous curves
-- Never compare weekly and daily snapshots as if they were the same grain without stating the difference
+- Never compare different returned period granularities as if they were the same grain without stating the difference
 
 ### Ad vs Organic Separation
 

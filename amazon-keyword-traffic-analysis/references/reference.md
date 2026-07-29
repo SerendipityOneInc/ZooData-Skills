@@ -242,13 +242,13 @@ Do not flatten the response back to legacy `term`, `seedKeyword`, or `estimateSe
 Request:
 
 - required `keyword`, `date`
-- `granularity=lately_day`, `lookbackDays=7`
+- `granularity=week`; do not send the removed `lookbackDays` field
 - optional `exploreTypes=ORG|SP|SB|SBV|SPR`, page/pageSize
 - `sortBy=absolutePosition|estimateImpressionPoint|latestObservedAt|price|rating|ratingCount|recentSales|asin|title`
 
 Response:
 
-- `data.context`: requested/resolved date and 7-day current period
+- `data.context`: requested/resolved date and returned period boundaries
 - `data.identity`
 - `data.rows[]`: `latestObservedAt`, placement/position, listing fields, `estimateImpressionPoint`, `keywordTotalEstimateImpressionPoint`
 
@@ -259,7 +259,7 @@ Use this as the primary observed SERP source. Split ORG from sponsored placement
 Request:
 
 - required `asin`, `date`
-- `granularity=lately_day`, `lookbackDays=7`
+- `granularity=week`; do not send the removed `lookbackDays` field
 - optional `keywordContains`, `exploreTypes`, page/pageSize
 - `sortBy=trafficShare|estimateImpressionPoint|absolutePosition|avgPosition|keywordEstimateSearchCount|keywordAbaRank|latestObservedAt|keyword`
 
@@ -270,7 +270,7 @@ Response:
 
 The two endpoints currently return the same row shape. Prefer `product-traffic-terms` for the user's target ASIN; use the competitor-named route for competitor/overlap framing or fallback. One call is enough unless explicitly checking parity.
 
-`trafficShare` is the row's sampled 7-day share within the ASIN traffic observation, not exact Amazon share of voice.
+`trafficShare` is the row's sampled share within the returned ASIN traffic period, not exact Amazon share of voice.
 
 ### Data layer: `keywords/product-traffic-terms-timeline`
 
@@ -278,12 +278,12 @@ Request:
 
 - one ASIN and exactly one of `keyword` or `keywords[]` (1–20)
 - `dateFrom`, `dateTo`; maximum 61-day range
-- `granularity=lately_day`, `lookbackDays=7`
+- `granularity=week`; do not send the removed `lookbackDays` field
 - no page/pageSize pagination for series
 
 Response:
 
-- `data.context`: requested/resolved range, granularity, lookbackDays
+- `data.context`: requested/resolved range, granularity, and returned period boundaries
 - `data.items[].identity`, status, `series[]`, empty/error fields
 - each series point contains:
   - `date`
@@ -293,7 +293,7 @@ Response:
   - `keywordMetrics`: `metricWindow` plus search count, ABA rank, Top3 shares
   - `adActivity`: observation count, day coverage, campaign count, ad count
 
-Keep time grains separate: `asinSnapshot` is tied to the series date; traffic/placement/ad activity cover the 7-day rolling window ending on that date; `keywordMetrics` belongs to its own weekly `metricWindow`.
+Keep time grains separate: `asinSnapshot` is tied to the series date; traffic/placement/ad activity belong to the returned weekly period; `keywordMetrics` belongs to its own weekly `metricWindow`.
 
 ### Metric layer (legacy response): `keywords/product-traffic-terms-overview`
 

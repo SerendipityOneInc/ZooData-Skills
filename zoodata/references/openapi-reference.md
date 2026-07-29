@@ -434,7 +434,8 @@ Additional market-structure fields may appear on each item, including `totalSkuC
 | Parameter | Type | Required | Note |
 |-----------|------|----------|------|
 | keyword | String | **Yes** | Keyword to inspect |
-| date | String | **Yes** | Daily snapshot lookup date `YYYY-MM-DD`; prefer T-1 or earlier |
+| date | String | **Yes** | Snapshot lookup date `YYYY-MM-DD`; prefer T-1 or earlier |
+| granularity | String | No | CLI sends `week`; API supports `day` / `week` / `month` |
 | marketplace | String | No | Marketplace code, default `US` |
 | page | Integer | No | default 1 |
 | pageSize | Integer | No | default 20, max 100 |
@@ -442,7 +443,7 @@ Additional market-structure fields may appear on each item, including `totalSkuC
 | sortBy | String | No | `absolutePosition` / `estimateImpressionPoint` / `observedAt` / `price` / `rating` / `ratingCount` / `recentSales` / `asin` / `title` |
 | sortOrder | String | No | `asc` / `desc` |
 
-⚠️ This endpoint behaves like a daily-observation feed exposed through a recent sliding ~7-day window, not a long-retention historical snapshot archive.
+⚠️ `lookbackDays` and `granularity=lately_day` are obsolete and return 422. Use the returned period boundaries instead of inferring a rolling window.
 ⚠️ Use this endpoint as the primary source for "what products are currently showing on the keyword SERP/page 1" because it already returns listing-level product fields.
 ⚠️ Do not replace it with `products/search` when the question is about observed Amazon keyword SERP composition or ordering.
 ⚠️ When analyzing this endpoint, separate `exploreType` at least into `ORG` and sponsored placements instead of collapsing all rows together.
@@ -465,7 +466,8 @@ Interpretation rule:
 | Parameter | Type | Required | Note |
 |-----------|------|----------|------|
 | asin | String | **Yes** | Target ASIN |
-| date | String | **Yes** | Daily snapshot lookup date `YYYY-MM-DD`; prefer T-1 or earlier |
+| date | String | **Yes** | Snapshot lookup date `YYYY-MM-DD`; prefer T-1 or earlier |
+| granularity | String | No | CLI sends `week`; API supports `day` / `week` / `month` |
 | marketplace | String | No | Marketplace code, default `US` |
 | page | Integer | No | default 1 |
 | pageSize | Integer | No | default 20, max 100 |
@@ -482,7 +484,7 @@ Key fields from live response: `exploreType`, `absolutePosition`, `pageIndex`, `
 `keywordEstimateSearchGrowthCount`, `keywordEstimateSearchCountChangeRate`, `keywordAbaRank`,
 `keywordAbaRankChangeCount`, `trafficShare`
 
-⚠️ Live validation indicates this endpoint also behaves like a daily-observation feed exposed through a recent sliding ~7-day window.
+⚠️ Do not send `lookbackDays` or `granularity=lately_day`; use the returned period boundaries.
 ⚠️ In skill workflows, this endpoint is a reverse-ASIN source endpoint, not a substitute for `keywords/search-results` when the question is about visible page-1 product composition.
 
 ---
@@ -492,7 +494,8 @@ Key fields from live response: `exploreType`, `absolutePosition`, `pageIndex`, `
 | Parameter | Type | Required | Note |
 |-----------|------|----------|------|
 | asin | String | **Yes** | Target ASIN |
-| date | String | **Yes** | Daily snapshot lookup date `YYYY-MM-DD`; prefer T-1 or earlier |
+| date | String | **Yes** | Snapshot lookup date `YYYY-MM-DD`; prefer T-1 or earlier |
+| granularity | String | No | CLI sends `week`; API supports `day` / `week` / `month` |
 | marketplace | String | No | Marketplace code, default `US` |
 | page | Integer | No | default 1 |
 | pageSize | Integer | No | default 20, max 100 |
@@ -503,7 +506,7 @@ Key fields from live response: `exploreType`, `absolutePosition`, `pageIndex`, `
 
 ⚠️ Live validation showed the same item shape as `keywords/competitor-product-keywords`; do not assume
 the semantic label implies a different wire schema.
-⚠️ Live validation indicates this endpoint also behaves like a daily-observation feed exposed through a recent sliding ~7-day window.
+⚠️ Do not send `lookbackDays` or `granularity=lately_day`; use the returned period boundaries.
 ⚠️ In skill workflows, this endpoint is a reverse-ASIN source endpoint, not a substitute for `keywords/search-results` when the question is about visible page-1 product composition.
 
 **Response:** Array of keyword rows for an ASIN.
@@ -563,6 +566,7 @@ Live validation source: MCP tool surface
 | dateFrom | String | **Yes** | Start date `YYYY-MM-DD` |
 | dateTo | String | **Yes** | End date `YYYY-MM-DD`; prefer T-1 or earlier; requested range cannot exceed 93 days |
 | marketplace | String | No | Marketplace code, default `US` |
+| granularity | String | No | CLI sends `week`; API supports `day` / `week` / `month` |
 | page | Integer | No | default 1 |
 | pageSize | Integer | No | default 20, max 100 |
 | sortBy | String | No | `date` |
@@ -573,7 +577,9 @@ Live validation source: MCP tool surface
 Metric groups:
 - `keyword*` fields are keyword traffic-forecast dependency data for the provided keyword's corresponding metric period, indicated by `keywordPeriodStartDate` / `keywordPeriodEndDate`
 - `latest*` fields are the ASIN's latest product/listing/rank snapshot on the specified `date`
-- impression-point fields, `avg*` fields, ad-activity fields, and placement observations are rolling metrics for the most recent 7 days ending at the given `date`
+- impression-point fields, `avg*` fields, ad-activity fields, and placement observations belong to the returned period; use its explicit period boundaries
+
+⚠️ `lookbackDays` and `granularity=lately_day` are obsolete and return 422.
 
 Diagnosis curves and events:
 - Price curve: `latestPrice`

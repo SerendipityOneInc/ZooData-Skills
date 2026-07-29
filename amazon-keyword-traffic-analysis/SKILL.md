@@ -144,7 +144,7 @@ Apply this gate after endpoint/layer selection:
 
 1. Collect all requested or shortlisted subjects that share the selected endpoint's non-subject parameters.
 2. If the endpoint supports batch, send the largest valid batch instead of looping over single-subject calls.
-3. Batch compatibility requires the same marketplace, date or date range, granularity, lookback/window, filters, and sort context. Timeline batches must also share one ASIN.
+3. Batch compatibility requires the same marketplace, date or date range, granularity, filters, and sort context. Timeline batches must also share one ASIN.
 4. Deduplicate subjects case-insensitively while preserving first-occurrence order.
 5. Use batches of at most 20. For 21+ compatible subjects, send sequential chunks of 20 and merge `data.items[]` back into global input order.
 6. Use a single-subject call only when there is one subject, request contexts differ, or the endpoint has no batch contract.
@@ -157,7 +157,7 @@ Apply this gate after endpoint/layer selection:
 - `keyword-market-profile`: use the same single-or-batch subject contract as `keyword-detail`; up to 20 keywords share the snapshot date, marketplace, and weekly granularity.
 - `keyword-trend-profile`: use exactly one of `--keyword` or `--keywords` plus `--date` and `--window-periods`; up to 20 keywords share 1–4 unique windows selected from `4,8,12,26`, marketplace, and weekly granularity.
 - `keyword-trend`: pass exactly one of `--keyword` or `--keywords`; all items share `dateFrom`, `dateTo`, marketplace, and weekly granularity.
-- `product-traffic-terms-timeline`: pass one ASIN and exactly one of `--keyword` or `--keywords`; up to 20 keywords share the same range and 7-day rolling window.
+- `product-traffic-terms-timeline`: pass one ASIN and exactly one of `--keyword` or `--keywords`; up to 20 keywords share the same range and weekly granularity.
 - Preserve `data.items[]` input order. Read each item's `identity`, `status`, `emptyReason`, `errorCode`, `errorMessage`, and evidence object independently; outer `success=true` does not mean every item succeeded.
 - Do not drop empty/error items from the user's requested set. Report their per-item reason and continue with successful items.
 - Batch billing is per successful item: preflight may check the full subject count, but final credits correspond to `status=ok`; `empty` and `error` items are not billed. Use returned `meta.creditsConsumed`, never infer charges.
@@ -302,7 +302,7 @@ See `references/execution-guide.md § Evidence-to-Action Protocol` for the opera
 3. Keyword endpoints are keyword-query interfaces; for inputs named `keyword` or `query`, use the Amazon search query / keyword phrase being analyzed
 4. When a keyword endpoint requires `date` or `dateTo`, prefer T-1 or earlier and avoid using the current date unless the user explicitly asks for today's lookup; do not proactively explain the reason unless asked
 5. `keywords/trend` is weekly time series, not daily. CLI usage must use full ISO dates with these exact flags: `keyword-trend --keyword "small baskets for organizing" --date-from 2026-04-01 --date-to 2026-07-02 --marketplace US`; never send truncated dates, ellipses, natural-language dates, reversed ranges, or ranges longer than 93 days.
-6. `keywords/search-results` and ASIN keyword endpoints are recent `lately_day` observations with `lookbackDays=7`, not long-retention history. `keyword-trend` accepts up to 93 days; `product-traffic-terms-timeline` accepts up to 61 days.
+6. `keywords/search-results` and ASIN keyword endpoints use period granularity; the CLI sends `granularity=week`. Never send the removed `lookbackDays` field or `granularity=lately_day`; both trigger 422. `keyword-trend` accepts up to 93 days; `product-traffic-terms-timeline` accepts up to 61 days.
 7. `keywords/detail` returns `data.context + data.items[]`; an unmatched keyword is an item with `status=empty` and `emptyReason`, not a top-level API failure.
 8. `keywords/market-profile` returns `data.context + data.items[]`; use its server-calculated dimensions as snapshot evidence only. Require `status=available`, read `context.scoringSpec`, and inspect each dimension's `supported`, `calculationStatus`, `unsupportedReason`, `level`, and `levelEvidence.score.{value,direction}` independently. Treat any unavailable signal as a conclusion boundary. The endpoint does not provide history, recommendations, root cause, or seller-private conversion data. It is published in production; a whole-batch HTTP 500 remains a possible service failure.
 9. `keywords/extends` returns `data.context + data.rows[]`; an empty `rows[]` is valid. Try both `queryType=phrase` and `queryType=fuzzy` before concluding low expandability.
@@ -320,8 +320,8 @@ See `references/execution-guide.md § Evidence-to-Action Protocol` for the opera
 19. `keywords/product-traffic-terms-timeline` returns `data.context + data.items[].series[]`; interpret each series point's nested groups separately:
     - `keywordMetrics` belongs to `metricWindow.keywordPeriodStartDate/keywordPeriodEndDate`
     - `asinSnapshot` is the product/listing/rank snapshot on `series[].date`
-    - `traffic`, `placement`, and `adActivity` describe the 7-day rolling window ending on `series[].date`
-20. HTTP 422 means request validation failed, not a transient network error. Do not retry the same request repeatedly. Read the returned error detail and fix parameters first, especially full `YYYY-MM-DD` date strings, required fields, date range order, and endpoint-specific range limits.
+    - `traffic`, `placement`, and `adActivity` belong to the returned weekly period; use its explicit period boundaries
+20. HTTP 422 means request validation failed, not a transient network error. The CLI preserves the structured server error on stdout and exits non-zero. Read its code/message/details and `_query.params`, then fix the named fields before retrying; check especially removed `lookbackDays`, obsolete `granularity=lately_day`, full `YYYY-MM-DD` dates, required fields, date range order, and endpoint-specific range limits.
 
 ## On Missing Key
 

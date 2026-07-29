@@ -100,6 +100,10 @@ When `zoodata.py` returns `{"code": 402, "message": "API quota exhausted or subs
    - Top-up link: https://zoodata.ai/en/pricing
 3. **Do not fabricate or guess** the missing data to "complete" the report. Mark partial findings explicitly as partial. **No "training-data fallback" / "industry common-sense" filler** — substituting public-knowledge prose for missing endpoint data is still fabrication.
 
+## On 422 Validation Error
+
+When `zoodata.py` returns HTTP 422 / `VALIDATION_ERROR`, read the structured server error printed on stdout, including its message/details and `_query.params`. Do not retry the unchanged request. Correct the named fields first; the CLI exits non-zero while preserving the full server response for the calling agent. For the keyword SERP, ASIN-keyword, and traffic-timeline commands, do not send `lookbackDays` or `granularity=lately_day`; the CLI sends `granularity=week`.
+
 ## 22 Endpoints
 
 | # | Endpoint | Purpose | Key Output |
@@ -121,11 +125,11 @@ When `zoodata.py` returns `{"code": 402, "message": "API quota exhausted or subs
 | 15 | `/openapi/v2/keywords/trend` | Weekly keyword time series | `estimateSearchCount`, `abaRank`, `rankChangeCount`, `periodStartDate`, `periodEndDate` |
 | 15b | `/openapi/v2/keywords/trend-profile` | Server-calculated trend profile over fixed weekly windows | trend shape, volatility, normalized slope, direction consistency, ABA-rank evidence |
 | 16 | `/openapi/v2/keywords/extends` | Keyword expansion / long-tail discovery | related keywords ranked by `relevanceScore` / `estimateSearchCount`; may return empty array |
-| 17 | `/openapi/v2/keywords/search-results` | Daily keyword SERP snapshot | `asin`, `exploreType`, `absolutePosition`, `estimateImpressionPoint`, listing fields |
+| 17 | `/openapi/v2/keywords/search-results` | Weekly keyword SERP snapshot | `asin`, `exploreType`, `absolutePosition`, `estimateImpressionPoint`, listing fields |
 | 18 | `/openapi/v2/keywords/competitor-product-keywords` | Keyword set where an ASIN appears as a competitor | `keyword`, `avgPosition`, `keywordEstimateSearchCount`, `trafficShare` |
 | 19 | `/openapi/v2/keywords/product-traffic-terms` | Traffic-driving keywords for an ASIN | same live response shape as competitor-product-keywords |
 | 20 | `/openapi/v2/keywords/product-traffic-terms-overview` | Weekly ASIN all-keyword traffic-change overview | current vs previous-period placement-level impression points, ORG first-3-page keyword entries/exits |
-| 21 | `/openapi/v2/keywords/product-traffic-terms-timeline` | ASIN + keyword daily timeline | position/impression points, listing snapshot, keyword weekly metrics, ad activity |
+| 21 | `/openapi/v2/keywords/product-traffic-terms-timeline` | ASIN + keyword weekly timeline | position/impression points, listing snapshot, keyword weekly metrics, ad activity |
 
 ## Known Quirks
 - `topN`, `listingAge`, `newProductPeriod` are **strings** (`"10"` not `10`)
@@ -145,7 +149,7 @@ When `zoodata.py` returns `{"code": 402, "message": "API quota exhausted or subs
 - `keywords/market-profile` accepts one of `keyword` / `keywords[]` (max 20), requires `date`, supports weekly granularity only, and returns input-ordered `data.items[]`. A subject-specific calculation failure can return HTTP 500 for the whole batch.
 - `keywords/trend-profile` accepts one of `keyword` / `keywords[]` (max 20), requires `date` and 1–4 unique `windowPeriods` selected from 4/8/12/26, and supports weekly granularity only.
 - `keywords/extends` also resolves the input `date` to the nearest available weekly snapshot, requires `query` (not `keyword`), supports `queryType` = `phrase` or `fuzzy`, and may legitimately return `data: []`
-- `keywords/search-results`, `keywords/competitor-product-keywords`, and `keywords/product-traffic-terms` use daily observations over a sliding ~7-day window, not a long-retention historical store
+- `keywords/search-results`, `keywords/competitor-product-keywords`, `keywords/product-traffic-terms`, and `keywords/product-traffic-terms-timeline` accept period granularity; the CLI requests `granularity=week`. `lookbackDays` and `granularity=lately_day` are obsolete and return 422. Use returned period boundaries instead of inferring a rolling window.
 - Keyword endpoints are keyword-query workflows; for inputs named `keyword` or `query`, use the Amazon search query / keyword phrase being analyzed
 - For keyword endpoints that require `date` or `dateTo`, prefer T-1 or earlier and avoid the current date unless the user explicitly asks for today's lookup
 - `keywords/search-results` requires `date` + `keyword`; `exploreTypes` values are `ORG`, `SP`, `SB`, `SBV`, `SPR`
@@ -225,8 +229,8 @@ Keyword value boundary:
   `queryType="phrase"` and `queryType="fuzzy"`
 
 ### `/openapi/v2/keywords/search-results`
-- Input: `keyword`, `date`, optional `marketplace`, `page`, `pageSize`, `exploreTypes`, `sortBy`, `sortOrder`
-- Data window: daily observations surfaced through a sliding ~7-day window
+- Input: `keyword`, `date`, `granularity=week`, optional `marketplace`, `page`, `pageSize`, `exploreTypes`, `sortBy`, `sortOrder`; do not send `lookbackDays`
+- Data window: latest available weekly period at or before the requested date; use the returned period boundaries
 - Date rule: prefer T-1 or earlier for `date`; avoid current-date lookup unless explicitly requested
 - Response shape: `data` is an array
 - Key fields from live response/schema: `exploreType`, `absolutePosition`, `pageIndex`,
@@ -237,9 +241,9 @@ Keyword value boundary:
 - Do not substitute `products/search` when the question is about observed keyword SERP composition or ordering
 
 ### `/openapi/v2/keywords/competitor-product-keywords`
-- Input: `asin`, `date`, optional `marketplace`, `page`, `pageSize`, `exploreTypes`,
+- Input: `asin`, `date`, `granularity=week`, optional `marketplace`, `page`, `pageSize`, `exploreTypes`,
   `keywordContains`, `sortBy`, `sortOrder`
-- Data window: daily observations surfaced through a sliding ~7-day window
+- Do not send `lookbackDays`; use the returned weekly period boundaries
 - Date rule: prefer T-1 or earlier for `date`; avoid current-date lookup unless explicitly requested
 - Response shape: `data` is an array
 - Key fields from live response/schema: `exploreType`, `absolutePosition`, `pageIndex`,
@@ -250,7 +254,7 @@ Keyword value boundary:
 
 ### `/openapi/v2/keywords/product-traffic-terms`
 - Input: same request shape as `keywords/competitor-product-keywords`
-- Data window: daily observations surfaced through a sliding ~7-day window
+- Data window: weekly period selected by `date` + `granularity=week`; use returned period boundaries
 - Date rule: prefer T-1 or earlier for `date`; avoid current-date lookup unless explicitly requested
 - Response shape: `data` is an array
 - Key fields from live response/schema: `exploreType`, `absolutePosition`, `pageIndex`,
@@ -282,15 +286,16 @@ Keyword value boundary:
   `asin="B01CGLCGRA"`, `date="2026-06-29"`, `marketplace="US"`
 
 ### `/openapi/v2/keywords/product-traffic-terms-timeline`
-- Input: `asin`, exact `keyword`, `dateFrom`, `dateTo`, optional `marketplace`, `page`, `pageSize`,
+- Input: `asin`, exact `keyword`, `dateFrom`, `dateTo`, `granularity=week`, optional `marketplace`, `page`, `pageSize`,
   `sortBy`, `sortOrder`
+- Do not send `lookbackDays`; `granularity=lately_day` is obsolete
 - Data window: ASIN + keyword timeline across the requested date range; date range cannot exceed 60 days
 - Date rule: prefer T-1 or earlier for `dateTo`; avoid current-date lookup unless explicitly requested
 - Response shape: `data` is an array
 - Metric groups:
   - `keyword*` fields are keyword traffic-forecast dependency data for the provided keyword's corresponding metric period, indicated by `keywordPeriodStartDate` / `keywordPeriodEndDate`
   - `latest*` fields are the ASIN's latest product/listing/rank snapshot on the specified `date`
-  - impression-point fields, `avg*` fields, ad-activity fields, and placement observations are rolling metrics for the most recent 7 days ending at the given `date`
+  - impression-point fields, `avg*` fields, ad-activity fields, and placement observations belong to the returned weekly period; use its explicit period boundaries
 - Diagnosis curves/events: price (`latestPrice`), BSR (`latestSmallCategoryBsr`, `latestBigCategoryBsr`),
   sales (`latestMonthlySaleCnt`), rating (`latestRatingAmt`, `latestRatingCnt`), traffic estimate
   (impression-point fields plus `avgOrganicObservation` / `avgAdObservation`), and listing events
@@ -379,7 +384,7 @@ Strategy recommendations and subjective conclusions are NEVER 📊. Extreme grow
 ## Data Notes
 - Sales (`monthlySalesFloor`) = lower-bound estimate
 - Realtime = live; products/competitors = ~T+1 delay
-- Amazon US only (amazon.com) — more marketplaces planned
+- Marketplace coverage varies by endpoint; follow each endpoint schema
 - Each call consumes credits; check `meta.creditsConsumed`
 
 ## Links

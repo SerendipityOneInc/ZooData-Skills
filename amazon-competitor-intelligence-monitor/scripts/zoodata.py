@@ -90,6 +90,11 @@ RATE_LIMIT_DELAY = 5    # Initial delay for 429 retries (seconds); doubles each 
 MIN_REQUEST_INTERVAL = 0.6  # Minimum seconds between requests (100 req/min = 0.6s)
 REQUEST_TIMEOUT = 60  # Request timeout in seconds; realtime/product can be slow (up to 30s)
 
+# API calls return structured errors so composite commands can finish collecting
+# partial results.  Track those errors separately so the CLI still exits non-zero
+# after printing the complete machine-readable response for the calling agent.
+_cli_had_error = False
+
 # Global request pacer — prevents burst rate limit violations
 _last_request_time = 0.0
 
@@ -329,6 +334,7 @@ def api_call(endpoint: str, params: dict) -> dict:
                     print(f"API error: {err.get('code', 'unknown')} — {err_msg}", file=sys.stderr)
                     # Return error as structured result instead of exiting
                     # This allows composite commands to continue with other steps
+                    _mark_cli_error()
                     data["_query"] = {"endpoint": endpoint, "params": actual_params}
                     return data
         except urllib.error.HTTPError as e:
@@ -367,16 +373,16 @@ def api_call(endpoint: str, params: dict) -> dict:
                     f"Check {API_DOCS} for current endpoints",
                     endpoint, actual_params)
             elif status == 422:
+                server_response = None
                 detail = response_text.strip()
                 if detail:
                     try:
-                        parsed = json.loads(detail)
-                        detail = json.dumps(parsed, ensure_ascii=False)
+                        server_response = json.loads(detail)
                     except json.JSONDecodeError:
                         pass
                 return _error_result(422, "Request validation failed",
                     detail or "Check request parameters, especially date formats and required fields",
-                    endpoint, actual_params)
+                    endpoint, actual_params, server_response=server_response)
             else:
                 if attempt < max_attempts:
                     print(f"HTTP {status}. Retrying {attempt}/{max_attempts}...", file=sys.stderr)
@@ -506,12 +512,35 @@ def _resolve_category(api_caller, log_fn, keyword=None, asin=None, results=None)
     return category_path, category_source
 
 
-def _error_result(status: int, message: str, action: str, endpoint: str, params: dict) -> dict:
+def _mark_cli_error():
+    """Remember an API failure without interrupting a composite command."""
+    global _cli_had_error
+    _cli_had_error = True
+
+
+def _error_result(
+    status: int,
+    message: str,
+    action: str,
+    endpoint: str,
+    params: dict,
+    server_response=None,
+) -> dict:
     """
     Build a structured error result instead of sys.exit().
     This lets AI read the error from JSON stdout and take appropriate action.
     """
+    _mark_cli_error()
     print(f"ERROR: {message}", file=sys.stderr)
+
+    # Preserve a structured server error verbatim for the calling agent.  Only
+    # add CLI metadata; do not flatten VALIDATION_ERROR details into a string.
+    if isinstance(server_response, dict):
+        result = dict(server_response)
+        result.setdefault("success", False)
+        result["_query"] = {"endpoint": endpoint, "params": params}
+        return result
+
     return {
         "success": False,
         "error": {
@@ -529,6 +558,8 @@ def _error_result(status: int, message: str, action: str, endpoint: str, params:
 def output(data, fmt="json"):
     """Print output in the requested format."""
     _annotate_credits(data)
+    if isinstance(data, dict) and data.get("success") is False:
+        _mark_cli_error()
     if fmt == "json":
         print(json.dumps(data, indent=2, ensure_ascii=False))
     elif fmt == "compact":
@@ -2512,18 +2543,15 @@ def cmd_check(args):
         date = args.date or time.strftime("%Y-%m-%d", time.localtime(time.time() - 86400))
         keyword_probes = [
             ("keywords/detail", {"keyword": keyword, "date": date}, "Keyword snapshot"),
+            ("keywords/market-profile", {"keyword": keyword, "date": date}, "Keyword market profile"),
+            (
+                "keywords/trend-profile",
+                {"keyword": keyword, "date": date, "windowPeriods": [4], "granularity": "week"},
+                "Keyword trend profile",
+            ),
             ("keywords/extends", {"query": keyword, "date": date, "queryType": "phrase", "pageSize": 1}, "Keyword expansion"),
             ("keywords/search-results", {"keyword": keyword, "date": date, "pageSize": 1}, "Keyword SERP"),
         ]
-        if re.match(r"^https?://(?:localhost|127\.0\.0\.1)(?::|/)", BASE_URL):
-            keyword_probes[1:1] = [
-                ("keywords/market-profile", {"keyword": keyword, "date": date}, "Keyword market profile (pre-release)"),
-                (
-                    "keywords/trend-profile",
-                    {"keyword": keyword, "date": date, "windowPeriods": [4], "granularity": "week"},
-                    "Keyword trend profile (pre-release)",
-                ),
-            ]
         endpoints.extend(keyword_probes)
         if args.asin:
             endpoints.extend([
@@ -2825,8 +2853,7 @@ def cmd_keyword_search_results(args):
         "keyword": args.keyword,
         "date": args.date,
         "marketplace": args.marketplace,
-        "granularity": "lately_day",
-        "lookbackDays": 7,
+        "granularity": "week",
         "page": args.page,
         "pageSize": args.page_size,
         "exploreTypes": _split_csv(args.explore_types),
@@ -2843,8 +2870,7 @@ def _asin_keyword_params(args):
         "asin": args.asin,
         "date": args.date,
         "marketplace": args.marketplace,
-        "granularity": "lately_day",
-        "lookbackDays": 7,
+        "granularity": "week",
         "page": args.page,
         "pageSize": args.page_size,
         "exploreTypes": _split_csv(args.explore_types),
@@ -2893,8 +2919,7 @@ def cmd_product_traffic_terms_timeline(args):
         "dateFrom": args.date_from,
         "dateTo": args.date_to,
         "marketplace": args.marketplace,
-        "granularity": "lately_day",
-        "lookbackDays": 7,
+        "granularity": "week",
     }
     subject_field, subject_value = _keyword_subject(args)
     params[subject_field] = subject_value
@@ -2905,6 +2930,9 @@ def cmd_product_traffic_terms_timeline(args):
 # ─── CLI Setup ───────────────────────────────────────────────────────────────
 
 def main():
+    global _cli_had_error
+    _cli_had_error = False
+
     parser = argparse.ArgumentParser(
         description="ZooData CLI — Amazon Product Research",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -3279,6 +3307,8 @@ Examples:
         print(f"Run 'zoodata.py {cmd} --help' to see valid options.", file=sys.stderr)
         sys.exit(1)
     args.func(args)
+    if _cli_had_error:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
