@@ -1,8 +1,12 @@
-# Market Entry Analyzer — API Field Reference
+# ZooData API Field Reference
 
 > Load this file only when you need exact field names or response structure.
 
-## Endpoints Used (11 of 11 — ALL)
+## ZooData Endpoint Field Reference
+
+> Shared field reference. This skill's workflows use ONLY the subcommands
+> listed in its SKILL.md; the endpoints below are documented for field-name /
+> response-structure lookup, not as a claim that this skill invokes all of them.
 
 | # | Endpoint | Purpose in This Skill | Step |
 |---|----------|-----------------------|------|
