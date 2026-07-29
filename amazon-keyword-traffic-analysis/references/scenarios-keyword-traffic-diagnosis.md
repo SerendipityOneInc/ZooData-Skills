@@ -26,16 +26,15 @@
 
 ### Task Constraints
 
-- Minimum evidence is claim-specific. Prefer `search-results-metrics` for SERP structure, `market-profile` for weekly market context, `trend-profile` for demand/rank trend judgments, `product-traffic-terms-overview` for ASIN aggregate movement, and `product-traffic-terms-timeline-review` when live for timeline evidence summary.
-- Use raw `search-results`, `detail`, or timeline data only when the matching metric is unavailable or omits rows/fields/series required for a named diagnosis inference.
+- Minimum evidence is claim-specific. Use `search-results` for observed SERP structure, `market-profile` for weekly market context, `trend-profile` for demand/rank trend judgments, `product-traffic-terms-overview` for ASIN aggregate movement, and `product-traffic-terms-timeline` for timeline evidence.
+- Use `detail` or raw trend points only when the matching production metric fails at runtime or omits fields required for a named diagnosis inference.
 - A metric dimension's unsupported/unavailable status limits the conclusion; it does not automatically authorize a same-source data call.
 - Two or more observations are required for anything stronger than directional movement commentary
 - If `keywords/trend-profile` is unavailable, use raw `keywords/trend` only for transparent point-level interpretation; if neither is available, keep demand-change interpretation weak
-- `keywords/product-traffic-terms-timeline-review` is preferred when live. Use raw `keywords/product-traffic-terms-timeline` only when the review metric is unavailable or the diagnosis needs series detail omitted by the metric.
 - `keywords/product-traffic-terms-overview` is the preferred core evidence for two-week / previous-period all-keyword impression traffic changes under the ASIN; if unavailable, do not infer previous-period traffic deltas or first-3-page ORG keyword entry/exit
-- `keywords/product-traffic-term-changes` is the planned source for top losing/gaining keyword contribution. If it returns 404, omit contribution claims rather than deriving them from the overview.
-- `keywords/product-traffic-terms-timeline-review` is a planned evidence-summary endpoint. If unavailable and raw timeline fields can support the requested inference, inspect only the required timeline groups. Report an Agent explanation only when those fields materially distinguish it; otherwise retain the unresolved question.
-- When diagnosing several keywords for one ASIN, batch them through timeline review first when live. If raw series are justified by a named inference, batch only that fallback set—up to 20—through one timeline data request and preserve each item's status.
+- Current production contracts do not provide exact top losing/gaining keyword contribution. Omit contribution claims rather than deriving them from the overview.
+- Inspect only the timeline groups required for the named inference. Report an Agent explanation only when those fields materially distinguish it; otherwise retain the unresolved question.
+- When diagnosing several keywords for one ASIN, batch up to 20 compatible keywords through one timeline request and preserve each item's status.
 - If both ASIN traffic-list endpoints are unavailable, do not infer ASIN-side traffic-share
 - If `keywords/product-traffic-terms-overview` is unavailable, do not infer all-keyword impression traffic changes or ORG first-3-page entry/exit
 - `products/search` must not be used to explain observed rank or page-1 composition changes
@@ -48,7 +47,7 @@
 ### Tool Availability Gate
 
 - Check the metric endpoint matching each requested diagnosis claim first; there is no universal raw-endpoint minimum pair.
-- Check `keywords/product-traffic-terms-timeline-review` first whenever the task includes ASIN + keyword movement across dates; descend to timeline data only for metric unavailability or an explicitly missing series-level inference.
+- Check `keywords/product-traffic-terms-timeline` whenever the task includes ASIN + keyword movement across dates, and inspect only the series groups needed for the requested inference.
 - `keywords/product-traffic-terms-overview` should be checked whenever the task asks whether all keywords under the ASIN changed over two weeks or versus the previous period, especially ORG first-3-page entries/exits
 - `keywords/product-traffic-terms` and `keywords/competitor-product-keywords` currently provide equivalent traffic-list functionality; choose one available endpoint when traffic-source/share context is needed
 - If ASIN-side endpoints are unavailable, continue with a SERP-led diagnosis and label ASIN-side timeline, traffic-share, all-keyword traffic-change, and ORG first-3-page entry/exit conclusions as unavailable rather than inferred

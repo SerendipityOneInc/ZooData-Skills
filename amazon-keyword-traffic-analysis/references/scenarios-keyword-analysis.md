@@ -71,13 +71,13 @@ If evidence required for the requested decision is missing, end with exactly thr
 
 ### Task Constraints
 
-- Minimum evidence is judgment-specific, not a fixed pair of data endpoints. Use metric-layer `keywords/market-profile` first for weekly market judgment and `keywords/search-results-metrics` when live for SERP structure judgment.
+- Minimum evidence is judgment-specific, not a fixed pair of data endpoints. Use metric-layer `keywords/market-profile` first for weekly market judgment and `keywords/search-results` for observed SERP structure.
 - Use `keywords/detail` only when `market-profile` is unavailable or a named inference requires raw snapshot fields that the metric contract omits. Do not call it merely because one profile dimension is unsupported/unavailable.
-- Use raw `keywords/search-results` when the SERP metric is unavailable or the inference requires product/placement rows; do not call it merely to confirm a sufficient SERP metric.
+- Use `keywords/search-results` directly when the inference requires SERP structure or product/placement rows; aggregate only the returned rows transparently.
 - Prefer `keywords/trend-profile`. Use raw `keywords/trend` only when the Agent needs weekly points or fields omitted from the profile; otherwise do not make strong demand-direction claims.
 - Use one batch call when comparing multiple target keywords; read each `data.items[]` status independently
 - If a metric returns an unsupported dimension because its calculation inputs are missing, mark that conclusion unavailable. Only descend when the data contract provides different evidence needed for another valid inference.
-- Page-1 product rows must come from `keywords/search-results`; aggregate SERP structure should come from `keywords/search-results-metrics` when live.
+- Page-1 product rows and transparent aggregate SERP structure must come from `keywords/search-results`.
 - `products/search` is allowed only as broader market context when the user explicitly asks for that broader view
 - Interpret `marketProfile` only for items with `status=available`. Read scores through returned `context.scoringSpec` and each dimension's `supported`, `calculationStatus`, `unsupportedReason`, `level`, and `levelEvidence.score.{value,direction}`. Treat `marketCharacteristics.volatility` and `annualSeasonality` as independent evidence; never turn either into a trend series, root cause, or strategy output.
 - `status=not_found` means the keyword was not observed and does not qualify for a recommendation tier. It is not evidence of low demand. A batch HTTP 500 is a service failure; do not silently fan it out into repeated single-keyword calls.
@@ -118,7 +118,7 @@ Stage 1 should cover these operator-facing questions even when the user does not
 7. What are the review/rating/sales barriers among head products?
 8. What product types and buying intents dominate the SERP?
 
-Do not report planned `demandLifecycle`, `competitionMetrics`, or `entryEvidence` as API data unless the corresponding metric endpoint actually returned them.
+Do not invent lifecycle, competition, or entry-evidence objects that are not present in the returned production response.
 
 ### Decision Logic
 

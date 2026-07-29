@@ -1,6 +1,6 @@
 # ZooData Keyword API Reference
 
-> Read before choosing tools or interpreting fields. Production status was verified by direct calls on 2026-07-13; `market-profile` was inspected on localhost on 2026-07-14 and is not yet published. Re-check the target surface when behavior matters; the response is authoritative over this file and over the design document.
+> Read before choosing tools or interpreting fields. This file is the production endpoint whitelist; every listed endpoint must be deployed and callable through the standard production base URL.
 
 ## Contents
 
@@ -8,7 +8,6 @@
 - [Production availability](#production-availability)
 - [Common contract](#common-contract)
 - [Live endpoints by layer](#live-endpoints-by-layer)
-- [Planned metric endpoints](#planned-metric-endpoints)
 - [Evidence boundaries](#evidence-boundaries)
 - [CLI and callable mapping](#cli-and-callable-mapping)
 
@@ -37,18 +36,16 @@ Terminology:
 - Treat a successful, sufficiently covered metric response as complete for its contract. Do not call the source data endpoint by default.
 - Do not equate a dimension's calculation status with data-access permission. When both layers share the same source, missing metric inputs usually remain missing below.
 - Descend only when the Agent's required inference needs information the metric contract does not expose but the data contract explicitly does: rows, series points, placements, raw fields, or another traceable evidence grain.
-- A non-deployed/metric-specific failure may also justify data fallback when transparent Agent calculation is valid; a same-source `empty`/unsupported dimension normally does not.
+- A metric-specific runtime failure may also justify data fallback when transparent Agent calculation is valid; a same-source `empty`/unsupported dimension normally does not.
 - Make fallback surgical: retrieve only the missing subject, period, placement, rows, or fields.
 
 | Judgment / deliverable | Metric-first source | Data fallback or direct-data exception |
 |---|---|---|
 | Weekly keyword market structure | `keywords/market-profile` | `keywords/detail` only when a required inference needs raw snapshot fields omitted by the metric, or the metric endpoint itself is unavailable; not merely because a profile dimension is unsupported/unavailable |
 | Trend shape and volatility | `keywords/trend-profile` | `keywords/trend` only when the Agent needs weekly points or fields omitted from the profile for a specific inference |
-| SERP structure/concentration | `keywords/search-results-metrics` when live | `keywords/search-results` for unavailable metric or requested product/placement rows |
-| Root-universe demand | `keywords/root-aggregate` when live | No equivalent fallback; `extends` is candidate recall, not root-demand proof |
+| SERP structure/concentration | `keywords/search-results` | Aggregate the returned product/placement rows transparently |
 | ASIN aggregate traffic change | `keywords/product-traffic-terms-overview` | Use its verified live contract; do not infer missing keyword contribution from traffic-list rows |
-| Keyword change contribution | `keywords/product-traffic-term-changes` when live | No equivalent fallback if contribution is absent |
-| ASIN × keyword timeline evidence summary | `keywords/product-traffic-terms-timeline-review` when live | `keywords/product-traffic-terms-timeline` for unavailable metric, unsupported evidence, or requested raw series |
+| ASIN × keyword timeline evidence | `keywords/product-traffic-terms-timeline` | Analyze only the returned timeline groups and series |
 | Candidate recall / current traffic-term list | No metric endpoint | Call `extends` or one ASIN traffic-list data endpoint directly because rows are the deliverable |
 
 ## Production availability
@@ -56,8 +53,8 @@ Terminology:
 | Endpoint | Layer | Live status | Verified live body |
 |---|---|---|---|
 | `keywords/detail` | data | available | `data.context + data.items[]` |
-| `keywords/market-profile` | metric | localhost pre-release; not published | `data.context + data.items[].marketProfile` |
-| `keywords/trend-profile` | metric | localhost pre-release; not published | `data.context + data.items[].rows[]` |
+| `keywords/market-profile` | metric | published; tested batch currently returned HTTP 500 | `data.context + data.items[].marketProfile` |
+| `keywords/trend-profile` | metric | published and live-validated | `data.context + data.items[].rows[]` |
 | `keywords/trend` | data | available | `data.context + data.items[].series[]` |
 | `keywords/extends` | data | available | `data.context + data.query + data.queryType + data.rows[]` |
 | `keywords/search-results` | data | available | `data.context + data.identity + data.rows[]` |
@@ -65,12 +62,6 @@ Terminology:
 | `keywords/competitor-product-keywords` | data | available | same shape as `product-traffic-terms` |
 | `keywords/product-traffic-terms-timeline` | data | available | `data.context + data.items[].series[]` |
 | `keywords/product-traffic-terms-overview` | aggregate | available, legacy shape | flat `data` object with current and `*Prev` fields |
-| `keywords/search-results-metrics` | metric | unavailable | HTTP 404 |
-| `keywords/root-aggregate` | metric | unavailable | HTTP 404 |
-| `keywords/product-traffic-term-changes` | metric | unavailable | HTTP 404 |
-| `keywords/product-traffic-terms-timeline-review` | metric | unavailable | HTTP 404 |
-
-Treat unavailable metric endpoints as planned capability. Before first use in a later session, inspect/probe the live surface. On 404, use only the available data endpoints and transparent Agent-side aggregation; do not invent the planned response objects.
 
 ## Common contract
 
@@ -138,7 +129,6 @@ For more than 20 compatible subjects, issue sequential chunks of 20 or fewer and
 - `status=empty` means no matching observation in the resolved snapshot/window. It does not prove low demand.
 - `keywords/extends` may return an empty `rows[]`; try `phrase` and `fuzzy` before concluding low expandability.
 - HTTP 422 is request validation failure. Read the detail, fix parameters, and do not retry unchanged.
-- HTTP 404 on a planned metric endpoint means it is not deployed on that surface; do not relabel it as a data-empty success.
 
 ### Credits
 
@@ -167,10 +157,8 @@ Do not expect legacy `estimateSearchCountWeekly`, `totalSkuCnt`, or top-level `d
 
 Availability:
 
-- Pre-release on `http://localhost:8080` as of 2026-07-14; do not assume the production API exposes it.
-- Localhost tool name: `openapi_v2_keyword_market_profile`.
-- Before calling, inspect the target surface. On 404 or missing tool, continue with `keywords/detail` and transparent Agent-side interpretation; do not fabricate profile objects.
-- Local CLI localhost pattern: `ZOODATA_BASE_URL=http://localhost:8080/openapi/v2 python {skill_base_dir}/scripts/zoodata.py keyword-market-profile ...`. Do not switch hosts unless that target surface is in scope and available.
+- Production MCP tool name: `openapi_v2_keyword_market_profile`.
+- The default CLI target is production. Use `ZOODATA_BASE_URL` only when an explicitly scoped alternate surface must be tested.
 
 Request:
 
@@ -192,7 +180,7 @@ Response:
 
 This endpoint returns deterministic weekly snapshot evidence. It does not return history, strategy advice, root cause, recommended actions, or seller-private ABA-SQP conversion data. An unmatched keyword returns `status=not_found`, `marketProfile=null`, and `unavailableReason=keyword_not_observed`; context fields such as `resolvedDate`, `dataWindow`, and `scoringSpec` may then be null. Not-found items are not billed. Use returned `meta.creditsConsumed` / `meta.creditsConsumedExact` rather than estimating.
 
-Current localhost failure boundary: a subject-specific calculation error can return HTTP 500 for the entire batch instead of an item-level error. Treat that as a service failure, not `not_found`. Do not fan out the entire batch automatically; allow at most one diagnostic split only when isolating the failing subject is required for the task.
+Current service failure boundary: a subject-specific calculation error can return HTTP 500 for the entire batch instead of an item-level error. Treat it as a service failure, not `not_found`. Do not fan out the entire batch automatically; allow at most one diagnostic split only when isolating the failing subject is required for the task.
 
 Layer boundary: obtain stable server-calculated multidimensional profile objects from metric-layer `keywords/market-profile` first. An unsupported/unavailable dimension limits the conclusion but does not itself justify calling data-layer `keywords/detail`, because both are snapshot-source related. Access `detail` only when a required Agent inference needs raw fields omitted by the metric contract, the metric endpoint is unavailable for a metric-specific reason, or the user requests traceable source fields. Combine evidence, explain limitations, assign confidence, and recommend actions only in the Agent + skill layer.
 
@@ -317,30 +305,12 @@ The endpoint is conceptually aggregate, but production still returns the legacy 
 - `first3PagesNewOrganicKeywords[]`
 - `first3PagesLostOrganicKeywords[]`
 
-Use returned period boundaries exactly. Do not claim that live production returned the planned `trafficPoints`, `trafficStructure`, `aggregateChanges`, `keywordConcentration`, or `channelBreakdown` objects. You may calculate simple current-minus-previous channel changes and shares transparently in the Agent layer.
-
-## Planned metric endpoints
-
-Use these only after live verification succeeds.
-
-| Endpoint | Planned deterministic objects | Never substitute with |
-|---|---|---|
-| `keywords/search-results-metrics` | `serpStructure`, organic stats, top ASINs/brands, target-ASIN evidence, competition evidence | strategy conclusion or raw rows |
-| `keywords/root-aggregate` | root-universe series and `rootDemand` | summing `extends` candidates |
-| `keywords/product-traffic-term-changes` | top losers/gainers, change rows and contribution within filter scope | overview aggregate or timeline inference |
-| `keywords/product-traffic-terms-timeline-review` | drill-down evidence signals for specified ASIN + keywords | final root cause or top loser discovery |
-
-Important boundaries:
-
-- Do not calculate root-universe demand by summing expansion rows.
-- Do not infer keyword losers/gainers from the flat ASIN overview; it has no keyword contribution rows.
-- Do not claim a timeline review proved causality; it is planned to return evidence signals only.
-- `market-profile` occupies the stable snapshot-profile metric role. If a dimension is unsupported/unavailable, mark that metric judgment unavailable; do not assume `detail` can reconstruct the missing metric. Use `detail` only when it exposes additional raw evidence needed for a different, explicitly named Agent inference or when the metric endpoint itself is unavailable.
+Use returned period boundaries exactly. You may calculate simple current-minus-previous channel changes and shares transparently in the Agent layer. Do not infer per-keyword losers, gainers, or contribution from this aggregate response because it has no keyword contribution rows.
 
 ## Evidence boundaries
 
-- Keyword opportunity workflow: use `extends` directly for candidate recall, `market-profile` first for weekly market judgment, and trend/SERP metrics when live; descend to targeted raw detail/trend/SERP only for unavailable metrics or contract-omitted evidence required by a named inference. Without seller ABA-SQP, value/spend recommendations remain directional.
-- ASIN keyword health: live production can describe current traffic terms and legacy aggregate current-vs-previous movement. Full keyword change contribution requires the planned `product-traffic-term-changes` endpoint.
+- Keyword opportunity workflow: use `extends` directly for candidate recall, `market-profile` first for weekly market judgment, `trend-profile` for trend shape, and `search-results` for SERP evidence. Descend to targeted raw detail/trend only for runtime metric failure or contract-omitted evidence required by a named inference. Without seller ABA-SQP, value/spend recommendations remain directional.
+- ASIN keyword health: current production endpoints can describe current traffic terms and aggregate current-vs-previous movement. Do not claim exact per-keyword contribution when the returned contracts do not provide it.
 - ASIN anomaly diagnosis: use overview, current traffic terms, raw timeline, keyword trend, and SERP only as required to resolve the named uncertainty. Rank explanations only when the retrieved evidence distinguishes them; otherwise stop at the unresolved question and required next evidence. Do not claim a server-returned root cause.
 - `products/search` is broader ZooData catalog data, not observed keyword SERP evidence.
 - ZooData WebTools is the only page/web-retrieval channel authorized by this skill. Use `/webtools/scrape` for known URLs, `/webtools/scrape-interactive` only when rendering/actions are required, and `/webtools/search` only for URL discovery. These are crawler/retrieval sources, not ZooData keyword intelligence, observed Amazon keyword SERP, traffic, or seller-private evidence. Do not fall back to an external browser or public web search.

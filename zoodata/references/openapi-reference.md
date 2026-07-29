@@ -295,7 +295,7 @@ TaggedReview vs RealtimeReview: `reviews/search` uses snapshot data with AI tags
 
 ## Keyword Intelligence Endpoints
 
-Published endpoints were live-validated against the current OpenAPI surface. `keywords/market-profile` is a localhost pre-release exception documented below.
+This reference is a production endpoint whitelist; every listed endpoint must be deployed and callable through the standard production base URL.
 
 Tool-surface note:
 - API documentation and live endpoint availability do not guarantee that the current agent session exposes matching callable tools
@@ -329,9 +329,9 @@ Key fields: `estimateSearchCountWeekly`, `abaRank`, `abaTop3ClickShareRate`, `ab
 
 ---
 
-## 12b. /openapi/v2/keywords/market-profile (metric layer, localhost pre-release)
+## 12b. /openapi/v2/keywords/market-profile (metric layer)
 
-Availability: exposed on `http://localhost:8080` as of 2026-07-14; not yet published to production.
+Availability: standard production endpoint under the documented base URL. A subject-specific calculation failure can return HTTP 500 for the whole batch; treat that as runtime behavior, not an empty item.
 
 | Parameter | Type | Required | Note |
 |-----------|------|----------|------|
@@ -381,7 +381,7 @@ Key fields: `observedAt`, `periodStartDate`, `periodEndDate`, `estimateSearchCou
 
 ---
 
-## 13b. /openapi/v2/keywords/trend-profile (metric layer, localhost pre-release)
+## 13b. /openapi/v2/keywords/trend-profile (metric layer)
 
 | Parameter | Type | Required | Note |
 |-----------|------|----------|------|
@@ -531,7 +531,7 @@ Purpose:
 - Current placement-level impression-point fields are paired with matching `*Prev` previous-period fields
 - Lists keywords newly entering ORG first three pages and keywords dropping out of ORG first three pages
 
-Key fields from live localhost MCP response:
+Key fields from live MCP response:
 `periodStartDate`, `periodEndDate`, `asin`, `site`, `organicImpressionPoint`,
 `sponsoredProductImpressionPoint`, `sponsoredBrandImpressionPoint`,
 `sponsoredBrandVideoImpressionPoint`, `sponsoredRecommendImpressionPoint`,
@@ -548,7 +548,7 @@ Key fields from live localhost MCP response:
 `first3PagesNewOrganicKeywords` lists keywords newly entering ORG first three pages;
 `first3PagesLostOrganicKeywords` lists keywords that dropped out of ORG first three pages.
 
-Live validation source: `http://localhost:8080/mcp` tool
+Live validation source: MCP tool surface
 `openapi_v2_product_traffic_terms_overview`, request
 `{"asin":"B01CGLCGRA","date":"2026-06-29","marketplace":"US"}`.
 
@@ -584,7 +584,7 @@ Diagnosis curves and events:
 - Keyword fields: use `keyword*` fields only as supporting context for traffic-estimate changes
 - Listing events: `latestTitle` and `latestMainImageLink` changes indicate title/main-image change events
 
-Key fields from live localhost MCP response:
+Key fields from live MCP response:
 `date`, `site`, `asin`, `keyword`, `latestTitle`, `latestPrice`, `latestCurrency`,
 `latestLink`, `latestMainImageLink`, `latestBrandName`, `latestProductBadges`,
 `latestMonthlySaleCnt`, `latestRatingAmt`, `latestRatingCnt`,
@@ -615,7 +615,7 @@ Key fields from live localhost MCP response:
 `keywordSponsoredRecommendSkuGrowthCnt`, `adActiveObservationCount`,
 `adActiveDayCoverageRate`, `adCampaignCnt`, `adCnt`.
 
-Live validation source: `http://localhost:8080/mcp` tool
+Live validation source: MCP tool surface
 `openapi_v2_product_traffic_terms_timeline`, request
 `{"asin":"B01CGLCGRA","keyword":"yoga mat","dateFrom":"2026-06-23","dateTo":"2026-06-29","marketplace":"US","page":1,"pageSize":20,"sortBy":"date","sortOrder":"asc"}`.
 

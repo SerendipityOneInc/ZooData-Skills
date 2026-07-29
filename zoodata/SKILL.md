@@ -117,7 +117,7 @@ When `zoodata.py` returns `{"code": 402, "message": "API quota exhausted or subs
 | 11 | `products/brand-detail` | Per-brand breakdown | brands[] with sales, revenue, sampleProducts |
 | 12 | `products/history` | Time series (single ASIN per call) | timestamps[], price[], bsr[], monthlySalesFloor[], rating[], ratingCount[], sellerCount[], title/imageUrl/bestSeller/newRelease/aPlus/inventoryStatus changelogs |
 | 13 | `/openapi/v2/keywords/detail` | Keyword summary from the nearest available weekly snapshot | `estimateSearchCountWeekly`, `abaRank`, `marketCharacteristics`, `adCount`; may return `data: null` |
-| 14 | `/openapi/v2/keywords/market-profile` | Pre-release multidimensional weekly keyword profile | demand scale, Top3 concentration, ad activity, organic-entry difficulty, saturation, brand structure, organic benchmark, coverage |
+| 14 | `/openapi/v2/keywords/market-profile` | Multidimensional weekly keyword profile | demand scale, Top3 concentration, ad activity, organic-entry difficulty, saturation, brand structure, organic benchmark, coverage |
 | 15 | `/openapi/v2/keywords/trend` | Weekly keyword time series | `estimateSearchCount`, `abaRank`, `rankChangeCount`, `periodStartDate`, `periodEndDate` |
 | 15b | `/openapi/v2/keywords/trend-profile` | Server-calculated trend profile over fixed weekly windows | trend shape, volatility, normalized slope, direction consistency, ABA-rank evidence |
 | 16 | `/openapi/v2/keywords/extends` | Keyword expansion / long-tail discovery | related keywords ranked by `relevanceScore` / `estimateSearchCount`; may return empty array |
@@ -142,8 +142,8 @@ When `zoodata.py` returns `{"code": 402, "message": "API quota exhausted or subs
 - `reviews/analysis`: `mode` required ("asin"/"category"), use `asins` (plural array) not `asin`
 - `realtime/reviews`: returns 10 reviews/page fixed (no `pageSize` param); 1 credit/page; cursor-paginated; hard cap = 100 reviews (10 pages); supports `marketplace` US/UK only
 - `keywords/detail` resolves the input `date` to the nearest available weekly snapshot at or before that date, and may legitimately return `data: null` even with `success: true`
-- `keywords/market-profile` is pre-release on localhost as of 2026-07-14 and is not yet published; it accepts one of `keyword` / `keywords[]` (max 20), requires `date`, supports weekly granularity only, and returns input-ordered `data.items[]`
-- `keywords/trend-profile` is available on localhost and not yet published; it accepts one of `keyword` / `keywords[]` (max 20), requires `date` and 1–4 unique `windowPeriods` selected from 4/8/12/26, and supports weekly granularity only
+- `keywords/market-profile` accepts one of `keyword` / `keywords[]` (max 20), requires `date`, supports weekly granularity only, and returns input-ordered `data.items[]`. A subject-specific calculation failure can return HTTP 500 for the whole batch.
+- `keywords/trend-profile` accepts one of `keyword` / `keywords[]` (max 20), requires `date` and 1–4 unique `windowPeriods` selected from 4/8/12/26, and supports weekly granularity only.
 - `keywords/extends` also resolves the input `date` to the nearest available weekly snapshot, requires `query` (not `keyword`), supports `queryType` = `phrase` or `fuzzy`, and may legitimately return `data: []`
 - `keywords/search-results`, `keywords/competitor-product-keywords`, and `keywords/product-traffic-terms` use daily observations over a sliding ~7-day window, not a long-retention historical store
 - Keyword endpoints are keyword-query workflows; for inputs named `keyword` or `query`, use the Amazon search query / keyword phrase being analyzed
@@ -180,8 +180,8 @@ Keyword value boundary:
 - Live validation note: for `keyword="yoga mat"` and several June 2026 dates, the endpoint returned
   `success: true` with `data: null`
 
-### `/openapi/v2/keywords/market-profile` (metric layer, localhost pre-release)
-- Availability: exposed on `http://localhost:8080` as of 2026-07-14; not yet published to production
+### `/openapi/v2/keywords/market-profile` (metric layer)
+- Availability: standard production endpoint under the documented base URL
 - Input: exactly one of `keyword` or `keywords[]` (1–20), required `date`, optional `marketplace`, `granularity=week`
 - Response shape: `data.context + data.items[]`, preserving request order
 - Context fields: `requestedDate`, `resolvedDate`, `dataWindow.currentPeriod`, `scoringSpec`, marketplace/site/granularity
@@ -204,7 +204,7 @@ Keyword value boundary:
   `estimateSearchCount`, `estimateSearchChangeCount`, `estimateSearchChangeRate`, `abaRank`,
   `prevAbaRank`, `prevEstimateSearchCount`, `rankChangeCount`
 
-### `/openapi/v2/keywords/trend-profile` (metric layer, localhost pre-release)
+### `/openapi/v2/keywords/trend-profile` (metric layer)
 - Input: exactly one of `keyword` / `keywords[]` (1–20), required `date`, required unique `windowPeriods[]` selected from 4/8/12/26, optional `marketplace`, `granularity=week`
 - Response: `data.context + data.items[].rows[]`; every requested window returns one row with `rowContext`, `status=available|unavailable|not_found`, `unavailableReason`, and `trendProfile`
 - Available profiles contain independently guarded `searchDemand` and `abaRank` dimensions with `trend`, `trendPattern`, and `{value,direction}` entries under `trendEvidence`
@@ -266,7 +266,7 @@ Keyword value boundary:
 - Data window: latest weekly overview snapshot at or before the requested date; compares all keyword impression traffic under the ASIN with the previous period
 - Date rule: prefer T-1 or earlier for `date`; avoid current-date lookup unless explicitly requested
 - Response shape: `data` is an object or `null`
-- Key fields from live localhost MCP response: `periodStartDate`, `periodEndDate`, `asin`, `site`,
+- Key fields from live MCP response: `periodStartDate`, `periodEndDate`, `asin`, `site`,
   `organicImpressionPoint`, `sponsoredProductImpressionPoint`, `sponsoredBrandImpressionPoint`,
   `sponsoredBrandVideoImpressionPoint`, `sponsoredRecommendImpressionPoint`,
   `organicImpressionPointPrev`, `sponsoredProductImpressionPointPrev`,
@@ -278,8 +278,8 @@ Keyword value boundary:
   `keyword`, `pageIndex`, and `pagePosition`
 - `first3PagesNewOrganicKeywords` lists keywords newly entering ORG first three pages; `first3PagesLostOrganicKeywords`
   lists keywords that dropped out of ORG first three pages
-- Live validation request: MCP tool `openapi_v2_product_traffic_terms_overview` on
-  `http://localhost:8080/mcp`, `asin="B01CGLCGRA"`, `date="2026-06-29"`, `marketplace="US"`
+- Live validation request: MCP tool `openapi_v2_product_traffic_terms_overview`,
+  `asin="B01CGLCGRA"`, `date="2026-06-29"`, `marketplace="US"`
 
 ### `/openapi/v2/keywords/product-traffic-terms-timeline`
 - Input: `asin`, exact `keyword`, `dateFrom`, `dateTo`, optional `marketplace`, `page`, `pageSize`,
@@ -295,7 +295,7 @@ Keyword value boundary:
   sales (`latestMonthlySaleCnt`), rating (`latestRatingAmt`, `latestRatingCnt`), traffic estimate
   (impression-point fields plus `avgOrganicObservation` / `avgAdObservation`), and listing events
   (`latestTitle`, `latestMainImageLink`)
-- Key fields from live localhost MCP response: `date`, `site`, `asin`, `keyword`, listing snapshot fields
+- Key fields from live MCP response: `date`, `site`, `asin`, `keyword`, listing snapshot fields
   such as `latestTitle`, `latestPrice`, `latestCurrency`, `latestLink`, `latestMainImageLink`,
   `latestBrandName`, `latestMonthlySaleCnt`, `latestRatingAmt`, `latestRatingCnt`,
   `latestSmallCategoryName`, `latestSmallCategoryBsr`, `latestBigCategoryName`,
@@ -313,8 +313,8 @@ Keyword value boundary:
   `keywordSponsoredBrandSkuCnt`, `keywordSponsoredBrandVideoSkuCnt`,
   `keywordSponsoredRecommendSkuCnt`; ad activity fields `adActiveObservationCount`,
   `adActiveDayCoverageRate`, `adCampaignCnt`, `adCnt`
-- Live validation request: MCP tool `openapi_v2_product_traffic_terms_timeline` on
-  `http://localhost:8080/mcp`, `asin="B01CGLCGRA"`, `keyword="yoga mat"`,
+- Live validation request: MCP tool `openapi_v2_product_traffic_terms_timeline`,
+  `asin="B01CGLCGRA"`, `keyword="yoga mat"`,
   `dateFrom="2026-06-23"`, `dateTo="2026-06-29"`, `marketplace="US"`
 
 ## Local Review Toolkit

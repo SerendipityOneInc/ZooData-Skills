@@ -30,8 +30,8 @@
 - These two endpoints currently provide equivalent functionality and the same live item shape for traffic-structure analysis; choose one available endpoint instead of requiring both
 - Prefer `keywords/product-traffic-terms` for the target ASIN's traffic-source list; use `keywords/competitor-product-keywords` as an equivalent fallback or when the workflow is competitor/overlap framed
 - If neither ASIN traffic-list endpoint is available, do not output reverse-ASIN traffic-source conclusions
-- `product-traffic-terms-overview` is aggregate evidence. Production currently returns a legacy flat object; calculate simple channel totals/shares/changes transparently and do not claim grouped `trafficStructure`, `aggregateChanges`, or `keywordConcentration` were returned.
-- `keywords/product-traffic-term-changes` is the planned source for keyword losers/gainers and contribution. If it is unavailable, do not infer keyword-level change contribution from the current traffic list or flat overview.
+- `product-traffic-terms-overview` is aggregate evidence. Calculate simple channel totals, shares, and changes transparently from its returned fields.
+- Current traffic-list and overview contracts do not provide exact per-keyword change contribution. Do not infer keyword-level losers, gainers, or contribution from them.
 - Use metric-layer `product-traffic-terms-overview` first when the request is aggregate movement/structure. Call one ASIN traffic-list data endpoint only when keyword rows are the requested deliverable; no current metric replaces that row list.
 - Enrich selected traffic terms through metric-layer `keywords/market-profile` first and use `keywords/trend-profile` for trend judgments. Call `detail` or raw `trend` only when a named inference needs fields or weekly points omitted by the matching profile.
 - Do not descend from `market-profile` merely because a dimension is unsupported/unavailable; same-source data is unlikely to restore the missing metric input.

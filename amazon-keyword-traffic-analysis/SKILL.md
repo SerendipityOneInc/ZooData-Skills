@@ -21,7 +21,7 @@ metadata:
 
 | File | Purpose |
 |------|---------|
-| `{skill_base_dir}/references/reference.md` | Load before tool selection; authoritative live-vs-planned endpoint status, batch contracts, exact parameters, response fields, and metric boundaries |
+| `{skill_base_dir}/references/reference.md` | Load before tool selection; authoritative production endpoint list, batch contracts, exact parameters, response fields, and metric boundaries |
 | `{skill_base_dir}/references/execution-guide.md` | Load before any full-mode task — contains input-to-endpoint routing, Evidence Capability Matrix, and full execution protocol |
 | `{skill_base_dir}/references/scenarios-expand.md` | Load for keyword expansion output template |
 | `{skill_base_dir}/references/scenarios-keyword-analysis.md` | Load for single-keyword analysis output template |
@@ -84,6 +84,7 @@ When seller-private ABA-SQP data is present, name the provided fields used, such
 ## Endpoints
 
 Use `python {skill_base_dir}/scripts/zoodata.py` as the default execution entry.
+This skill is a production endpoint whitelist. Add an endpoint only after it is deployed and callable through the standard production base URL.
 
 **MANDATORY — tool selection and capability claims must follow this gate:**
 1. Before choosing any tool, read the relevant documentation:
@@ -110,9 +111,8 @@ Use `python {skill_base_dir}/scripts/zoodata.py` as the default execution entry.
 - Treat `detail`, `trend`, `extends`, `search-results`, both ASIN traffic-list endpoints, and `product-traffic-terms-timeline` as data endpoints: preserve their `items[]`, `rows[]`, or `series[]` evidence.
 - Treat `market-profile` explicitly as a **metric-layer endpoint** derived from the same weekly snapshot source as the data-layer `detail` endpoint. Preserve `context`, per-item `status`, `unavailableReason`, `marketProfile`, and `context.scoringSpec`; never present scores without the returned scoring model/version/range/reference scope. Current item statuses are `available` and `not_found`. Check every scored dimension's `supported`, `calculationStatus`, `unsupportedReason`, `level`, and `levelEvidence.score.{value,direction}` independently—there is no aggregate `calculationCoverage` object. `marketCharacteristics.volatility` and `marketCharacteristics.annualSeasonality` are independent evidence objects and must not overwrite each other.
 - Treat `trend-profile` as the metric layer for weekly demand and ABA-rank trend judgments. Preserve each keyword's `rows[]` by requested window, `status`, `rowContext`, both profile dimensions, and every `trendEvidence.value` / `direction` pair. Rows can be `available`, `unavailable`, or `not_found`; do not invent a reason when `unavailableReason` is null.
-- Treat `product-traffic-terms-overview` as an aggregate endpoint. The live response is currently the legacy flat overview object with current and `*Prev` impression points plus first-3-page keyword entry/exit lists; do not assume the planned grouped metric objects exist.
-- The design also defines `search-results-metrics`, `root-aggregate`, `product-traffic-term-changes`, and `product-traffic-terms-timeline-review`. These are planned metric endpoints, not currently callable on the verified production surface. Do not invent a separate `detail-metrics`; `market-profile` is the metric-layer profile sourced from `detail`-family snapshot data.
-- Before using a metric endpoint, probe or inspect the live schema. If it returns 404, continue from the live data endpoints, calculate only transparent task-local aggregates, label them as Agent calculations, and name the missing server-side metric capability. Never fabricate `trendMetrics`, `demandLifecycle`, `competitionMetrics`, `keywordChanges`, or `timelineReview` as API-returned objects.
+- Treat `product-traffic-terms-overview` as an aggregate endpoint with current and `*Prev` impression points plus first-3-page keyword entry/exit lists. Interpret only fields returned by its production contract.
+- Before using a metric endpoint, inspect its documented production schema. If a call fails at runtime, continue only when another listed production endpoint transparently supports the requested judgment; never fabricate metric objects or fields.
 - Keep explanations, diagnoses, confidence, limitations, `nextBestCalls`, and recommended actions in the Agent/skill layer. Never claim that an API returned a root cause or strategy recommendation.
 
 ### Metric-First Access Gate (MANDATORY)
@@ -130,7 +130,7 @@ Keep these concepts separate:
 5. Treat each dimension's calculation status as a conclusion boundary, not an automatic fallback trigger. When metric and data are derived from the same source, missing metric inputs usually mean the data layer cannot restore that metric. Mark the dimension unavailable unless the data contract is known to contain different evidence that supports a different, valid Agent inference.
 6. Access the data layer only when at least one condition holds:
    - no metric endpoint exists for the required capability, such as candidate recall or a current ASIN traffic-term list;
-   - the metric endpoint is not deployed or fails for a metric-specific reason, and the data endpoint can transparently support the requested judgment;
+   - the metric endpoint fails at runtime for a metric-specific reason, and the data endpoint can transparently support the requested judgment;
    - the metric contract omits an indicator, row grain, time point, placement, or source field that the data contract explicitly provides and the Agent needs for the requested inference;
    - the user explicitly asks for raw rows, products, time-series points, field-level audit, or traceable source evidence;
    - the required claim depends on detail that the metric contract intentionally omits.
@@ -304,7 +304,7 @@ See `references/execution-guide.md § Evidence-to-Action Protocol` for the opera
 5. `keywords/trend` is weekly time series, not daily. CLI usage must use full ISO dates with these exact flags: `keyword-trend --keyword "small baskets for organizing" --date-from 2026-04-01 --date-to 2026-07-02 --marketplace US`; never send truncated dates, ellipses, natural-language dates, reversed ranges, or ranges longer than 93 days.
 6. `keywords/search-results` and ASIN keyword endpoints are recent `lately_day` observations with `lookbackDays=7`, not long-retention history. `keyword-trend` accepts up to 93 days; `product-traffic-terms-timeline` accepts up to 61 days.
 7. `keywords/detail` returns `data.context + data.items[]`; an unmatched keyword is an item with `status=empty` and `emptyReason`, not a top-level API failure.
-8. `keywords/market-profile` returns `data.context + data.items[]`; use its server-calculated dimensions as snapshot evidence only. Require `status=available`, read `context.scoringSpec`, and inspect each dimension's `supported`, `calculationStatus`, `unsupportedReason`, `level`, and `levelEvidence.score.{value,direction}` independently. Treat any unavailable signal as a conclusion boundary. The endpoint does not provide history, recommendations, root cause, or seller-private conversion data. It is currently pre-release on localhost; check the live surface before calling it elsewhere.
+8. `keywords/market-profile` returns `data.context + data.items[]`; use its server-calculated dimensions as snapshot evidence only. Require `status=available`, read `context.scoringSpec`, and inspect each dimension's `supported`, `calculationStatus`, `unsupportedReason`, `level`, and `levelEvidence.score.{value,direction}` independently. Treat any unavailable signal as a conclusion boundary. The endpoint does not provide history, recommendations, root cause, or seller-private conversion data. It is published in production; a whole-batch HTTP 500 remains a possible service failure.
 9. `keywords/extends` returns `data.context + data.rows[]`; an empty `rows[]` is valid. Try both `queryType=phrase` and `queryType=fuzzy` before concluding low expandability.
 10. `trafficShare` is an observed share within the endpoint's sampled window; do not present it as exact Amazon share of voice
 11. SERP analysis must separate `exploreType`: `ORG` vs `SP` vs `SB` vs `SBV` vs `SPR`

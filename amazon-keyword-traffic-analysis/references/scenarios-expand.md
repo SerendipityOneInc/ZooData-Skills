@@ -27,9 +27,9 @@ If the user asks only for raw related terms, stop after candidate recall and do 
 ## Shared evidence rules
 
 - Use data-layer `keywords/extends` because candidate rows are the deliverable. Try `queryType=fuzzy` after an empty phrase result before concluding low expandability.
-- Use batch `keywords/market-profile` first for candidate market judgment when exposed. Use `detail` only when the metric is unavailable or a named inference needs raw fields omitted by its contract.
-- Prefer `trend-profile` and `search-results-metrics` when live. Descend only for unavailable metrics or contract-omitted points/rows required for a named inference.
-- Never use `extends` rows to fabricate `rootDemand`; only a verified `root-aggregate` root-universe response can support that claim.
+- Use batch `keywords/market-profile` first for candidate market judgment. Use `detail` only when the metric fails at runtime or a named inference needs raw fields omitted by its contract.
+- Prefer `trend-profile` for trend judgments and `search-results` for SERP evidence. Descend only for runtime metric failure or contract-omitted points/rows required for a named inference.
+- Never sum `extends` rows and present the result as total root-universe demand; the endpoint returns candidate recall, not an exhaustive demand universe.
 - Treat market-profile unsupported dimensions as unavailable; do not call same-source detail merely to repair missing metric inputs.
 - Publish a candidate tier only when its market-profile item is `available` and the required dimensions have complete `levelEvidence`. Treat `not_found` as unvalidated coverage, not low demand or an avoid signal.
 - Keep `marketCharacteristics.volatility` separate from `annualSeasonality`; do not invent peak periods when the returned list is empty. A batch HTTP 500 does not authorize automatic per-candidate fan-out.

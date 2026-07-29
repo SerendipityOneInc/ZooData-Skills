@@ -18,8 +18,8 @@ It supports four common scenarios:
 The current CLI covers these ten ZooData keyword endpoints:
 
 - `/openapi/v2/keywords/detail`
-- `/openapi/v2/keywords/market-profile` (localhost pre-release metric layer; inspect the target surface)
-- `/openapi/v2/keywords/trend-profile` (localhost pre-release metric layer; inspect the target surface)
+- `/openapi/v2/keywords/market-profile` (metric layer; whole-batch HTTP 500 remains a possible service failure)
+- `/openapi/v2/keywords/trend-profile` (metric layer)
 - `/openapi/v2/keywords/trend`
 - `/openapi/v2/keywords/extends`
 - `/openapi/v2/keywords/search-results`
