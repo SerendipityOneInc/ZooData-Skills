@@ -1,22 +1,22 @@
-# Market Entry Analyzer — API Field Reference
+# ZooData API Field Reference
 
 > Load this file only when you need exact field names or response structure.
 
-## Endpoints Used (11 of 11 — ALL)
+## ZooData Endpoint Field Reference
 
-| # | Endpoint | Purpose in This Skill | Step |
-|---|----------|-----------------------|------|
-| 1 | `categories` | Find category path for market search | Step 1a |
-| 2 | `markets/search` | Market size, competition metrics, new product rate | Step 1b |
-| 3 | `products/search` | Product supply (100+ via pagination), brand drill, price drill | Step 3, 4b, 7 |
-| 4 | `products/competitors` | Top competitor list | Step 4a |
-| 5 | `realtime/product` | Live detail for Top 5 competitors | Step 4c |
-| 6 | `reviews/analysis` | Consumer pain points, buying factors | Step 6 |
-| 7 | `products/price-band-overview` | Hottest & best opportunity price bands | Step 2a |
-| 8 | `products/price-band-detail` | Per-band SKU/sales/brand/rating breakdown | Step 2b |
-| 9 | `products/brand-overview` | Brand count, CR10, top brand avg price/rating | Step 1c |
-| 10 | `products/brand-detail` | Per-brand SKU/sales/revenue/share ranking | Step 1d |
-| 11 | `products/history` | 30-day price/BSR/sales trend for Top 3 | Step 5 |
+> Shared field reference. This skill's workflows use ONLY the subcommands
+> listed in its SKILL.md; the endpoints below are documented for field-name /
+> response-structure lookup, not as a claim that this skill invokes all of them.
+
+| # | Endpoint | Purpose |
+|---|----------|---------|
+| 1 | `categories` | Category path lookup |
+| 2 | `markets/search` | Market size, competition metrics, new-product rate |
+| 3 | `products/search` | Product supply (100+ via pagination), brand/price drill |
+| 4 | `products/competitors` | Top competitor list |
+| 5 | `realtime/product` | Live product detail |
+| 6 | `reviews/analysis` | Consumer pain points, buying factors |
+| 7 | `products/history` | 30-day price/BSR/sales trend |
 
 Base URL: `https://api.zoodata.ai/openapi/v2`
 Auth: `Bearer $ZOODATA_API_KEY`
@@ -161,55 +161,7 @@ Request params: `keyword`, `brand`, `asin`, `categoryPath`, `sortBy`, `pageSize`
 
 ---
 
-## 7. products/price-band-overview
-
-**Request:** Same params as products/search (keyword, category, filters)
-
-**Response:**
-| Field | Type | Used For |
-|-------|------|----------|
-| `sampleSkuCount` | int | Total products analyzed |
-| `sampleMedianPrice` | float | Median price point |
-| `hottestBand` | object | Highest sales share band |
-| `bestOpportunityBand` | object | Highest opportunity index band |
-
-**Band object:** `{bandIdx, bandLabel, sampleBandMinPrice, sampleBandMaxPrice, sampleSkuCount, sampleSalesRate, sampleBrandCount, sampleTop3BrandSalesRate, sampleAvgRating, sampleOpportunityIndex}`
-
----
-
-## 8. products/price-band-detail
-
-**Response:**
-- `sampleSkuCount`, `sampleTotalMonthlySales`
-- `priceBands`: array of 5 band objects (same structure as above)
-
----
-
-## 9. products/brand-overview
-
-**Response:**
-| Field | Type | Used For |
-|-------|------|----------|
-| `sampleBrandCount` | int | Total brands |
-| `sampleTop10BrandSalesRate` | float | CR10 concentration (top 10 brands) |
-| `sampleTop10AvgRating` | float | Top 10 brand avg rating |
-| `sampleTop10AvgPrice` | float | Top 10 brand avg price |
-
----
-
-## 10. products/brand-detail
-
-**Response:**
-- `sampleSkuCount`, `sampleTotalMonthlySales`, `sampleBrandCount`
-- `brands`: array of brand objects
-
-**BrandStats:** `{brandName, sampleSkuCount, sampleGroupMonthlySales, sampleGroupMonthlyRevenue, sampleSalesRate, sampleAvgPrice, minPrice, maxPrice, sampleAvgRating, sampleAvgRatingCount, sampleProducts}`
-
-**sampleProducts:** List of Product objects for this brand within the sample. Each product contains the full Shared Product Object fields (asin, title, price, bsr, monthlySalesFloor, rating, ratingCount, fulfillment, etc). This enables brand-level product matrix analysis without a separate products/search call.
-
----
-
-## 11. products/history
+## 7. products/history
 
 **Request:**
 - `asins`: List<String> (required)
@@ -235,8 +187,4 @@ Request params: `keyword`, `brand`, `asin`, `categoryPath`, `sortBy`, `pageSize`
 | Data Point | Primary Source | Validation Source |
 |-----------|---------------|-------------------|
 | Market size | markets/search | products/search (total count) |
-| Brand concentration | brand-overview (sampleTop10BrandSalesRate) | markets/search (topBrandSalesRate) |
-| Price distribution | price-band-detail | products/search (price field) |
-| Competition level | markets (topSalesRate) | brand-detail (top brand shares) |
 | Consumer demand | reviews/analysis | products (sales + growth) |
-| Avg rating quality | markets (sampleAvgRating) | brand-overview (sampleTop10AvgRating) |

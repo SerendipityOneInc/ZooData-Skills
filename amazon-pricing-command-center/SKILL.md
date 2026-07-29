@@ -12,7 +12,7 @@ description: >
   price comparison, price positioning, repricing, should I raise or lower price.
   Requires ZOODATA_API_KEY.
 metadata:
-  version: "1.1.5"
+  version: "1.1.6"
   author: SerendipityOneInc
   homepage: https://github.com/SerendipityOneInc/ZooData-Skills
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}

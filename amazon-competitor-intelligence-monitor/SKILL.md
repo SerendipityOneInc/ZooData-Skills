@@ -16,7 +16,7 @@ description: >
   3 competitors, ongoing watch on a defined competitor set.
   Requires ZOODATA_API_KEY.
 metadata:
-  version: "1.1.6"
+  version: "1.1.7"
   author: SerendipityOneInc
   homepage: https://github.com/SerendipityOneInc/ZooData-Skills
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}
