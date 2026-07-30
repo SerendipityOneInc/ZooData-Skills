@@ -7,6 +7,11 @@ description: >
   observed ASIN × keyword changes. Produces evidence-bounded validation priorities;
   does not make direct bid, budget, pause, or negative-keyword decisions without
   seller ABA-SQP and Amazon Ads data. Requires ZOODATA_API_KEY.
+metadata:
+  version: "0.1.4"
+  author: SerendipityOneInc
+  homepage: https://github.com/SerendipityOneInc/ZooData-Skills
+  openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}
 ---
 
 # ZooData — Amazon Keyword Intelligence
@@ -43,7 +48,7 @@ Respond in the user's language.
 ## Non-negotiable boundaries
 
 - Require `ZOODATA_API_KEY`. If it is missing or rejected, follow the credential procedure in `execution-guide.md`; do not substitute public web data.
-- Use the bundled `scripts/zoodata.py` for documented keyword endpoints and `realtime/product`. Use ZooData WebTools `/search`, `/scrape`, and `/scrape-interactive` only through an exposed, documented ZooData WebTools surface after inspecting its live schema.
+- Use the bundled `{skill_base_dir}/scripts/zoodata.py` for documented keyword endpoints and `realtime/product`. Use ZooData WebTools `/search`, `/scrape`, and `/scrape-interactive` only through an exposed, documented ZooData WebTools surface after inspecting its live schema.
 - Use only the acquisition routes whitelisted in `reference.md`. WebTools `/search` is permitted URL discovery; it is not `products/search`. Never use `products/search`, external browser automation, direct Amazon navigation, or non-ZooData public web search as evidence or fallback.
 - Treat keyword inputs as Amazon search queries. Default an omitted marketplace to `US`; use T-1 or earlier for endpoints requiring `date` or `dateTo` unless the user requests today's data.
 - ZooData keyword data is estimated search, visibility, rank, placement, and impression evidence. It is not the seller's ABA-SQP conversion funnel. Keep product-specific value, profitability, bids, spend, budgets, pauses, negatives, and unconditional go/no-go decisions within the evidence authority defined in `execution-guide.md`.
