@@ -315,17 +315,23 @@ Keyword value boundary for all keyword endpoints:
 
 | Parameter | Type | Required | Note |
 |-----------|------|----------|------|
-| keyword | String | **Yes** | Keyword to inspect |
+| keyword | String | Conditional | One keyword; exactly one of `keyword` / `keywords` |
+| keywords | List\<String\> | Conditional | Batch of 1–20 keywords; preserves request order |
 | date | String | **Yes** | Lookup date `YYYY-MM-DD`; prefer T-1 or earlier; resolves to the nearest available weekly snapshot at or before that date |
-| marketplace | String | No | Marketplace code, default `US` |
+| marketplace | String | No | `US` / `UK`, default `US` |
+| granularity | String | No | `week` only |
 
-⚠️ Live behavior: `success: true` may still return `data: null` when no matching weekly snapshot record is available for that keyword.
+**Response:** `data.context + data.items[]` for both single and batch requests.
 
-**Response:** Single keyword snapshot object **or `null`**.
+Context fields include marketplace/site, requested/resolved date, weekly granularity, and `dataWindow.currentPeriod`.
 
-Key fields: `estimateSearchCountWeekly`, `abaRank`, `abaTop3ClickShareRate`, `abaTop3ConversionShareRate`,
-`marketCharacteristics`, `totalSkuCnt`, `brandCount`, `organicSkuCount`, `adCampaignCount`, `adCount`,
-`periodStartDate`, `periodEndDate`, `observedAt`
+Each item has `identity`, `status=ok|empty`, `snapshotData`, `emptyReason`, and nullable `errorCode` /
+`errorMessage`. The latter are auxiliary fields, not status enums. `snapshotData` includes
+`estimateSearchCount`, `abaRank`, Top3 click/conversion shares,
+`marketCharacteristics`, `totalSkuCount`, SKU/brand/title coverage, organic/ad counts, and Top48 benchmarks.
+
+Do not expect legacy `estimateSearchCountWeekly`, `totalSkuCnt`, or top-level `data:null`. An unmatched
+keyword is an item with `status=empty` and an `emptyReason`.
 
 ---
 
@@ -345,11 +351,11 @@ Availability: standard production endpoint under the documented base URL. A subj
 
 Context fields: `marketplace`, `site`, `requestedDate`, `resolvedDate`, `granularity`, `dataWindow.currentPeriod`, and `scoringSpec` (`id`, `version`, `scoreType`, `scoreRange`, `referenceScope`).
 
-Each item has `identity`, `status=available|not_found`, `marketProfile`, and `unavailableReason`. `marketProfile` contains `marketCharacteristics`, `demandScale`, `top3Concentration`, `adActivity`, `top20OrganicEntryDifficulty`, `supplySaturation`, `brandStructure`, and `organicProductBenchmark`.
+Each item has `identity`, `status=ok|empty`, `marketProfile`, and `emptyReason`. `marketProfile` contains `marketCharacteristics`, `demandScale`, `top3Concentration`, `adActivity`, `top20OrganicEntryDifficulty`, `supplySaturation`, `brandStructure`, and `organicProductBenchmark`.
 
 Use returned scores only with `context.scoringSpec`. Each scored dimension exposes `supported`, `level`, `interpretation`, `calculationStatus`, `unsupportedReason`, and `levelEvidence.score.{value,direction}`; evaluate it independently and treat any explicit unavailable signal as a conclusion boundary. `marketCharacteristics.volatility` exposes type and mapping-confidence evidence. `marketCharacteristics.annualSeasonality` separately exposes classification, year-over-year correlation, eligible-pair count, peak-pattern detection, and peak periods. Do not merge the two classifications or invent peak periods. This endpoint returns deterministic weekly snapshot evidence, not trend, root cause, recommendations, or seller-private ABA-SQP conversion data.
 
-An unmatched keyword returns `status=not_found`, `marketProfile=null`, `unavailableReason=keyword_not_observed`, zero consumed credits, and may return null resolved context / scoring spec. A subject-specific calculation error can currently return HTTP 500 for the entire batch; treat that as a service failure rather than an empty item, and do not automatically fan out the batch. Use returned `meta.creditsConsumed` / `meta.creditsConsumedExact`.
+An unmatched keyword returns `status=empty`, `marketProfile=null`, descriptive `emptyReason` text, zero consumed credits, and may return null resolved context / scoring spec. A subject-specific calculation error can currently return HTTP 500 for the entire batch; treat that as a service failure rather than an empty item, and do not automatically fan out the batch. Use returned `meta.creditsConsumed` / `meta.creditsConsumedExact`.
 
 Three-layer boundary: `keywords/detail` is the traceable data layer; `keywords/market-profile` is the stable deterministic metric layer; the Agent + skill layer combines evidence and produces confidence, explanations, limitations, and recommendations.
 
@@ -365,19 +371,22 @@ CLI: `zoodata.py keyword-market-profile --keywords "yoga mat,pilates mat" --date
 
 | Parameter | Type | Required | Note |
 |-----------|------|----------|------|
-| keyword | String | **Yes** | Keyword to inspect |
+| keyword | String | Conditional | One keyword; exactly one of `keyword` / `keywords` |
+| keywords | List\<String\> | Conditional | Batch of 1–20 keywords; preserves request order |
 | dateFrom | String | **Yes** | Start date `YYYY-MM-DD` |
-| dateTo | String | **Yes** | End date `YYYY-MM-DD`; prefer T-1 or earlier |
-| marketplace | String | No | Marketplace code, default `US` |
+| dateTo | String | **Yes** | End date `YYYY-MM-DD`; prefer T-1 or earlier; maximum 93-day range |
+| marketplace | String | No | `US` / `UK`, default `US` |
+| granularity | String | No | `week` only |
 
-**Response:** Array of weekly-granularity trend points across the requested date range.
+**Response:** `data.context + data.items[].series[]` for both single and batch requests.
 
 Interpretation note:
-- `keywords/trend` is weekly series data; do not compare it to daily SERP observations as if they were the same grain
+- `keywords/trend` is a weekly time series. Align returned period boundaries before comparing it with SERP or ASIN observation endpoints; those interfaces are not interchangeable evidence even when all use `week`.
 
-Key fields: `observedAt`, `periodStartDate`, `periodEndDate`, `estimateSearchCount`,
-`estimateSearchChangeCount`, `estimateSearchChangeRate`, `abaRank`, `prevAbaRank`,
-`prevEstimateSearchCount`, `rankChangeCount`
+Each item has `identity`, `status=ok|empty`, `series[]`, `emptyReason`, and nullable `errorCode` /
+`errorMessage`. The latter are auxiliary fields, not status enums. Series fields are
+`periodStartDate`, `periodEndDate`, `estimateSearchCount`, `abaRank`,
+`abaTop3ClickShareRate`, and `abaTop3ConversionShareRate`.
 
 ---
 
@@ -392,7 +401,7 @@ Key fields: `observedAt`, `periodStartDate`, `periodEndDate`, `estimateSearchCou
 | marketplace | String | No | `US` / `UK`, default `US` |
 | granularity | String | No | `week` only |
 
-**Response:** `data.context + data.items[].rows[]`. Each keyword has one row per requested window. Rows return `status=available|unavailable|not_found`, `rowContext`, `unavailableReason`, and `trendProfile`. Available profiles expose guarded `searchDemand` and `abaRank` dimensions. Their `trendEvidence` values include an explicit direction plus slope and consistency evidence, so do not infer the server label from endpoint movement alone. Preserve null unavailable reasons without inventing one.
+**Response:** `data.context + data.items[].rows[]`. Each keyword has one row per requested window. Rows return `status=ok|empty`, `rowContext`, `emptyReason`, and `trendProfile`. `status=ok` profiles expose guarded `searchDemand` and `abaRank` dimensions. Their `trendEvidence` values include an explicit direction plus slope and consistency evidence, so do not infer the server label from endpoint movement alone. Preserve null empty reasons without inventing one.
 
 Use this metric endpoint first for trend shape and volatility; call raw `keywords/trend` only when weekly points or omitted fields are required.
 
@@ -403,29 +412,24 @@ Use this metric endpoint first for trend shape and volatility; call raw `keyword
 | Parameter | Type | Required | Note |
 |-----------|------|----------|------|
 | query | String | **Yes** | Seed keyword |
-| date | String | **Yes** | Lookup date `YYYY-MM-DD`; prefer T-1 or earlier; resolves to the nearest available weekly snapshot at or before that date |
 | marketplace | String | No | Marketplace code, default `US` |
 | page | Integer | No | default 1 |
 | pageSize | Integer | No | default 20, max 100 |
 | queryType | String | No | `phrase` / `fuzzy` (default `phrase`) |
-| sortBy | String | No | `relevanceScore` / `estimateSearchCount` / `abaRank` / `observedAt` / `keyword` |
+| sortBy | String | No | `relevanceScore` / `estimateSearchCount` / `abaRank` / `keyword` |
 | sortOrder | String | No | `asc` / `desc` |
 
 ⚠️ Uses `query`, NOT `keyword`.
-⚠️ Live behavior: empty `data: []` is a normal success case.
+⚠️ No date is required; the service uses the latest available weekly snapshot. A legacy `date` may be sent but is ignored.
+⚠️ Empty `data.rows[]` is a normal success case.
 
-**Response:** Array of expansion keywords.
+**Response:** `data.context + data.query + data.queryType + data.rows[]`.
 
-Key fields per item: `term` (expanded keyword), `seedKeyword`, `relevanceScore`,
-`estimateSearchCountWeekly`, `abaRank`, `marketCharacteristics`, `brandCount`,
-`organicSkuCount`, `adCount`, `periodStartDate`, `periodEndDate`, `observedAt`
+Each row contains `matchData.{query,keyword,site,relevanceScore}` and `keywordSnapshot`.
+`keywordSnapshot.dataWindow.currentPeriod` provides the resolved weekly period; its metric families match
+the current `keywords/detail` snapshot contract.
 
-Additional market-structure fields may appear on each item, including `totalSkuCnt`,
-`observedSkuCount`, `titleDensity`, `organicRolloverRate`, `amazonChoiceSkuCount`,
-`sponsoredProductSkuCount`, `sponsoredBrandSkuCount`, `sponsoredBrandVideoSkuCount`,
-`sponsoredRecommendSkuCount`, `adCampaignCount`, `top48OrganicSkuAvgPrice`,
-`top48OrganicSkuAvgRating`, `top48OrganicSkuAvgRatingsTotal`, and
-`top48OrganicSkuAvgRecentSaleCnt`.
+Do not flatten the response back to legacy `term`, `seedKeyword`, or `estimateSearchCountWeekly` fields.
 
 ---
 
@@ -435,22 +439,22 @@ Additional market-structure fields may appear on each item, including `totalSkuC
 |-----------|------|----------|------|
 | keyword | String | **Yes** | Keyword to inspect |
 | date | String | **Yes** | Snapshot lookup date `YYYY-MM-DD`; prefer T-1 or earlier |
-| granularity | String | No | CLI sends `week`; API supports `day` / `week` / `month` |
+| granularity | String | No | `week` only |
 | marketplace | String | No | Marketplace code, default `US` |
 | page | Integer | No | default 1 |
 | pageSize | Integer | No | default 20, max 100 |
 | exploreTypes | Array\<String\> | No | `ORG` / `SP` / `SB` / `SBV` / `SPR` |
-| sortBy | String | No | `absolutePosition` / `estimateImpressionPoint` / `observedAt` / `price` / `rating` / `ratingCount` / `recentSales` / `asin` / `title` |
+| sortBy | String | No | `absolutePosition` / `estimateImpressionPoint` / `latestObservedAt` / `price` / `rating` / `ratingCount` / `recentSales` / `asin` / `title` |
 | sortOrder | String | No | `asc` / `desc` |
 
-⚠️ `lookbackDays` and `granularity=lately_day` are obsolete and return 422. Use the returned period boundaries instead of inferring a rolling window.
+⚠️ `day`, `month`, `lately_day`, and `lookbackDays` are unsupported. Use the returned weekly period boundaries instead of inferring a rolling window.
 ⚠️ Use this endpoint as the primary source for "what products are currently showing on the keyword SERP/page 1" because it already returns listing-level product fields.
 ⚠️ Do not replace it with `products/search` when the question is about observed Amazon keyword SERP composition or ordering.
 ⚠️ When analyzing this endpoint, separate `exploreType` at least into `ORG` and sponsored placements instead of collapsing all rows together.
 
-**Response:** Array of SERP products with absolute positions.
+**Response:** `data.context + data.identity + data.rows[]`.
 
-Key fields from live response: `exploreType`, `absolutePosition`, `pageIndex`, `pagePosition`, `asin`,
+Key row fields: `latestObservedAt`, `exploreType`, `absolutePosition`, `pageIndex`, `pagePosition`, `asin`,
 `title`, `brand`, `price`, `currency`, `link`, `imageLink`, `rating`, `ratingCount`, `recentSales`,
 `hasVideo`, `estimateImpressionPoint`, `keywordTotalEstimateImpressionPoint`
 
@@ -467,24 +471,24 @@ Interpretation rule:
 |-----------|------|----------|------|
 | asin | String | **Yes** | Target ASIN |
 | date | String | **Yes** | Snapshot lookup date `YYYY-MM-DD`; prefer T-1 or earlier |
-| granularity | String | No | CLI sends `week`; API supports `day` / `week` / `month` |
+| granularity | String | No | `week` only |
 | marketplace | String | No | Marketplace code, default `US` |
 | page | Integer | No | default 1 |
 | pageSize | Integer | No | default 20, max 100 |
 | exploreTypes | Array\<String\> | No | `ORG` / `SP` / `SB` / `SBV` / `SPR` |
 | keywordContains | String | No | Optional substring filter on returned keywords |
-| sortBy | String | No | `estimateImpressionPoint` / `absolutePosition` / `avgPosition` / `keywordEstimateSearchCount` / `keywordAbaRank` / `observedAt` / `keyword` |
+| sortBy | String | No | `trafficShare` / `estimateImpressionPoint` / `absolutePosition` / `avgPosition` / `keywordEstimateSearchCount` / `keywordAbaRank` / `latestObservedAt` / `keyword` |
 | sortOrder | String | No | `asc` / `desc` |
 
-**Response:** Array of keyword rows for an ASIN.
+**Response:** `data.context + data.identity + data.rows[]`.
 
-Key fields from live response: `exploreType`, `absolutePosition`, `pageIndex`, `pagePosition`, `asin`,
+Key row fields: `latestObservedAt`, `exploreType`, `absolutePosition`, `pageIndex`, `pagePosition`, `asin`,
 `keyword`, `estimateImpressionPoint`, `asinTotalEstimateImpressionPoint`, `avgPosition`,
 `daysCoverageRate`, `observationCount`, `keywordEstimateSearchCount`,
-`keywordEstimateSearchGrowthCount`, `keywordEstimateSearchCountChangeRate`, `keywordAbaRank`,
+`keywordEstimateSearchChangeCount`, `keywordEstimateSearchCountChangeRate`, `keywordAbaRank`,
 `keywordAbaRankChangeCount`, `trafficShare`
 
-⚠️ Do not send `lookbackDays` or `granularity=lately_day`; use the returned period boundaries.
+⚠️ `day`, `month`, `lately_day`, and `lookbackDays` are unsupported; use the returned weekly period boundaries.
 ⚠️ In skill workflows, this endpoint is a reverse-ASIN source endpoint, not a substitute for `keywords/search-results` when the question is about visible page-1 product composition.
 
 ---
@@ -495,26 +499,26 @@ Key fields from live response: `exploreType`, `absolutePosition`, `pageIndex`, `
 |-----------|------|----------|------|
 | asin | String | **Yes** | Target ASIN |
 | date | String | **Yes** | Snapshot lookup date `YYYY-MM-DD`; prefer T-1 or earlier |
-| granularity | String | No | CLI sends `week`; API supports `day` / `week` / `month` |
+| granularity | String | No | `week` only |
 | marketplace | String | No | Marketplace code, default `US` |
 | page | Integer | No | default 1 |
 | pageSize | Integer | No | default 20, max 100 |
 | exploreTypes | Array\<String\> | No | `ORG` / `SP` / `SB` / `SBV` / `SPR` |
 | keywordContains | String | No | Optional substring filter on returned keywords |
-| sortBy | String | No | `estimateImpressionPoint` / `absolutePosition` / `avgPosition` / `keywordEstimateSearchCount` / `keywordAbaRank` / `observedAt` / `keyword` |
+| sortBy | String | No | `trafficShare` / `estimateImpressionPoint` / `absolutePosition` / `avgPosition` / `keywordEstimateSearchCount` / `keywordAbaRank` / `latestObservedAt` / `keyword` |
 | sortOrder | String | No | `asc` / `desc` |
 
 ⚠️ Live validation showed the same item shape as `keywords/competitor-product-keywords`; do not assume
 the semantic label implies a different wire schema.
-⚠️ Do not send `lookbackDays` or `granularity=lately_day`; use the returned period boundaries.
+⚠️ `day`, `month`, `lately_day`, and `lookbackDays` are unsupported; use the returned weekly period boundaries.
 ⚠️ In skill workflows, this endpoint is a reverse-ASIN source endpoint, not a substitute for `keywords/search-results` when the question is about visible page-1 product composition.
 
-**Response:** Array of keyword rows for an ASIN.
+**Response:** `data.context + data.identity + data.rows[]`.
 
-Key fields from live response: `exploreType`, `absolutePosition`, `pageIndex`, `pagePosition`, `asin`,
+Key row fields: `latestObservedAt`, `exploreType`, `absolutePosition`, `pageIndex`, `pagePosition`, `asin`,
 `keyword`, `estimateImpressionPoint`, `asinTotalEstimateImpressionPoint`, `avgPosition`,
 `daysCoverageRate`, `observationCount`, `keywordEstimateSearchCount`,
-`keywordEstimateSearchGrowthCount`, `keywordEstimateSearchCountChangeRate`, `keywordAbaRank`,
+`keywordEstimateSearchChangeCount`, `keywordEstimateSearchCountChangeRate`, `keywordAbaRank`,
 `keywordAbaRankChangeCount`, `trafficShare`
 
 ---
@@ -562,68 +566,35 @@ Live validation source: MCP tool surface
 | Parameter | Type | Required | Note |
 |-----------|------|----------|------|
 | asin | String | **Yes** | Target ASIN |
-| keyword | String | **Yes** | Exact keyword filter |
+| keyword | String | Conditional | One exact keyword; exactly one of `keyword` / `keywords` |
+| keywords | List\<String\> | Conditional | Batch of 1–20 exact keywords for the same ASIN |
 | dateFrom | String | **Yes** | Start date `YYYY-MM-DD` |
-| dateTo | String | **Yes** | End date `YYYY-MM-DD`; prefer T-1 or earlier; requested range cannot exceed 93 days |
+| dateTo | String | **Yes** | End date `YYYY-MM-DD`; prefer T-1 or earlier; maximum 61-day range |
 | marketplace | String | No | Marketplace code, default `US` |
-| granularity | String | No | CLI sends `week`; API supports `day` / `week` / `month` |
-| page | Integer | No | default 1 |
-| pageSize | Integer | No | default 20, max 100 |
-| sortBy | String | No | `date` |
-| sortOrder | String | No | `asc` / `desc` |
+| granularity | String | No | `week` only |
 
-**Response:** Array of timeline rows.
+**Response:** `data.context + data.items[].series[]` for both single and batch requests.
 
-Metric groups:
-- `keyword*` fields are keyword traffic-forecast dependency data for the provided keyword's corresponding metric period, indicated by `keywordPeriodStartDate` / `keywordPeriodEndDate`
-- `latest*` fields are the ASIN's latest product/listing/rank snapshot on the specified `date`
-- impression-point fields, `avg*` fields, ad-activity fields, and placement observations belong to the returned period; use its explicit period boundaries
+Each item has `identity`, `status=ok|empty`, `series[]`, `emptyReason`, and nullable `errorCode` /
+`errorMessage`. The latter are auxiliary fields, not status enums. Each series point contains
+`date` plus nested `asinSnapshot`, `traffic`, `placement`,
+`keywordMetrics`, and `adActivity` groups.
 
-⚠️ `lookbackDays` and `granularity=lately_day` are obsolete and return 422.
+⚠️ Do not send `page`, `pageSize`, `sortBy`, or `sortOrder`. `day`, `month`, `lately_day`, and
+`lookbackDays` are unsupported.
 
 Diagnosis curves and events:
-- Price curve: `latestPrice`
-- BSR curve: `latestSmallCategoryBsr`, `latestBigCategoryBsr`
-- Sales curve: `latestMonthlySaleCnt`
-- Rating curve: `latestRatingAmt`, `latestRatingCnt`
-- Traffic-estimate curve: impression-point fields plus `avgOrganicObservation` / `avgAdObservation`
-- Keyword fields: use `keyword*` fields only as supporting context for traffic-estimate changes
-- Listing events: `latestTitle` and `latestMainImageLink` changes indicate title/main-image change events
+- Price curve: `asinSnapshot.latestPrice`
+- BSR curve: `asinSnapshot.latestBsr`, `asinSnapshot.latestSubBsr`
+- Sales curve: `asinSnapshot.latestMonthlySaleCount`
+- Rating curve: `asinSnapshot.latestRating`, `asinSnapshot.latestRatingCount`
+- Traffic-estimate curve: `traffic.*` plus `placement.avgOrganicObservation` / `placement.avgAdObservation`
+- Keyword fields: use `keywordMetrics` only as supporting context for traffic-estimate changes
+- Listing events: changes in `asinSnapshot.latestTitle` / `asinSnapshot.latestMainImageLink`
 
-Key fields from live MCP response:
-`date`, `site`, `asin`, `keyword`, `latestTitle`, `latestPrice`, `latestCurrency`,
-`latestLink`, `latestMainImageLink`, `latestBrandName`, `latestProductBadges`,
-`latestMonthlySaleCnt`, `latestRatingAmt`, `latestRatingCnt`,
-`latestSmallCategoryName`, `latestSmallCategoryBsr`, `latestBigCategoryName`,
-`latestBigCategoryBsr`, `latestProductHasVideo`, `exploreTypes`,
-`exploreRecommendTypes`, `organicImpressionPoint`, `sponsoredProductImpressionPoint`,
-`sponsoredBrandImpressionPoint`, `sponsoredBrandVideoImpressionPoint`,
-`sponsoredRecommendImpressionPoint`, `latestOrganicPosition`,
-`latestOrganicPageIndex`, `latestOrganicPageSize`, `latestOrganicPageSizeReal`,
-`latestOrganicPagePosition`, `latestOrganicObservedAt`, `latestAdPosition`,
-`latestAdPageIndex`, `latestAdPageSize`, `latestAdPageSizeReal`,
-`latestAdPagePosition`, `latestAdObservedAt`, `avgOrganicObservation`,
-`avgAdObservation`, `keywordPeriodStartDate`, `keywordPeriodEndDate`,
-`keywordEstimateSearchCnt`, `keywordEstimateSearchGrowthCnt`, `keywordEstimateShowCnt`,
-`keywordEstimateShowGrowthCnt`, `keywordEstimateClickCnt`,
-`keywordEstimateClickGrowthCnt`, `keywordEstimatePurchaseCnt`,
-`keywordEstimatePurchaseGrowthCnt`, `keywordAbaRank`, `keywordAbaRankGrowthCnt`,
-`keywordAbaTopClickShareRate`, `keywordAbaTopClickShareGrowthAmt`,
-`keywordAbaTopConversionShareRate`, `keywordAbaTopConversionShareGrowthAmt`,
-`keywordMarketCharacteristics`, `keywordTitleDensity`,
-`keywordTitleDensityGrowthAmt`, `keywordTotalSkuCnt`, `keywordTotalSkuGrowthCnt`,
-`keywordObservedSkuCnt`, `keywordObservedSkuGrowthCnt`, `keywordOrganicSkuCnt`,
-`keywordOrganicSkuGrowthCnt`, `keywordAmazonChoiceSkuCnt`,
-`keywordAmazonChoiceSkuGrowthCnt`, `keywordSponsoredProductSkuCnt`,
-`keywordSponsoredProductSkuGrowthCnt`, `keywordSponsoredBrandSkuCnt`,
-`keywordSponsoredBrandSkuGrowthCnt`, `keywordSponsoredBrandVideoSkuCnt`,
-`keywordSponsoredBrandVideoSkuGrowthCnt`, `keywordSponsoredRecommendSkuCnt`,
-`keywordSponsoredRecommendSkuGrowthCnt`, `adActiveObservationCount`,
-`adActiveDayCoverageRate`, `adCampaignCnt`, `adCnt`.
-
-Live validation source: MCP tool surface
-`openapi_v2_product_traffic_terms_timeline`, request
-`{"asin":"B01CGLCGRA","keyword":"yoga mat","dateFrom":"2026-06-23","dateTo":"2026-06-29","marketplace":"US","page":1,"pageSize":20,"sortBy":"date","sortOrder":"asc"}`.
+Key groups: product/listing/rank fields in `asinSnapshot`; ORG/SP/SB/SBV/SPR impression points in
+`traffic`; positions/pages/observation timestamps in `placement`; weekly search/ABA fields and
+`metricWindow` in `keywordMetrics`; observation/campaign/ad counts in `adActivity`.
 
 ---
 

@@ -1,134 +1,85 @@
-# Reverse ASIN Keyword Analysis
+# Reverse-ASIN Keyword Capability Guide
 
-> Load this file for reverse ASIN keyword analysis.
+Use this downstream scenario after loading the applicable top-level references. It selects capabilities for “which keywords drive this ASIN's observed traffic/visibility?” and must align upward with `execution-guide.md`, `reference.md`, and the field-semantic references; those specifications define all conclusion and action limits.
 
-## Contents
+## Scenario boundary
 
-- [Inputs](#inputs)
-- [Task Constraints](#task-constraints)
-- [Tool Availability Gate](#tool-availability-gate)
-- [Analysis Dimensions](#analysis-dimensions)
-- [Decision Buckets](#decision-buckets)
-- [Output Template](#output-template)
+This scenario maps the ASIN's current observed traffic terms and validates a user-confirmed candidate set. It does not diagnose temporal movement, anomalies, or causes.
 
-## 3. Reverse ASIN Keyword Analysis
+- Use it for `which keywords`, `traffic terms`, `traffic-source structure`, `candidate keywords`, and current observed posture.
+- Do not answer `why`, drop/rise, volatility, anomaly, event attribution, or time-based explanation questions here. Route them to `scenarios-keyword-traffic-diagnosis.md`.
+- Do not call `product-traffic-terms-timeline` or `product-traffic-terms-overview` in this scenario. Their movement evidence belongs to diagnosis.
+- If the user selects a discovered term and asks why it changed, the follow-up itself confirms transition to diagnosis; reuse compatible traffic-source evidence and load only the diagnosis scenario in that turn.
 
-> Trigger: "reverse ASIN" / "which keywords drive traffic to this ASIN" / "traffic-source keywords for this ASIN"
+## Capability combinations
 
-### Inputs
+| Question | Primary capability | Add only when needed |
+|---|---|---|
+| Current keyword traffic-term list | `keywords/product-traffic-terms` | Select `keywords/competitor-product-keywords` before retrieval only for competitor/overlap framing; it is not a runtime-failure fallback |
+| Selected term's market context | batch `market-profile` | `trend-profile` only for keyword-market trend context; `search-results` for named current-SERP questions. Neither is used to diagnose ASIN movement here. |
+| Product-specific fit for a posture label | `realtime/product` for the target ASIN, unless compatible direct product evidence is already carried | Page acquisition only when a named fit inference requires evidence absent from the structured product response |
 
-- required: ASIN
-- optional: marketplace
-- optional: top-N focus for returned keywords
-- optional: spot-check keywords to inspect with `keywords/search-results`
-- optional: target keyword carried forward from a market-screening step
-- date rule: if a keyword endpoint needs `date` or `dateTo`, prefer T-1 or earlier; avoid current-date lookup unless explicitly requested
+If neither ASIN traffic-list endpoint is available, do not make reverse-ASIN traffic-source claims. `detail` and `search-results` cannot replace a traffic-source map.
 
-### Task Constraints
+## Traffic-term dimensions available
 
-- Minimum evidence: one ASIN traffic-list endpoint, either `keywords/product-traffic-terms` or `keywords/competitor-product-keywords`
-- These two endpoints currently provide equivalent functionality and the same live item shape for traffic-structure analysis; choose one available endpoint instead of requiring both
-- Prefer `keywords/product-traffic-terms` for the target ASIN's traffic-source list; use `keywords/competitor-product-keywords` as an equivalent fallback or when the workflow is competitor/overlap framed
-- If neither ASIN traffic-list endpoint is available, do not output reverse-ASIN traffic-source conclusions
-- `product-traffic-terms-overview` is aggregate evidence. Calculate simple channel totals, shares, and changes transparently from its returned fields.
-- Current traffic-list and overview contracts do not provide exact per-keyword change contribution. Do not infer keyword-level losers, gainers, or contribution from them.
-- Use metric-layer `product-traffic-terms-overview` first when the request is aggregate movement/structure. Call one ASIN traffic-list data endpoint only when keyword rows are the requested deliverable; no current metric replaces that row list.
-- Enrich selected traffic terms through metric-layer `keywords/market-profile` first and use `keywords/trend-profile` for trend judgments. Call `detail` or raw `trend` only when a named inference needs fields or weekly points omitted by the matching profile.
-- Do not descend from `market-profile` merely because a dimension is unsupported/unavailable; same-source data is unlikely to restore the missing metric input.
-- Enrichment requires `market-profile status=available` and complete evidence for the dimension used. `not_found` leaves that term unvalidated rather than proving weak demand. Keep volatility and annual-seasonality evidence separate, and do not fan out a batch HTTP 500 automatically.
-- `keywords/detail` and `keywords/search-results` may enrich prioritization and SERP context, but they cannot replace ASIN keyword evidence
-- `products/search` is supplementary only when the user explicitly asks for broader market context beyond observed keyword SERP behavior
-- Term bucketing may use any efficient call pattern, as long as the traffic-source map is grounded in one of the ASIN traffic-list endpoints
-- Reverse-ASIN traffic terms show visibility and estimated traffic contribution, not definitive commercial value or conversion quality
-- When this follows a target-keyword market screen, diagnose the ASIN × target keyword first: semantic/product-form fit, price/rating/reviews/sales basis, organic and sponsored positions, target-term share of observed ASIN traffic, organic/ad exposure mix, recent changes, listing events, and distance from the market barrier.
-- Classify the target term as `Defend`, `Expand`, `Observe`, or `Avoid`. Identify a constraint only when discriminating evidence supports it; otherwise state the unresolved question and the minimum next evidence. A visibility pattern alone must not be converted into a generic exposure, ad-dependence, organic-capture, relevance, or click/conversion cause list.
-- Candidate terms may be formed from ASIN traffic terms, target-term extensions, attributes/scenes, user-provided SQP queries, and competitor terms. Do not publish them as recommendations until they have passed batch `keywords/market-profile` validation.
-- Keep traffic-source conclusions and spend/value recommendations directional without seller data. Ask for ABA-SQP only after candidate-profile validation, not at the start of the ASIN diagnosis.
-- Apply the General Conclusion Authority Gate: `Defend` / `Expand` / `Observe` / `Avoid` is an observed posture, not permission to change bids or budgets. Keep final focus, expansion, or pause decisions unresolved until seller calibration.
-- Apply `execution-guide.md § Evidence-Seeking Diagnosis Protocol` before explaining a constraint, then apply `§ Evidence-to-Action Protocol` to every action. Traffic rows and posture labels alone do not authorize a cause claim, match type, bids, budgets, scaling, pausing, negatives, or uninspected listing changes.
-- If the user provided ABA-SQP data, use impressions, clicks, cart adds, purchases, click share, purchase share, and conversion rate to refine each traffic-source bucket and do not add the seller-side SQP enrichment request
-
-### Tool Availability Gate
-
-- Before choosing the execution tool, read the relevant docs/help/schema for the candidate path
-- Before running the workflow, confirm that at least one of `keywords/product-traffic-terms` or `keywords/competitor-product-keywords` is available through the selected path, either local CLI or live tool surface
-- If both are unavailable, stop the full reverse-ASIN chain and state the limitation explicitly
-- In that case, do not fabricate reverse-ASIN traffic-source conclusions from `keywords/detail` or `keywords/search-results` alone
-- If the user still wants help, offer only a boundary-labeled substitute such as single-keyword SERP analysis for manually provided keywords
-
-### SERP And Product-Library Rule
-
-- When explaining what products/brands dominate a keyword tied to this ASIN, use `keywords/search-results` first because it reflects the observed keyword SERP
-- Do not default to `products/search` for that question
-- Use `products/search` only as an optional supplement when the user explicitly wants broader catalog winners, price bands, or market-wide best-selling variants around those keywords
-- If `products/search` is used, explicitly label it as our product-database query result, not Amazon live search results
-
-### Analysis Dimensions
-
-| Dimension | What to inspect |
-|-----------|-----------------|
+| Dimension | Returned evidence |
+|---|---|
 | Traffic contribution | `trafficShare`, `estimateImpressionPoint` |
 | Rank quality | `avgPosition`, `daysCoverageRate`, `observationCount` |
 | Keyword size | `keywordEstimateSearchCount`, `keywordAbaRank` |
-| Growth | `keywordEstimateSearchCountChangeRate` |
-| Competition | SERP ad density and head-ASIN overlap |
+| Market context | Selected-term `market-profile`, trend, and SERP evidence when retrieved |
 
-### Decision Buckets
+## Supported report outputs
 
-- `Defend`
-  high traffic share or good position on strategically important terms; budget impact remains directional without seller data
-- `Expand`
-  decent relevance and volume, but position is still improvable; treat as a testing priority without ABA-SQP
-- `Observe`
-  signals are promising but weak or unstable
-- `Avoid`
-  low share, low fit, or crowded with poor position
+- Current traffic-term table with contribution, position/coverage, keyword-size, and candidate-selection rationale. Stage 1 does not assign posture labels or operating priority.
+- Selected-term market-context enrichment without treating it as a replacement for the ASIN traffic-source map.
+- Carried target-keyword observation combining compatible earlier market evidence with the ASIN's current fit, placement, and traffic posture.
+- Candidate pool validated through batch market-profile and sufficient direct product-fit evidence before seller-funnel calibration.
 
-### Output Template
+## Posture labels
 
-```markdown
-# Reverse ASIN Keyword Report — [ASIN]
+Use these labels only after Stage 2 candidate market validation. Never assign them directly from the Stage 1 traffic-source list.
 
-> Data is based on ZooData keyword snapshots as of [date]. Weekly search and traffic metrics are sampled observations, not exact Amazon Ads billing data. This analysis is for reference only and should not be the sole basis for business decisions.
-> Traffic-source signals estimate visibility and exposure contribution, not final keyword value.
+- `Established posture`: the term currently contributes meaningful observed ASIN traffic or holds a comparatively strong position and has directly observed product fit.
+- `Headroom validation`: product fit, ASIN observation, and candidate market validation support further seller-funnel validation while current position or contribution still has observable headroom.
+- `Observe`: evidence is relevant but sparse, unstable, mixed, or not yet sufficient to advance.
+- `No current support`: current evidence shows weak fit or lacks support for further validation. Do not use this label merely because one endpoint returned empty or one observation was poor.
 
-## [Localized Data Notes title]
-[State that this is an ASIN-observation-level diagnosis. It can judge observed fit, visibility, and preliminary action class, but not measured seller conversion or final budget.]
+## User journey
 
-## ASIN-observation Preliminary Conclusion
-[State the current observed posture and explicitly list which final decisions remain unresolved.]
+| Stage | Current input | Required capability and user-facing outcome | Transition |
+|---|---|---|---|
+| 1. Traffic-term discovery | ASIN | Retrieve the traffic-term list. Present the current observed traffic structure and a clearly labeled list of keywords requiring examination, with each selection tied to sampled contribution, semantic cluster, placement/coverage gap, or a carried target keyword. | For the staged workflow, render one concise confirmation request and stop; a raw-list-only request ends without a confirmation request. |
+| 2. Candidate keyword examination | User-confirmed Stage 1 candidate list | Batch every confirmed candidate that may appear in the stage conclusion through `market-profile`, and inspect current direct product evidence before assigning a product-specific posture label. Add trend or SERP evidence only for a named question. Present keyword-market and product-fit evidence, analysis, and an evidence-bounded candidate/posture conclusion. Candidates with valid empty/unsupported market evidence or without sufficient direct product-fit evidence remain unvalidated and receive no posture label. | After the Stage 2 conclusion, request one SQP artifact when seller-funnel calibration is needed. |
+| 3. Seller-funnel calibration | Supplied SQP artifact requested after Stage 2 | Analyze SQP and combine it with the retained Stage 1–2 evidence before giving the seller-calibrated conclusion authorized by those fields. | Request Ads only when a still-unresolved profitability or execution question requires it. |
+| 4. Ads-economics calibration | Later Ads artifact, when required | Follow `sqp-field-semantics.md`; analyze the supplied search-term report and update only the economics/execution conclusions it supports. | No further input unless one named decision remains unresolved. |
 
-## Top Traffic Terms
-| Keyword | Traffic Share | Avg Position | Search Count | Bucket |
-|---------|---------------|--------------|--------------|--------|
+### Stage transition gate
 
-## Defense Terms
-[Which terms currently show a defend posture; do not prescribe protection actions without the required seller/Ads evidence.]
+- Apply the shared `Interactive Stage Gate` from `execution-guide.md`; the rules below define this scenario's stage boundaries.
+- Treat natural requests such as “从关键词流量角度分析这个 ASIN / analyze this ASIN's keyword traffic / reverse-ASIN analysis” as the full staged workflow. A raw-list-only request must be explicit.
+- Stage 1 is discovery, not keyword judgment. Its conclusion may state which keywords require examination and why, but it must not assign `Established posture`, `Headroom validation`, `Observe`, or `No current support`, declare advertising dependence, recommend SEO/listing changes, rank advertising priority, or request SQP.
+- A generic full-analysis request does not authorize automatic progression. After Stage 1, ask the user to confirm the candidate list or name additions/removals, then stop the turn. Do not call `market-profile` before that confirmation.
+- Advance to Stage 2 only when the candidate list was explicitly confirmed or supplied by the user in the current conversation. A reply such as “确认 / 继续 / 就分析这些词” is sufficient; do not ask a second confirmation.
+- Every candidate included in the Stage 2 posture conclusion must have completed market-profile validation and sufficient directly observed ASIN/product-fit evidence. Traffic share, estimated impression points, placement type, or keyword wording alone cannot replace either requirement.
+- Do not present a final keyword-priority, SEO, advertising, bid, budget, or profitability conclusion before the required seller-data stage. Stage 2 provides an evidence-bounded candidate conclusion; request SQP next only when seller-funnel calibration is needed for the user's decision.
+- If the conversation carries a target keyword from an earlier market screen, include it in Stage 1 and examine its current market/SERP context before widening to other terms. If the user asks about its movement or cause, transition to diagnosis instead of calling a timeline here.
 
-## Expansion Terms
-[Which terms are expansion candidates for validation; show only the highest evidence-authorized `Inspect / Diagnose / Test` level and do not force a test when discriminating target evidence is absent.]
+Do not request SQP before the candidate-validation conclusion. At a seller-data boundary, use `sqp-field-semantics.md` as the sole source for acquisition, sequencing, sufficiency, and field interpretation.
 
-## ORG First-3-Page Changes
-[Fill from `keywords/product-traffic-terms-overview` when available. If unavailable, omit this section.]
+## Report shape
 
-**Newly entered:** [keywords from `first3PagesNewOrganicKeywords` with pageIndex / pagePosition, or "no data"]
+For Stage 1, render localized sections in this order and then stop:
 
-**Dropped out:** [keywords from `first3PagesLostOrganicKeywords` with pageIndex / pagePosition, or "no data"]
+1. Data Notes.
+2. Stage 1 traffic evidence.
+3. Stage 1 analysis.
+4. `Keywords to Examine`, listing the candidate, observed reason for selection, and evidence still required; this is not a recommendation table.
+5. Stage 1 discovery conclusion.
+6. For the staged workflow only, a separate next-input section asking the user to confirm the list or name additions/removals; omit it for a raw-list-only request.
+7. API usage.
 
-## Risks
-[Crowding, weak coverage, unstable observations]
+After confirmation, render Data Notes, Stage 2 keyword-market/product-fit evidence, a separate analysis section, the Stage 2 candidate/posture conclusion, and API usage. Include a separate SQP next-input section only when seller-funnel calibration is needed for the user's decision. Do not repeat the full Stage 1 report; carry forward only the evidence needed to explain the Stage 2 conclusion.
 
-## Candidate Validation
-[Show only candidates that completed batch market-profile validation. Use `Priority test` / `Selective test` / `Harvest` / `Observe only` / `Avoid`.]
-
-## Next Step
-[After candidate validation, request ABA-SQP using `execution-guide.md § Seller Data Contract`. Request Ads search-term fields only when profitability, match-type execution, exact bids, or final budget is requested.]
-
-## API Usage
-| Endpoint | Calls | Credits |
-|----------|-------|---------|
-| [endpoint] | [call count] | [credits consumed] |
-| Total | [sum of calls] | [sum of credits] |
-
-Do not omit this section. Use the markdown table format above, not bullet lists, and include the `Total` row. Extract from `meta.creditsConsumed` per response. End with `Credits remaining: N` using the latest `meta.creditsRemaining`. Use `not returned` when credit fields are absent.
-```
+Labels such as `Established posture`, `Headroom validation`, `Observe`, and `No current support` may appear only in Stage 2 or later, describe validation posture only, and remain subject to the shared Candidate Validation and action rules. Do not collapse the two stages into one response, auto-run Stage 2, or move the SQP request directly after the traffic-source table.

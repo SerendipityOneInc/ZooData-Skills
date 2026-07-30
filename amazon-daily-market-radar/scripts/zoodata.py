@@ -83,9 +83,9 @@ def _resolve_base_url():
 BASE_URL = _resolve_base_url()  # ZooData API base URL
 BASE_URL_TRUSTED = _is_trusted_host(BASE_URL)  # gates Bearer-token transmission
 API_DOCS = "https://api.zoodata.ai/api-docs"   # API documentation URL
-MAX_RETRIES = 3       # Maximum number of retry attempts for failed requests
+MAX_RETRIES = 3       # Total attempt budget for ordinary failed requests
 RETRY_DELAY = 2       # Initial retry delay in seconds; doubles on each retry
-RATE_LIMIT_RETRIES = 4  # Extra retries specifically for 429 rate limits
+RATE_LIMIT_RETRIES = 4  # Total attempt budget for 429 rate limits
 RATE_LIMIT_DELAY = 5    # Initial delay for 429 retries (seconds); doubles each time
 MIN_REQUEST_INTERVAL = 0.6  # Minimum seconds between requests (100 req/min = 0.6s)
 REQUEST_TIMEOUT = 60  # Request timeout in seconds; realtime/product can be slow (up to 30s)
@@ -314,7 +314,7 @@ def api_call(endpoint: str, params: dict) -> dict:
 
     delay = RETRY_DELAY
     max_attempts = MAX_RETRIES
-    for attempt in range(1, max_attempts + 1):
+    for attempt in range(1, max(MAX_RETRIES, RATE_LIMIT_RETRIES) + 1):
         _last_request_time = time.monotonic()
         try:
             req = urllib.request.Request(url, data=body, headers=headers, method="POST")
@@ -354,7 +354,7 @@ def api_call(endpoint: str, params: dict) -> dict:
                     endpoint, actual_params)
             elif status == 429:
                 # Switch to longer retry strategy for rate limits
-                if attempt == 1:
+                if max_attempts != RATE_LIMIT_RETRIES:
                     max_attempts = RATE_LIMIT_RETRIES
                     delay = RATE_LIMIT_DELAY
                 if attempt < max_attempts:
@@ -2539,7 +2539,7 @@ def cmd_check(args):
             ("products/competitors", {"keyword": "test", "pageSize": 1}, "Competitor lookup"),
         ])
     if args.keyword_endpoints:
-        keyword = args.keyword or "yoga mat"
+        keyword = (args.keyword or "").strip() or "yoga mat"
         date = args.date or time.strftime("%Y-%m-%d", time.localtime(time.time() - 86400))
         keyword_probes = [
             ("keywords/detail", {"keyword": keyword, "date": date}, "Keyword snapshot"),
@@ -2562,7 +2562,7 @@ def cmd_check(args):
             if keyword:
                 endpoints.append((
                     "keywords/product-traffic-terms-timeline",
-                    {"asin": args.asin, "keyword": keyword, "dateFrom": date, "dateTo": date, "pageSize": 1},
+                    {"asin": args.asin, "keyword": keyword, "dateFrom": date, "dateTo": date},
                     "ASIN + keyword timeline",
                 ))
         else:
@@ -2714,10 +2714,19 @@ def _split_csv(value):
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
+def _require_nonempty_text(value, name):
+    """Return stripped required text or fail before sending an invalid request."""
+    normalized = (value or "").strip()
+    if not normalized:
+        raise SystemExit(f"ERROR: {name} must contain a non-empty value")
+    return normalized
+
+
 def _keyword_subject(args, max_items=20):
     """Return the single or batch keyword request field after local validation."""
-    if getattr(args, "keyword", None):
-        return "keyword", args.keyword.strip()
+    keyword = getattr(args, "keyword", None)
+    if keyword is not None:
+        return "keyword", _require_nonempty_text(keyword, "--keyword")
     keywords = _split_csv(getattr(args, "keywords", None)) or []
     if not keywords:
         raise SystemExit("ERROR: --keywords must contain at least one non-empty keyword")
@@ -2832,7 +2841,7 @@ def cmd_keyword_extends(args):
     if args.date:
         _require_yyyy_mm_dd(args.date, "--date")
     params = {
-        "query": args.query,
+        "query": _require_nonempty_text(args.query, "--query"),
         "marketplace": args.marketplace,
         "page": args.page,
         "pageSize": args.page_size,
@@ -2850,7 +2859,7 @@ def cmd_keyword_search_results(args):
     """Get observed keyword SERP rows."""
     _require_yyyy_mm_dd(args.date, "--date")
     params = {
-        "keyword": args.keyword,
+        "keyword": _require_nonempty_text(args.keyword, "--keyword"),
         "date": args.date,
         "marketplace": args.marketplace,
         "granularity": "week",
@@ -2867,7 +2876,7 @@ def cmd_keyword_search_results(args):
 def _asin_keyword_params(args):
     _require_yyyy_mm_dd(args.date, "--date")
     return {
-        "asin": args.asin,
+        "asin": _require_nonempty_text(args.asin, "--asin"),
         "date": args.date,
         "marketplace": args.marketplace,
         "granularity": "week",
@@ -2896,7 +2905,7 @@ def cmd_product_traffic_terms_overview(args):
     """Get weekly product traffic-term overview for one ASIN."""
     _require_yyyy_mm_dd(args.date, "--date")
     params = {
-        "asin": args.asin,
+        "asin": _require_nonempty_text(args.asin, "--asin"),
         "date": args.date,
         "marketplace": args.marketplace,
     }
@@ -2915,7 +2924,7 @@ def cmd_product_traffic_terms_timeline(args):
         "product-traffic-terms-timeline",
     )
     params = {
-        "asin": args.asin,
+        "asin": _require_nonempty_text(args.asin, "--asin"),
         "dateFrom": args.date_from,
         "dateTo": args.date_to,
         "marketplace": args.marketplace,

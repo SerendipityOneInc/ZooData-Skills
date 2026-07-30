@@ -1,59 +1,34 @@
-# ZooData Keyword API Reference
+# ZooData Keyword and Supporting Acquisition Reference
 
-> Read before choosing tools or interpreting fields. This file is the production endpoint whitelist; every listed endpoint must be deployed and callable through the standard production base URL.
+> Read before choosing tools or interpreting fields. This file is the production capability whitelist; every listed route must be deployed and callable through its documented ZooData production surface.
 
 ## Contents
 
 - [Layer model](#layer-model)
 - [Production availability](#production-availability)
-- [Common contract](#common-contract)
+- [Common keyword endpoint contract](#common-keyword-endpoint-contract)
 - [Live endpoints by layer](#live-endpoints-by-layer)
+- [Authorized supporting acquisition surfaces](#authorized-supporting-acquisition-surfaces)
 - [Evidence boundaries](#evidence-boundaries)
 - [CLI and callable mapping](#cli-and-callable-mapping)
 
 ## Layer model
 
-Keep the three layers distinct:
+Keep the four layers distinct:
 
 1. **Data endpoints** return traceable snapshots and details in `items[]`, `rows[]`, or `series[]`.
 2. **Metric endpoints** return deterministic aggregate objects, context, coverage, and evidence—not full detail rows.
-3. **Agent + skill workflows** combine evidence, explain it, add confidence and limitations, and recommend actions.
+3. **Supporting acquisition surfaces** return current product fields or selected external-page representations required by a named diagnosis branch.
+4. **Agent + skill workflows** combine evidence, explain it, add confidence and limitations, and recommend actions.
 
 Do not move Agent outputs such as `recommendedAction`, `conclusion`, `reasoning`, root cause, or Mermaid diagrams into the API layer. Do not describe an Agent calculation as an API field.
-
-### Access priority: metric first, data on demand
-
-Terminology:
-
-| Concept | Meaning | Access implication |
-|---|---|---|
-| Calculation coverage | Source inputs available to calculate a metric dimension | Limits that metric conclusion; does not authorize down-drill |
-| Metric contract scope | Indicators, summaries, reasons, and grain intentionally exposed by the metric | Compare this scope with the requested inference |
-| Inference sufficiency | Whether returned metric information supports the Agent's required judgment | Descend only if data is known to provide the missing information |
-
-- Start from the judgment, not from a fixed endpoint chain.
-- Prefer a matching metric endpoint because it provides the stable server-calculated object intended for that judgment.
-- Treat a successful, sufficiently covered metric response as complete for its contract. Do not call the source data endpoint by default.
-- Do not equate a dimension's calculation status with data-access permission. When both layers share the same source, missing metric inputs usually remain missing below.
-- Descend only when the Agent's required inference needs information the metric contract does not expose but the data contract explicitly does: rows, series points, placements, raw fields, or another traceable evidence grain.
-- A metric-specific runtime failure may also justify data fallback when transparent Agent calculation is valid; a same-source `empty`/unsupported dimension normally does not.
-- Make fallback surgical: retrieve only the missing subject, period, placement, rows, or fields.
-
-| Judgment / deliverable | Metric-first source | Data fallback or direct-data exception |
-|---|---|---|
-| Weekly keyword market structure | `keywords/market-profile` | `keywords/detail` only when a required inference needs raw snapshot fields omitted by the metric, or the metric endpoint itself is unavailable; not merely because a profile dimension is unsupported/unavailable |
-| Trend shape and volatility | `keywords/trend-profile` | `keywords/trend` only when the Agent needs weekly points or fields omitted from the profile for a specific inference |
-| SERP structure/concentration | `keywords/search-results` | Aggregate the returned product/placement rows transparently |
-| ASIN aggregate traffic change | `keywords/product-traffic-terms-overview` | Use its verified live contract; do not infer missing keyword contribution from traffic-list rows |
-| ASIN × keyword timeline evidence | `keywords/product-traffic-terms-timeline` | Analyze only the returned timeline groups and series |
-| Candidate recall / current traffic-term list | No metric endpoint | Call `extends` or one ASIN traffic-list data endpoint directly because rows are the deliverable |
 
 ## Production availability
 
 | Endpoint | Layer | Live status | Verified live body |
 |---|---|---|---|
 | `keywords/detail` | data | available | `data.context + data.items[]` |
-| `keywords/market-profile` | metric | published; tested batch currently returned HTTP 500 | `data.context + data.items[].marketProfile` |
+| `keywords/market-profile` | metric | published and available | `data.context + data.items[].marketProfile` |
 | `keywords/trend-profile` | metric | published and live-validated | `data.context + data.items[].rows[]` |
 | `keywords/trend` | data | available | `data.context + data.items[].series[]` |
 | `keywords/extends` | data | available | `data.context + data.query + data.queryType + data.rows[]` |
@@ -62,8 +37,12 @@ Terminology:
 | `keywords/competitor-product-keywords` | data | available | same shape as `product-traffic-terms` |
 | `keywords/product-traffic-terms-timeline` | data | available | `data.context + data.items[].series[]` |
 | `keywords/product-traffic-terms-overview` | aggregate | available, legacy shape | flat `data` object with current and `*Prev` fields |
+| `realtime/product` | supporting product data | available | current ASIN product, offer, listing, and asset fields in `data` |
+| WebTools `/search` | supporting URL discovery | available | `data.query + data.results[]` |
+| WebTools `/scrape` | supporting page acquisition | available | requested page formats plus `data.meta` |
+| WebTools `/scrape-interactive` | supporting interactive page acquisition | available | requested page formats plus `data.meta` after actions |
 
-## Common contract
+## Common keyword endpoint contract
 
 ### Identity and context
 
@@ -89,16 +68,12 @@ The following live endpoints support batch subjects:
 
 Rules:
 
-- Prefer batch over repeated single-subject calls whenever subjects share all non-subject request parameters.
-- Plan the full compatible subject set before the first call; do not discoverably loop one keyword at a time and batch only later.
 - Send exactly one of the single or batch fields.
 - Batch only subjects with the same marketplace, snapshot/range, granularity, window, filters, and sort context; timeline batches must share one ASIN.
 - Deduplicate case-insensitively before calling; duplicate subjects return 422.
 - Preserve input order in `data.items[]` and when merging multiple chunks.
-- Inspect every item independently: `status=ok|empty|error`, `emptyReason`, `errorCode`, and `errorMessage`.
 - Outer `success` is service execution status, not proof that every item has data.
-- Do not discard empty/error items from the report; name their reason.
-- Billing is per `status=ok` item. Empty and error items are not billed. Always report the returned `meta.creditsConsumed` rather than calculating credits yourself.
+- Billing is per `status=ok` item for `detail`, `market-profile`, `trend`, and timeline. `trend-profile` bills a keyword when at least one requested window row has `status=ok`. Empty-only subjects are not billed. Always use returned credit metadata rather than calculating credits from subject or row counts.
 
 CLI examples:
 
@@ -122,17 +97,17 @@ python {skill_base_dir}/scripts/zoodata.py product-traffic-terms-timeline \
   --date-from 2026-07-06 --date-to 2026-07-12 --marketplace US
 ```
 
-For more than 20 compatible subjects, issue sequential chunks of 20 or fewer and restore global input order when merging. Keep one usage record per response. Use a single-subject request only for one subject, incompatible request contexts, or an endpoint without batch support.
+One request cannot contain more than 20 subjects. Each response preserves order only within that response and carries its own usage metadata.
 
 ### Empty results and errors
 
 - `status=empty` means no matching observation in the resolved snapshot/window. It does not prove low demand.
-- `keywords/extends` may return an empty `rows[]`; try `phrase` and `fuzzy` before concluding low expandability.
+- `keywords/extends` may return an empty `rows[]`; this is a valid successful response.
 - HTTP 422 is request validation failure. Read the detail, fix parameters, and do not retry unchanged.
 
 ### Credits
 
-Track `_query.endpoint`, `_query.params`, `meta.creditsConsumed`, and `meta.creditsRemaining` for every response. Aggregate usage by endpoint in the final `API Usage` table. Use `not returned` when metadata is absent.
+Bundled CLI responses expose `_query.endpoint`, `_query.params`, and returned `meta.creditsConsumed` / `meta.creditsRemaining` when available. WebTools responses expose their own route-specific credit metadata when available.
 
 ## Live endpoints by layer
 
@@ -148,8 +123,10 @@ Request:
 Response:
 
 - `data.context`: marketplace, site, requested/resolved date, weekly granularity, current period
-- `data.items[]`: identity, status, `snapshotData`, empty/error fields
-- `snapshotData`: `estimateSearchCount`, `abaRank`, Top3 click/conversion shares, market characteristics, SKU/brand/title coverage, organic/ad counts, and Top48 organic-product benchmarks
+- `data.items[]`: identity, `status=ok|empty`, `snapshotData`, `emptyReason`, and nullable `errorCode` / `errorMessage`
+- `snapshotData`: `estimateSearchCount`, `abaRank`, Top3 click/conversion shares, market characteristics, SKU/brand/title coverage, `organicRolloverRate`, organic/ad counts, and Top48 organic-product benchmarks
+
+`organicRolloverRate` is a direct snapshot field, but the published contract does not specify its formula, Top-N scope, observation cadence, or position-level meaning. Load `serp-and-rollover.md` before interpreting it. Do not relabel it as Top-10/Top-20 set turnover or per-position rotation.
 
 Do not expect legacy `estimateSearchCountWeekly`, `totalSkuCnt`, or top-level `data:null` in the current response. Read `snapshotData.estimateSearchCount`, `totalSkuCount`, and item status.
 
@@ -170,7 +147,7 @@ Request:
 Response:
 
 - `data.context`: marketplace, site, requested/resolved date, weekly period, and `scoringSpec` (`id`, `version`, `scoreType`, `scoreRange`, `referenceScope`)
-- `data.items[]`: input-order identity, `status=available|not_found`, `marketProfile`, and `unavailableReason`
+- `data.items[]`: input-order identity, `status=ok|empty`, `marketProfile`, and `emptyReason`
 - `marketProfile`: `marketCharacteristics`, `demandScale`, `top3Concentration`, `adActivity`, `top20OrganicEntryDifficulty`, `supplySaturation`, `brandStructure`, and `organicProductBenchmark`
 - current profile objects use camelCase fields. Each scored dimension returns `supported`, `level`, `interpretation`, `calculationStatus`, `unsupportedReason`, and `levelEvidence.score.{value,direction}`
 - internal objects are versioned by `context.scoringSpec`; interpret scores with its returned model id/version, normalized range, and reference scope rather than as timeless universal thresholds
@@ -178,11 +155,9 @@ Response:
 - `marketCharacteristics.volatility` exposes its own support/status boundary, `type`, source value, and mapping-confidence evidence
 - `marketCharacteristics.annualSeasonality` independently exposes support/status, `classification`, year-over-year correlation, eligible pair count, peak-pattern detection, and `peakPeriods`. Do not let either seasonality object overwrite the other. `seasonalPeakPatternDetected=true` alone does not override `classification`, and an empty `peakPeriods` array cannot support named peak periods.
 
-This endpoint returns deterministic weekly snapshot evidence. It does not return history, strategy advice, root cause, recommended actions, or seller-private ABA-SQP conversion data. An unmatched keyword returns `status=not_found`, `marketProfile=null`, and `unavailableReason=keyword_not_observed`; context fields such as `resolvedDate`, `dataWindow`, and `scoringSpec` may then be null. Not-found items are not billed. Use returned `meta.creditsConsumed` / `meta.creditsConsumedExact` rather than estimating.
+This endpoint returns deterministic weekly snapshot evidence. It does not return history, strategy advice, root cause, recommended actions, or seller-private ABA-SQP conversion data. An unmatched keyword returns `status=empty`, `marketProfile=null`, and a descriptive `emptyReason`; context fields such as `resolvedDate`, `dataWindow`, and `scoringSpec` may then be null. Empty items are not billed. Use returned `meta.creditsConsumed` / `meta.creditsConsumedExact` rather than estimating.
 
-Current service failure boundary: a subject-specific calculation error can return HTTP 500 for the entire batch instead of an item-level error. Treat it as a service failure, not `not_found`. Do not fan out the entire batch automatically; allow at most one diagnostic split only when isolating the failing subject is required for the task.
-
-Layer boundary: obtain stable server-calculated multidimensional profile objects from metric-layer `keywords/market-profile` first. An unsupported/unavailable dimension limits the conclusion but does not itself justify calling data-layer `keywords/detail`, because both are snapshot-source related. Access `detail` only when a required Agent inference needs raw fields omitted by the metric contract, the metric endpoint is unavailable for a metric-specific reason, or the user requests traceable source fields. Combine evidence, explain limitations, assign confidence, and recommend actions only in the Agent + skill layer.
+Layer fact: `keywords/market-profile` supplies server-calculated multidimensional profile objects; `keywords/detail` supplies raw snapshot fields. Unsupported profile dimensions do not imply that the raw endpoint contains their missing calculation inputs.
 
 ### Data layer: `keywords/trend`
 
@@ -212,11 +187,11 @@ Response:
 
 - `data.context`: marketplace/site, requested/resolved date, weekly granularity, and requested windows
 - `data.items[]`: input-ordered keyword identity and one `rows[]` entry per requested window
-- each row contains `rowContext`, `status=available|unavailable|not_found`, `unavailableReason`, and `trendProfile`
+- each row contains `rowContext`, `status=ok|empty`, `emptyReason`, and `trendProfile`
 - available profiles contain `searchDemand` and `abaRank`; inspect `supported`, `calculationStatus`, and `unsupportedReason` independently
 - `trendEvidence` fields are `{ value, direction }` pairs covering first/last/change evidence, normalized slope, direction consistency, and eligible/aligned period counts
 
-Use this endpoint first for server-calculated trend shape and volatility. Do not reduce `trend` to a first-to-last comparison: normalized slope and direction-consistency evidence may support a different window-level label. Preserve null `unavailableReason` / `observedPeriodCount` values without inventing a reason. Billing is per keyword with at least one available row; use returned credit metadata.
+Use this endpoint first for server-calculated trend shape and volatility. Do not reduce `trend` to a first-to-last comparison: normalized slope and direction-consistency evidence may support a different window-level label. Preserve null `emptyReason` / `observedPeriodCount` values without inventing a reason. Billing is per keyword with at least one `status=ok` row; use returned credit metadata.
 
 ### Data layer: `keywords/extends`
 
@@ -235,6 +210,8 @@ Response:
 - `data.rows[].matchData`: query, keyword, site, relevanceScore
 - `data.rows[].keywordSnapshot`: `dataWindow.currentPeriod` plus the same core snapshot families as detail
 
+The returned rows are related-term recall for the requested query, page, and query type. They are not an exhaustive root-keyword universe; do not sum their search counts and present the result as total market or root-universe demand.
+
 Do not flatten the response back to legacy `term`, `seedKeyword`, or `estimateSearchCountWeekly` fields.
 
 ### Data layer: `keywords/search-results`
@@ -242,7 +219,7 @@ Do not flatten the response back to legacy `term`, `seedKeyword`, or `estimateSe
 Request:
 
 - required `keyword`, `date`
-- `granularity=week`; do not send the removed `lookbackDays` field
+- `granularity=week` only; `day`, `month`, `lately_day`, and `lookbackDays` are unsupported
 - optional `exploreTypes=ORG|SP|SB|SBV|SPR`, page/pageSize
 - `sortBy=absolutePosition|estimateImpressionPoint|latestObservedAt|price|rating|ratingCount|recentSales|asin|title`
 
@@ -254,12 +231,14 @@ Response:
 
 Use this as the primary observed SERP source. Split ORG from sponsored placements. Do not substitute `products/search` for SERP ordering.
 
+Counts of rows by `exploreType` describe placement-record mix, not traffic contribution. Use `estimateImpressionPoint` for disclosed returned-row exposure comparisons. Never sum the repeated keyword-level `keywordTotalEstimateImpressionPoint` across rows.
+
 ### Data layer: `keywords/product-traffic-terms` and `keywords/competitor-product-keywords`
 
 Request:
 
 - required `asin`, `date`
-- `granularity=week`; do not send the removed `lookbackDays` field
+- `granularity=week` only; `day`, `month`, `lately_day`, and `lookbackDays` are unsupported
 - optional `keywordContains`, `exploreTypes`, page/pageSize
 - `sortBy=trafficShare|estimateImpressionPoint|absolutePosition|avgPosition|keywordEstimateSearchCount|keywordAbaRank|latestObservedAt|keyword`
 
@@ -268,7 +247,7 @@ Response:
 - `data.context`, `data.identity`, `data.rows[]`
 - rows include placement/position, keyword, impression points, `trafficShare`, `avgPosition`, coverage/observation counts, keyword search/change fields, and ABA rank/change
 
-The two endpoints currently return the same row shape. Prefer `product-traffic-terms` for the user's target ASIN; use the competitor-named route for competitor/overlap framing or fallback. One call is enough unless explicitly checking parity.
+The two endpoints currently return the same row shape. `product-traffic-terms` names the target-ASIN traffic-term capability; the competitor-named route expresses competitor/overlap framing. This equivalence is a pre-call routing fact, not authorization to switch endpoints after a runtime failure.
 
 `trafficShare` is the row's sampled share within the returned ASIN traffic period, not exact Amazon share of voice.
 
@@ -278,13 +257,13 @@ Request:
 
 - one ASIN and exactly one of `keyword` or `keywords[]` (1–20)
 - `dateFrom`, `dateTo`; maximum 61-day range
-- `granularity=week`; do not send the removed `lookbackDays` field
+- `granularity=week` only; `day`, `month`, `lately_day`, and `lookbackDays` are unsupported
 - no page/pageSize pagination for series
 
 Response:
 
 - `data.context`: requested/resolved range, granularity, and returned period boundaries
-- `data.items[].identity`, status, `series[]`, empty/error fields
+- `data.items[].identity`, `status=ok|empty`, `series[]`, `emptyReason`, and nullable `errorCode` / `errorMessage`
 - each series point contains:
   - `date`
   - `asinSnapshot`: title, price, link/image, brand, badges, sales, rating, BSR, video
@@ -307,15 +286,74 @@ The endpoint is conceptually aggregate, but production still returns the legacy 
 
 Use returned period boundaries exactly. You may calculate simple current-minus-previous channel changes and shares transparently in the Agent layer. Do not infer per-keyword losers, gainers, or contribution from this aggregate response because it has no keyword contribution rows.
 
+## Authorized supporting acquisition surfaces
+
+These supporting surfaces are part of this skill's production whitelist only when a named product or page observation is required for the active scenario's subject-level inference. They do not replace keyword demand, trend, SERP, traffic-term, timeline, or seller-funnel evidence.
+
+### Structured product data: `realtime/product`
+
+Request:
+
+- required `asin`
+- optional `marketplace`; use the active keyword workflow marketplace
+
+Response fields include current title, brand, rating/review count, features, description, specifications, variants, bestsellers rank, Buy Box/price, images, dimensions, and weight when available.
+
+This endpoint supplies the current ASIN representation, offer, listing text, and asset URLs. It is a current product snapshot, not a historical event stream, seller conversion funnel, or causal explanation. An asset URL proves availability, not visual quality.
+
+### ZooData WebTools: `/search`, `/scrape`, and `/scrape-interactive`
+
+Base surface: `/openapi/v2/webtools/*`, authenticated with `ZOODATA_API_KEY`.
+
+Route roles:
+
+- `/search` discovers candidate URLs from a required query. It is WebTools URL discovery, never `products/search`; result titles and snippets are source-selection metadata, not selected-page content.
+- `/scrape` acquires requested representations for a known full URL.
+- `/scrape-interactive` acquires requested representations for a known URL after explicit rendering or page actions; actions support wait, click, write, press, scroll, scrape, and JavaScript execution.
+
+Contract boundaries:
+
+- `/search` requires `query`; optional fields include `limit` (1–20), sources, time filter, and bare-hostname domain filters. Omit `scrapeOptions` for discovery-only use.
+- `/scrape` requires a full `url`; `/scrape-interactive` requires `url` plus an actions array. Prefer structured JSON for evidence extraction.
+- Check `success`, the returned target URL, and `data.meta.statusCode`. A successful WebTools envelope may still contain a target-page error.
+- Preserve the acquired representation and page scope. Page content is direct page evidence, not proof of Amazon ranking logic, attribution, conversion, profitability, or causality.
+- Search deep-scrape can bill per returned result; discovery-only search does not require `scrapeOptions`.
+
+These routes have no bundled CLI subcommand and are callable only through an exposed ZooData WebTools session/callable surface whose live schema matches the requested route.
+
 ## Evidence boundaries
 
-- Keyword opportunity workflow: use `extends` directly for candidate recall, `market-profile` first for weekly market judgment, `trend-profile` for trend shape, and `search-results` for SERP evidence. Descend to targeted raw detail/trend only for runtime metric failure or contract-omitted evidence required by a named inference. Without seller ABA-SQP, value/spend recommendations remain directional.
-- ASIN keyword health: current production endpoints can describe current traffic terms and aggregate current-vs-previous movement. Do not claim exact per-keyword contribution when the returned contracts do not provide it.
-- ASIN anomaly diagnosis: use overview, current traffic terms, raw timeline, keyword trend, and SERP only as required to resolve the named uncertainty. Rank explanations only when the retrieved evidence distinguishes them; otherwise stop at the unresolved question and required next evidence. Do not claim a server-returned root cause.
-- `products/search` is broader ZooData catalog data, not observed keyword SERP evidence.
-- ZooData WebTools is the only page/web-retrieval channel authorized by this skill. Use `/webtools/scrape` for known URLs, `/webtools/scrape-interactive` only when rendering/actions are required, and `/webtools/search` only for URL discovery. These are crawler/retrieval sources, not ZooData keyword intelligence, observed Amazon keyword SERP, traffic, or seller-private evidence. Do not fall back to an external browser or public web search.
-- Do not compare CTR, CVR, rank, or traffic quality against competitors without same-metric, same-keyword, same-marketplace, comparable-period and comparable-placement evidence.
-- ZooData does not supply the seller's private ABA Search Query Performance funnel. Use user-provided impressions, clicks, cart adds, purchases, shares, and conversion rates as first-party enrichment when available.
+### Generic analytical capabilities
+
+These are capability facts derived from the documented endpoints and user-provided seller data. Scenario files select applicable combinations; they do not create new capabilities.
+
+| Capability | Evidence source | Contract boundary |
+|---|---|---|
+| Query/seed relation | `keywords/extends` match data, query wording, and `keywords/search-results` when retrieved | Describes relation to the query and observed returned rows; it is not product conversion or campaign-fit evidence. |
+| Demand and weekly trend | `keywords/market-profile`, `keywords/trend-profile`, and documented raw snapshot/trend fields | Snapshot scale and weekly movement are distinct; these endpoints do not forecast. |
+| Market structure and SERP | Market-profile dimensions and `keywords/search-results` rows | Each metric retains its returned subject, population, and scope; no composite score is provided. |
+| Current ASIN posture | `realtime/product`, placement, traffic-term, overview, and timeline endpoints | Observes the returned ASIN/keyword subject and period; it does not supply seller conversion funnel data. |
+| Page or asset observation | WebTools `/search` for URL discovery, then `/scrape` or `/scrape-interactive` for the selected page | Preserves the acquired page representation; it does not establish ranking logic, attribution, conversion, or cause. |
+| Seller funnel and advertising economics | User-provided ABA-SQP and Amazon Ads search-term data | These are user-provided first-party inputs, not ZooData keyword endpoint outputs. |
+
+### Capability-to-contract matrix
+
+| Capability | Contract that supplies it | Returned evidence boundary |
+|---|---|---|
+| Candidate recall | `keywords/extends` | Related-term rows and match data; latest weekly snapshot only. |
+| Raw demand snapshot / official rollover | `keywords/detail` | Snapshot search/rank/share/count fields and `organicRolloverRate`. |
+| Weekly market dimensions | `keywords/market-profile` | Server-calculated profile dimensions with per-item and per-dimension status. |
+| Weekly trend shape | `keywords/trend-profile` | Fixed-window demand and ABA-rank profile rows. |
+| Raw weekly trend points | `keywords/trend` | Weekly search-count, ABA-rank, and Top-3 share series. |
+| Observed keyword SERP | `keywords/search-results` | Returned product, placement, and impression-point rows. |
+| Current ASIN traffic terms | `keywords/product-traffic-terms` or `keywords/competitor-product-keywords` | ASIN keyword rows, traffic share, placement, and keyword snapshot fields. |
+| ASIN × keyword movement | `keywords/product-traffic-terms-timeline` | Nested product, traffic, placement, keyword-metric, and ad-activity time-series groups. |
+| ASIN aggregate movement | `keywords/product-traffic-terms-overview` | Current and previous placement impression points plus first-three-page organic entry/exit lists. |
+| Current product/listing inspection | `realtime/product` | Current ASIN product, offer, listing, and asset-link fields only. |
+| URL discovery | WebTools `/search` | Candidate result URLs and snippets for selecting a source; not product search or page-content proof. |
+| Known-page acquisition | WebTools `/scrape` or `/scrape-interactive` | Returned content for the selected URL and representation; interactive mode is reserved for rendering/actions. |
+
+Use the endpoint sections above for exact parameters, limits, date behavior, status meanings, fields, and billing facts.
 
 ## CLI and callable mapping
 
@@ -333,5 +371,8 @@ Use `python {skill_base_dir}/scripts/zoodata.py` after reading subcommand help.
 | `keywords/competitor-product-keywords` | `keyword-competitor-product-keywords` |
 | `keywords/product-traffic-terms-overview` | `product-traffic-terms-overview` |
 | `keywords/product-traffic-terms-timeline` | `product-traffic-terms-timeline` |
+| `realtime/product` | `product` |
 
-If using MCP/session tools, inspect the live tool surface and exact schema first. Never infer a callable name from an HTTP path or draft name.
+WebTools `/search`, `/scrape`, and `/scrape-interactive` are authorized only through an exposed ZooData WebTools session/callable surface. Inspect its exact live schema first; never infer a callable name from an HTTP path or treat `products/search` as WebTools `/search`.
+
+If using any MCP/session tool, inspect the live tool surface and exact schema first. Never infer a callable name from an HTTP path or draft name.

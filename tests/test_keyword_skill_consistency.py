@@ -1,4 +1,4 @@
-"""Behavioral guardrails for the amazon keyword traffic skill documentation."""
+"""Structural and safety guardrails for the keyword-analysis skill."""
 
 from pathlib import Path
 
@@ -10,96 +10,361 @@ def read(relative_path):
     return (ROOT / relative_path).read_text(encoding="utf-8")
 
 
-def section(text, start_heading, end_heading=None):
-    body = text.split(start_heading, 1)[1]
-    if end_heading:
-        body = body.split(end_heading, 1)[0]
-    return body
+def test_skill_is_a_concise_router_not_a_second_execution_guide():
+    skill = read("SKILL.md")
+
+    assert len(skill.splitlines()) < 120
+    assert "## Start here" in skill
+    assert "## Source-of-truth boundaries" in skill
+    assert "references/execution-guide.md" in skill
+    assert "references/reference.md" in skill
+    assert "references/metrics-market-profile.md" in skill
+    assert "references/metrics-trend-profile.md" in skill
+    assert "references/serp-and-rollover.md" in skill
+    assert "references/sqp-field-semantics.md" in skill
+    assert "### Two-Pass Metric Interpretation Gate" not in skill
+    assert "### Evidence-to-Action Authorization Gate" not in skill
+    assert "### Candidate Validation Rule" not in skill
+    assert "current traffic terms, traffic-source structure, candidate discovery" in skill
+    assert "This diagnosis route takes precedence" in skill
+    assert "ASIN-wide anomaly without a named keyword" in skill
+    assert "applicable scenario guide, or to multiple non-exclusive guides" in skill
+    assert "Load exactly one scenario" not in skill
+    assert "Before requesting or interpreting a seller artifact" in skill
+    assert "Without `--endpoints` or `--keyword-endpoints`, it makes no evidence calls" in skill
 
 
-def test_standalone_and_asin_expansion_are_separate_routes():
-    text = read("references/scenarios-expand.md")
-    standalone = section(
-        text,
-        "## Route A: standalone expansion",
-        "## Route B: staged ASIN candidate validation",
-    )
-    staged = section(
-        text,
-        "## Route B: staged ASIN candidate validation",
-        "## Output templates",
-    )
+def test_execution_guide_is_the_single_shared_workflow_source():
+    guide = read("references/execution-guide.md")
 
-    assert "request the user's asin" in standalone.lower()
-    assert "Do not request ABA-SQP" in standalone
-    assert "request seller-side ABA-SQP" in staged
-    assert "product fit × current ASIN performance/posture × keyword market profile" in staged
+    assert "## Authority and routing" in guide
+    assert guide.index("## Contents") < guide.index("## Authority and routing")
+    assert "[Structured Field Identity Gate](#structured-field-identity-gate)" in guide
+    assert "[User-Facing Language Rule](#user-facing-language-rule)" in guide
+    assert "[Monitoring Cadence Suggestion](#monitoring-cadence-suggestion)" in guide
+    assert "question → evidence plan → retrieval → field interpretation → analysis → evidence-bounded conclusion" in guide
+    assert "Scenario files are downstream applications" in guide
+    assert "must align upward with this guide plus the applicable API and field-semantic references" in guide
+    assert "## Retrieval Progress Updates" in guide
+    assert "use one short, natural sentence in the user's language" in guide
+    assert "State only the subject and business question currently being examined" in guide
+    assert "Do not mention tools, commands, endpoints, batching" in guide
+    assert "support/calculation states, validation mechanics" in guide
+    assert "Do not expose partial judgments, candidate verdicts" in guide
+    assert "stage-transition deliberation" in guide
+    assert "a list of things the answer will not do" in guide
+    assert "Do not narrate every retrieval call" in guide
+    assert "我先看看这 6 个词在美国站最近一周的市场表现" in guide
+    assert "## Two-Pass Metric Protocol" in guide
+    assert "### Interactive Stage Gate" in guide
+    assert "Complete at most one user-decision stage per assistant turn" in guide
+    assert "Do not call a later-stage capability before the user explicitly confirms progression" in guide
+    assert "does not pre-authorize every later stage" in guide
+    assert "Do not combine several completed stages into one long process report" in guide
+    assert "followed by at most one next-step confirmation or input request when progression is needed" in guide
+    assert "without manufacturing another request" in guide
+    assert "single next action needed from the user, if any" in guide
+    assert "retain it without interpreting it" in guide
+    assert "does not require a user pause between retrieval and interpretation" in guide
+    assert "complete them sequentially in one response without an artificial pause" not in guide
+    assert "### Cross-Metric Reconciliation Protocol" in guide
+    assert "### Candidate Validation Rule" in guide
+    assert "Do not average unlike scores" in guide
+    assert "### Valid No-Data Reporting" in guide
+    assert "### Interface Failure Stop Gate" in guide
+    assert "Stop the workflow immediately after the failure" in guide
+    assert "Do not call another endpoint" in guide
+    assert "do not request ASIN, price, margin, SQP, Ads" in guide
+    assert "evidence → analysis → conclusion" in guide
+    assert "### Available Data → Conclusion Scope" not in guide
+    assert "### Scenario Routing Rule" not in guide
+    assert "`keywords/detail`" not in guide
+    assert "sqp-field-semantics.md" not in guide
+    assert "Treat diagnosis and reverse-ASIN discovery as mutually exclusive active routes" in guide
+    assert "give diagnosis precedence" in guide
+    assert "Combine scenario capability combinations only when their boundaries are non-exclusive" in guide
+    assert "combine their relevant capability combinations" not in guide
 
 
-def test_market_profile_contract_uses_scoring_spec_and_dimension_status():
+def test_top_level_localization_preserves_exact_enums_and_localizes_usage_labels():
+    guide = read("references/execution-guide.md")
+
+    assert "human-readable status labels" in guide
+    assert "When reporting a source enum such as `status=empty`, retain the exact enum value" in guide
+    assert "do not translate the value inside the identifier" in guide
+    assert "| [Localized endpoint header] | [Localized calls header] | [Localized credits header] |" in guide
+    assert "| [Localized total label] | 1 | 1 |" in guide
+    assert "[Localized credits-remaining label]: N" in guide
+    assert "use a localized equivalent of `not returned`" in guide
+    assert "`| Endpoint | Calls | Credits |`" not in guide
+    assert "`Credits remaining: N`" not in guide
+
+
+def test_interface_failure_never_descends_to_data_layer():
+    guide = read("references/execution-guide.md")
+
+    assert "Do not call another endpoint" in guide
+    assert "descend to a data layer" in guide
+    assert "Descend only after a successful metric response" in guide
+
+
+def test_timeline_health_probe_omits_unsupported_pagination():
+    script = read("scripts/zoodata.py")
+    timeline_probe = script.split(
+        '"keywords/product-traffic-terms-timeline"', 1
+    )[1].split('"ASIN + keyword timeline"', 1)[0]
+
+    assert '"pageSize"' not in timeline_probe
+
+
+def test_scenarios_are_capability_guides_without_independent_scoring_or_gates():
+    for relative_path in (
+        "references/scenarios-expand.md",
+        "references/scenarios-keyword-analysis.md",
+        "references/scenarios-reverse-asin.md",
+        "references/scenarios-keyword-traffic-diagnosis.md",
+    ):
+        text = read(relative_path)
+        assert "Capability Guide" in text.splitlines()[0]
+        assert "execution-guide.md" in text
+        assert "downstream scenario" in text
+        assert "must align upward" in text
+        assert "Task Constraints" not in text
+        assert "Evidence-to-Action Protocol" not in text
+        assert "Cross-Metric Reconciliation Protocol" not in text
+
+
+def test_scenarios_keep_their_user_input_journeys():
+    target = read("references/scenarios-keyword-analysis.md")
+    expand = read("references/scenarios-expand.md")
+    reverse = read("references/scenarios-reverse-asin.md")
+    diagnosis = read("references/scenarios-keyword-traffic-diagnosis.md")
+
+    assert "## User journey" in target
+    assert "target ASIN" in target
+    assert "ABA-SQP" in target
+    assert "### Stage transition gate" in target
+    assert "evidence → analysis → stage conclusion" in target
+    assert "followed by a next input only when the journey row defines one" in target
+    assert "Do not request an ASIN until Stage 1" in target
+    assert "Do not request price, contribution margin" in target
+    assert "stop without another call, analysis verdict, or next-stage input request" in target
+    assert "4. Seller-funnel calibration" in target
+    assert "5. Ads-economics calibration" in target
+    assert "This section is mandatory for the multi-stage journey" in target
+    assert "never hide the request in the conclusion paragraph" in target
+    assert "after Stage 1, request only the target ASIN" in target
+    assert "sqp-field-semantics.md" in target
+    assert "### Seller-data input guidance" not in target
+    assert "acquisition, sequencing, sufficiency, and field-interpretation rules" in target
+    assert "worth targeting" in target
+    assert "`product-traffic-terms-timeline`" not in target
+    assert "Route movement, anomaly, and causal questions" in target
+    assert "movement posture" not in target
+    for text in (expand, reverse, diagnosis):
+        assert "## User journey" in text
+        assert "sqp-field-semantics.md" in text
+
+    for text in (target, expand, reverse, diagnosis):
+        assert "Interactive Stage Gate" in text
+
+
+def test_expansion_does_not_define_an_undocumented_composite_score():
+    scenario = read("references/scenarios-expand.md")
+
+    assert "Suggested weight" not in scenario
+    assert "35 |" not in scenario
+    assert "market-screen score" not in scenario
+    assert "High validation priority" in scenario
+    assert "Existing-fit validation" in scenario
+    for action_label in ("Priority test", "Selective test", "Harvest", "`Avoid`"):
+        assert action_label not in scenario
+    assert "Advance to ASIN validation" in scenario
+    assert "Do not request SQP before the ASIN observation and candidate-validation conclusion" in scenario
+    assert "sqp-field-semantics.md" in scenario
+    assert "| 1. Candidate recall" in scenario
+    assert "| 2. Market screening" in scenario
+    assert "Do not call `market-profile` before the Stage 1 candidate list is confirmed" in scenario
+    assert "do not combine candidate recall, market screening, and ASIN validation into one report" in scenario
+
+
+def test_reverse_asin_preserves_optional_routes_and_candidate_progression():
+    scenario = read("references/scenarios-reverse-asin.md")
+
+    assert "| 1. Traffic-term discovery" in scenario
+    assert "| 2. Candidate keyword examination" in scenario
+    assert "| 3. Seller-funnel calibration" in scenario
+    assert "| 4. Ads-economics calibration" in scenario
+    assert "Seller-data handoff" not in scenario
+    assert "### Stage transition gate" in scenario
+    assert "A raw-list-only request must be explicit" in scenario
+    assert "a raw-list-only request ends without a confirmation request" in scenario
+    assert "omit it for a raw-list-only request" in scenario
+    assert "Stage 1 is discovery, not keyword judgment" in scenario
+    assert "A generic full-analysis request does not authorize automatic progression" in scenario
+    assert "Do not call `market-profile` before that confirmation" in scenario
+    assert "Advance to Stage 2 only when the candidate list was explicitly confirmed" in scenario
+    assert "A reply such as “确认 / 继续 / 就分析这些词” is sufficient" in scenario
+    assert "Every candidate included in the Stage 2 posture conclusion must have completed market-profile validation" in scenario
+    assert "`realtime/product` for the target ASIN" in scenario
+    assert "sufficient directly observed ASIN/product-fit evidence" in scenario
+    assert "without sufficient direct product-fit evidence remain unvalidated" in scenario
+    assert "request SQP next only when seller-funnel calibration is needed" in scenario
+    assert "Include a separate SQP next-input section only when seller-funnel calibration is needed" in scenario
+    assert "For Stage 1, render localized sections in this order and then stop" in scenario
+    assert "asking the user to confirm the list or name additions/removals" in scenario
+    assert "Do not collapse the two stages into one response, auto-run Stage 2" in scenario
+    assert "move the SQP request directly after the traffic-source table" in scenario
+    assert "## Posture labels" in scenario
+    assert "Use these labels only after Stage 2 candidate market validation" in scenario
+    for label in ("`Established posture`", "`Headroom validation`", "`Observe`", "`No current support`"):
+        assert label in scenario
+    for action_label in ("`Defend`", "`Expand`", "`Avoid`"):
+        assert action_label not in scenario
+    assert "sole source for acquisition, sequencing, sufficiency, and field interpretation" in scenario
+
+
+def test_reverse_and_diagnosis_have_exclusive_question_boundaries():
+    reverse = read("references/scenarios-reverse-asin.md")
+    diagnosis = read("references/scenarios-keyword-traffic-diagnosis.md")
+
+    assert "## Scenario boundary" in reverse
+    assert "does not diagnose temporal movement, anomalies, or causes" in reverse
+    assert "Route them to `scenarios-keyword-traffic-diagnosis.md`" in reverse
+    assert "Do not call `product-traffic-terms-timeline` or `product-traffic-terms-overview`" in reverse
+    assert "| ASIN × keyword movement |" not in reverse
+    assert "Aggregate ASIN traffic movement" not in reverse
+    assert "returned listing-event signals" not in reverse
+
+    assert "## Scenario boundary" in diagnosis
+    assert "owns temporal movement, anomaly, and causal questions" in diagnosis
+    assert "Do not produce a full current traffic-term map, candidate pool" in diagnosis
+    assert "| 1A. ASIN-wide anomaly triage" in diagnosis
+    assert "| 1B. ASIN × keyword diagnosis" in diagnosis
+    assert "select a target keyword for diagnosis or confirm a separate reverse-ASIN discovery stage" in diagnosis
+    assert "Stage 1A ends only with a target-keyword selection request" in diagnosis
+    assert "do not request SQP there" in diagnosis
+
+
+def test_diagnosis_keeps_alert_semantics_and_artifact_guidance():
+    scenario = read("references/scenarios-keyword-traffic-diagnosis.md")
+
+    assert "## Alert-level meaning" in scenario
+    assert "magnitude and persistence of the observed movement" in scenario
+    assert "not confidence in its cause" in scenario
+    assert "sqp-field-semantics.md" in scenario
+    assert "instead of redefining them here" in scenario
+
+
+def test_api_reference_remains_the_contract_source():
+    reference = read("references/reference.md")
+
+    assert "production capability whitelist" in reference
+    assert "Billing is per `status=ok` item for `detail`, `market-profile`, `trend`, and timeline" in reference
+    assert "`trend-profile` bills a keyword when at least one requested window row has `status=ok`" in reference
+    assert "Do not estimate billing from request size" in read("references/execution-guide.md")
+    assert "keywords/market-profile" in reference
+    assert "keywords/product-traffic-terms-timeline" in reference
+    assert "not an exhaustive root-keyword universe" in reference
+    assert "do not sum their search counts" in reference
+    assert "### Capability-to-contract matrix" in reference
+    assert "### Access priority: metric first, data on demand" not in reference
+    assert "tested batch currently returned HTTP 500" not in reference
+    assert "Current service failure boundary" not in reference
+    assert "| `keywords/market-profile` | metric | published and available |" in reference
+
+
+def test_reference_stays_contract_local_and_scenarios_own_selection():
     skill = read("SKILL.md")
     reference = read("references/reference.md")
 
-    assert "context.scoringSpec" in skill
-    assert "calculationStatus" in skill
-    assert "marketCharacteristics" in skill
-    assert "levelEvidence.score.{value,direction}" in skill
-    assert "status=available" in skill
-    assert "status=not_found" in skill
-    assert "unavailableReason" in skill
-    assert "context.scoringSpec" in reference
-    assert "no aggregate `calculationCoverage` object" in reference
-    assert "marketCharacteristics" in reference
-    assert "levelEvidence.score.{value,direction}" in reference
-    assert "status=available|not_found" in reference
-    assert "unavailableReason=keyword_not_observed" in reference
-    assert "marketContext" not in skill
-    assert "marketContext" not in reference
-    assert "scoreDirection" not in skill
-    assert "scoreDirection" not in reference
-    assert "threshold/version" not in skill
-    assert "thresholdBasis" not in skill
+    assert "Treat `reference.md`, `execution-guide.md`, and the field-semantic references as top-level specifications" in skill
+    assert "Treat scenario files as downstream applications only" in skill
+    assert "If a scenario conflicts with a top-level specification" in skill
+    assert "try `phrase` and `fuzzy`" not in reference
+    assert "Use the routes in this order" not in reference
+    assert "Aggregate usage by route" not in reference
 
 
-def test_market_profile_keeps_seasonality_evidence_independent_and_handles_batch_500():
+def test_full_mode_scenario_shapes_align_with_top_level_output_order():
+    expand = read("references/scenarios-expand.md")
+    target = read("references/scenarios-keyword-analysis.md")
+    reverse = read("references/scenarios-reverse-asin.md")
+    diagnosis = read("references/scenarios-keyword-traffic-diagnosis.md")
+
+    assert "## [Localized Data Notes title]" in expand
+    assert "## [Localized Evidence title]" in expand
+    assert "## [Localized Analysis title]" in expand
+    assert "## [Localized Stage Conclusion title]" in expand
+    assert "Data Notes, Evidence, Analysis, Stage Conclusion" in target
+    assert "1. Data Notes." in reverse
+    assert "2. Stage 1 traffic evidence." in reverse
+    assert "3. Stage 1 analysis." in reverse
+    assert "Data Notes, observed change/evidence, analysis or explanation status" in diagnosis
+
+
+def test_supporting_acquisition_is_whitelisted_and_search_surfaces_stay_distinct():
     skill = read("SKILL.md")
     guide = read("references/execution-guide.md")
     reference = read("references/reference.md")
 
-    assert "independent evidence objects" in skill
-    assert "do not manufacture peak periods" in guide
-    assert "seasonalPeakPatternDetected=true" in reference
-    assert "HTTP 500" in skill
-    assert "at most one diagnostic split" in reference
+    for route in (
+        "`realtime/product`",
+        "WebTools `/search`",
+        "WebTools `/scrape`",
+        "WebTools `/scrape-interactive`",
+    ):
+        assert route in reference
+
+    assert "## Authorized supporting acquisition surfaces" in reference
+    assert "`realtime/product` | `product`" in reference
+    assert "exposed ZooData WebTools session/callable surface" in reference
+    assert "WebTools `/search` is not `products/search`" in guide
+    assert "Use WebTools `/search` only when the URL must first be discovered" in guide
+    assert "WebTools `/search` is permitted URL discovery; it is not `products/search`" in skill
+    assert "Never use `products/search`" in skill
 
 
-def test_action_gate_covers_uninspected_assets_and_campaign_settings():
+def test_global_boundaries_remain_in_the_router():
     skill = read("SKILL.md")
+
+    assert "`products/search`" in skill
+    assert "external browser automation" in skill
+    assert "ABA-SQP conversion funnel" in skill
+    assert "status=empty" in skill
+
+
+def test_seller_data_requests_use_progressive_artifact_guidance():
     guide = read("references/execution-guide.md")
-    expansion = read("references/scenarios-expand.md")
+    semantics = read("references/sqp-field-semantics.md")
 
-    assert "If the target was not directly inspected, stop at `Inspect`" in skill
-    assert "downgrade the action itself" in skill
-    assert "Ads economics before scaling" in guide
-    assert "Do not output `Auto / Broad / Phrase / Exact`" in expansion
-
-
-def test_named_cross_references_exist():
-    skill = read("SKILL.md")
-    guide = read("references/execution-guide.md")
-    reverse_asin = read("references/scenarios-reverse-asin.md")
-
-    assert "## Evidence-Level Progression" in guide
-    assert "§ Evidence-Level Progression" in skill
-    assert "## Seller Data Contract" in guide
-    assert "§ Seller Data Contract" in reverse_asin
-    assert "Conversational Evidence Ladder" not in skill
-    assert "Stage 4 contract" not in reverse_asin
+    assert "Request one report or view at a time" in guide
+    assert "Do not ask the user to provide SQP and Ads data in the same next-input step" in guide
+    assert "ask for that artifact instead of making the user transcribe or assemble a field list" in guide
+    assert "### User-facing SQP acquisition" in semantics
+    assert "click the page's `Download` control and upload the original CSV unchanged" in semantics
+    assert "Do not enumerate the full SQP schema in the request" in semantics
+    assert "One completed week is sufficient for the initial current-period funnel judgment" in semantics
+    assert "Do not default to requesting 4–8 weeks" in semantics
+    assert "### Later Ads acquisition" in semantics
+    assert "Do not request Ads data together with SQP" in semantics
+    assert "Measurement & Reporting → Sponsored ads reports → Create report" in semantics
+    assert "Reporting → Create report" in semantics
+    assert "`Sponsored Products` as the ad product/campaign type" in semantics
+    assert "`Search term` as the report type" in semantics
+    assert "After its status is complete, download the original CSV" in semantics
 
 
-def test_readme_lists_metric_profiles_and_current_endpoint_count():
-    readme = read("README.md")
-    assert "ten ZooData keyword endpoints" in readme
-    assert "/openapi/v2/keywords/market-profile" in readme
-    assert "/openapi/v2/keywords/trend-profile" in readme
-    assert "mcp__zoodata__openapi_v2_keyword_market_profile" in readme
+def test_seller_acquisition_details_have_one_source():
+    for relative_path in (
+        "references/scenarios-expand.md",
+        "references/scenarios-keyword-analysis.md",
+        "references/scenarios-reverse-asin.md",
+        "references/scenarios-keyword-traffic-diagnosis.md",
+    ):
+        scenario = read(relative_path)
+        assert "sqp-field-semantics.md" in scenario
+        assert "Measurement & Reporting → Sponsored ads reports → Create report" not in scenario
+        assert "latest completed reporting week" not in scenario
+        assert "upload either one screenshot" not in scenario
+        assert "original downloaded CSV" not in scenario

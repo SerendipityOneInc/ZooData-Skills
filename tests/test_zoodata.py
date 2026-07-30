@@ -518,6 +518,29 @@ class TestOutputFormat(unittest.TestCase):
 
 class TestApiErrorPropagation(unittest.TestCase):
 
+    def test_http_429_uses_rate_limit_attempt_budget_and_preserves_status(self):
+        def rate_limit_error(*args, **kwargs):
+            raise urllib.error.HTTPError(
+                "https://api.zoodata.ai/openapi/v2/keywords/detail",
+                429,
+                "Too Many Requests",
+                {},
+                io.BytesIO(b"{}"),
+            )
+
+        with patch.object(zoodata, "get_api_key", return_value="test_key"), \
+             patch.object(zoodata.urllib.request, "urlopen", side_effect=rate_limit_error) as urlopen, \
+             patch.object(zoodata.time, "sleep"), \
+             patch.object(zoodata.random, "uniform", return_value=0):
+            result = zoodata.api_call("keywords/detail", {
+                "keyword": "yoga mat",
+                "date": "2026-07-29",
+            })
+
+        self.assertEqual(urlopen.call_count, zoodata.RATE_LIMIT_RETRIES)
+        self.assertEqual(result["error"]["status"], 429)
+        self.assertEqual(result["error"]["message"], "Rate limit exceeded after retries")
+
     def test_http_422_preserves_structured_server_response(self):
         server_response = {
             "success": False,
@@ -581,6 +604,27 @@ class TestApiErrorPropagation(unittest.TestCase):
 
         self.assertEqual(raised.exception.code, 1)
         self.assertEqual(json.loads(stdout.getvalue()), error)
+
+    def test_keyword_commands_reject_whitespace_only_required_subjects(self):
+        cases = (
+            ("keyword-detail", "--keyword", "   ", "--date", "2026-07-29"),
+            ("keyword-extends", "--query", "   "),
+            ("keyword-search-results", "--keyword", "   ", "--date", "2026-07-29"),
+            ("keyword-product-traffic-terms", "--asin", "   ", "--date", "2026-07-29"),
+            ("product-traffic-terms-overview", "--asin", "   ", "--date", "2026-07-29"),
+            (
+                "product-traffic-terms-timeline",
+                "--asin", "   ",
+                "--keyword", "yoga mat",
+                "--date-from", "2026-07-01",
+                "--date-to", "2026-07-29",
+            ),
+        )
+
+        for argv in cases:
+            with self.subTest(command=argv[0]), \
+                 self.assertRaisesRegex(SystemExit, "non-empty value"):
+                run_cli(*argv)
 
 
 # ---------------------------------------------------------------------------

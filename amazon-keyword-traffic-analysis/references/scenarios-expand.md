@@ -1,150 +1,64 @@
-# Keyword Expansion
+# Keyword Expansion Capability Guide
 
-> Load this file for keyword expansion and coarse filtering.
+Use this downstream scenario after loading the applicable top-level references. It selects capabilities for expansion and must align upward with `execution-guide.md`, `reference.md`, and the field-semantic references; it cannot relax their evidence, conclusion, action, credit, or output requirements.
 
-## Contents
+## Route selection
 
-- [Inputs and route](#inputs-and-route)
-- [Shared evidence rules](#shared-evidence-rules)
-- [Route A: standalone expansion](#route-a-standalone-expansion)
-- [Route B: staged ASIN candidate validation](#route-b-staged-asin-candidate-validation)
-- [Output templates](#output-templates)
+| Request state | Suitable capability combination | Deliverable boundary |
+|---|---|---|
+| Raw related terms only | `keywords/extends` | Return observed candidate recall only; do not force validation. |
+| Seed keyword, candidate list not yet confirmed | `extends` | Candidate recall for user review; do not run market validation yet. |
+| User-confirmed candidate list, no ASIN evidence | batch `market-profile`; add `trend-profile` or `search-results` only for a named question | Market-screen shortlist for possible ASIN validation. |
+| ASIN evidence is available after market screening | `realtime/product` or compatible carried direct product evidence + carried candidate market evidence; add only named trend/SERP evidence | Product-specific candidate-validation posture. |
 
-## Inputs and route
+Use `phrase`, then `fuzzy` when a phrase expansion is empty. Use metric-first access and batch compatible candidates as defined in the shared guide and API reference.
 
-- required: seed keyword
-- optional: marketplace, snapshot date, candidate count/page size
-- optional staged inputs: ASIN observation evidence and/or seller ABA-SQP
-- date rule: if an endpoint needs `date` or `dateTo`, prefer T-1 or earlier; avoid current-date lookup unless explicitly requested
+## Labels and next evidence
 
-Choose the route before calling endpoints:
+- Without ASIN evidence, use only: `Advance to ASIN validation`, `Selective ASIN validation`, `Observe`, or `No current support`.
+- With suitable direct ASIN/product-fit evidence, use only: `High validation priority`, `Selective validation`, `Existing-fit validation`, `Observe`, or `No current support` as provisional validation labels.
+- These labels are subject to the shared Candidate Validation Rule; they never authorize operating changes.
+- Request an ASIN only when product-specific prioritization is needed. Request ABA-SQP only when the unresolved decision requires seller-real evidence under the shared guide.
 
-- **Route A — standalone expansion:** the user provides a seed keyword but no ASIN observation evidence. Produce a market-level candidate pool. Do not claim product fit/current-ASIN performance and do not request SQP; request the ASIN as the next evidence when product-specific prioritization is wanted.
-- **Route B — staged ASIN candidate validation:** ASIN observation evidence already exists in the conversation or request. Combine product fit/current ASIN posture with candidate market profiles. After every recommended candidate is validated, request SQP when final product-specific priority is in scope.
+## User journey
 
-If the user asks only for raw related terms, stop after candidate recall and do not force either scoring route.
+| Stage | Current input | Capability and user-facing outcome | Transition |
+|---|---|---|---|
+| 1. Candidate recall | Seed keyword | Use `extends`; present related terms and why each belongs in the candidate set. Do not assign market or product-specific labels. | Ask the user to confirm the list or name additions/removals, then stop. A raw-term-only request ends here. |
+| 2. Market screening | User-confirmed candidate list | Batch `market-profile` for confirmed terms and add only named trend/SERP evidence; present the market-screen evidence, analysis, and shortlist conclusion. | If product-specific prioritization is wanted, request the ASIN and stop. |
+| 3. ASIN candidate validation | Stage 2 conclusion + user-supplied ASIN | Combine carried candidate market evidence with current direct ASIN/product-fit evidence; present product-specific evidence, analysis, and provisional validation posture. | If seller calibration is needed, request one SQP artifact and stop. |
+| 4. Seller-funnel calibration | Supplied SQP artifact | Analyze SQP with retained earlier-stage evidence and give the calibrated conclusion authorized by it. | Request Ads later only if economics or execution remains unresolved. |
+| 5. Ads-economics calibration | Later Ads artifact, when required | Analyze the search-term report and update only supported economics/execution conclusions. | Stop unless one named decision remains unresolved. |
 
-## Shared evidence rules
+Apply the shared `Interactive Stage Gate` from `execution-guide.md`; each numbered stage is a separate user-decision turn. Do not call `market-profile` before the Stage 1 candidate list is confirmed, and do not combine candidate recall, market screening, and ASIN validation into one report. A supplied candidate list, ASIN, or file counts as confirmation for the matching next stage; do not ask for duplicate confirmation.
 
-- Use data-layer `keywords/extends` because candidate rows are the deliverable. Try `queryType=fuzzy` after an empty phrase result before concluding low expandability.
-- Use batch `keywords/market-profile` first for candidate market judgment. Use `detail` only when the metric fails at runtime or a named inference needs raw fields omitted by its contract.
-- Prefer `trend-profile` for trend judgments and `search-results` for SERP evidence. Descend only for runtime metric failure or contract-omitted points/rows required for a named inference.
-- Never sum `extends` rows and present the result as total root-universe demand; the endpoint returns candidate recall, not an exhaustive demand universe.
-- Treat market-profile unsupported dimensions as unavailable; do not call same-source detail merely to repair missing metric inputs.
-- Publish a candidate tier only when its market-profile item is `available` and the required dimensions have complete `levelEvidence`. Treat `not_found` as unvalidated coverage, not low demand or an avoid signal.
-- Keep `marketCharacteristics.volatility` separate from `annualSeasonality`; do not invent peak periods when the returned list is empty. A batch HTTP 500 does not authorize automatic per-candidate fan-out.
-- Deduplicate candidates case-insensitively, batch compatible subjects up to 20, preserve input order/status, and retain empty/error items.
-- Candidate labels are validation priority, not final expansion, match-type, bid, budget, launch, pause, or negative-keyword decisions.
-- Do not output `Auto / Broad / Phrase / Exact` recommendations from market evidence alone. Match type is a campaign-setting hypothesis that requires the Evidence-to-Action Protocol and relevant seller/Ads evidence.
+Do not request SQP before the ASIN observation and candidate-validation conclusion. At a seller-data boundary, load `sqp-field-semantics.md` and follow its acquisition, sequencing, sufficiency, and field-interpretation rules instead of redefining them here.
 
-## Route A: standalone expansion
+## Output shape
 
-### Evidence level and scoring
-
-This route stays at **market evidence**. A transparent market-screen score may use:
-
-| Dimension | Suggested weight | Evidence |
-|-----------|-----------------:|----------|
-| Seed relation / intent | 35 | `relevanceScore`, lexical/semantic seed-intent fit |
-| Demand | 30 | covered `marketProfile.demandScale`; raw demand fields only when explicitly required and justified |
-| Competition/accessibility | 20 | covered market-profile dimensions; targeted SERP evidence when required |
-| Stability | 15 | trend metric or transparent 4–8 week raw-series calculation when justified |
-
-Call the result a **market-screen shortlist**, not an ASIN candidate-validation tier. It answers which terms merit product-specific validation, not which terms the seller should launch or fund.
-
-Suggested market-screen labels:
-
-- `Advance to ASIN validation`
-- `Selective ASIN validation`
-- `Observe`
-- `No current support`
-
-### Next step
-
-Request the user's ASIN only when they want product-specific prioritization. Do not request ABA-SQP at this route because ASIN observation has not occurred.
-
-## Route B: staged ASIN candidate validation
-
-### Evidence level and scoring
-
-This route requires **subject observation evidence**. Rank candidates from:
-
-```text
-product fit × current ASIN performance/posture × keyword market profile
-```
-
-Every candidate published in a recommendation tier must have completed batch market-profile validation. Title relevance or an occasional observed position is insufficient by itself.
-
-Use these provisional labels:
-
-- `Priority test`
-- `Selective test`
-- `Harvest`
-- `Observe only`
-- `Avoid`
-
-The labels select terms for seller-funnel validation. They do not authorize match type, bids, budget, scaling, pausing, or negatives.
-
-### Next step
-
-After candidate validation, request seller-side ABA-SQP using `execution-guide.md § Seller Data Contract` if the user wants final product-specific priority. Request Ads search-term performance only for profitability, match-type execution, exact bids, or final budget allocation.
-
-## Output templates
-
-### Route A — standalone expansion
+Use the shared output rules. For a raw-term lookup, keep the response brief. Render this shape for the active stage only; never populate it with several stage conclusions in one response:
 
 ```markdown
-# Keyword Expansion Report — [Seed Keyword]
+# [Localized Keyword Expansion Report title] — [Seed Keyword]
 
-> Data is based on ZooData keyword snapshots as of [date]. Weekly search and traffic metrics are sampled observations, not exact Amazon Ads billing data. This analysis is for reference only and should not be the sole basis for business decisions.
-
-## [Localized Data Notes title]
-[State that this is a market-evidence candidate pool. It has not used an ASIN or seller funnel and cannot decide product-specific priority, match type, bids, or budget.]
-
-## Market-screen Conclusion
-[💡 State what kind of candidate pool was found and what merits ASIN validation.]
-
-| Keyword | Demand | Competition | Seed/intent fit | Market-screen label | Evidence note |
-|---------|--------|-------------|-----------------|---------------------|---------------|
-
-## Next Step
-[If product-specific prioritization is wanted, request the user's ASIN. Otherwise omit.]
-
-## API Usage
-| Endpoint | Calls | Credits |
-|----------|-------|---------|
-| [endpoint] | [call count] | [credits consumed] |
-| Total | [sum of calls] | [sum of credits] |
-
-Credits remaining: [latest returned value or `not returned`]
-```
-
-### Route B — staged ASIN candidate validation
-
-```markdown
-# ASIN Candidate Validation — [ASIN] × [Seed Keyword]
-
-> Data is based on ZooData keyword snapshots as of [date]. Weekly search and traffic metrics are sampled observations, not exact Amazon Ads billing data. This analysis is for reference only and should not be the sole basis for business decisions.
+> [Localized source and snapshot-period note]
 
 ## [Localized Data Notes title]
-[State that these are subject-observation-level tiers combining product fit/current ASIN evidence with batch market profiles; seller funnel has not calibrated final execution priority.]
+[State the evidence source, period, and current analysis scope.]
 
-## Candidate-validation Preliminary Conclusion
-[💡 State which terms deserve seller-funnel validation; do not present a final expansion or budget list.]
+## [Localized Evidence title]
+| [Localized Keyword header] | [Localized Seed/intent-fit header] | [Localized Demand/trend header] | [Localized Market-structure header] | [Localized ASIN-fit evidence header when available] |
+|---|---|---|---|---|
 
-| Keyword | Product fit | ASIN posture | Market profile | Validation tier | Evidence note |
-|---------|-------------|--------------|----------------|-----------------|---------------|
+## [Localized Analysis title]
+[Reconcile the material evidence and limitations for the active stage.]
 
-## Next Step
-[Request ABA-SQP using `execution-guide.md § Seller Data Contract` when final product-specific priority is requested. Request Ads fields only for profitability or execution settings.]
+## [Localized Stage Conclusion title]
+[State only the decision or validation-posture label authorized by the current evidence.]
 
-## API Usage
-| Endpoint | Calls | Credits |
-|----------|-------|---------|
-| [endpoint] | [call count] | [credits consumed] |
-| Total | [sum of calls] | [sum of credits] |
+## [Localized Next Step title]
+[Include only when a specific next evidence request is needed.]
 
-Credits remaining: [latest returned value or `not returned`]
+## [Localized API Usage title]
+[Use the shared required table format when live API data was used.]
 ```
-
-For either route, include every live call in usage accounting and preserve `not returned` metadata rather than estimating it.
