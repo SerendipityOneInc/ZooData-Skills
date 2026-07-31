@@ -304,6 +304,8 @@ Do not replace this evidence chain with generic capability disclaimers, a list o
 
 Treat a timeout after the client's documented retries, connection/DNS failure, HTTP 5xx, unavailable endpoint, rate-limit/service rejection, non-zero execution without a valid structured result, or malformed/unparseable response as an interface failure.
 
+An HTTP 5xx returned after the client's built-in retry budget is exhausted is a terminal failure for the current workflow, not a first failed observation and not evidence that the requested date or other parameters are wrong. Report the service as currently unavailable and, when useful, tell the user to retry the same request later. Do not change the date, marketplace, subject, filters, pagination, or any other request parameter to work around the 5xx.
+
 A local parsing, transformation, extraction, or formatting command that fails after a paid API response is also an interface failure for that evidence unit. If the original valid structured response is still available, use it directly without another evidence call; otherwise stop under this gate. Never call the same paid endpoint again merely to change output format or recover from local post-processing failure.
 
 1. Stop the workflow immediately after the failure. Do not call another endpoint, retry through another surface, descend to a data layer, split/fan out the request, or continue to a later scenario stage.
@@ -311,6 +313,8 @@ A local parsing, transformation, extraction, or formatting command that fails af
 3. Do not produce the requested market/product/operating conclusion from partial evidence and do not request ASIN, price, margin, SQP, Ads, or any other next-stage input.
 4. If earlier calls succeeded, they may be listed as completed retrieval evidence, but must not be presented as a completed analysis after the required interface failed.
 5. End with API usage already returned. Do not estimate missing credits or continue execution.
+
+Parameter correction belongs to a different response class: only HTTP 422 authorizes correcting the documented validation violation identified by the server. A valid `status=empty` may justify a separately supported alternate query or period when the active scenario and endpoint contract permit it; that is no-data follow-up, not recovery from an interface failure. Never transfer either behavior to HTTP 5xx.
 
 ### Cross-Stage Evidence Continuity Protocol
 

@@ -103,7 +103,9 @@ One request cannot contain more than 20 subjects. Each response preserves order 
 
 - `status=empty` means no matching observation in the resolved snapshot/window. It does not prove low demand.
 - `keywords/extends` may return an empty `rows[]`; this is a valid successful response.
-- HTTP 422 is request validation failure. Read the detail, fix parameters, and do not retry unchanged.
+- HTTP 422 is request validation failure. Read the detail, correct only the documented violation, and do not retry unchanged.
+- HTTP 5xx after the client's built-in retries means the service is currently unavailable for that request. Stop the current workflow; retry the same request later if needed, without changing dates or other parameters as a recovery tactic.
+- A valid `status=empty` permits an alternate date or query only when that separate request is supported by the active scenario and this endpoint contract. It is not an interface-failure recovery rule.
 
 ### Credits
 

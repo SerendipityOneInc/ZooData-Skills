@@ -88,6 +88,12 @@ def test_execution_guide_is_the_single_shared_workflow_source():
     assert "do not request ASIN, price, margin, SQP, Ads" in guide
     assert "local parsing, transformation, extraction, or formatting command that fails" in guide
     assert "Never call the same paid endpoint again merely to change output format" in guide
+    assert "not evidence that the requested date or other parameters are wrong" in guide
+    assert "retry the same request later" in guide
+    assert "Do not change the date, marketplace, subject, filters, pagination" in guide
+    assert "only HTTP 422 authorizes correcting the documented validation violation" in guide
+    assert "A valid `status=empty` may justify a separately supported alternate query or period" in guide
+    assert "Never transfer either behavior to HTTP 5xx" in guide
     assert "evidence → analysis → conclusion" in guide
     assert "### Available Data → Conclusion Scope" not in guide
     assert "### Scenario Routing Rule" not in guide
@@ -115,10 +121,13 @@ def test_top_level_localization_preserves_exact_enums_and_localizes_usage_labels
 
 def test_interface_failure_never_descends_to_data_layer():
     guide = read("references/execution-guide.md")
+    reference = read("references/reference.md")
 
     assert "Do not call another endpoint" in guide
     assert "descend to a data layer" in guide
     assert "Descend only after a successful metric response" in guide
+    assert "retry the same request later if needed, without changing dates or other parameters" in reference
+    assert "A valid `status=empty` permits an alternate date or query only when" in reference
 
 
 def test_timeline_health_probe_omits_unsupported_pagination():

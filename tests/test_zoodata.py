@@ -518,6 +518,34 @@ class TestOutputFormat(unittest.TestCase):
 
 class TestApiErrorPropagation(unittest.TestCase):
 
+    def test_http_500_stops_after_internal_retries_without_parameter_recovery(self):
+        def service_error(*args, **kwargs):
+            raise urllib.error.HTTPError(
+                "https://api.zoodata.ai/openapi/v2/keywords/product-traffic-terms",
+                500,
+                "Internal Server Error",
+                {},
+                io.BytesIO(b"{}"),
+            )
+
+        params = {
+            "asin": "B0F8P9MQWY",
+            "date": "2026-07-27",
+            "marketplace": "US",
+        }
+        with patch.object(zoodata, "get_api_key", return_value="test_key"), \
+             patch.object(zoodata.urllib.request, "urlopen", side_effect=service_error) as urlopen, \
+             patch.object(zoodata.time, "sleep"):
+            result = zoodata.api_call("keywords/product-traffic-terms", params)
+
+        self.assertEqual(urlopen.call_count, zoodata.MAX_RETRIES)
+        self.assertEqual(result["error"]["status"], 500)
+        self.assertEqual(result["error"]["message"], "HTTP 500 after 3 attempts")
+        self.assertIn("Service is currently unavailable", result["error"]["action"])
+        self.assertIn("same request later", result["error"]["action"])
+        self.assertIn("without changing its parameters", result["error"]["action"])
+        self.assertEqual(result["_query"]["params"], params)
+
     def test_http_429_uses_rate_limit_attempt_budget_and_preserves_status(self):
         def rate_limit_error(*args, **kwargs):
             raise urllib.error.HTTPError(

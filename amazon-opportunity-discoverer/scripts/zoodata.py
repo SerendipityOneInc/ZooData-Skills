@@ -389,8 +389,18 @@ def api_call(endpoint: str, params: dict) -> dict:
                     time.sleep(delay)
                     continue
                 else:
+                    if status >= 500:
+                        action = (
+                            "Service is currently unavailable; stop this workflow and retry "
+                            "the same request later without changing its parameters"
+                        )
+                    else:
+                        action = (
+                            "Stop this workflow and review the HTTP error; change request "
+                            "parameters only when the server reports a validation error"
+                        )
                     return _error_result(status, f"HTTP {status} after {max_attempts} attempts",
-                        "Check network or try again later",
+                        action,
                         endpoint, actual_params)
         except Exception as e:
             if attempt < max_attempts:
