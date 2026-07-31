@@ -35,6 +35,82 @@ def test_skill_is_a_concise_router_not_a_second_execution_guide():
     assert "Without `--endpoints` or `--keyword-endpoints`, it makes no evidence calls" in skill
 
 
+def test_source_of_truth_boundaries_define_exclusive_module_ownership():
+    skill = read("SKILL.md")
+
+    assert "This file owns only trigger classification, reference loading, scenario routing" in skill
+    assert "must not define endpoint contracts, shared workflow procedures, field semantics" in skill
+    assert "`reference.md` owns only production API and acquisition-surface facts" in skill
+    assert "must not define Agent workflow, action/output policy, business interpretation" in skill
+    assert "`execution-guide.md` owns only cross-scenario Agent workflow" in skill
+    assert "must not redefine API contracts, field meanings, or scenario-specific capability/stage maps" in skill
+    assert "The metric/observation semantic references (`metrics-*.md` and `serp-and-rollover.md`) own only" in skill
+    assert "must not define production availability or request parameters, shared workflow policy" in skill
+    assert "`sqp-field-semantics.md` owns seller-artifact acquisition order, schema identity" in skill
+    assert "must not define ZooData API contracts or scenario-specific stage triggers and conclusions" in skill
+    assert "Scenario files own only scenario-specific capability selection, stage transitions, and report shape" in skill
+    assert "must not restate, relax, replace, or create exceptions" in skill
+    assert "Cross-module references are allowed; cross-module redefinition and duplicated policy are not" in skill
+    assert "split API fact, shared workflow consequence, field interpretation, and scenario application" in skill
+    assert "surface it for discussion instead of choosing a competing rule" in skill
+
+
+def test_module_files_do_not_declare_foreign_owner_sections():
+    def headings(relative_path):
+        return {
+            line.lstrip("#").strip()
+            for line in read(relative_path).splitlines()
+            if line.startswith("#")
+        }
+
+    api_headings = headings("references/reference.md")
+    execution_headings = headings("references/execution-guide.md")
+    semantic_paths = (
+        "references/metrics-market-profile.md",
+        "references/metrics-trend-profile.md",
+        "references/serp-and-rollover.md",
+    )
+    scenario_paths = (
+        "references/scenarios-expand.md",
+        "references/scenarios-keyword-analysis.md",
+        "references/scenarios-reverse-asin.md",
+        "references/scenarios-keyword-traffic-diagnosis.md",
+    )
+
+    assert api_headings.isdisjoint({
+        "Interactive Stage Gate",
+        "Stage Handoff Closure Gate",
+        "User journey",
+        "Report shape",
+    })
+    assert execution_headings.isdisjoint({
+        "Production availability",
+        "Common keyword endpoint contract",
+        "Live endpoints by layer",
+        "CLI and callable mapping",
+        "User journey",
+        "Report shape",
+    })
+    for path in semantic_paths:
+        assert headings(path).isdisjoint({
+            "Production availability",
+            "Common keyword endpoint contract",
+            "Interactive Stage Gate",
+            "Interface Failure Stop Gate",
+            "User journey",
+            "Stage transition gate",
+            "Report shape",
+        }), path
+    for path in scenario_paths:
+        assert headings(path).isdisjoint({
+            "Production availability",
+            "Common keyword endpoint contract",
+            "Empty results and errors",
+            "Interface Failure Stop Gate",
+            "HTTP Validation Rule",
+        }), path
+
+
 def test_interface_failure_policy_respects_module_ownership():
     skill = read("SKILL.md")
     guide = read("references/execution-guide.md")
@@ -408,9 +484,9 @@ def test_reference_stays_contract_local_and_scenarios_own_selection():
     skill = read("SKILL.md")
     reference = read("references/reference.md")
 
-    assert "Treat `reference.md`, `execution-guide.md`, and the field-semantic references as top-level specifications" in skill
-    assert "Treat scenario files as downstream applications only" in skill
-    assert "If a scenario conflicts with a top-level specification" in skill
+    assert "`reference.md` owns only production API and acquisition-surface facts" in skill
+    assert "Scenario files own only scenario-specific capability selection" in skill
+    assert "For an ownership conflict, follow the responsible owner above" in skill
     assert "try `phrase` and `fuzzy`" not in reference
     assert "Use the routes in this order" not in reference
     assert "Aggregate usage by route" not in reference

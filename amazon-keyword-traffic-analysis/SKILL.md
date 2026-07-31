@@ -40,10 +40,14 @@ Respond in the user's language.
 
 ## Source-of-truth boundaries
 
-- This file defines trigger, routing, and non-negotiable global boundaries only.
-- Treat `reference.md`, `execution-guide.md`, and the field-semantic references as top-level specifications within their respective modules: API contracts/capabilities, shared workflow/action/output rules, and field meaning/interpretation boundaries.
-- Treat scenario files as downstream applications only. They select capability combinations, stage transitions, and report shapes; they must conform to every applicable top-level specification and must not relax, replace, or create exceptions to one.
-- If a scenario conflicts with a top-level specification, follow the top-level specification and narrow the scenario behavior. Preserve this file's global boundaries, use `reference.md` for API contract facts, use the applicable semantic reference for field meaning, and apply the stricter conclusion/action limit. Do not combine conflicting scoring systems or invent a fallback.
+- This file owns only trigger classification, reference loading, scenario routing, and non-negotiable global acquisition/safety boundaries. It may point to an owner module but must not define endpoint contracts, shared workflow procedures, field semantics, or scenario-specific stage logic.
+- `reference.md` owns only production API and acquisition-surface facts: availability, request parameters, response schema, status meaning, batching, dates, and billing. It may name fields and capabilities to describe their contract, but must not define Agent workflow, action/output policy, business interpretation, or scenario transitions.
+- `execution-guide.md` owns only cross-scenario Agent workflow, evidence authority, action gates, and output rules. It may reference endpoint or field identifiers to route the reader to their owner, but must not redefine API contracts, field meanings, or scenario-specific capability/stage maps.
+- The metric/observation semantic references (`metrics-*.md` and `serp-and-rollover.md`) own only documented field meaning, direction, scope, and permitted/prohibited inference. They may identify source fields/endpoints, but must not define production availability or request parameters, shared workflow policy, or scenario routing/stages.
+- `sqp-field-semantics.md` owns seller-artifact acquisition order, schema identity, denominator rules, field meaning, and seller-artifact output labels. It must not define ZooData API contracts or scenario-specific stage triggers and conclusions.
+- Scenario files own only scenario-specific capability selection, stage transitions, and report shape. They may reference owner-defined capabilities, fields, and gates, but must not restate, relax, replace, or create exceptions to their contracts or semantics.
+- Cross-module references are allowed; cross-module redefinition and duplicated policy are not. When statements span modules, split API fact, shared workflow consequence, field interpretation, and scenario application into their respective owners.
+- Preserve this file's global boundaries. For an ownership conflict, follow the responsible owner above and narrow downstream behavior. If a cross-cutting conflict cannot be separated without changing a top-level owner contract, surface it for discussion instead of choosing a competing rule, combining scoring systems, or inventing a fallback.
 
 ## Non-negotiable boundaries
 
