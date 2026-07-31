@@ -52,7 +52,24 @@ def test_source_of_truth_boundaries_define_exclusive_module_ownership():
     assert "must not restate, relax, replace, or create exceptions" in skill
     assert "Cross-module references are allowed; cross-module redefinition and duplicated policy are not" in skill
     assert "split API fact, shared workflow consequence, field interpretation, and scenario application" in skill
-    assert "surface it for discussion instead of choosing a competing rule" in skill
+    assert "Apply each rule from its responsible owner module above" in skill
+    assert "A downstream module may narrow behavior but must not override an owner contract" in skill
+    assert "surface it for discussion" not in skill
+    assert "changing a top-level owner contract" not in skill
+    assert "maintainer" not in skill.lower()
+
+
+def test_maintenance_conflict_governance_stays_out_of_runtime_skill():
+    skill = read("SKILL.md")
+    contributing = (ROOT.parent / "CONTRIBUTING.md").read_text(encoding="utf-8")
+
+    assert "## Skill Specification Ownership" in contributing
+    assert "If a change exposes an inseparable conflict between owner contracts" in contributing
+    assert "request a maintainer decision in the issue or pull request" in contributing
+    assert "Do not silently" in contributing
+    assert "Keep this repository-maintenance process out of runtime skill instructions" in contributing
+    assert "surface it for discussion" not in skill
+    assert "request a maintainer decision" not in skill
 
 
 def test_module_files_do_not_declare_foreign_owner_sections():
@@ -486,7 +503,7 @@ def test_reference_stays_contract_local_and_scenarios_own_selection():
 
     assert "`reference.md` owns only production API and acquisition-surface facts" in skill
     assert "Scenario files own only scenario-specific capability selection" in skill
-    assert "For an ownership conflict, follow the responsible owner above" in skill
+    assert "Apply each rule from its responsible owner module above" in skill
     assert "try `phrase` and `fuzzy`" not in reference
     assert "Use the routes in this order" not in reference
     assert "Aggregate usage by route" not in reference

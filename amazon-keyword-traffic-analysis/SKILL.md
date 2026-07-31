@@ -47,7 +47,7 @@ Respond in the user's language.
 - `sqp-field-semantics.md` owns seller-artifact acquisition order, schema identity, denominator rules, field meaning, and seller-artifact output labels. It must not define ZooData API contracts or scenario-specific stage triggers and conclusions.
 - Scenario files own only scenario-specific capability selection, stage transitions, and report shape. They may reference owner-defined capabilities, fields, and gates, but must not restate, relax, replace, or create exceptions to their contracts or semantics.
 - Cross-module references are allowed; cross-module redefinition and duplicated policy are not. When statements span modules, split API fact, shared workflow consequence, field interpretation, and scenario application into their respective owners.
-- Preserve this file's global boundaries. For an ownership conflict, follow the responsible owner above and narrow downstream behavior. If a cross-cutting conflict cannot be separated without changing a top-level owner contract, surface it for discussion instead of choosing a competing rule, combining scoring systems, or inventing a fallback.
+- Apply each rule from its responsible owner module above. A downstream module may narrow behavior but must not override an owner contract.
 
 ## Non-negotiable boundaries
 

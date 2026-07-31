@@ -69,6 +69,21 @@ python amazon-analysis/scripts/zoodata.py products --keyword "test" --mode begin
 python amazon-analysis/scripts/zoodata.py categories --keyword "electronics"
 ```
 
+## Skill Specification Ownership
+
+For a skill split across a router, API reference, shared execution guide,
+field-semantic references, and scenario files, assign every rule to one owner.
+Cross-module references are allowed; copying or redefining another module's
+contract is not. Split a cross-cutting statement into its API fact, shared
+workflow consequence, field interpretation, and scenario application.
+
+If a change exposes an inseparable conflict between owner contracts, stop and
+request a maintainer decision in the issue or pull request. Do not silently
+change a top-level contract, combine competing rules, or invent a fallback.
+Keep this repository-maintenance process out of runtime skill instructions and
+user-facing reports. Add or update consistency tests to enforce both ownership
+and the absence of maintenance-language leakage.
+
 ## Commit Convention
 
 We use conventional commits:
