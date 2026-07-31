@@ -191,7 +191,8 @@ def test_interface_failure_policy_respects_module_ownership():
 
     # The CLI owns deterministic retry mechanics and the resulting technical
     # retry state, not cross-scenario workflow or user-output policy.
-    assert 'action = "Service is temporarily unavailable. Please try again later."' in script
+    assert '"STOP_CURRENT_TURN. APPLY_SKILL_INTERFACE_FAILURE_TEMPLATE. "' in script
+    assert '"DO_NOT_SELECT_ANOTHER_COMMAND."' in script
     assert 'result["error"]["retryExhausted"] = True' in script
     assert "workflowDisposition" not in script
     assert "retryPolicy" not in script
@@ -265,7 +266,7 @@ def test_execution_guide_is_the_single_shared_workflow_source():
     assert "not evidence that the requested date or other parameters are wrong" in guide
     assert "#### HTTP 5xx User-Facing Template" in guide
     assert "- Source template:" in guide
-    assert "`Service is temporarily unavailable. Please try again later.`" in guide
+    assert "`Service is currently unavailable. Please try again later.`" in guide
     assert "Do not execute any subsequent API or tool command in that turn" in guide
     assert "never announce or attempt “an earlier date,”" in guide
     assert "only HTTP 422 authorizes correcting the documented validation violation" in guide
@@ -299,13 +300,14 @@ def test_user_facing_output_boundary_hides_internal_failure_policy():
     assert "Surface only the endpoint identifier through the template below" in guide
     assert "do not surface the other diagnostic details by default" in guide
     assert "#### HTTP 5xx User-Facing Template" in guide
-    assert "`Service is temporarily unavailable. Please try again later.`" in guide
+    assert "`Service is currently unavailable. Please try again later.`" in guide
     assert "`Succeeded interfaces: {comma-separated endpoint identifiers, or None}`" in guide
     assert "`Failed interfaces: {comma-separated endpoint identifiers}`" in guide
     assert "Preserve endpoint identifiers exactly as documented" in guide
     assert "only from calls actually completed in the current turn" in guide
     assert "Treat every CLI or tool error payload as Agent-only technical diagnostics" in guide
     assert "Never quote, translate, paraphrase, or otherwise expose its `message`, `action`" in guide
+    assert "This includes uppercase Agent-control action tokens" in guide
     assert "The CLI never owns final user-facing error prose" in guide
     assert "When no specific template exists, state only the smallest localized outcome" in guide
     assert "A structured `error.retryExhausted=true` is the CLI contract fact" in guide

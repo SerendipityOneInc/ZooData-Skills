@@ -104,7 +104,7 @@ One request cannot contain more than 20 subjects. Each response preserves order 
 - `status=empty` means no matching observation in the resolved snapshot/window. It does not prove low demand.
 - `keywords/extends` may return an empty `rows[]`; this is a valid successful response.
 - HTTP 422 means request validation failed; its structured detail identifies the reported contract violation.
-- HTTP 5xx after the client's built-in retries means the service is currently unavailable for that request. The bundled CLI sets `error.retryExhausted=true` when that retry budget is consumed. This does not establish that the requested date or other parameters are invalid.
+- HTTP 5xx after the client's built-in retries means the service is currently unavailable for that request. The bundled CLI sets `error.retryExhausted=true` when that retry budget is consumed. It also returns the Agent-control action `STOP_CURRENT_TURN. APPLY_SKILL_INTERFACE_FAILURE_TEMPLATE. DO_NOT_SELECT_ANOTHER_COMMAND.` These are technical control facts, not user-facing prose. The HTTP 5xx result does not establish that the requested date or other parameters are invalid.
 
 ### Credits
 

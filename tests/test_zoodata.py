@@ -543,10 +543,9 @@ class TestApiErrorPropagation(unittest.TestCase):
         self.assertEqual(result["error"]["message"], "HTTP 500 after 3 attempts")
         self.assertEqual(
             result["error"]["action"],
-            "Service is temporarily unavailable. Please try again later.",
+            "STOP_CURRENT_TURN. APPLY_SKILL_INTERFACE_FAILURE_TEMPLATE. "
+            "DO_NOT_SELECT_ANOTHER_COMMAND.",
         )
-        self.assertNotIn("STOP CURRENT TURN", result["error"]["action"])
-        self.assertNotIn("Do not run another API or tool command", result["error"]["action"])
         self.assertIs(result["error"]["retryExhausted"], True)
         self.assertNotIn("workflowDisposition", result["error"])
         self.assertNotIn("retryPolicy", result["error"])

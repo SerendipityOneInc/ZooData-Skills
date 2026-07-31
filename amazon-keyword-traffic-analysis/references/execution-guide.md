@@ -59,7 +59,7 @@ Keep execution control separate from user communication. Runtime rules determine
 
 ### CLI Error Isolation
 
-- Treat every CLI or tool error payload as Agent-only technical diagnostics. Never quote, translate, paraphrase, or otherwise expose its `message`, `action`, server detail, request parameters, retry log, or internal control fields in default user-facing output.
+- Treat every CLI or tool error payload as Agent-only technical diagnostics. Never quote, translate, paraphrase, or otherwise expose its `message`, `action`, server detail, request parameters, retry log, or internal control fields in default user-facing output. This includes uppercase Agent-control action tokens.
 - Use structured error facts only to select the applicable guide-owned behavior and output rule. The CLI never owns final user-facing error prose.
 - Render user-facing error text from the applicable template or rule in this guide. When no specific template exists, state only the smallest localized outcome and user action needed to resolve it.
 - Disclose technical diagnostics only when the user explicitly requests them, and then provide only the detail needed to answer that request.
@@ -337,7 +337,7 @@ A local parsing, transformation, extraction, or formatting command that fails af
 #### HTTP 5xx User-Facing Template
 
 - Source template:
-  `Service is temporarily unavailable. Please try again later.`
+  `Service is currently unavailable. Please try again later.`
   `Succeeded interfaces: {comma-separated endpoint identifiers, or None}`
   `Failed interfaces: {comma-separated endpoint identifiers}`
 - Localize the fixed prose and labels to the user's language. Preserve endpoint identifiers exactly as documented.
