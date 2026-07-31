@@ -322,17 +322,21 @@ An HTTP 5xx returned after the client's built-in retry budget is exhausted is a 
 A local parsing, transformation, extraction, or formatting command that fails after a paid API response is also an interface failure for that evidence unit. If the original valid structured response is still available, use it directly without another evidence call; otherwise stop under this gate. Never call the same paid endpoint again merely to change output format or recover from local post-processing failure.
 
 1. Stop the workflow immediately after the failure. Do not call another endpoint, retry through another surface, descend to a data layer, split/fan out the request, or continue to a later scenario stage.
-2. Retain the failing endpoint or tool, subject/request scope, attempt/retry status, and exact returned error internally for diagnostics. Do not surface them by default.
+2. Retain the failing endpoint or tool, subject/request scope, attempt/retry status, and exact returned error internally for diagnostics. Surface only the endpoint identifier through the template below; do not surface the other diagnostic details by default.
 3. Do not produce the requested market/product/operating conclusion from partial evidence and do not request ASIN, price, margin, SQP, Ads, or any other next-stage input.
-4. Retain any earlier successful retrieval for compatible later reuse, but do not list it as completed evidence or present a partial analysis in the failure notice.
+4. Retain any earlier successful retrieval for compatible later reuse. List only its endpoint identifier in the failure notice; do not expose its returned fields, summarize its data, or present a partial analysis.
 5. For HTTP 5xx, render the mandatory template below and stop.
 
 #### HTTP 5xx User-Facing Template
 
-- Source template: `Service is temporarily unavailable. Please try again later.`
-- Output only the natural localized rendering of the source template in the user's language. Preserve its two-clause meaning and do not add content.
+- Source template:
+  `Service is temporarily unavailable. Please try again later.`
+  `Succeeded interfaces: {comma-separated endpoint identifiers, or None}`
+  `Failed interfaces: {comma-separated endpoint identifiers}`
+- Localize the fixed prose and labels to the user's language. Preserve endpoint identifiers exactly as documented.
+- Populate the interface ledger only from calls actually completed in the current turn before the stop. Do not include planned or unexecuted interfaces.
 - Do not quote or expand the CLI error payload's `message` or `action`. The CLI value is a safe fallback, not the final-output template owner.
-- Do not add a heading, endpoint/tool name, HTTP status, retry count, cause label, request parameters, workflow rationale, previous retrieval state, retrieved product data, API-usage section, parameter-preservation warning, next-step section, or action-guidance section. Provide technical diagnostics only when the user explicitly asks for them.
+- Do not add a heading, HTTP status, retry count, cause label, request parameters, workflow rationale, returned fields, successful-interface data, partial analysis, API-usage section, parameter-preservation warning, next-step section, or action-guidance section. Provide technical diagnostics only when the user explicitly asks for them.
 
 Parameter correction belongs to a different response class: only HTTP 422 authorizes correcting the documented validation violation identified by the server. A valid `status=empty` may justify a separately supported alternate query or period when the active scenario and endpoint contract permit it; that is no-data follow-up, not recovery from an interface failure. Never transfer either behavior to HTTP 5xx.
 

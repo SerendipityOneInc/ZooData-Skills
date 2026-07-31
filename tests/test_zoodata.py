@@ -547,9 +547,9 @@ class TestApiErrorPropagation(unittest.TestCase):
         )
         self.assertNotIn("STOP CURRENT TURN", result["error"]["action"])
         self.assertNotIn("Do not run another API or tool command", result["error"]["action"])
-        self.assertEqual(result["error"]["workflowDisposition"], "stop_current_turn")
-        self.assertEqual(result["error"]["retryPolicy"], "later_same_request_only")
-        self.assertIs(result["error"]["parameterMutationAllowed"], False)
+        self.assertNotIn("workflowDisposition", result["error"])
+        self.assertNotIn("retryPolicy", result["error"])
+        self.assertNotIn("parameterMutationAllowed", result["error"])
         self.assertEqual(result["_query"]["params"], params)
 
     def test_http_429_uses_rate_limit_attempt_budget_and_preserves_status(self):

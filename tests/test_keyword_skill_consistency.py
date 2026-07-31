@@ -188,10 +188,12 @@ def test_interface_failure_policy_respects_module_ownership():
     assert "only HTTP 422 authorizes correcting the documented validation violation" in guide
     assert "A valid `status=empty` may justify a separately supported alternate query or period" in guide
 
-    # The CLI owns deterministic retry mechanics and machine-readable disposition.
-    assert '"workflowDisposition": "stop_current_turn"' in script
-    assert '"retryPolicy": "later_same_request_only"' in script
-    assert '"parameterMutationAllowed": False' in script
+    # The CLI owns deterministic retry mechanics and a safe fallback message,
+    # not cross-scenario workflow or user-output policy.
+    assert 'action = "Service is temporarily unavailable. Please try again later."' in script
+    assert "workflowDisposition" not in script
+    assert "retryPolicy" not in script
+    assert "parameterMutationAllowed" not in script
 
     # Scenarios inherit the shared gate and cannot redefine transport recovery.
     for scenario in scenarios:
@@ -260,7 +262,8 @@ def test_execution_guide_is_the_single_shared_workflow_source():
     assert "Never call the same paid endpoint again merely to change output format" in guide
     assert "not evidence that the requested date or other parameters are wrong" in guide
     assert "#### HTTP 5xx User-Facing Template" in guide
-    assert "Source template: `Service is temporarily unavailable. Please try again later.`" in guide
+    assert "- Source template:" in guide
+    assert "`Service is temporarily unavailable. Please try again later.`" in guide
     assert "Do not execute any subsequent API or tool command in that turn" in guide
     assert "never announce or attempt “an earlier date,”" in guide
     assert "only HTTP 422 authorizes correcting the documented validation violation" in guide
@@ -290,14 +293,19 @@ def test_user_facing_output_boundary_hides_internal_failure_policy():
     assert "Surface a technical identifier or diagnostic detail only when the user explicitly asks" in guide
     assert "Do not add a meta heading such as `Action` or `Action guidance`" in guide
     assert "Retain the failing endpoint or tool" in guide
-    assert "Do not surface them by default" in guide
+    assert "Surface only the endpoint identifier through the template below" in guide
+    assert "do not surface the other diagnostic details by default" in guide
     assert "#### HTTP 5xx User-Facing Template" in guide
-    assert "Source template: `Service is temporarily unavailable. Please try again later.`" in guide
-    assert "Output only the natural localized rendering of the source template" in guide
+    assert "`Service is temporarily unavailable. Please try again later.`" in guide
+    assert "`Succeeded interfaces: {comma-separated endpoint identifiers, or None}`" in guide
+    assert "`Failed interfaces: {comma-separated endpoint identifiers}`" in guide
+    assert "Preserve endpoint identifiers exactly as documented" in guide
+    assert "only from calls actually completed in the current turn" in guide
     assert "Do not quote or expand the CLI error payload's `message` or `action`" in guide
     assert "The CLI value is a safe fallback, not the final-output template owner" in guide
-    assert "Do not add a heading, endpoint/tool name, HTTP status, retry count" in guide
-    assert "retrieved product data, API-usage section, parameter-preservation warning" in guide
+    assert "Do not add a heading, HTTP status, retry count" in guide
+    assert "returned fields, successful-interface data, partial analysis" in guide
+    assert "API-usage section, parameter-preservation warning" in guide
     assert "next-step section, or action-guidance section" in guide
     assert "A one-sentence interface-failure notice is not a completed full-mode report" in guide
     assert "Report the failing endpoint or tool" not in guide

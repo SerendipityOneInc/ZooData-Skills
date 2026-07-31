@@ -399,12 +399,6 @@ def api_call(endpoint: str, params: dict) -> dict:
                     result = _error_result(status, f"HTTP {status} after {max_attempts} attempts",
                         action,
                         endpoint, actual_params)
-                    if status >= 500:
-                        result["error"].update({
-                            "workflowDisposition": "stop_current_turn",
-                            "retryPolicy": "later_same_request_only",
-                            "parameterMutationAllowed": False,
-                        })
                     return result
         except Exception as e:
             if attempt < max_attempts:
