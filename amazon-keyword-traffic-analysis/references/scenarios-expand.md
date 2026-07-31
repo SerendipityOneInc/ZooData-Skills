@@ -33,13 +33,13 @@ Use `phrase`, then `fuzzy` when a phrase expansion is empty. Use metric-first ac
 
 Apply the shared `Interactive Stage Gate` and `Stage Handoff Closure Gate` from `execution-guide.md`; each numbered stage is a separate user-decision turn. Do not call `market-profile` before the Stage 1 candidate list is confirmed, and do not combine candidate recall, market screening, and ASIN validation into one report. A supplied candidate list, ASIN, or file counts as confirmation for the matching next stage; do not ask for duplicate confirmation.
 
-When a transition label triggers the next stage, render its request in a separate localized next-input section. Do not phrase the ASIN or SQP handoff as `if wanted`, `if needed`, or `如需`, and do not call the provisional Stage 2 or Stage 3 posture a final conclusion.
+When a transition label triggers the next stage, render its request in a separate localized next-input section. Do not phrase the ASIN or SQP handoff as `if wanted` or `if needed`, and do not call the provisional Stage 2 or Stage 3 posture a final conclusion.
 
 Do not request SQP before the ASIN observation and candidate-validation conclusion. At a seller-data boundary, load `sqp-field-semantics.md` and follow its acquisition, sequencing, sufficiency, and field-interpretation rules instead of redefining them here.
 
 ## Output shape
 
-Use the shared output rules. For a raw-term lookup, keep the response brief. Render this shape for the active stage only; never populate it with several stage conclusions in one response:
+After the active expansion stage has completed its required retrieval under the shared execution guide, use the shared output rules. For a raw-term lookup, keep the response brief. Render this shape for the active stage only; never populate it with several stage conclusions in one response:
 
 ```markdown
 # [Localized Keyword Expansion Report title] — [Seed Keyword]
@@ -59,7 +59,7 @@ Use the shared output rules. For a raw-term lookup, keep the response brief. Ren
 ## [Localized Stage Conclusion title]
 [State only the decision or validation-posture label authorized by the current evidence.]
 
-## [Localized Next Step title]
+## [Localized Next Input title]
 [Include whenever the stage conclusion assigns a transition label; use one direct input or acquisition-and-upload request.]
 
 ## [Localized API Usage title]

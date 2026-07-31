@@ -71,8 +71,8 @@ Apply the shared `Interactive Stage Gate` and `Stage Handoff Closure Gate` from 
 
 Stage 1A ends only with a target-keyword selection request or confirmation to enter a separate reverse-ASIN discovery stage; do not request SQP there. At later seller-data boundaries, load `sqp-field-semantics.md` and follow its acquisition, sequencing, sufficiency, and field-interpretation rules instead of redefining them here.
 
-For Stage 1B, conditional acquisition is allowed only until the explanation status is written. Once that conclusion names SQP as the exact missing evidence, the next-input request is mandatory and must use a direct acquisition-and-upload instruction. Do not phrase it as `if wanted`, `if needed`, `如需`, or append it as an optional suggestion.
+For Stage 1B, conditional acquisition is allowed only until the explanation status is written. Once that conclusion names SQP as the exact missing evidence, the next-input request is mandatory and must use a direct acquisition-and-upload instruction. Do not phrase it as `if wanted` or `if needed`, or append it as an optional suggestion.
 
 ## Report shape
 
-Use localized sections in this order: Data Notes, observed change/evidence, analysis or explanation status, stage conclusion, one required next input when the conclusion carries a named unresolved question forward, and API usage. Omit the next-input section only when the diagnosis is complete at the current evidence level. Do not include a generic list of possible causes, repeat a prior-stage report, or append later-stage analysis to the same response.
+After the active diagnostic stage has completed its required retrieval under the shared execution guide, use localized sections in this order: Data Notes, observed change/evidence, analysis or explanation status, stage conclusion, one required next input when the conclusion carries a named unresolved question forward, and API usage. Omit the next-input section only when the diagnosis is complete at the current evidence level. Do not include a generic list of possible causes, repeat a prior-stage report, or append later-stage analysis to the same response.

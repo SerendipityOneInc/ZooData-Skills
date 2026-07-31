@@ -15,7 +15,7 @@ Use this downstream scenario after loading the applicable top-level references. 
 
 | Stage | Current input | Capability combination and user-facing outcome | Transition |
 |---|---|---|---|
-| 1. Market screen | Target keyword | Combine market profile, weekly trend, and relevant SERP evidence; present market evidence, analysis, and a market-screen conclusion. | After a usable market conclusion, request the target ASIN for product-specific validation. |
+| 1. Market screen | Target keyword | Combine market profile and weekly trend, adding SERP evidence only for a named question; present market evidence, analysis, and a market-screen conclusion. | After a usable market conclusion, request the target ASIN for product-specific validation. |
 | 2. ASIN observation | Stage 1 conclusion + target ASIN | Combine carried market evidence with current observed product, placement, and traffic evidence; present ASIN evidence, analysis, and the current ASIN posture. | Present the candidate terms observed in the evidence or supplied by the user, request confirmation/additions/removals, and stop. |
 | 3. Candidate validation | Stage 2 conclusion + user-confirmed candidate terms | Batch the applicable market-profile capability across candidates; present candidate evidence, analysis, and an evidence-bounded validation pool. | If the candidate conclusion advances any term for seller-funnel validation, render a separate mandatory SQP next-input request through `sqp-field-semantics.md`, then stop. If no term advances, end after usage reporting. |
 | 4. Seller-funnel calibration | Supplied SQP artifact | Load `sqp-field-semantics.md`; combine SQP with retained earlier-stage evidence and present the seller-funnel evidence, analysis, and conclusion authorized by the supplied fields. | Only if economics or execution remains unresolved, request one Ads artifact through that reference and stop. |
@@ -25,14 +25,13 @@ Use this downstream scenario after loading the applicable top-level references. 
 
 - Apply the shared `Interactive Stage Gate` and `Stage Handoff Closure Gate` from `execution-guide.md`; each numbered stage is a separate user-decision turn.
 - Complete every active stage in `evidence → analysis → stage conclusion`, followed by a next input only when the journey row defines one. The next-input request is not a substitute for the current-stage analysis or conclusion.
-- For natural target-keyword questions such as “值不值得打 / worth targeting / worth focusing on,” treat the journey as multi-stage unless the user explicitly requests market-only analysis.
+- For natural target-keyword questions such as `worth targeting` or `worth focusing on`, treat the journey as multi-stage unless the user explicitly requests market-only analysis.
 - When the completed stage's journey row defines a next input, render a separate localized `Next Input` section immediately after the stage conclusion. This section is mandatory for the multi-stage journey; never hide the request in the conclusion paragraph.
-- A Stage 3 conclusion that advances any term into the validation pool makes seller-funnel calibration necessary by definition. Request one SQP artifact directly; do not write `if wanted`, `if needed`, `如需`, or call the pre-SQP result final.
+- A Stage 3 conclusion that advances any term into the validation pool makes seller-funnel calibration necessary by definition. Request one SQP artifact directly; do not write `if wanted` or `if needed`, or call the pre-SQP result final.
 - Keep the stage conclusion declarative and free of questions or input requests. Put exactly one concise request in `Next Input`; after Stage 1, request only the target ASIN.
 - Do not request an ASIN until Stage 1 has produced a usable market-screen conclusion. Do not request ABA-SQP until the ASIN observation and candidate-validation conclusions are complete.
 - At a seller-data boundary, load `sqp-field-semantics.md` and follow its acquisition, sequencing, sufficiency, and field-interpretation rules. Do not redefine those shared rules here.
 - Do not request price, contribution margin, budget, SQP, or Ads data as a substitute for unavailable market demand, trend, structure, or SERP evidence. Those inputs cannot repair a failed Stage 1 retrieval.
-- If a Stage 1 interface fails, times out, or returns malformed/unparseable data, apply the shared Interface Failure Stop Gate and stop without another call, analysis verdict, or next-stage input request. If the interface succeeds with a valid empty/unsupported result, apply Valid No-Data Reporting instead.
 - If the user supplied later-stage inputs early, retain them without interpretation. Complete only the current stage, then ask for confirmation to continue with the retained input; never ask the user to provide it again.
 
 ## Supported report outputs
@@ -52,4 +51,4 @@ Use the shared guide for cross-metric reconciliation, evidence coverage, causal 
 
 ## Output shape
 
-For the one active stage, use localized sections in this order: Data Notes, Evidence, Analysis, Stage Conclusion, and Next Input when defined by the journey. Put API Usage at the end of the current response when live API data was used. Do not include another stage's evidence or conclusion in that response. Keep Data Notes limited to source, returned period, and current stage; do not use it to list future missing inputs or replace Evidence or Analysis. Do not expose internal reasoning mechanics.
+After the active target-keyword stage has completed its required retrieval under the shared execution guide, use localized sections in this order: Data Notes, Evidence, Analysis, Stage Conclusion, and Next Input when defined by the journey. Put API Usage at the end of the current response when live API data was used. Do not include another stage's evidence or conclusion in that response. Keep Data Notes limited to source, returned period, and current stage; do not use it to list future missing inputs or replace Evidence or Analysis. Do not expose internal reasoning mechanics.

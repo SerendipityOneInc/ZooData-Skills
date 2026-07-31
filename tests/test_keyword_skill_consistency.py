@@ -374,6 +374,10 @@ def test_all_scenarios_inherit_and_preserve_stage_handoff_closure_gate():
         text = path.read_text(encoding="utf-8")
         assert "`Stage Handoff Closure Gate`" in text, path.name
         assert "one optional next input" not in text, path.name
+        assert not re.search(r"[\u4e00-\u9fff]", text), path.name
+        assert "partial successful-response data" not in text, path.name
+        assert "Succeeded interfaces:" not in text, path.name
+        assert "Failed interfaces:" not in text, path.name
 
         in_journey = False
         for line in text.splitlines():
@@ -402,7 +406,10 @@ def test_scenarios_keep_their_user_input_journeys():
     assert "followed by a next input only when the journey row defines one" in target
     assert "Do not request an ASIN until Stage 1" in target
     assert "Do not request price, contribution margin" in target
-    assert "stop without another call, analysis verdict, or next-stage input request" in target
+    assert "After the active target-keyword stage has completed its required retrieval" in target
+    assert "After the active expansion stage has completed its required retrieval" in expand
+    assert "After the required Stage 1 traffic-term retrieval has produced usable evidence" in reverse
+    assert "After the active diagnostic stage has completed its required retrieval" in diagnosis
     assert "4. Seller-funnel calibration" in target
     assert "5. Ads-economics calibration" in target
     assert "This section is mandatory for the multi-stage journey" in target
@@ -465,7 +472,8 @@ def test_reverse_asin_preserves_optional_routes_and_candidate_progression():
     assert "A generic full-analysis request does not authorize automatic progression" in scenario
     assert "Do not call `market-profile` before that confirmation" in scenario
     assert "Advance to Stage 2 only when the candidate list was explicitly confirmed" in scenario
-    assert "A reply such as “确认 / 继续 / 就分析这些词” is sufficient" in scenario
+    assert "A reply such as `confirm`, `continue`, or `analyze these terms` is sufficient" in scenario
+    assert "Do not retrieve new market or SERP evidence before candidate confirmation" in scenario
     assert "Every candidate included in the Stage 2 posture conclusion must have completed market-profile validation" in scenario
     assert "`realtime/product` for the target ASIN" in scenario
     assert "sufficient directly observed ASIN/product-fit evidence" in scenario
@@ -477,7 +485,7 @@ def test_reverse_asin_preserves_optional_routes_and_candidate_progression():
     assert "never a `Final calibrated conclusion`" in scenario
     assert "turn that required handoff into an optional offer" in scenario
     assert "include the mandatory separate SQP next-input section" in scenario
-    assert "For Stage 1, render localized sections in this order and then stop" in scenario
+    assert "After the required Stage 1 traffic-term retrieval has produced usable evidence" in scenario
     assert "asking the user to confirm the list or name additions/removals" in scenario
     assert "Do not collapse the two stages into one response, auto-run Stage 2" in scenario
     assert "move the SQP request directly after the traffic-source table" in scenario

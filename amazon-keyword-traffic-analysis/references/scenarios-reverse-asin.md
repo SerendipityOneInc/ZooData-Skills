@@ -58,21 +58,21 @@ Use these labels only after Stage 2 candidate market validation. Never assign th
 ### Stage transition gate
 
 - Apply the shared `Interactive Stage Gate` and `Stage Handoff Closure Gate` from `execution-guide.md`; the rules below define this scenario's stage boundaries.
-- Treat natural requests such as “从关键词流量角度分析这个 ASIN / analyze this ASIN's keyword traffic / reverse-ASIN analysis” as the full staged workflow. A raw-list-only request must be explicit.
+- Treat natural requests such as `analyze this ASIN's keyword traffic` or `reverse-ASIN analysis` as the full staged workflow. A raw-list-only request must be explicit.
 - Stage 1 is discovery, not keyword judgment. Its conclusion may state which keywords require examination and why, but it must not assign `Established posture`, `Headroom validation`, `Observe`, or `No current support`, declare advertising dependence, recommend SEO/listing changes, rank advertising priority, or request SQP.
 - Stage 1 may describe a term's returned ORG/SP/SB/SBV/SPR records and sampled contribution, but a sponsored-only row or selected Top-N subset does not establish overall advertising dependence, weak organic relevance, algorithmic recognition, or organic improvement potential. Do not call coverage `full`, `complete`, or `stable` unless the returned coverage fields and resolved period directly establish that claim.
 - A generic full-analysis request does not authorize automatic progression. After Stage 1, ask the user to confirm the candidate list or name additions/removals, then stop the turn. Do not call `market-profile` before that confirmation.
-- Advance to Stage 2 only when the candidate list was explicitly confirmed or supplied by the user in the current conversation. A reply such as “确认 / 继续 / 就分析这些词” is sufficient; do not ask a second confirmation.
+- Advance to Stage 2 only when the candidate list was explicitly confirmed or supplied by the user in the current conversation. A reply such as `confirm`, `continue`, or `analyze these terms` is sufficient; do not ask a second confirmation.
 - Every candidate included in the Stage 2 posture conclusion must have completed market-profile validation and sufficient directly observed ASIN/product-fit evidence. Traffic share, estimated impression points, placement type, or keyword wording alone cannot replace either requirement.
 - Do not present a final keyword-priority, SEO, advertising, bid, budget, or profitability conclusion before the required seller-data stage. Stage 2 provides an evidence-bounded candidate conclusion, never a `Final calibrated conclusion`.
-- In the full staged workflow, assigning `Headroom validation` makes seller-funnel calibration necessary by definition. After the Stage 2 conclusion, render a separate localized SQP next-input section, follow the direct acquisition-and-upload contract in `sqp-field-semantics.md`, and stop. Do not write `if needed`, `if you want`, `如需`, or otherwise turn that required handoff into an optional offer.
-- If the conversation carries a target keyword from an earlier market screen, include it in Stage 1 and examine its current market/SERP context before widening to other terms. If the user asks about its movement or cause, transition to diagnosis instead of calling a timeline here.
+- In the full staged workflow, assigning `Headroom validation` makes seller-funnel calibration necessary by definition. After the Stage 2 conclusion, render a separate localized SQP next-input section, follow the direct acquisition-and-upload contract in `sqp-field-semantics.md`, and stop. Do not write `if needed` or `if you want`, or otherwise turn that required handoff into an optional offer.
+- If the conversation carries a target keyword from an earlier market screen, include it in the Stage 1 discovery evidence and reuse compatible carried context. Do not retrieve new market or SERP evidence before candidate confirmation. If the user asks about movement or cause, transition to diagnosis instead of calling a timeline here.
 
 Do not request SQP before the candidate-validation conclusion. At a seller-data boundary, use `sqp-field-semantics.md` as the sole source for acquisition, sequencing, sufficiency, and field interpretation.
 
 ## Report shape
 
-For Stage 1, render localized sections in this order and then stop:
+After the required Stage 1 traffic-term retrieval has produced usable evidence under the shared execution guide, render localized sections in this order and then stop:
 
 1. Data Notes.
 2. Stage 1 traffic evidence.
