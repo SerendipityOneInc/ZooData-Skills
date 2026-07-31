@@ -33,13 +33,59 @@ def test_skill_is_a_concise_router_not_a_second_execution_guide():
     assert "Load exactly one scenario" not in skill
     assert "Before requesting or interpreting a seller artifact" in skill
     assert "Without `--endpoints` or `--keyword-endpoints`, it makes no evidence calls" in skill
-    assert "This date-selection rule never authorizes an alternate-date retry" in skill
-    assert "Treat an HTTP 5xx after the bundled client's retries as a hard stop" in skill
-    assert "Execute no further API or tool command, including an earlier-date request" in skill
-    assert "retry the exact same request later" in skill
-    assert "do not call the requested analysis or required evidence “obtained.”" in skill
-    assert "Only HTTP 422 permits correction of the server-identified validation violation" in skill
-    assert "a valid `status=empty` is a separate successful no-data path" in skill
+
+
+def test_interface_failure_policy_respects_module_ownership():
+    skill = read("SKILL.md")
+    guide = read("references/execution-guide.md")
+    reference = read("references/reference.md")
+    script = read("scripts/zoodata.py")
+    scenarios = [
+        path.read_text(encoding="utf-8")
+        for path in sorted((ROOT / "references").glob("scenarios-*.md"))
+    ]
+
+    # The router owns loading and dispatch only.
+    assert "apply its `Interface Failure Stop Gate` before selecting any next capability or command" in skill
+    for leaked_detail in (
+        "HTTP 5xx",
+        "HTTP 422",
+        "workflowDisposition",
+        "retryPolicy",
+        "parameterMutationAllowed",
+        "earlier-date request",
+    ):
+        assert leaked_detail not in skill
+
+    # The API reference owns response meaning, not agent recovery behavior.
+    assert "HTTP 422 means request validation failed" in reference
+    assert "HTTP 5xx after the client's built-in retries means the service is currently unavailable" in reference
+    assert "does not establish that the requested date or other parameters are invalid" in reference
+    for leaked_action in (
+        "Stop the current workflow",
+        "retry the same request later",
+        "permits an alternate date or query",
+        "workflowDisposition",
+    ):
+        assert leaked_action not in reference
+
+    # The shared execution guide owns stop/retry/parameter-mutation policy.
+    assert "### Interface Failure Stop Gate" in guide
+    assert "Do not execute any subsequent API or tool command in that turn" in guide
+    assert "only HTTP 422 authorizes correcting the documented validation violation" in guide
+    assert "A valid `status=empty` may justify a separately supported alternate query or period" in guide
+
+    # The CLI owns deterministic retry mechanics and machine-readable disposition.
+    assert '"workflowDisposition": "stop_current_turn"' in script
+    assert '"retryPolicy": "later_same_request_only"' in script
+    assert '"parameterMutationAllowed": False' in script
+
+    # Scenarios inherit the shared gate and cannot redefine transport recovery.
+    for scenario in scenarios:
+        assert "workflowDisposition" not in scenario
+        assert "retryPolicy" not in scenario
+        assert "parameterMutationAllowed" not in scenario
+        assert "HTTP 5xx" not in scenario
 
 
 def test_execution_guide_is_the_single_shared_workflow_source():
@@ -134,8 +180,7 @@ def test_interface_failure_never_descends_to_data_layer():
     assert "Do not call another endpoint" in guide
     assert "descend to a data layer" in guide
     assert "Descend only after a successful metric response" in guide
-    assert "retry the same request later if needed, without changing dates or other parameters" in reference
-    assert "A valid `status=empty` permits an alternate date or query only when" in reference
+    assert "does not establish that the requested date or other parameters are invalid" in reference
 
 
 def test_timeline_health_probe_omits_unsupported_pagination():
