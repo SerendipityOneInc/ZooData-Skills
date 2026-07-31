@@ -72,6 +72,26 @@ def test_maintenance_conflict_governance_stays_out_of_runtime_skill():
     assert "request a maintainer decision" not in skill
 
 
+def test_contributing_constrains_skill_router_and_ownership_reviews():
+    skill = read("SKILL.md")
+    contributing = (ROOT.parent / "CONTRIBUTING.md").read_text(encoding="utf-8")
+    contributing_flat = " ".join(contributing.split())
+
+    assert "Each skill's `SKILL.md` is that skill's runtime router and module-responsibility manifest" in contributing_flat
+    assert "declare the owner of each policy class used by the skill" in contributing_flat
+    assert "must not absorb the detailed" in contributing_flat
+    assert "Every bundled reference, scenario, script-facing instruction" in contributing_flat
+    assert "must follow the ownership map declared by its own `SKILL.md`" in contributing_flat
+    assert "automated consistency checks must read the affected" in contributing_flat
+    assert "review every bundled module strictly against its declared responsibility" in contributing_flat
+    assert "must not invent a parallel ownership model in the review program" in contributing_flat
+    assert "A change to the ownership map is an architectural change" in contributing_flat
+    assert "not silently adjusted to make another file or test pass" in contributing_flat
+    assert "constrains what a `SKILL.md` may own" in contributing_flat
+    assert "does not define or duplicate any skill's domain-specific policy" in contributing_flat
+    assert "## Source-of-truth boundaries" in skill
+
+
 def test_module_files_do_not_declare_foreign_owner_sections():
     def headings(relative_path):
         return {

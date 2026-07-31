@@ -71,11 +71,28 @@ python amazon-analysis/scripts/zoodata.py categories --keyword "electronics"
 
 ## Skill Specification Ownership
 
-For a skill split across a router, API reference, shared execution guide,
-field-semantic references, and scenario files, assign every rule to one owner.
+Each skill's `SKILL.md` is that skill's runtime router and module-responsibility
+manifest. It must define the trigger and loading path, route requests to any
+bundled modules, declare the owner of each policy class used by the skill, and
+state the non-negotiable runtime boundaries shared by those modules. Keep it
+concise: it may declare ownership and dispatch, but must not absorb the detailed
+contracts, procedures, semantics, scenarios, or repository-maintenance process
+owned elsewhere.
+
+Every bundled reference, scenario, script-facing instruction, and other skill
+module must follow the ownership map declared by its own `SKILL.md`.
 Cross-module references are allowed; copying or redefining another module's
-contract is not. Split a cross-cutting statement into its API fact, shared
-workflow consequence, field interpretation, and scenario application.
+contract is not. Split a cross-cutting statement into the owner-specific parts
+declared by that skill instead of placing the whole rule in multiple files.
+
+Human reviewers and automated consistency checks must read the affected
+`SKILL.md` first and review every bundled module strictly against its declared
+responsibility. They must flag foreign definitions, duplicated policy, and
+downstream overrides; they must not invent a parallel ownership model in the
+review program. A change to the ownership map is an architectural change and
+must be reviewed as such, not silently adjusted to make another file or test
+pass. This repository-level contract constrains what a `SKILL.md` may own; it
+does not define or duplicate any skill's domain-specific policy.
 
 If a change exposes an inseparable conflict between owner contracts, stop and
 request a maintainer decision in the issue or pull request. Do not silently
