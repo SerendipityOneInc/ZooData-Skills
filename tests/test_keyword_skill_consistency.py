@@ -33,6 +33,13 @@ def test_skill_is_a_concise_router_not_a_second_execution_guide():
     assert "Load exactly one scenario" not in skill
     assert "Before requesting or interpreting a seller artifact" in skill
     assert "Without `--endpoints` or `--keyword-endpoints`, it makes no evidence calls" in skill
+    assert "This date-selection rule never authorizes an alternate-date retry" in skill
+    assert "Treat an HTTP 5xx after the bundled client's retries as a hard stop" in skill
+    assert "Execute no further API or tool command, including an earlier-date request" in skill
+    assert "retry the exact same request later" in skill
+    assert "do not call the requested analysis or required evidence “obtained.”" in skill
+    assert "Only HTTP 422 permits correction of the server-identified validation violation" in skill
+    assert "a valid `status=empty` is a separate successful no-data path" in skill
 
 
 def test_execution_guide_is_the_single_shared_workflow_source():
@@ -90,7 +97,8 @@ def test_execution_guide_is_the_single_shared_workflow_source():
     assert "Never call the same paid endpoint again merely to change output format" in guide
     assert "not evidence that the requested date or other parameters are wrong" in guide
     assert "retry the same request later" in guide
-    assert "Do not change the date, marketplace, subject, filters, pagination" in guide
+    assert "Do not execute any subsequent API or tool command in that turn" in guide
+    assert "never announce or attempt “an earlier date,”" in guide
     assert "only HTTP 422 authorizes correcting the documented validation violation" in guide
     assert "A valid `status=empty` may justify a separately supported alternate query or period" in guide
     assert "Never transfer either behavior to HTTP 5xx" in guide
