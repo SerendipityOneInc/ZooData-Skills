@@ -173,6 +173,7 @@ def test_interface_failure_policy_respects_module_ownership():
     # The API reference owns response meaning, not agent recovery behavior.
     assert "HTTP 422 means request validation failed" in reference
     assert "HTTP 5xx after the client's built-in retries means the service is currently unavailable" in reference
+    assert "sets `error.retryExhausted=true` when that retry budget is consumed" in reference
     assert "does not establish that the requested date or other parameters are invalid" in reference
     for leaked_action in (
         "Stop the current workflow",
@@ -188,9 +189,10 @@ def test_interface_failure_policy_respects_module_ownership():
     assert "only HTTP 422 authorizes correcting the documented validation violation" in guide
     assert "A valid `status=empty` may justify a separately supported alternate query or period" in guide
 
-    # The CLI owns deterministic retry mechanics and a safe fallback message,
-    # not cross-scenario workflow or user-output policy.
+    # The CLI owns deterministic retry mechanics and the resulting technical
+    # retry state, not cross-scenario workflow or user-output policy.
     assert 'action = "Service is temporarily unavailable. Please try again later."' in script
+    assert 'result["error"]["retryExhausted"] = True' in script
     assert "workflowDisposition" not in script
     assert "retryPolicy" not in script
     assert "parameterMutationAllowed" not in script
@@ -288,6 +290,7 @@ def test_user_facing_output_boundary_hides_internal_failure_policy():
     ]
 
     assert "## User-Facing Output Boundary" in guide
+    assert "### CLI Error Isolation" in guide
     assert "Runtime rules determine what the Agent does; they are not user-facing report content" in guide
     assert "Do not expose rule names, specification ownership, module boundaries" in guide
     assert "when a top-level user-facing output template explicitly requires it" in guide
@@ -301,8 +304,11 @@ def test_user_facing_output_boundary_hides_internal_failure_policy():
     assert "`Failed interfaces: {comma-separated endpoint identifiers}`" in guide
     assert "Preserve endpoint identifiers exactly as documented" in guide
     assert "only from calls actually completed in the current turn" in guide
-    assert "Do not quote or expand the CLI error payload's `message` or `action`" in guide
-    assert "The CLI value is a safe fallback, not the final-output template owner" in guide
+    assert "Treat every CLI or tool error payload as Agent-only technical diagnostics" in guide
+    assert "Never quote, translate, paraphrase, or otherwise expose its `message`, `action`" in guide
+    assert "The CLI never owns final user-facing error prose" in guide
+    assert "When no specific template exists, state only the smallest localized outcome" in guide
+    assert "A structured `error.retryExhausted=true` is the CLI contract fact" in guide
     assert "Do not add a heading, HTTP status, retry count" in guide
     assert "returned fields, successful-interface data, partial analysis" in guide
     assert "API-usage section, parameter-preservation warning" in guide

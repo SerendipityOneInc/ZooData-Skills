@@ -547,6 +547,7 @@ class TestApiErrorPropagation(unittest.TestCase):
         )
         self.assertNotIn("STOP CURRENT TURN", result["error"]["action"])
         self.assertNotIn("Do not run another API or tool command", result["error"]["action"])
+        self.assertIs(result["error"]["retryExhausted"], True)
         self.assertNotIn("workflowDisposition", result["error"])
         self.assertNotIn("retryPolicy", result["error"])
         self.assertNotIn("parameterMutationAllowed", result["error"])

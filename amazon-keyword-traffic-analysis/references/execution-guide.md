@@ -57,6 +57,13 @@ Keep execution control separate from user communication. Runtime rules determine
 - State a simple user action directly and naturally. Do not add a meta heading such as `Action` or `Action guidance` when one sentence is sufficient.
 - Scenario files may shape a report but must not weaken this boundary or turn internal execution state into user-facing prose.
 
+### CLI Error Isolation
+
+- Treat every CLI or tool error payload as Agent-only technical diagnostics. Never quote, translate, paraphrase, or otherwise expose its `message`, `action`, server detail, request parameters, retry log, or internal control fields in default user-facing output.
+- Use structured error facts only to select the applicable guide-owned behavior and output rule. The CLI never owns final user-facing error prose.
+- Render user-facing error text from the applicable template or rule in this guide. When no specific template exists, state only the smallest localized outcome and user action needed to resolve it.
+- Disclose technical diagnostics only when the user explicitly requests them, and then provide only the detail needed to answer that request.
+
 ## Retrieval Progress Updates
 
 - When a progress update is needed, use one short, natural sentence in the user's language. State only the subject and business question currently being examined; include marketplace or period only when it helps the user understand the scope.
@@ -317,7 +324,7 @@ Do not replace this evidence chain with generic capability disclaimers, a list o
 
 Treat a timeout after the client's documented retries, connection/DNS failure, HTTP 5xx, unavailable endpoint, rate-limit/service rejection, non-zero execution without a valid structured result, or malformed/unparseable response as an interface failure.
 
-An HTTP 5xx returned after the client's built-in retry budget is exhausted is a terminal failure for the current workflow and a hard interrupt for the current turn, not a first failed observation and not evidence that the requested date or other parameters are wrong. Do not execute any subsequent API or tool command in that turn. In particular, never announce or attempt “an earlier date,” another marketplace, subject, filter, pagination value, endpoint, or surface to work around the 5xx.
+An HTTP 5xx returned after the client's built-in retry budget is exhausted is a terminal failure for the current workflow and a hard interrupt for the current turn, not a first failed observation and not evidence that the requested date or other parameters are wrong. A structured `error.retryExhausted=true` is the CLI contract fact that this condition occurred; apply this gate before selecting any next command. Do not execute any subsequent API or tool command in that turn. In particular, never announce or attempt “an earlier date,” another marketplace, subject, filter, pagination value, endpoint, or surface to work around the 5xx.
 
 A local parsing, transformation, extraction, or formatting command that fails after a paid API response is also an interface failure for that evidence unit. If the original valid structured response is still available, use it directly without another evidence call; otherwise stop under this gate. Never call the same paid endpoint again merely to change output format or recover from local post-processing failure.
 
@@ -335,7 +342,6 @@ A local parsing, transformation, extraction, or formatting command that fails af
   `Failed interfaces: {comma-separated endpoint identifiers}`
 - Localize the fixed prose and labels to the user's language. Preserve endpoint identifiers exactly as documented.
 - Populate the interface ledger only from calls actually completed in the current turn before the stop. Do not include planned or unexecuted interfaces.
-- Do not quote or expand the CLI error payload's `message` or `action`. The CLI value is a safe fallback, not the final-output template owner.
 - Do not add a heading, HTTP status, retry count, cause label, request parameters, workflow rationale, returned fields, successful-interface data, partial analysis, API-usage section, parameter-preservation warning, next-step section, or action-guidance section. Provide technical diagnostics only when the user explicitly asks for them.
 
 Parameter correction belongs to a different response class: only HTTP 422 authorizes correcting the documented validation violation identified by the server. A valid `status=empty` may justify a separately supported alternate query or period when the active scenario and endpoint contract permit it; that is no-data follow-up, not recovery from an interface failure. Never transfer either behavior to HTTP 5xx.
