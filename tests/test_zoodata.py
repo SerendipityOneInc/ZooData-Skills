@@ -541,10 +541,12 @@ class TestApiErrorPropagation(unittest.TestCase):
         self.assertEqual(urlopen.call_count, zoodata.MAX_RETRIES)
         self.assertEqual(result["error"]["status"], 500)
         self.assertEqual(result["error"]["message"], "HTTP 500 after 3 attempts")
-        self.assertIn("STOP CURRENT TURN", result["error"]["action"])
-        self.assertIn("Do not run another API or tool command", result["error"]["action"])
-        self.assertIn("change the date or any parameters", result["error"]["action"])
-        self.assertIn("retry this exact request later", result["error"]["action"])
+        self.assertEqual(
+            result["error"]["action"],
+            "Service is temporarily unavailable. Please try again later.",
+        )
+        self.assertNotIn("STOP CURRENT TURN", result["error"]["action"])
+        self.assertNotIn("Do not run another API or tool command", result["error"]["action"])
         self.assertEqual(result["error"]["workflowDisposition"], "stop_current_turn")
         self.assertEqual(result["error"]["retryPolicy"], "later_same_request_only")
         self.assertIs(result["error"]["parameterMutationAllowed"], False)

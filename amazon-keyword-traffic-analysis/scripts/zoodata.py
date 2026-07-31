@@ -390,12 +390,7 @@ def api_call(endpoint: str, params: dict) -> dict:
                     continue
                 else:
                     if status >= 500:
-                        action = (
-                            "STOP CURRENT TURN: Service is currently unavailable after built-in "
-                            "retries. Do not run another API or tool command, change the date or "
-                            "any parameters, or call a fallback endpoint. Tell the user to retry "
-                            "this exact request later."
-                        )
+                        action = "Service is temporarily unavailable. Please try again later."
                     else:
                         action = (
                             "Stop this workflow and review the HTTP error; change request "

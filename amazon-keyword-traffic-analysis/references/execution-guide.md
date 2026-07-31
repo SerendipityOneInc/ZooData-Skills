@@ -60,11 +60,13 @@ Keep execution control separate from user communication. Runtime rules determine
 ## Retrieval Progress Updates
 
 - When a progress update is needed, use one short, natural sentence in the user's language. State only the subject and business question currently being examined; include marketplace or period only when it helps the user understand the scope.
+- Do not announce the execution mode or stage number and do not render an execution-plan heading, numbered plan, endpoint list, or capability list. Planning remains internal even when several retrievals are justified.
 - Do not mention tools, commands, endpoints, batching, call-count optimization, schemas, field names, support/calculation states, validation mechanics, confidence routing, internal safeguards, or output-authority limits in progress messages.
 - Do not expose partial judgments, candidate verdicts, internal reconciliation, stage-transition deliberation, future seller-calibration paths, or a list of things the answer will not do. Reserve all such judgment and necessary evidence boundaries for the completed `evidence → analysis → conclusion` report.
 - Do not narrate every retrieval call. Send another progress sentence only when work is still continuing long enough to require an update or when the user-facing task state materially changes.
 - Natural example before retrieval: `我先看看这 6 个词在美国站最近一周的市场表现。`
 - Natural example while continuing: `数据已经拿到，我正在整理这 6 个词之间的差异。`
+- Forbidden example: `正在执行 Stage 1。执行计划：1. 获取 product-traffic-terms；2. 获取 realtime/product。`
 
 ## Execution Mode
 
@@ -323,7 +325,14 @@ A local parsing, transformation, extraction, or formatting command that fails af
 2. Retain the failing endpoint or tool, subject/request scope, attempt/retry status, and exact returned error internally for diagnostics. Do not surface them by default.
 3. Do not produce the requested market/product/operating conclusion from partial evidence and do not request ASIN, price, margin, SQP, Ads, or any other next-stage input.
 4. Retain any earlier successful retrieval for compatible later reuse, but do not list it as completed evidence or present a partial analysis in the failure notice.
-5. For HTTP 5xx, send only one short localized sentence equivalent to `服务暂时不可用，请稍后重试。` Then stop. Do not add a heading, endpoint/tool name, HTTP status, retry count, cause label, request parameters, workflow rationale, previous retrieval state, API-usage section, parameter-preservation warning, or action-guidance section. Provide technical diagnostics only when the user explicitly asks for them.
+5. For HTTP 5xx, render the mandatory template below and stop.
+
+#### HTTP 5xx User-Facing Template
+
+- For a Chinese-language request, output exactly: `服务暂时不可用，请稍后重试。`
+- For another language, output only the natural localized equivalent of that sentence.
+- Do not quote or expand the CLI error payload's `message` or `action`. The CLI value is a safe fallback, not the final-output template owner.
+- Do not add a heading, endpoint/tool name, HTTP status, retry count, cause label, request parameters, workflow rationale, previous retrieval state, retrieved product data, API-usage section, parameter-preservation warning, next-step section, or action-guidance section. Provide technical diagnostics only when the user explicitly asks for them.
 
 Parameter correction belongs to a different response class: only HTTP 422 authorizes correcting the documented validation violation identified by the server. A valid `status=empty` may justify a separately supported alternate query or period when the active scenario and endpoint contract permit it; that is no-data follow-up, not recovery from an interface failure. Never transfer either behavior to HTTP 5xx.
 

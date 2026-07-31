@@ -216,6 +216,8 @@ def test_execution_guide_is_the_single_shared_workflow_source():
     assert "## Retrieval Progress Updates" in guide
     assert "use one short, natural sentence in the user's language" in guide
     assert "State only the subject and business question currently being examined" in guide
+    assert "Do not announce the execution mode or stage number" in guide
+    assert "do not render an execution-plan heading, numbered plan, endpoint list, or capability list" in guide
     assert "Do not mention tools, commands, endpoints, batching" in guide
     assert "support/calculation states, validation mechanics" in guide
     assert "Do not expose partial judgments, candidate verdicts" in guide
@@ -223,6 +225,7 @@ def test_execution_guide_is_the_single_shared_workflow_source():
     assert "a list of things the answer will not do" in guide
     assert "Do not narrate every retrieval call" in guide
     assert "我先看看这 6 个词在美国站最近一周的市场表现" in guide
+    assert "正在执行 Stage 1。执行计划" in guide
     assert "## Two-Pass Metric Protocol" in guide
     assert "### Interactive Stage Gate" in guide
     assert "### Stage Handoff Closure Gate" in guide
@@ -256,7 +259,8 @@ def test_execution_guide_is_the_single_shared_workflow_source():
     assert "local parsing, transformation, extraction, or formatting command that fails" in guide
     assert "Never call the same paid endpoint again merely to change output format" in guide
     assert "not evidence that the requested date or other parameters are wrong" in guide
-    assert "send only one short localized sentence equivalent to `服务暂时不可用，请稍后重试。`" in guide
+    assert "#### HTTP 5xx User-Facing Template" in guide
+    assert "For a Chinese-language request, output exactly: `服务暂时不可用，请稍后重试。`" in guide
     assert "Do not execute any subsequent API or tool command in that turn" in guide
     assert "never announce or attempt “an earlier date,”" in guide
     assert "only HTTP 422 authorizes correcting the documented validation violation" in guide
@@ -287,9 +291,13 @@ def test_user_facing_output_boundary_hides_internal_failure_policy():
     assert "Do not add a meta heading such as `Action`, `Action guidance`, or `操作指引`" in guide
     assert "Retain the failing endpoint or tool" in guide
     assert "Do not surface them by default" in guide
-    assert "send only one short localized sentence equivalent to `服务暂时不可用，请稍后重试。`" in guide
+    assert "#### HTTP 5xx User-Facing Template" in guide
+    assert "For a Chinese-language request, output exactly: `服务暂时不可用，请稍后重试。`" in guide
+    assert "Do not quote or expand the CLI error payload's `message` or `action`" in guide
+    assert "The CLI value is a safe fallback, not the final-output template owner" in guide
     assert "Do not add a heading, endpoint/tool name, HTTP status, retry count" in guide
-    assert "API-usage section, parameter-preservation warning, or action-guidance section" in guide
+    assert "retrieved product data, API-usage section, parameter-preservation warning" in guide
+    assert "next-step section, or action-guidance section" in guide
     assert "A one-sentence interface-failure notice is not a completed full-mode report" in guide
     assert "Report the failing endpoint or tool" not in guide
     assert "report the interface error" not in "\n".join(scenarios)
