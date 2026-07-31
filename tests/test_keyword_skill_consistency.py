@@ -224,8 +224,8 @@ def test_execution_guide_is_the_single_shared_workflow_source():
     assert "stage-transition deliberation" in guide
     assert "a list of things the answer will not do" in guide
     assert "Do not narrate every retrieval call" in guide
-    assert "我先看看这 6 个词在美国站最近一周的市场表现" in guide
-    assert "正在执行 Stage 1。执行计划" in guide
+    assert "I’ll check the recent US market performance of these six keywords" in guide
+    assert "Running Stage 1. Execution plan" in guide
     assert "## Two-Pass Metric Protocol" in guide
     assert "### Interactive Stage Gate" in guide
     assert "### Stage Handoff Closure Gate" in guide
@@ -260,7 +260,7 @@ def test_execution_guide_is_the_single_shared_workflow_source():
     assert "Never call the same paid endpoint again merely to change output format" in guide
     assert "not evidence that the requested date or other parameters are wrong" in guide
     assert "#### HTTP 5xx User-Facing Template" in guide
-    assert "For a Chinese-language request, output exactly: `服务暂时不可用，请稍后重试。`" in guide
+    assert "Source template: `Service is temporarily unavailable. Please try again later.`" in guide
     assert "Do not execute any subsequent API or tool command in that turn" in guide
     assert "never announce or attempt “an earlier date,”" in guide
     assert "only HTTP 422 authorizes correcting the documented validation violation" in guide
@@ -288,11 +288,12 @@ def test_user_facing_output_boundary_hides_internal_failure_policy():
     assert "Runtime rules determine what the Agent does; they are not user-facing report content" in guide
     assert "Do not expose rule names, specification ownership, module boundaries" in guide
     assert "Surface a technical identifier or diagnostic detail only when the user explicitly asks" in guide
-    assert "Do not add a meta heading such as `Action`, `Action guidance`, or `操作指引`" in guide
+    assert "Do not add a meta heading such as `Action` or `Action guidance`" in guide
     assert "Retain the failing endpoint or tool" in guide
     assert "Do not surface them by default" in guide
     assert "#### HTTP 5xx User-Facing Template" in guide
-    assert "For a Chinese-language request, output exactly: `服务暂时不可用，请稍后重试。`" in guide
+    assert "Source template: `Service is temporarily unavailable. Please try again later.`" in guide
+    assert "Output only the natural localized rendering of the source template" in guide
     assert "Do not quote or expand the CLI error payload's `message` or `action`" in guide
     assert "The CLI value is a safe fallback, not the final-output template owner" in guide
     assert "Do not add a heading, endpoint/tool name, HTTP status, retry count" in guide

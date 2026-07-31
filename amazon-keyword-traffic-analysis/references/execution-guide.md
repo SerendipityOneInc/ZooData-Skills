@@ -54,7 +54,7 @@ Keep execution control separate from user communication. Runtime rules determine
 - Include only the evidence, conclusion, limitation, or next input the user needs to understand the current result and act on it.
 - Do not expose rule names, specification ownership, module boundaries, gate decisions, internal checklists, retry mechanics, parameter-mutation policy, command invocations, or maintainer rationale merely to explain why the Agent complied with this guide.
 - Surface a technical identifier or diagnostic detail only when the user explicitly asks for diagnostics or when that exact detail is necessary to correct a user-controlled input. Provide the smallest sufficient detail.
-- State a simple user action directly and naturally. Do not add a meta heading such as `Action`, `Action guidance`, or `操作指引` when one sentence is sufficient.
+- State a simple user action directly and naturally. Do not add a meta heading such as `Action` or `Action guidance` when one sentence is sufficient.
 - Scenario files may shape a report but must not weaken this boundary or turn internal execution state into user-facing prose.
 
 ## Retrieval Progress Updates
@@ -64,9 +64,9 @@ Keep execution control separate from user communication. Runtime rules determine
 - Do not mention tools, commands, endpoints, batching, call-count optimization, schemas, field names, support/calculation states, validation mechanics, confidence routing, internal safeguards, or output-authority limits in progress messages.
 - Do not expose partial judgments, candidate verdicts, internal reconciliation, stage-transition deliberation, future seller-calibration paths, or a list of things the answer will not do. Reserve all such judgment and necessary evidence boundaries for the completed `evidence → analysis → conclusion` report.
 - Do not narrate every retrieval call. Send another progress sentence only when work is still continuing long enough to require an update or when the user-facing task state materially changes.
-- Natural example before retrieval: `我先看看这 6 个词在美国站最近一周的市场表现。`
-- Natural example while continuing: `数据已经拿到，我正在整理这 6 个词之间的差异。`
-- Forbidden example: `正在执行 Stage 1。执行计划：1. 获取 product-traffic-terms；2. 获取 realtime/product。`
+- Natural example before retrieval: `I’ll check the recent US market performance of these six keywords.`
+- Natural example while continuing: `The data is ready; I’m organizing the differences among these six keywords.`
+- Forbidden example: `Running Stage 1. Execution plan: 1. Retrieve product-traffic-terms; 2. Retrieve realtime/product.`
 
 ## Execution Mode
 
@@ -114,7 +114,7 @@ Apply this gate after every full-mode stage conclusion and before drafting the n
    - `advance`: the conclusion assigns a transition label or says a subject merits/requires a later evidence level;
    - `unresolved`: the conclusion names one exact missing evidence item needed to answer the current decision.
 2. For `advance` or `unresolved`, progression is required by the conclusion itself. Render a separate localized next-input section with one direct, executable request that names the subject/scope, acquisition path when applicable, and confirmation or upload action. Then stop and wait for the user.
-3. Never make a required handoff optional with `if you want`, `if needed`, `when wanted`, `如需`, or equivalent wording. Screenshot/CSV or other artifact formats may be alternatives; whether to perform the required handoff is not.
+3. Never make a required handoff optional with `if you want`, `if needed`, `when wanted`, or equivalent wording. Screenshot/CSV or other artifact formats may be alternatives; whether to perform the required handoff is not.
 4. Keep the stage conclusion declarative and separate from the request. Do not bury the next input in the conclusion, replace the conclusion with a question, or call a pre-seller-data result a `Final calibrated conclusion`.
 5. Scenario journey rows must name the observable trigger for a transition, such as a specific label, advanced candidate, or exact unresolved evidence. Vague predicates such as “when calibration is wanted/needed” are invalid.
 
@@ -329,8 +329,8 @@ A local parsing, transformation, extraction, or formatting command that fails af
 
 #### HTTP 5xx User-Facing Template
 
-- For a Chinese-language request, output exactly: `服务暂时不可用，请稍后重试。`
-- For another language, output only the natural localized equivalent of that sentence.
+- Source template: `Service is temporarily unavailable. Please try again later.`
+- Output only the natural localized rendering of the source template in the user's language. Preserve its two-clause meaning and do not add content.
 - Do not quote or expand the CLI error payload's `message` or `action`. The CLI value is a safe fallback, not the final-output template owner.
 - Do not add a heading, endpoint/tool name, HTTP status, retry count, cause label, request parameters, workflow rationale, previous retrieval state, retrieved product data, API-usage section, parameter-preservation warning, next-step section, or action-guidance section. Provide technical diagnostics only when the user explicitly asks for them.
 
