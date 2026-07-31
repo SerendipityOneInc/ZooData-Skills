@@ -290,7 +290,7 @@ def test_user_facing_output_boundary_hides_internal_failure_policy():
     assert "## User-Facing Output Boundary" in guide
     assert "Runtime rules determine what the Agent does; they are not user-facing report content" in guide
     assert "Do not expose rule names, specification ownership, module boundaries" in guide
-    assert "Surface a technical identifier or diagnostic detail only when the user explicitly asks" in guide
+    assert "when a top-level user-facing output template explicitly requires it" in guide
     assert "Do not add a meta heading such as `Action` or `Action guidance`" in guide
     assert "Retain the failing endpoint or tool" in guide
     assert "Surface only the endpoint identifier through the template below" in guide
@@ -307,7 +307,7 @@ def test_user_facing_output_boundary_hides_internal_failure_policy():
     assert "returned fields, successful-interface data, partial analysis" in guide
     assert "API-usage section, parameter-preservation warning" in guide
     assert "next-step section, or action-guidance section" in guide
-    assert "A one-sentence interface-failure notice is not a completed full-mode report" in guide
+    assert "An interface-failure ledger notice is not a completed full-mode report" in guide
     assert "Report the failing endpoint or tool" not in guide
     assert "report the interface error" not in "\n".join(scenarios)
 
@@ -378,6 +378,8 @@ def test_all_scenarios_inherit_and_preserve_stage_handoff_closure_gate():
         assert "partial successful-response data" not in text, path.name
         assert "Succeeded interfaces:" not in text, path.name
         assert "Failed interfaces:" not in text, path.name
+        assert "if wanted" not in text, path.name
+        assert "if needed" not in text, path.name
 
         in_journey = False
         for line in text.splitlines():
@@ -402,8 +404,6 @@ def test_scenarios_keep_their_user_input_journeys():
     assert "target ASIN" in target
     assert "ABA-SQP" in target
     assert "### Stage transition gate" in target
-    assert "evidence → analysis → stage conclusion" in target
-    assert "followed by a next input only when the journey row defines one" in target
     assert "Do not request an ASIN until Stage 1" in target
     assert "Do not request price, contribution margin" in target
     assert "After the active target-keyword stage has completed its required retrieval" in target
@@ -412,9 +412,7 @@ def test_scenarios_keep_their_user_input_journeys():
     assert "After the active diagnostic stage has completed its required retrieval" in diagnosis
     assert "4. Seller-funnel calibration" in target
     assert "5. Ads-economics calibration" in target
-    assert "This section is mandatory for the multi-stage journey" in target
-    assert "never hide the request in the conclusion paragraph" in target
-    assert "after Stage 1, request only the target ASIN" in target
+    assert "After a Stage 1 advance conclusion, the scenario-defined next input is only the target ASIN" in target
     assert "sqp-field-semantics.md" in target
     assert "### Seller-data input guidance" not in target
     assert "acquisition, sequencing, sufficiency, and field-interpretation rules" in target
@@ -451,7 +449,7 @@ def test_expansion_does_not_define_an_undocumented_composite_score():
     assert "makes the ASIN the mandatory next input" in scenario
     assert "advance a candidate to seller-funnel validation" in scenario
     assert "makes one SQP artifact the mandatory next input" in scenario
-    assert "Do not phrase the ASIN or SQP handoff" in scenario
+    assert "render its scenario-defined request" in scenario
     assert "if product-specific prioritization is wanted" not in scenario
     assert "If seller calibration is needed" not in scenario
 
@@ -469,6 +467,8 @@ def test_reverse_asin_preserves_optional_routes_and_candidate_progression():
     assert "a raw-list-only request ends without a confirmation request" in scenario
     assert "omit it for a raw-list-only request" in scenario
     assert "Stage 1 is discovery, not keyword judgment" in scenario
+    assert "Do not call `realtime/product` or page acquisition during Stage 1" in scenario
+    assert "Retain any compatible carried product evidence without rendering or interpreting it during Stage 1" in scenario
     assert "A generic full-analysis request does not authorize automatic progression" in scenario
     assert "Do not call `market-profile` before that confirmation" in scenario
     assert "Advance to Stage 2 only when the candidate list was explicitly confirmed" in scenario
@@ -483,7 +483,6 @@ def test_reverse_asin_preserves_optional_routes_and_candidate_progression():
     assert "render a separate mandatory SQP next-input request" in scenario
     assert "assigning `Headroom validation` makes seller-funnel calibration necessary by definition" in scenario
     assert "never a `Final calibrated conclusion`" in scenario
-    assert "turn that required handoff into an optional offer" in scenario
     assert "include the mandatory separate SQP next-input section" in scenario
     assert "After the required Stage 1 traffic-term retrieval has produced usable evidence" in scenario
     assert "asking the user to confirm the list or name additions/removals" in scenario
@@ -523,16 +522,18 @@ def test_reverse_and_diagnosis_have_exclusive_question_boundaries():
     assert "do not request SQP there" in diagnosis
 
 
-def test_diagnosis_keeps_alert_semantics_and_artifact_guidance():
+def test_diagnosis_defers_thresholds_and_keeps_artifact_guidance():
     scenario = read("references/scenarios-keyword-traffic-diagnosis.md")
 
-    assert "## Alert-level meaning" in scenario
-    assert "magnitude and persistence of the observed movement" in scenario
-    assert "not confidence in its cause" in scenario
+    assert "## Alert-level meaning" not in scenario
+    assert "`High`:" not in scenario
+    assert "`Medium`:" not in scenario
+    assert "`Low`:" not in scenario
+    assert "description of the observed movement's magnitude and persistence" in scenario
     assert "sqp-field-semantics.md" in scenario
     assert "instead of redefining them here" in scenario
     assert "seller-funnel evidence as the exact next evidence" in scenario
-    assert "the next-input request is mandatory" in scenario
+    assert "scenario-defined direct acquisition-and-upload request" in scenario
     assert "one required next input when the conclusion carries a named unresolved question forward" in scenario
     assert "one optional next input" not in scenario
 
@@ -543,7 +544,7 @@ def test_target_keyword_candidate_advancement_requires_explicit_sqp_handoff():
     assert "advances any term for seller-funnel validation" in scenario
     assert "render a separate mandatory SQP next-input request" in scenario
     assert "makes seller-funnel calibration necessary by definition" in scenario
-    assert "Request one SQP artifact directly" in scenario
+    assert "triggers one SQP-artifact request through `sqp-field-semantics.md`" in scenario
     assert "when seller-funnel calibration is wanted" not in scenario
 
 
@@ -584,6 +585,7 @@ def test_full_mode_scenario_shapes_align_with_top_level_output_order():
     diagnosis = read("references/scenarios-keyword-traffic-diagnosis.md")
 
     assert "## [Localized Data Notes title]" in expand
+    assert "[Localized source and snapshot-period note]" not in expand
     assert "## [Localized Evidence title]" in expand
     assert "## [Localized Analysis title]" in expand
     assert "## [Localized Stage Conclusion title]" in expand
@@ -592,6 +594,18 @@ def test_full_mode_scenario_shapes_align_with_top_level_output_order():
     assert "2. Stage 1 traffic evidence." in reverse
     assert "3. Stage 1 analysis." in reverse
     assert "Data Notes, observed change/evidence, analysis or explanation status" in diagnosis
+
+
+def test_scenario_ads_handoffs_require_one_exact_named_question():
+    for relative_path in (
+        "references/scenarios-expand.md",
+        "references/scenarios-keyword-analysis.md",
+        "references/scenarios-reverse-asin.md",
+        "references/scenarios-keyword-traffic-diagnosis.md",
+    ):
+        scenario = read(relative_path)
+        assert "conclusion names one exact" in scenario, relative_path
+        assert "economics or execution remains unresolved" not in scenario, relative_path
 
 
 def test_supporting_acquisition_is_whitelisted_and_search_surfaces_stay_distinct():

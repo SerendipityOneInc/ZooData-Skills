@@ -53,7 +53,7 @@ Keep execution control separate from user communication. Runtime rules determine
 
 - Include only the evidence, conclusion, limitation, or next input the user needs to understand the current result and act on it.
 - Do not expose rule names, specification ownership, module boundaries, gate decisions, internal checklists, retry mechanics, parameter-mutation policy, command invocations, or maintainer rationale merely to explain why the Agent complied with this guide.
-- Surface a technical identifier or diagnostic detail only when the user explicitly asks for diagnostics or when that exact detail is necessary to correct a user-controlled input. Provide the smallest sufficient detail.
+- Surface a technical identifier or diagnostic detail only when the user explicitly asks for diagnostics, when that exact detail is necessary to correct a user-controlled input, or when a top-level user-facing output template explicitly requires it. Provide the smallest sufficient detail.
 - State a simple user action directly and naturally. Do not add a meta heading such as `Action` or `Action guidance` when one sentence is sufficient.
 - Scenario files may shape a report but must not weaken this boundary or turn internal execution state into user-facing prose.
 
@@ -416,7 +416,7 @@ Parameter correction belongs to a different response class: only HTTP 422 author
 ### Usage Accounting Rule
 
 - Every full-mode report that used live API data must end with the localized section representing the internal `API Usage` role
-- A one-sentence interface-failure notice is not a completed full-mode report; do not append API usage to that notice.
+- An interface-failure ledger notice is not a completed full-mode report; do not append API usage to that notice.
 - Count every API call actually executed, including duplicate, diagnostic, or recovery calls whose output was later discarded. A local parse failure does not erase the preceding call or its returned credit usage.
 - Do not include a separate `Data Provenance` table unless the user explicitly asks for source-by-section details
 - The localized API-usage section must contain a markdown table, not a bullet list

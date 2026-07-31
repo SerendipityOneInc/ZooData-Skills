@@ -44,19 +44,9 @@ For an ASIN × keyword anomaly, combine only the domains needed by the reported 
 - Change table comparing returned periods and fields.
 - ASIN-side timeline covering available product, placement, traffic, and event signals.
 - All-keyword traffic overview by placement when retrieved.
-- An evidence-bounded alert level for the observed movement, with its contributing returned signals shown alongside it.
+- An evidence-bounded description of the observed movement's magnitude and persistence, with the contributing returned signals shown alongside it.
 - Explanation status that distinguishes confirmed evidence, bounded hypotheses, and the exact unresolved question.
-- Evidence-authorized next action and, only when needed, the smallest next evidence.
-
-## Alert-level meaning
-
-Alert level describes the magnitude and persistence of the observed movement, not confidence in its cause.
-
-- `High`: a material movement persists across comparable observations and is supported by multiple aligned movement signals.
-- `Medium`: movement is notable but shorter-lived, mixed across signals, or limited by coverage.
-- `Low`: movement is small or visible only in a single snapshot/observation.
-
-Always show the contributing returned signals next to the label. Do not upgrade the alert level to imply a confirmed explanation or operating action.
+- Evidence-authorized next action and, when the conclusion advances or remains unresolved, the smallest directly matching next evidence.
 
 ## User journey
 
@@ -64,14 +54,14 @@ Always show the contributing returned signals next to the label. Do not upgrade 
 |---|---|---|---|
 | 1A. ASIN-wide anomaly triage | ASIN + change/anomaly question, no target keyword | Use `product-traffic-terms-overview` to show aggregate channel movement and any returned ORG first-three-page entries/exits. Present the bounded scope conclusion without a per-keyword cause. | Ask the user to select a target keyword for diagnosis or confirm a separate reverse-ASIN discovery stage, then stop. |
 | 1B. ASIN × keyword diagnosis | ASIN + keyword + relevant observation range | Use the timeline, market, SERP, and aggregate evidence needed to show what changed and resolve the narrowest reported uncertainty; present evidence, analysis, explanation status, and the stage conclusion. | If the stage conclusion identifies seller-funnel evidence as the exact next evidence for a named unresolved question, render a separate mandatory SQP next-input request through `sqp-field-semantics.md`, then stop. Otherwise end the completed diagnosis after usage reporting. |
-| 2. Seller-funnel calibration | Supplied SQP artifact | Analyze the current funnel evidence with retained Stage 1 constraints and present the seller-funnel conclusion. | Request Ads separately only when economics or execution remains unresolved. |
+| 2. Seller-funnel calibration | Supplied SQP artifact | Analyze the current funnel evidence with retained Stage 1 constraints and present the seller-funnel conclusion. | If the conclusion names one exact economics or execution question that requires Ads evidence, request one Ads artifact and stop; otherwise end after usage reporting. |
 | 3. Ads-economics calibration | Later Ads artifact, when required | Analyze the supplied search-term report and update only supported economics/execution conclusions. | Stop unless one named decision remains unresolved. |
 
 Apply the shared `Interactive Stage Gate` and `Stage Handoff Closure Gate` from `execution-guide.md`; each numbered stage is a separate user-decision turn. Multiple timeline/market/SERP calls needed to resolve the same Stage 1B diagnosis are within one stage, but SQP and Ads are later stages and must never be interpreted in the same turn as the preceding stage.
 
 Stage 1A ends only with a target-keyword selection request or confirmation to enter a separate reverse-ASIN discovery stage; do not request SQP there. At later seller-data boundaries, load `sqp-field-semantics.md` and follow its acquisition, sequencing, sufficiency, and field-interpretation rules instead of redefining them here.
 
-For Stage 1B, conditional acquisition is allowed only until the explanation status is written. Once that conclusion names SQP as the exact missing evidence, the next-input request is mandatory and must use a direct acquisition-and-upload instruction. Do not phrase it as `if wanted` or `if needed`, or append it as an optional suggestion.
+For Stage 1B, conditional acquisition is allowed only until the explanation status is written. Once that conclusion names SQP as the exact missing evidence, use the scenario-defined direct acquisition-and-upload request.
 
 ## Report shape
 

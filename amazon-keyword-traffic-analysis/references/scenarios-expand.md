@@ -28,12 +28,12 @@ Use `phrase`, then `fuzzy` when a phrase expansion is empty. Use metric-first ac
 | 1. Candidate recall | Seed keyword | Use `extends`; present related terms and why each belongs in the candidate set. Do not assign market or product-specific labels. | Ask the user to confirm the list or name additions/removals, then stop. A raw-term-only request ends here. |
 | 2. Market screening | User-confirmed candidate list | Batch `market-profile` for confirmed terms and add only named trend/SERP evidence; present the market-screen evidence, analysis, and shortlist conclusion. | If the conclusion assigns `Advance to ASIN validation` or `Selective ASIN validation`, render a separate mandatory ASIN next-input request and stop. A user-requested market-only screen may end after usage reporting. |
 | 3. ASIN candidate validation | Stage 2 conclusion + user-supplied ASIN | Combine carried candidate market evidence with current direct ASIN/product-fit evidence; present product-specific evidence, analysis, and provisional validation posture. | If any candidate receives `High validation priority`, `Selective validation`, or `Existing-fit validation`, render a separate mandatory SQP next-input request through `sqp-field-semantics.md`, then stop. |
-| 4. Seller-funnel calibration | Supplied SQP artifact | Analyze SQP with retained earlier-stage evidence and give the calibrated conclusion authorized by it. | Request Ads later only if economics or execution remains unresolved. |
+| 4. Seller-funnel calibration | Supplied SQP artifact | Analyze SQP with retained earlier-stage evidence and give the calibrated conclusion authorized by it. | If the conclusion names one exact economics or execution question that requires Ads evidence, request one Ads artifact and stop; otherwise end after usage reporting. |
 | 5. Ads-economics calibration | Later Ads artifact, when required | Analyze the search-term report and update only supported economics/execution conclusions. | Stop unless one named decision remains unresolved. |
 
 Apply the shared `Interactive Stage Gate` and `Stage Handoff Closure Gate` from `execution-guide.md`; each numbered stage is a separate user-decision turn. Do not call `market-profile` before the Stage 1 candidate list is confirmed, and do not combine candidate recall, market screening, and ASIN validation into one report. A supplied candidate list, ASIN, or file counts as confirmation for the matching next stage; do not ask for duplicate confirmation.
 
-When a transition label triggers the next stage, render its request in a separate localized next-input section. Do not phrase the ASIN or SQP handoff as `if wanted` or `if needed`, and do not call the provisional Stage 2 or Stage 3 posture a final conclusion.
+When a transition label triggers the next stage, render its scenario-defined request in a separate localized next-input section. Keep the Stage 2 or Stage 3 posture provisional.
 
 Do not request SQP before the ASIN observation and candidate-validation conclusion. At a seller-data boundary, load `sqp-field-semantics.md` and follow its acquisition, sequencing, sufficiency, and field-interpretation rules instead of redefining them here.
 
@@ -43,8 +43,6 @@ After the active expansion stage has completed its required retrieval under the 
 
 ```markdown
 # [Localized Keyword Expansion Report title] — [Seed Keyword]
-
-> [Localized source and snapshot-period note]
 
 ## [Localized Data Notes title]
 [State the evidence source, period, and current analysis scope.]
