@@ -43,6 +43,7 @@ The final column lists **related audit fields**, not published formulas. Do not 
 - Describe low `top20OrganicEntryDifficulty` as **relatively lower modeled entry difficulty**, never as “easy to rank.”
 - Describe `organicProductBenchmark` as a market-relative barrier, not an Amazon ranking formula.
 - Raw detail fields may provide traceability or a different named inference. They do not override the metric result and must not be used to reverse-engineer an undocumented formula.
+- When `annualSeasonality` is unsupported or has no returned peak evidence, omit seasonal timing and seasonal-cause narratives entirely. Hedging with `may`, `might`, `possibly`, or `可能` does not authorize an invented season, peak, or explanation.
 
 ## Cross-metric reconciliation framework
 

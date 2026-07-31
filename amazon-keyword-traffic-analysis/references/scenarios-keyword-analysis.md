@@ -13,20 +13,21 @@ Use this downstream scenario after loading the applicable top-level references. 
 
 ## User journey
 
-| Stage | Current input | Capability combination and user-facing outcome | Next input to request only when needed |
+| Stage | Current input | Capability combination and user-facing outcome | Transition |
 |---|---|---|---|
 | 1. Market screen | Target keyword | Combine market profile, weekly trend, and relevant SERP evidence; present market evidence, analysis, and a market-screen conclusion. | After a usable market conclusion, request the target ASIN for product-specific validation. |
 | 2. ASIN observation | Stage 1 conclusion + target ASIN | Combine carried market evidence with current observed product, placement, and traffic evidence; present ASIN evidence, analysis, and the current ASIN posture. | Present the candidate terms observed in the evidence or supplied by the user, request confirmation/additions/removals, and stop. |
-| 3. Candidate validation | Stage 2 conclusion + user-confirmed candidate terms | Batch the applicable market-profile capability across candidates; present candidate evidence, analysis, and an evidence-bounded validation pool. | After the candidate conclusion, request one SQP artifact through `sqp-field-semantics.md` when seller-funnel calibration is wanted. |
+| 3. Candidate validation | Stage 2 conclusion + user-confirmed candidate terms | Batch the applicable market-profile capability across candidates; present candidate evidence, analysis, and an evidence-bounded validation pool. | If the candidate conclusion advances any term for seller-funnel validation, render a separate mandatory SQP next-input request through `sqp-field-semantics.md`, then stop. If no term advances, end after usage reporting. |
 | 4. Seller-funnel calibration | Supplied SQP artifact | Load `sqp-field-semantics.md`; combine SQP with retained earlier-stage evidence and present the seller-funnel evidence, analysis, and conclusion authorized by the supplied fields. | Only if economics or execution remains unresolved, request one Ads artifact through that reference and stop. |
 | 5. Ads-economics calibration | Later Ads artifact, when required | Analyze the supplied search-term report and update only the economics/execution conclusions it supports. | No further input unless one named decision remains unresolved. |
 
 ### Stage transition gate
 
-- Apply the shared `Interactive Stage Gate` from `execution-guide.md`; each numbered stage is a separate user-decision turn.
+- Apply the shared `Interactive Stage Gate` and `Stage Handoff Closure Gate` from `execution-guide.md`; each numbered stage is a separate user-decision turn.
 - Complete every active stage in `evidence → analysis → stage conclusion`, followed by a next input only when the journey row defines one. The next-input request is not a substitute for the current-stage analysis or conclusion.
 - For natural target-keyword questions such as “值不值得打 / worth targeting / worth focusing on,” treat the journey as multi-stage unless the user explicitly requests market-only analysis.
 - When the completed stage's journey row defines a next input, render a separate localized `Next Input` section immediately after the stage conclusion. This section is mandatory for the multi-stage journey; never hide the request in the conclusion paragraph.
+- A Stage 3 conclusion that advances any term into the validation pool makes seller-funnel calibration necessary by definition. Request one SQP artifact directly; do not write `if wanted`, `if needed`, `如需`, or call the pre-SQP result final.
 - Keep the stage conclusion declarative and free of questions or input requests. Put exactly one concise request in `Next Input`; after Stage 1, request only the target ASIN.
 - Do not request an ASIN until Stage 1 has produced a usable market-screen conclusion. Do not request ABA-SQP until the ASIN observation and candidate-validation conclusions are complete.
 - At a seller-data boundary, load `sqp-field-semantics.md` and follow its acquisition, sequencing, sufficiency, and field-interpretation rules. Do not redefine those shared rules here.
@@ -44,7 +45,7 @@ Use this downstream scenario after loading the applicable top-level references. 
 
 ## Report progression
 
-- Keep the journey conversational: present the current stage's evidence, analysis, and stage conclusion first, then make one specific next-input request only if it unlocks the user's stated decision.
+- Keep the journey conversational: present the current stage's evidence, analysis, and stage conclusion first, then make the journey-defined next-input request whenever the conclusion advances a subject to the next evidence level.
 - With ASIN evidence, retain compatible market constraints and add the observed subject posture without collapsing market and subject signals.
 
 Use the shared guide for cross-metric reconciliation, evidence coverage, causal diagnosis, confidence, and output requirements.

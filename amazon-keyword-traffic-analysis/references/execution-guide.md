@@ -11,6 +11,7 @@ This file defines the shared execution protocol for every keyword scenario.
 - [Execution Mode](#execution-mode)
 - [Two-Pass Metric Protocol](#two-pass-metric-protocol)
 - [Evidence-Level Progression](#evidence-level-progression)
+- [Stage Handoff Closure Gate](#stage-handoff-closure-gate)
 - [Evidence-Seeking Diagnosis Protocol](#evidence-seeking-diagnosis-protocol)
 - [Evidence-to-Action Protocol](#evidence-to-action-protocol)
 - [Quick Mode Output](#quick-mode-output)
@@ -90,6 +91,21 @@ Apply these rules to every full-mode scenario. Scenario files select relevant ca
 - A user reply such as `confirm`, `continue`, or the requested ASIN/file/list counts as stage confirmation. Do not ask for a second confirmation after the user has supplied the exact next-stage input.
 - The Two-Pass Metric Protocol operates inside the active stage and does not require a user pause between retrieval and interpretation. Batch calls and other calls required to complete the same stage also remain allowed.
 - Quick single-lookup tasks and multiple evidence calls that answer one unchanged decision stage are not multi-stage workflows.
+
+### Stage Handoff Closure Gate
+
+Apply this gate after every full-mode stage conclusion and before drafting the next-input section:
+
+1. Classify the stage as exactly one of:
+   - `complete`: the user's current decision is answered at the available evidence level; omit next input;
+   - `advance`: the conclusion assigns a transition label or says a subject merits/requires a later evidence level;
+   - `unresolved`: the conclusion names one exact missing evidence item needed to answer the current decision.
+2. For `advance` or `unresolved`, progression is required by the conclusion itself. Render a separate localized next-input section with one direct, executable request that names the subject/scope, acquisition path when applicable, and confirmation or upload action. Then stop and wait for the user.
+3. Never make a required handoff optional with `if you want`, `if needed`, `when wanted`, `如需`, or equivalent wording. Screenshot/CSV or other artifact formats may be alternatives; whether to perform the required handoff is not.
+4. Keep the stage conclusion declarative and separate from the request. Do not bury the next input in the conclusion, replace the conclusion with a question, or call a pre-seller-data result a `Final calibrated conclusion`.
+5. Scenario journey rows must name the observable trigger for a transition, such as a specific label, advanced candidate, or exact unresolved evidence. Vague predicates such as “when calibration is wanted/needed” are invalid.
+
+Every full-mode scenario must explicitly inherit this gate. Scenario files may define their transition triggers and requested artifact, but may not weaken the required handoff after a trigger fires.
 
 ### General Progression Rules
 
@@ -223,6 +239,7 @@ Before running any Full-mode keyword task:
 - [ ] Confirm the date lens: weekly snapshot, recent 4-8 weeks, or latest sliding window; for keyword lookups that require `date` or `dateTo`, prefer T-1 or earlier and avoid the current date unless explicitly requested. In user-facing progress updates, simply state the selected marketplace/date without extra rationale unless the user asks why.
 - [ ] Identify the current evidence level and, when applicable, the scenario-defined conversation stage before selecting conclusions or the next-step request
 - [ ] Apply the Interactive Stage Gate: verify that every planned call belongs to the current user-decision stage, omit later-stage calls, and end with one confirmation or input request
+- [ ] Apply the Stage Handoff Closure Gate: classify the stage as `complete`, `advance`, or `unresolved`; for the latter two, render the scenario-defined next-input request as mandatory, separate, and executable
 - [ ] Check whether the user provided Amazon backend ABA-SQP search conversion data for the relevant ASIN/brand/query/date range
 - [ ] Add one short, localized `Data Notes` section near the top naming the evidence source, period, and current analysis scope; do not duplicate it near the end
 - [ ] Apply the User-Facing Language Rule to every title, heading, label, table header, status value, disclaimer, and fixed phrase; preserve only exact identifiers that require source spelling
@@ -286,6 +303,8 @@ Do not replace this evidence chain with generic capability disclaimers, a list o
 ### Interface Failure Stop Gate
 
 Treat a timeout after the client's documented retries, connection/DNS failure, HTTP 5xx, unavailable endpoint, rate-limit/service rejection, non-zero execution without a valid structured result, or malformed/unparseable response as an interface failure.
+
+A local parsing, transformation, extraction, or formatting command that fails after a paid API response is also an interface failure for that evidence unit. If the original valid structured response is still available, use it directly without another evidence call; otherwise stop under this gate. Never call the same paid endpoint again merely to change output format or recover from local post-processing failure.
 
 1. Stop the workflow immediately after the failure. Do not call another endpoint, retry through another surface, descend to a data layer, split/fan out the request, or continue to a later scenario stage.
 2. Report the failing endpoint or tool, subject/request scope, attempt/retry status, and exact returned error or absence of a parseable response.
@@ -369,6 +388,7 @@ Treat a timeout after the client's documented retries, connection/DNS failure, H
 ### Usage Accounting Rule
 
 - Every full-mode report that used live API data must end with the localized section representing the internal `API Usage` role
+- Count every API call actually executed, including duplicate, diagnostic, or recovery calls whose output was later discarded. A local parse failure does not erase the preceding call or its returned credit usage.
 - Do not include a separate `Data Provenance` table unless the user explicitly asks for source-by-section details
 - The localized API-usage section must contain a markdown table, not a bullet list
 - Its table must aggregate calls by endpoint and sum `meta.creditsConsumed` from the responses

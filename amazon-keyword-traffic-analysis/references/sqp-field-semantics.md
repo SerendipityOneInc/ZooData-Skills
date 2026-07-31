@@ -6,6 +6,8 @@
 
 The active scenario requests this data only when seller-funnel calibration is needed. Guide the user through artifact acquisition instead of asking them to assemble fields manually.
 
+Once the active scenario determines that seller-funnel calibration is needed, state the request directly in a separate next-input section and end with an upload action. The screenshot/CSV formats below are alternatives for how to provide the artifact, not a choice about whether to continue. Do not introduce the request with optional wording such as `if you want`, `if needed`, or `如需`. Name the selected view, subject, marketplace, latest completed reporting week, and target-query scope needed for the unresolved decision.
+
 ### User-facing SQP acquisition
 
 1. Open Seller Central: `Brand Analytics → Search Analytics → Search Query Performance`.

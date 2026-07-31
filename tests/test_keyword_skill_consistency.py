@@ -1,5 +1,6 @@
 """Structural and safety guardrails for the keyword-analysis skill."""
 
+import re
 from pathlib import Path
 
 
@@ -57,11 +58,21 @@ def test_execution_guide_is_the_single_shared_workflow_source():
     assert "我先看看这 6 个词在美国站最近一周的市场表现" in guide
     assert "## Two-Pass Metric Protocol" in guide
     assert "### Interactive Stage Gate" in guide
+    assert "### Stage Handoff Closure Gate" in guide
+    assert "Classify the stage as exactly one of" in guide
+    assert "`complete`" in guide
+    assert "`advance`" in guide
+    assert "`unresolved`" in guide
+    assert "Scenario journey rows must name the observable trigger" in guide
+    assert "Every full-mode scenario must explicitly inherit this gate" in guide
     assert "Complete at most one user-decision stage per assistant turn" in guide
     assert "Do not call a later-stage capability before the user explicitly confirms progression" in guide
     assert "does not pre-authorize every later stage" in guide
     assert "Do not combine several completed stages into one long process report" in guide
     assert "followed by at most one next-step confirmation or input request when progression is needed" in guide
+    assert "progression is required by the conclusion itself" in guide
+    assert "one direct, executable request" in guide
+    assert "Never make a required handoff optional" in guide
     assert "without manufacturing another request" in guide
     assert "single next action needed from the user, if any" in guide
     assert "retain it without interpreting it" in guide
@@ -75,6 +86,8 @@ def test_execution_guide_is_the_single_shared_workflow_source():
     assert "Stop the workflow immediately after the failure" in guide
     assert "Do not call another endpoint" in guide
     assert "do not request ASIN, price, margin, SQP, Ads" in guide
+    assert "local parsing, transformation, extraction, or formatting command that fails" in guide
+    assert "Never call the same paid endpoint again merely to change output format" in guide
     assert "evidence → analysis → conclusion" in guide
     assert "### Available Data → Conclusion Scope" not in guide
     assert "### Scenario Routing Rule" not in guide
@@ -134,6 +147,32 @@ def test_scenarios_are_capability_guides_without_independent_scoring_or_gates():
         assert "Cross-Metric Reconciliation Protocol" not in text
 
 
+def test_all_scenarios_inherit_and_preserve_stage_handoff_closure_gate():
+    scenarios = sorted((ROOT / "references").glob("scenarios-*.md"))
+    assert len(scenarios) == 4
+
+    vague_transition = re.compile(
+        r"\b(?:if|when)\b[^|]*(?:needed|wanted)\b",
+        re.IGNORECASE,
+    )
+    for path in scenarios:
+        text = path.read_text(encoding="utf-8")
+        assert "`Stage Handoff Closure Gate`" in text, path.name
+        assert "one optional next input" not in text, path.name
+
+        in_journey = False
+        for line in text.splitlines():
+            if line == "## User journey":
+                in_journey = True
+                continue
+            if in_journey and line.startswith("## "):
+                break
+            if in_journey and line.startswith("|") and vague_transition.search(line):
+                raise AssertionError(
+                    f"{path.name} has a vague journey transition: {line}"
+                )
+
+
 def test_scenarios_keep_their_user_input_journeys():
     target = read("references/scenarios-keyword-analysis.md")
     expand = read("references/scenarios-expand.md")
@@ -186,6 +225,13 @@ def test_expansion_does_not_define_an_undocumented_composite_score():
     assert "| 2. Market screening" in scenario
     assert "Do not call `market-profile` before the Stage 1 candidate list is confirmed" in scenario
     assert "do not combine candidate recall, market screening, and ASIN validation into one report" in scenario
+    assert "are transition labels" in scenario
+    assert "makes the ASIN the mandatory next input" in scenario
+    assert "advance a candidate to seller-funnel validation" in scenario
+    assert "makes one SQP artifact the mandatory next input" in scenario
+    assert "Do not phrase the ASIN or SQP handoff" in scenario
+    assert "if product-specific prioritization is wanted" not in scenario
+    assert "If seller calibration is needed" not in scenario
 
 
 def test_reverse_asin_preserves_optional_routes_and_candidate_progression():
@@ -209,8 +255,13 @@ def test_reverse_asin_preserves_optional_routes_and_candidate_progression():
     assert "`realtime/product` for the target ASIN" in scenario
     assert "sufficient directly observed ASIN/product-fit evidence" in scenario
     assert "without sufficient direct product-fit evidence remain unvalidated" in scenario
-    assert "request SQP next only when seller-funnel calibration is needed" in scenario
-    assert "Include a separate SQP next-input section only when seller-funnel calibration is needed" in scenario
+    assert "Assigning this label means seller-funnel calibration is the required next stage" in scenario
+    assert "If any candidate receives `Headroom validation`" in scenario
+    assert "render a separate mandatory SQP next-input request" in scenario
+    assert "assigning `Headroom validation` makes seller-funnel calibration necessary by definition" in scenario
+    assert "never a `Final calibrated conclusion`" in scenario
+    assert "turn that required handoff into an optional offer" in scenario
+    assert "include the mandatory separate SQP next-input section" in scenario
     assert "For Stage 1, render localized sections in this order and then stop" in scenario
     assert "asking the user to confirm the list or name additions/removals" in scenario
     assert "Do not collapse the two stages into one response, auto-run Stage 2" in scenario
@@ -222,6 +273,9 @@ def test_reverse_asin_preserves_optional_routes_and_candidate_progression():
     for action_label in ("`Defend`", "`Expand`", "`Avoid`"):
         assert action_label not in scenario
     assert "sole source for acquisition, sequencing, sufficiency, and field interpretation" in scenario
+    assert "a sponsored-only row or selected Top-N subset does not establish overall advertising dependence" in scenario
+    assert "algorithmic recognition, or organic improvement potential" in scenario
+    assert "Do not call coverage `full`, `complete`, or `stable`" in scenario
 
 
 def test_reverse_and_diagnosis_have_exclusive_question_boundaries():
@@ -254,6 +308,20 @@ def test_diagnosis_keeps_alert_semantics_and_artifact_guidance():
     assert "not confidence in its cause" in scenario
     assert "sqp-field-semantics.md" in scenario
     assert "instead of redefining them here" in scenario
+    assert "seller-funnel evidence as the exact next evidence" in scenario
+    assert "the next-input request is mandatory" in scenario
+    assert "one required next input when the conclusion carries a named unresolved question forward" in scenario
+    assert "one optional next input" not in scenario
+
+
+def test_target_keyword_candidate_advancement_requires_explicit_sqp_handoff():
+    scenario = read("references/scenarios-keyword-analysis.md")
+
+    assert "advances any term for seller-funnel validation" in scenario
+    assert "render a separate mandatory SQP next-input request" in scenario
+    assert "makes seller-funnel calibration necessary by definition" in scenario
+    assert "Request one SQP artifact directly" in scenario
+    assert "when seller-funnel calibration is wanted" not in scenario
 
 
 def test_api_reference_remains_the_contract_source():
@@ -342,6 +410,10 @@ def test_seller_data_requests_use_progressive_artifact_guidance():
     assert "Do not ask the user to provide SQP and Ads data in the same next-input step" in guide
     assert "ask for that artifact instead of making the user transcribe or assemble a field list" in guide
     assert "### User-facing SQP acquisition" in semantics
+    assert "state the request directly in a separate next-input section" in semantics
+    assert "not a choice about whether to continue" in semantics
+    assert "Do not introduce the request with optional wording" in semantics
+    assert "latest completed reporting week, and target-query scope" in semantics
     assert "click the page's `Download` control and upload the original CSV unchanged" in semantics
     assert "Do not enumerate the full SQP schema in the request" in semantics
     assert "One completed week is sufficient for the initial current-period funnel judgment" in semantics
@@ -353,6 +425,18 @@ def test_seller_data_requests_use_progressive_artifact_guidance():
     assert "`Sponsored Products` as the ad product/campaign type" in semantics
     assert "`Search term` as the report type" in semantics
     assert "After its status is complete, download the original CSV" in semantics
+
+
+def test_usage_counts_discarded_calls_and_unsupported_seasonality_is_omitted():
+    guide = read("references/execution-guide.md")
+    market_semantics = read("references/metrics-market-profile.md")
+
+    assert "Count every API call actually executed" in guide
+    assert "whose output was later discarded" in guide
+    assert "A local parse failure does not erase the preceding call" in guide
+    assert "When `annualSeasonality` is unsupported" in market_semantics
+    assert "omit seasonal timing and seasonal-cause narratives entirely" in market_semantics
+    assert "Hedging with `may`, `might`, `possibly`, or `可能`" in market_semantics
 
 
 def test_seller_acquisition_details_have_one_source():
