@@ -32,7 +32,7 @@ Use this downstream scenario after loading the applicable top-level references. 
 - Do not request an ASIN until Stage 1 has produced a usable market-screen conclusion. Do not request ABA-SQP until the ASIN observation and candidate-validation conclusions are complete.
 - At a seller-data boundary, load `sqp-field-semantics.md` and follow its acquisition, sequencing, sufficiency, and field-interpretation rules. Do not redefine those shared rules here.
 - Do not request price, contribution margin, budget, SQP, or Ads data as a substitute for unavailable market demand, trend, structure, or SERP evidence. Those inputs cannot repair a failed Stage 1 retrieval.
-- If a Stage 1 interface fails, times out, or returns malformed/unparseable data, apply the shared Interface Failure Stop Gate: report the interface error and stop without another call, analysis verdict, or next-stage input request. If the interface succeeds with a valid empty/unsupported result, apply Valid No-Data Reporting instead.
+- If a Stage 1 interface fails, times out, or returns malformed/unparseable data, apply the shared Interface Failure Stop Gate and stop without another call, analysis verdict, or next-stage input request. If the interface succeeds with a valid empty/unsupported result, apply Valid No-Data Reporting instead.
 - If the user supplied later-stage inputs early, retain them without interpretation. Complete only the current stage, then ask for confirmation to continue with the retained input; never ask the user to provide it again.
 
 ## Supported report outputs

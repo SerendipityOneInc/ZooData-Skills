@@ -208,6 +208,7 @@ def test_execution_guide_is_the_single_shared_workflow_source():
     assert guide.index("## Contents") < guide.index("## Authority and routing")
     assert "[Structured Field Identity Gate](#structured-field-identity-gate)" in guide
     assert "[User-Facing Language Rule](#user-facing-language-rule)" in guide
+    assert "[User-Facing Output Boundary](#user-facing-output-boundary)" in guide
     assert "[Monitoring Cadence Suggestion](#monitoring-cadence-suggestion)" in guide
     assert "question → evidence plan → retrieval → field interpretation → analysis → evidence-bounded conclusion" in guide
     assert "Scenario files are downstream applications" in guide
@@ -255,7 +256,7 @@ def test_execution_guide_is_the_single_shared_workflow_source():
     assert "local parsing, transformation, extraction, or formatting command that fails" in guide
     assert "Never call the same paid endpoint again merely to change output format" in guide
     assert "not evidence that the requested date or other parameters are wrong" in guide
-    assert "retry the same request later" in guide
+    assert "send only one short localized sentence equivalent to `服务暂时不可用，请稍后重试。`" in guide
     assert "Do not execute any subsequent API or tool command in that turn" in guide
     assert "never announce or attempt “an earlier date,”" in guide
     assert "only HTTP 422 authorizes correcting the documented validation violation" in guide
@@ -270,6 +271,28 @@ def test_execution_guide_is_the_single_shared_workflow_source():
     assert "give diagnosis precedence" in guide
     assert "Combine scenario capability combinations only when their boundaries are non-exclusive" in guide
     assert "combine their relevant capability combinations" not in guide
+
+
+def test_user_facing_output_boundary_hides_internal_failure_policy():
+    guide = read("references/execution-guide.md")
+    scenarios = [
+        path.read_text(encoding="utf-8")
+        for path in sorted((ROOT / "references").glob("scenarios-*.md"))
+    ]
+
+    assert "## User-Facing Output Boundary" in guide
+    assert "Runtime rules determine what the Agent does; they are not user-facing report content" in guide
+    assert "Do not expose rule names, specification ownership, module boundaries" in guide
+    assert "Surface a technical identifier or diagnostic detail only when the user explicitly asks" in guide
+    assert "Do not add a meta heading such as `Action`, `Action guidance`, or `操作指引`" in guide
+    assert "Retain the failing endpoint or tool" in guide
+    assert "Do not surface them by default" in guide
+    assert "send only one short localized sentence equivalent to `服务暂时不可用，请稍后重试。`" in guide
+    assert "Do not add a heading, endpoint/tool name, HTTP status, retry count" in guide
+    assert "API-usage section, parameter-preservation warning, or action-guidance section" in guide
+    assert "A one-sentence interface-failure notice is not a completed full-mode report" in guide
+    assert "Report the failing endpoint or tool" not in guide
+    assert "report the interface error" not in "\n".join(scenarios)
 
 
 def test_top_level_localization_preserves_exact_enums_and_localizes_usage_labels():

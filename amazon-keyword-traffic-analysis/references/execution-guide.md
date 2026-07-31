@@ -7,6 +7,7 @@ This file defines the shared execution protocol for every keyword scenario.
 - [Authority and routing](#authority-and-routing)
 - [Structured Field Identity Gate](#structured-field-identity-gate)
 - [User-Facing Language Rule](#user-facing-language-rule)
+- [User-Facing Output Boundary](#user-facing-output-boundary)
 - [Retrieval Progress Updates](#retrieval-progress-updates)
 - [Execution Mode](#execution-mode)
 - [Two-Pass Metric Protocol](#two-pass-metric-protocol)
@@ -45,6 +46,16 @@ Before translating or interpreting an API field, screenshot, CSV, or report fiel
 ## User-Facing Language Rule
 
 Localize all generated headings, labels, human-readable status labels, table headers, disclaimers, and fixed phrases to the user's language. Preserve source spelling for exact identifiers such as endpoint paths, fields, enum values, ASINs, query strings, brands, product names, placement codes, and established abbreviations. When reporting a source enum such as `status=empty`, retain the exact enum value and add a localized explanation when needed; do not translate the value inside the identifier. Before sending, remove template-language leakage.
+
+## User-Facing Output Boundary
+
+Keep execution control separate from user communication. Runtime rules determine what the Agent does; they are not user-facing report content.
+
+- Include only the evidence, conclusion, limitation, or next input the user needs to understand the current result and act on it.
+- Do not expose rule names, specification ownership, module boundaries, gate decisions, internal checklists, retry mechanics, parameter-mutation policy, command invocations, or maintainer rationale merely to explain why the Agent complied with this guide.
+- Surface a technical identifier or diagnostic detail only when the user explicitly asks for diagnostics or when that exact detail is necessary to correct a user-controlled input. Provide the smallest sufficient detail.
+- State a simple user action directly and naturally. Do not add a meta heading such as `Action`, `Action guidance`, or `操作指引` when one sentence is sufficient.
+- Scenario files may shape a report but must not weaken this boundary or turn internal execution state into user-facing prose.
 
 ## Retrieval Progress Updates
 
@@ -304,15 +315,15 @@ Do not replace this evidence chain with generic capability disclaimers, a list o
 
 Treat a timeout after the client's documented retries, connection/DNS failure, HTTP 5xx, unavailable endpoint, rate-limit/service rejection, non-zero execution without a valid structured result, or malformed/unparseable response as an interface failure.
 
-An HTTP 5xx returned after the client's built-in retry budget is exhausted is a terminal failure for the current workflow and a hard interrupt for the current turn, not a first failed observation and not evidence that the requested date or other parameters are wrong. Report the service as currently unavailable and, when useful, tell the user to retry the same request later. Do not execute any subsequent API or tool command in that turn. In particular, never announce or attempt “an earlier date,” another marketplace, subject, filter, pagination value, endpoint, or surface to work around the 5xx.
+An HTTP 5xx returned after the client's built-in retry budget is exhausted is a terminal failure for the current workflow and a hard interrupt for the current turn, not a first failed observation and not evidence that the requested date or other parameters are wrong. Do not execute any subsequent API or tool command in that turn. In particular, never announce or attempt “an earlier date,” another marketplace, subject, filter, pagination value, endpoint, or surface to work around the 5xx.
 
 A local parsing, transformation, extraction, or formatting command that fails after a paid API response is also an interface failure for that evidence unit. If the original valid structured response is still available, use it directly without another evidence call; otherwise stop under this gate. Never call the same paid endpoint again merely to change output format or recover from local post-processing failure.
 
 1. Stop the workflow immediately after the failure. Do not call another endpoint, retry through another surface, descend to a data layer, split/fan out the request, or continue to a later scenario stage.
-2. Report the failing endpoint or tool, subject/request scope, attempt/retry status, and exact returned error or absence of a parseable response.
+2. Retain the failing endpoint or tool, subject/request scope, attempt/retry status, and exact returned error internally for diagnostics. Do not surface them by default.
 3. Do not produce the requested market/product/operating conclusion from partial evidence and do not request ASIN, price, margin, SQP, Ads, or any other next-stage input.
-4. If earlier calls succeeded, they may be listed as completed retrieval evidence, but must not be presented as a completed analysis after the required interface failed.
-5. End with API usage already returned. Do not estimate missing credits or continue execution.
+4. Retain any earlier successful retrieval for compatible later reuse, but do not list it as completed evidence or present a partial analysis in the failure notice.
+5. For HTTP 5xx, send only one short localized sentence equivalent to `服务暂时不可用，请稍后重试。` Then stop. Do not add a heading, endpoint/tool name, HTTP status, retry count, cause label, request parameters, workflow rationale, previous retrieval state, API-usage section, parameter-preservation warning, or action-guidance section. Provide technical diagnostics only when the user explicitly asks for them.
 
 Parameter correction belongs to a different response class: only HTTP 422 authorizes correcting the documented validation violation identified by the server. A valid `status=empty` may justify a separately supported alternate query or period when the active scenario and endpoint contract permit it; that is no-data follow-up, not recovery from an interface failure. Never transfer either behavior to HTTP 5xx.
 
@@ -370,7 +381,7 @@ Parameter correction belongs to a different response class: only HTTP 422 author
 ### Evidence Gate Rule
 
 - Every conclusion must be directly supported by the endpoint designed for that evidence type
-- If an endpoint returned no data or was unavailable, state the gap explicitly; do not downgrade silently
+- If a successful response returned valid no data, state the gap explicitly; do not downgrade silently. For an interface failure, use the concise failure notice defined by the Interface Failure Stop Gate instead.
 - Do not bridge a missing evidence type with a loosely related endpoint
 - After detecting a problem, seek evidence that distinguishes explanations before stating a cause; if none is available, stop at the unresolved problem and request the minimum next evidence instead of listing generic causes
 
@@ -392,6 +403,7 @@ Parameter correction belongs to a different response class: only HTTP 422 author
 ### Usage Accounting Rule
 
 - Every full-mode report that used live API data must end with the localized section representing the internal `API Usage` role
+- A one-sentence interface-failure notice is not a completed full-mode report; do not append API usage to that notice.
 - Count every API call actually executed, including duplicate, diagnostic, or recovery calls whose output was later discarded. A local parse failure does not erase the preceding call or its returned credit usage.
 - Do not include a separate `Data Provenance` table unless the user explicitly asks for source-by-section details
 - The localized API-usage section must contain a markdown table, not a bullet list
