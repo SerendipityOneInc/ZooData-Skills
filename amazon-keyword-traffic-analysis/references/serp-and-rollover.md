@@ -62,4 +62,3 @@ Weekly aggregate rows do not provide a chronological event stream. Multiple ASIN
 
 - SERP and rollover evidence can describe observed structure, estimated exposure distribution, and stability.
 - It cannot by itself prove an ASIN's relevance, conversion, profitability, future rank, Amazon ranking mechanism, bid requirement, or budget priority.
-- A market-level run may decide only whether ASIN-level validation is warranted; it must not assign SEO/ad roles or a product-specific test tier before the ASIN is observed.

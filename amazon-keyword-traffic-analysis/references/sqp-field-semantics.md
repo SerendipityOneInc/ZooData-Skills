@@ -1,12 +1,14 @@
-# ABA Search Query Performance Field Semantics
+# Seller Artifact Field Semantics — ABA-SQP and Amazon Ads
 
-> Load this file whenever the user supplies an ABA-SQP screenshot, CSV, or pasted table.
+> Load this file whenever the user supplies an ABA-SQP or Amazon Ads screenshot, CSV, report, settings view, or pasted table.
 
 ## Provisioning contract
 
-The active scenario requests this data only when seller-funnel calibration is needed. Guide the user through artifact acquisition instead of asking them to assemble fields manually.
+Load this acquisition guidance when the shared workflow requests a seller-funnel artifact as the one exact next input. Guide artifact acquisition instead of asking the user to assemble fields manually.
 
-Once the active scenario determines that seller-funnel calibration is needed, state the request directly in a separate next-input section and end with an upload action. The screenshot/CSV formats below are alternatives for how to provide the artifact, not a choice about whether to continue. Do not introduce the request with optional wording such as `if you want`, `if needed`, or `如需`. Name the selected view, subject, marketplace, latest completed reporting week, and target-query scope needed for the unresolved decision.
+Request one seller report or view at a time. Do not request SQP and Ads artifacts in the same stage-end list; analyze SQP first and request Ads only through its later evidence stage when that evidence remains required.
+
+Render the artifact request as one continuation item under the shared Stage-End Selection List Rule, with the upload action inside that item. Screenshot and CSV are format alternatives for supplying the same requested evidence, not separate list items. Name the selected view, subject, marketplace, latest completed reporting week, and target-query scope needed for the unresolved decision.
 
 ### User-facing SQP acquisition
 
@@ -14,13 +16,13 @@ Once the active scenario determines that seller-funnel calibration is needed, st
 2. For an ASIN-specific judgment, select `ASIN View`, the target ASIN, marketplace, and latest completed reporting week, then locate the target query. For a brand-level judgment, select `Brand View` instead.
 3. Offer two alternatives: upload one screenshot showing the selected view/subject/period, target query, and visible funnel headers and row; or click the page's `Download` control and upload the original CSV unchanged.
 
-Do not enumerate the full SQP schema in the request, require manual transcription, or ask for both formats. Accept pasted data when the user volunteers it. After receiving the artifact, inspect whether the `Impressions`, `Clicks`, `Cart Adds`, `Purchases`, and `Search Query Volume` fields required for the named decision are present; request one missing field only if its absence blocks the conclusion.
+Do not enumerate the full SQP schema in the request, require manual transcription, or ask for both formats. Accept pasted data when the user volunteers it. After receiving the artifact, inspect whether the `Impressions`, `Clicks`, `Cart Adds`, `Purchases`, and `Search Query Volume` fields required for the named decision are present; include one exact missing-field continuation in the stage-end list only if its absence blocks the conclusion.
 
 One completed week is sufficient for the initial current-period funnel judgment. Do not default to requesting 4–8 weeks. Request additional completed weeks only when the user asks for trend/stability or when the first week's visible event counts are too sparse or atypical to support the named conclusion; explain that specific reason and retain the same subject/query scope.
 
 ### Later Ads acquisition
 
-Do not request Ads data together with SQP. First analyze the SQP artifact. Only if the remaining question concerns profitability, bids, budgets, match types, or allocation, give the user this complete acquisition path:
+Do not request Ads data together with SQP. First analyze the SQP artifact. Use the following Ads acquisition path only when the shared workflow subsequently requests an Ads artifact as the one exact next input for a remaining profitability, bid, budget, match-type, or allocation question:
 
 1. Open the Amazon Ads advertising console and switch to the requested marketplace/account profile.
 2. In the standard sponsored-ads interface, open `Measurement & Reporting → Sponsored ads reports → Create report`. If the account has migrated to unified reporting and those labels are absent, use `Reporting → Create report` instead.
@@ -28,6 +30,50 @@ Do not request Ads data together with SQP. First analyze the SQP artifact. Only 
 4. Run the report. After its status is complete, download the original CSV from the reports list and upload it unchanged.
 
 If downloading is inconvenient, accept one screenshot containing the CSV/report headers and the complete target search-term row. Inspect the artifact's available Search term, Match type, Impressions, Clicks, Spend, Orders, Sales, CPC, CVR, and ACOS/ROAS fields internally; do not make that schema the user's manual checklist.
+
+A Search term report supplies attributed performance evidence; it does not normally establish the current bid, effective bid after placement adjustments, bidding strategy, campaign budget, spend ceiling, or product unit economics. When the named decision requires one of those fields, accept the smallest later targeting/campaign settings view or export and seller-provided economics that exposes the missing identity. Do not infer a current control setting from CPC or infer profit from attributed sales.
+
+## Amazon Ads schema identity
+
+Record this identity tuple before extracting or combining Ads values:
+
+`source → account profile → marketplace → ad product → report/view → campaign → ad group → target → search term → match type → attribution scope → period → time unit → currency → field → unit → denominator`
+
+- A search term is the shopper query that received attributed performance. A keyword/product target is the advertiser-controlled target. They are not interchangeable even when their text matches.
+- Campaign, ad-group, portfolio, placement, target, and search-term rows have different scopes. Preserve the row scope through extraction, aggregation, and conclusion.
+- Preserve the report's start/end dates, time unit, currency, and returned attribution labels or window. If attribution identity is absent, describe sales/orders as report-returned attributed values and do not invent the window.
+- A current settings screenshot or export must visibly identify the controlled target and its marketplace/account/campaign context. Conversation context cannot repair a cropped or ambiguous control identity.
+
+## Amazon Ads field semantics
+
+| Field | Measurement | Unit / denominator | Supported interpretation boundary |
+|---|---|---|---|
+| `Impressions` | Returned ad impressions in the row scope | impression events | Delivery volume; not shopper reach, relevance, or demand by itself |
+| `Clicks` | Returned ad clicks in the row scope | click events | Click volume; not CTR without compatible impressions |
+| `Spend` | Advertising cost in the report currency | currency | Attributed ad spend for the row scope; not total product cost |
+| `Orders` | Report-attributed orders | order events under the returned attribution scope | Attributed order volume; not total seller orders or profit |
+| `Sales` | Report-attributed sales | currency under the returned attribution scope | Attributed revenue; not contribution profit |
+| `CPC` | Spend per click | `Spend ÷ Clicks` | Average click cost in the row scope; not the current bid or clearing rule |
+| `CVR` | Attributed orders per click | `Orders ÷ Clicks` | Ads-attributed click-to-order rate for the row scope |
+| `ACOS` | Spend relative to attributed sales | `Spend ÷ Sales` | Advertising cost ratio within the returned attribution scope; not profit margin |
+| `ROAS` | Attributed sales relative to spend | `Sales ÷ Spend` | Attributed revenue multiple within the returned attribution scope; not profit multiple |
+| Current bid / budget | Visible advertiser control setting | report currency per click or per day, as labeled | Current configured control only; it is not the effective CPC or a recommended value |
+
+### Ads denominator and aggregation rules
+
+1. Use a returned rate only with its visible row scope and attribution context. When deriving a rate, label the formula and use compatible non-null numerators and denominators from the same scope and period.
+2. Do not average row-level CPC, CVR, ACOS, or ROAS values to form a combined result. Sum compatible numerators and denominators first, then recompute the rate.
+3. A zero or missing denominator makes the corresponding derived rate unavailable. Do not replace it with zero, infinity, a default, or a category benchmark.
+4. Do not combine currencies, marketplaces, attribution scopes, ad products, time units, or overlapping rollups. Do not sum a campaign total together with its child rows.
+5. Keep search-term performance separate from target settings. CPC does not reveal the current bid, and a campaign budget does not reveal how spend should be allocated among targets.
+
+### Ads economics and control boundaries
+
+- Ads impressions, clicks, spend, attributed orders, attributed sales, CPC, CVR, ACOS, and ROAS support advertising-performance observations only within the preserved report scope.
+- Product profitability requires seller-supplied unit economics that cover the material revenue adjustments, Amazon/referral and fulfillment fees, product and inbound costs, promotions, returns or other applicable costs, or a seller-provided break-even/target ACOS or ROAS explicitly grounded in those economics.
+- Bid-control identity is incomplete unless the exact current bid, bidding strategy, material placement adjustments, and controlled target are visible in one compatible scope. None of those fields by itself encodes a recommended bid.
+- Budget-control identity is incomplete unless the exact current budget, spend and budget-pacing scope, and relevant campaign/portfolio constraints are visible in one compatible scope. None of those fields by itself encodes a recommended budget or allocation.
+- No universal click, order, spend, or date threshold is defined here. Sparse, zero-denominator, newly launched, promotion-distorted, stockout-affected, or otherwise atypical observations limit sufficiency; they never authorize a guessed number.
 
 ## SQP schema identity
 

@@ -29,4 +29,4 @@ For every requested window, inspect `rowContext`, `status`, `emptyReason`, then 
 - A 4-week rise with a stable or unclear 12-week profile supports “recent strengthening without confirmed medium-term growth,” not “a growing keyword.”
 - If windows disagree, report the disagreement as different time horizons. Do not average them into a stronger single conclusion.
 - `status=empty` ends the corresponding window/dimension conclusion; never invent missing periods or a reason when the response does not provide one.
-- Use raw weekly series for transparent point-by-point calculations only when that grain is necessary. Label calculations as Agent-derived and state the period count.
+- Point-by-point calculations from raw weekly series are Agent-derived rather than returned trend-profile metrics; label them accordingly and state the period count.

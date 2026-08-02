@@ -36,7 +36,7 @@ Do not move Agent outputs such as `recommendedAction`, `conclusion`, `reasoning`
 | `keywords/product-traffic-terms` | data | available | `data.context + data.identity + data.rows[]` |
 | `keywords/competitor-product-keywords` | data | available | same shape as `product-traffic-terms` |
 | `keywords/product-traffic-terms-timeline` | data | available | `data.context + data.items[].series[]` |
-| `keywords/product-traffic-terms-overview` | aggregate | available, legacy shape | flat `data` object with current and `*Prev` fields |
+| `keywords/product-traffic-terms-overview` | aggregate metric | available, legacy shape | flat `data` object with current channel and matching `*Prev` fields |
 | `realtime/product` | supporting product data | available | current ASIN product, offer, listing, and asset fields in `data` |
 | WebTools `/search` | supporting URL discovery | available | `data.query + data.results[]` |
 | WebTools `/scrape` | supporting page acquisition | available | requested page formats plus `data.meta` |
@@ -50,9 +50,9 @@ Do not move Agent outputs such as `recommendedAction`, `conclusion`, `reasoning`
 - ASIN identity: `{ asin, site }`.
 - ASIN + keyword identity: `{ asin, keyword, site }`.
 - Single query objects use `data.identity`; batch endpoints use `data.items[].identity`.
-- `requestedDate*` records the request. `resolvedDate*` records the actual available observation. Report resolved dates and returned period boundaries.
+- `requestedDate*` records the request. `resolvedDate*` records the actual available observation; endpoint-specific context or series fields expose the returned period boundaries.
 - Snapshot/current-window endpoints may contain `dataWindow.currentPeriod`; range endpoints use `resolvedDateFrom`, `resolvedDateTo`, and series dates instead.
-- `latestObservedAt` is row collection time. Never use it to manufacture a snapshot period.
+- `latestObservedAt` is row collection time rather than a snapshot-period field.
 
 ### Batch behavior
 
@@ -101,10 +101,11 @@ One request cannot contain more than 20 subjects. Each response preserves order 
 
 ### Empty results and errors
 
+- The bundled CLI preserves the authoritative outer status for every parsed HTTP response in `_transport.status`. Response-body or nested status-like fields do not override it.
 - `status=empty` means no matching observation in the resolved snapshot/window. It does not prove low demand.
 - `keywords/extends` may return an empty `rows[]`; this is a valid successful response.
-- HTTP 422 means request validation failed; its structured detail identifies the reported contract violation.
-- HTTP 5xx after the client's built-in retries means the service is currently unavailable for that request. The bundled CLI sets `error.retryExhausted=true` when that retry budget is consumed. It also returns the Agent-control action `STOP_CURRENT_TURN. APPLY_SKILL_INTERFACE_FAILURE_TEMPLATE. DO_NOT_SELECT_ANOTHER_COMMAND.` These are technical control facts, not user-facing prose. The HTTP 5xx result does not establish that the requested date or other parameters are invalid.
+- HTTP 422 means request validation failed; its structured detail identifies the reported contract violation. The bundled CLI leaves the structured server error fields intact alongside `_transport.status=422`.
+- HTTP 5xx after the client's built-in retries means the service is currently unavailable for that request. The bundled CLI preserves the outer HTTP status in `error.status` and sets `error.retryExhausted=true` when that retry budget is consumed. It also returns the Agent-control action `STOP_CURRENT_TURN. APPLY_SKILL_INTERFACE_FAILURE_TEMPLATE. DO_NOT_SELECT_ANOTHER_COMMAND.` These are technical control facts, not user-facing prose. Response-body text or a nested non-5xx-like error does not change the authoritative outer HTTP status. The HTTP 5xx result does not establish that the requested date or other parameters are invalid.
 
 ### Credits
 
@@ -127,9 +128,9 @@ Response:
 - `data.items[]`: identity, `status=ok|empty`, `snapshotData`, `emptyReason`, and nullable `errorCode` / `errorMessage`
 - `snapshotData`: `estimateSearchCount`, `abaRank`, Top3 click/conversion shares, market characteristics, SKU/brand/title coverage, `organicRolloverRate`, organic/ad counts, and Top48 organic-product benchmarks
 
-`organicRolloverRate` is a direct snapshot field, but the published contract does not specify its formula, Top-N scope, observation cadence, or position-level meaning. Load `serp-and-rollover.md` before interpreting it. Do not relabel it as Top-10/Top-20 set turnover or per-position rotation.
+`organicRolloverRate` is a direct snapshot field, but the published contract does not specify its formula, Top-N scope, observation cadence, or position-level meaning. Interpretation and inference limits for this field are owned by `serp-and-rollover.md`.
 
-Do not expect legacy `estimateSearchCountWeekly`, `totalSkuCnt`, or top-level `data:null` in the current response. Read `snapshotData.estimateSearchCount`, `totalSkuCount`, and item status.
+The current response uses `snapshotData.estimateSearchCount`, `totalSkuCount`, and item status; it does not expose the legacy `estimateSearchCountWeekly`, `totalSkuCnt`, or top-level `data:null` shape.
 
 ### Metric layer: `keywords/market-profile`
 
@@ -151,12 +152,12 @@ Response:
 - `data.items[]`: input-order identity, `status=ok|empty`, `marketProfile`, and `emptyReason`
 - `marketProfile`: `marketCharacteristics`, `demandScale`, `top3Concentration`, `adActivity`, `top20OrganicEntryDifficulty`, `supplySaturation`, `brandStructure`, and `organicProductBenchmark`
 - current profile objects use camelCase fields. Each scored dimension returns `supported`, `level`, `interpretation`, `calculationStatus`, `unsupportedReason`, and `levelEvidence.score.{value,direction}`
-- internal objects are versioned by `context.scoringSpec`; interpret scores with its returned model id/version, normalized range, and reference scope rather than as timeless universal thresholds
-- inspect every dimension independently. Treat `supported=false`, `calculationStatus!=complete`, `level=unknown`, null `levelEvidence.score.value`, or non-null `unsupportedReason` as unavailable; the current contract has no aggregate `calculationCoverage` object
+- internal objects are versioned by `context.scoringSpec`, which returns the model id/version, normalized range, and reference scope
+- every dimension independently returns its own `supported`, `calculationStatus`, `level`, `levelEvidence.score.value`, and `unsupportedReason`; the current contract has no aggregate `calculationCoverage` object
 - `marketCharacteristics.volatility` exposes its own support/status boundary, `type`, source value, and mapping-confidence evidence
-- `marketCharacteristics.annualSeasonality` independently exposes support/status, `classification`, year-over-year correlation, eligible pair count, peak-pattern detection, and `peakPeriods`. Do not let either seasonality object overwrite the other. `seasonalPeakPatternDetected=true` alone does not override `classification`, and an empty `peakPeriods` array cannot support named peak periods.
+- `marketCharacteristics.annualSeasonality` independently exposes support/status, `classification`, year-over-year correlation, eligible pair count, peak-pattern detection, and `peakPeriods`
 
-This endpoint returns deterministic weekly snapshot evidence. It does not return history, strategy advice, root cause, recommended actions, or seller-private ABA-SQP conversion data. An unmatched keyword returns `status=empty`, `marketProfile=null`, and a descriptive `emptyReason`; context fields such as `resolvedDate`, `dataWindow`, and `scoringSpec` may then be null. Empty items are not billed. Use returned `meta.creditsConsumed` / `meta.creditsConsumedExact` rather than estimating.
+This endpoint returns deterministic weekly snapshot evidence. It does not return history, strategy advice, root cause, recommended actions, or seller-private ABA-SQP conversion data. An unmatched keyword returns `status=empty`, `marketProfile=null`, and a descriptive `emptyReason`; context fields such as `resolvedDate`, `dataWindow`, and `scoringSpec` may then be null. Empty items are not billed; the response reports billing through `meta.creditsConsumed` / `meta.creditsConsumedExact`.
 
 Layer fact: `keywords/market-profile` supplies server-calculated multidimensional profile objects; `keywords/detail` supplies raw snapshot fields. Unsupported profile dimensions do not imply that the raw endpoint contains their missing calculation inputs.
 
@@ -173,7 +174,7 @@ Response:
 - `data.context`: requested/resolved range and weekly granularity
 - `data.items[].series[]`: `periodStartDate`, `periodEndDate`, `estimateSearchCount`, `abaRank`, `abaTop3ClickShareRate`, `abaTop3ConversionShareRate`
 
-This is raw weekly history. Use it only when weekly points or fields omitted by `trend-profile` are required.
+This endpoint returns raw weekly history rather than fixed-window profile objects.
 
 ### Metric layer: `keywords/trend-profile`
 
@@ -192,7 +193,7 @@ Response:
 - available profiles contain `searchDemand` and `abaRank`; inspect `supported`, `calculationStatus`, and `unsupportedReason` independently
 - `trendEvidence` fields are `{ value, direction }` pairs covering first/last/change evidence, normalized slope, direction consistency, and eligible/aligned period counts
 
-Use this endpoint first for server-calculated trend shape and volatility. Do not reduce `trend` to a first-to-last comparison: normalized slope and direction-consistency evidence may support a different window-level label. Preserve null `emptyReason` / `observedPeriodCount` values without inventing a reason. Billing is per keyword with at least one `status=ok` row; use returned credit metadata.
+This endpoint returns server-calculated fixed-window trend profiles, including normalized slope and direction-consistency evidence. Nullable `emptyReason` / `observedPeriodCount` remain null when the service does not return a value. Billing is per keyword with at least one `status=ok` row; use returned credit metadata.
 
 ### Data layer: `keywords/extends`
 
@@ -211,9 +212,9 @@ Response:
 - `data.rows[].matchData`: query, keyword, site, relevanceScore
 - `data.rows[].keywordSnapshot`: `dataWindow.currentPeriod` plus the same core snapshot families as detail
 
-The returned rows are related-term recall for the requested query, page, and query type. They are not an exhaustive root-keyword universe; do not sum their search counts and present the result as total market or root-universe demand.
+The returned rows are paginated related-term recall for the requested query and query type. The contract does not define them as an exhaustive root-keyword universe or return a root-universe aggregate demand field.
 
-Do not flatten the response back to legacy `term`, `seedKeyword`, or `estimateSearchCountWeekly` fields.
+The current response does not expose the legacy flattened `term`, `seedKeyword`, or `estimateSearchCountWeekly` fields.
 
 ### Data layer: `keywords/search-results`
 
@@ -230,9 +231,9 @@ Response:
 - `data.identity`
 - `data.rows[]`: `latestObservedAt`, placement/position, listing fields, `estimateImpressionPoint`, `keywordTotalEstimateImpressionPoint`
 
-Use this as the primary observed SERP source. Split ORG from sponsored placements. Do not substitute `products/search` for SERP ordering.
+`keywords/search-results` is the documented observed-SERP contract. Returned rows distinguish `ORG` from sponsored placement types; `products/search` is not part of this SERP contract.
 
-Counts of rows by `exploreType` describe placement-record mix, not traffic contribution. Use `estimateImpressionPoint` for disclosed returned-row exposure comparisons. Never sum the repeated keyword-level `keywordTotalEstimateImpressionPoint` across rows.
+Interpretation, comparison, aggregation, and inference limits for `exploreType`, `estimateImpressionPoint`, and the repeated keyword-level `keywordTotalEstimateImpressionPoint` are owned by `serp-and-rollover.md`.
 
 ### Data layer: `keywords/product-traffic-terms` and `keywords/competitor-product-keywords`
 
@@ -248,9 +249,9 @@ Response:
 - `data.context`, `data.identity`, `data.rows[]`
 - rows include placement/position, keyword, impression points, `trafficShare`, `avgPosition`, coverage/observation counts, keyword search/change fields, and ABA rank/change
 
-The two endpoints currently return the same row shape. `product-traffic-terms` names the target-ASIN traffic-term capability; the competitor-named route expresses competitor/overlap framing. This equivalence is a pre-call routing fact, not authorization to switch endpoints after a runtime failure.
+The two endpoints currently return the same row shape. `product-traffic-terms` is the target-ASIN traffic-term route; `competitor-product-keywords` is the competitor/overlap route.
 
-`trafficShare` is the row's sampled share within the returned ASIN traffic period, not exact Amazon share of voice.
+Interpret `trafficShare`, placement, contribution, and coverage fields through `traffic-observation-semantics.md`.
 
 ### Data layer: `keywords/product-traffic-terms-timeline`
 
@@ -273,7 +274,7 @@ Response:
   - `keywordMetrics`: `metricWindow` plus search count, ABA rank, Top3 shares
   - `adActivity`: observation count, day coverage, campaign count, ad count
 
-Keep time grains separate: `asinSnapshot` is tied to the series date; traffic/placement/ad activity belong to the returned weekly period; `keywordMetrics` belongs to its own weekly `metricWindow`.
+Interpret the series' snapshot, weekly-period, metric-window, placement, traffic, and ad-activity fields through `traffic-observation-semantics.md`.
 
 ### Metric layer (legacy response): `keywords/product-traffic-terms-overview`
 
@@ -285,7 +286,7 @@ The endpoint is conceptually aggregate, but production still returns the legacy 
 - `first3PagesNewOrganicKeywords[]`
 - `first3PagesLostOrganicKeywords[]`
 
-Use returned period boundaries exactly. You may calculate simple current-minus-previous channel changes and shares transparently in the Agent layer. Do not infer per-keyword losers, gainers, or contribution from this aggregate response because it has no keyword contribution rows.
+The response exposes matching current and `*Prev` channel fields but no keyword contribution rows. It returns only the current `periodStartDate` / `periodEndDate`; it does not return separate previous-period date boundaries. A `*Prev` field may also be null or absent when no previous-period value is available.
 
 ## Authorized supporting acquisition surfaces
 
@@ -349,16 +350,16 @@ These are capability facts derived from the documented endpoints and user-provid
 | Observed keyword SERP | `keywords/search-results` | Returned product, placement, and impression-point rows. |
 | Current ASIN traffic terms | `keywords/product-traffic-terms` or `keywords/competitor-product-keywords` | ASIN keyword rows, traffic share, placement, and keyword snapshot fields. |
 | ASIN × keyword movement | `keywords/product-traffic-terms-timeline` | Nested product, traffic, placement, keyword-metric, and ad-activity time-series groups. |
-| ASIN aggregate movement | `keywords/product-traffic-terms-overview` | Current and previous placement impression points plus first-three-page organic entry/exit lists. |
+| ASIN aggregate channel structure and movement | `keywords/product-traffic-terms-overview` | Current channel placement impression points, matching previous values, and first-three-page organic entry/exit lists. |
 | Current product/listing inspection | `realtime/product` | Current ASIN product, offer, listing, and asset-link fields only. |
 | URL discovery | WebTools `/search` | Candidate result URLs and snippets for selecting a source; not product search or page-content proof. |
 | Known-page acquisition | WebTools `/scrape` or `/scrape-interactive` | Returned content for the selected URL and representation; interactive mode is reserved for rendering/actions. |
 
-Use the endpoint sections above for exact parameters, limits, date behavior, status meanings, fields, and billing facts.
+The endpoint sections above contain the exact parameters, limits, date behavior, status meanings, fields, and billing facts.
 
 ## CLI and callable mapping
 
-Use `python {skill_base_dir}/scripts/zoodata.py` after reading subcommand help.
+The bundled CLI mapping for `python {skill_base_dir}/scripts/zoodata.py` is:
 
 | HTTP endpoint | CLI subcommand |
 |---|---|

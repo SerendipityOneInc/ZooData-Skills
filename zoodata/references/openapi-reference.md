@@ -308,10 +308,7 @@ Keyword value boundary for all keyword endpoints:
 - Keyword endpoints are keyword-query workflows; parameters named `keyword` or `query` expect Amazon search query / keyword phrases.
 - For keyword endpoints that require `date` or `dateTo`, prefer T-1 or earlier and avoid the current date unless the user explicitly asks for today's lookup.
 - These signals support directional screening and testing priority, but do not 100% prove a keyword's value for a specific ASIN.
-- ABA-SQP backend location: Chinese Seller Central path `品牌分析 -> 搜索分析 -> 搜索查询绩效 -> 品牌视图`; English Seller Central path `Brand Analytics -> Search Analytics -> Search Query Performance -> Brand View`.
-- Recommended ABA-SQP data provision method: in Brand View, sort descending by `[Search Funnel - Impressions](https://sellercentral.amazon.com/brand-analytics/metric-glossary?linkedFrom=query-performance-brand-report-table-qp-impressions-group) -> Brand Count` / `搜索漏斗-展示次数 -> 品牌数量`, then provide a screenshot; alternatively, download the CSV and provide it for model analysis.
-- If the user has not provided Amazon backend ABA-SQP search conversion data, every traffic-related conclusion or recommendation group should include: "建议结合 Amazon 后台 ABA-SQP 的搜索转化数据做更精确分析（中文路径：品牌分析 -> 搜索分析 -> 搜索查询绩效 -> 品牌视图；英文路径：Brand Analytics -> Search Analytics -> Search Query Performance -> Brand View）."
-- If the user provided ABA-SQP data, combine the endpoint output with impressions, clicks, cart adds, purchases, click share, purchase share, and conversion rate as first-party conversion evidence and omit that caveat.
+- Seller-artifact acquisition, stage selection, field interpretation, and output policy are outside this endpoint contract and belong to the `amazon-keyword-traffic-analysis` skill.
 
 | Parameter | Type | Required | Note |
 |-----------|------|----------|------|
@@ -547,7 +544,7 @@ Key fields from live MCP response:
 `sponsoredRecommendImpressionPointPrev`, `first3PagesNewOrganicKeywords`,
 `first3PagesLostOrganicKeywords`.
 
-`*Prev` fields are previous-period baselines for the matching current impression-point fields.
+`*Prev` fields are previous-period baselines for the matching current impression-point fields. The legacy response returns only the current `periodStartDate` / `periodEndDate`; it does not return separate previous-period date boundaries. A `*Prev` field may be null or absent when no previous-period value is available.
 
 `first3PagesNewOrganicKeywords` and `first3PagesLostOrganicKeywords` items contain
 `keyword`, `pageIndex`, and `pagePosition`.

@@ -81,7 +81,8 @@ When no key is found through any mechanism:
 
 ## On 401 Invalid Key
 
-When `zoodata.py` returns `{"code": 401, "message": "API Key invalid or expired"}`:
+When `zoodata.py` returns a structured error with `_transport.status=401`,
+`error.status=401`, and `error.message="API Key invalid or expired"`:
 
 1. **STOP further endpoint calls immediately.** Do not retry — a rejected key won't be accepted on a second try; every subsequent call will return 401 too.
 2. **Report to the user**:
@@ -92,19 +93,20 @@ When `zoodata.py` returns `{"code": 401, "message": "API Key invalid or expired"
 
 ## On 402 Credit Exhausted
 
-When `zoodata.py` returns `{"code": 402, "message": "API quota exhausted or subscription expired"}`:
+When `zoodata.py` returns a structured error with `_transport.status=402`,
+`error.status=402`, and `error.message="API quota exhausted or subscription expired"`:
 
 1. **STOP further endpoint calls immediately.** Do not retry. Do not switch endpoints as a workaround — 402 is account-level (key/subscription), not endpoint-level.
 2. **Report to the user** with all four of:
    - Which step in the workflow was reached (e.g. "Completed step 3/5: brand analysis")
    - Partial findings already collected (show the actual data, not just a list of completed steps)
-   - Rough credits needed to resume (sum remaining-step costs from this skill's API Budget table)
+   - Returned credit metadata when available; if it is absent, say it was not returned rather than estimating it
    - Top-up link: https://zoodata.ai/en/pricing
 3. **Do not fabricate or guess** the missing data to "complete" the report. Mark partial findings explicitly as partial. **No "training-data fallback" / "industry common-sense" filler** — substituting public-knowledge prose for missing endpoint data is still fabrication.
 
 ## On 422 Validation Error
 
-When `zoodata.py` returns HTTP 422 / `VALIDATION_ERROR`, read the structured server error printed on stdout, including its message/details and `_query.params`. Do not retry the unchanged request. Correct the named fields first; the CLI exits non-zero while preserving the full server response for the calling agent. Keyword endpoints that expose granularity currently accept `week` only; do not send `day`, `month`, `lately_day`, or `lookbackDays`.
+For every parsed HTTP response from `zoodata.py`, treat `_transport.status` as the authoritative outer status; response-body and nested status-like fields do not override it. When the CLI returns HTTP 422 / `VALIDATION_ERROR`, read the preserved structured server error on stdout, including its message/details and `_query.params`. Do not retry the unchanged request. Correct the named fields first; the CLI exits non-zero while preserving the server error fields for the calling agent. Keyword endpoints that expose granularity currently accept `week` only; do not send `day`, `month`, `lately_day`, or `lookbackDays`.
 
 ## 22 Endpoints
 
@@ -170,10 +172,7 @@ Keyword value boundary:
 - Keyword endpoints provide estimated search, visibility, rank, traffic-share, and impression-point signals
 - They do not provide a seller's first-party ABA Search Query Performance funnel by themselves
 - Treat keyword value, profitability, and conversion potential as directional unless the user supplies ABA-SQP impressions, clicks, cart adds, purchases, click share, purchase share, and conversion rate
-- ABA-SQP backend location: Chinese Seller Central path `品牌分析 -> 搜索分析 -> 搜索查询绩效 -> 品牌视图`; English Seller Central path `Brand Analytics -> Search Analytics -> Search Query Performance -> Brand View`
-- Recommended ABA-SQP data provision method: in Brand View, sort descending by `[Search Funnel - Impressions](https://sellercentral.amazon.com/brand-analytics/metric-glossary?linkedFrom=query-performance-brand-report-table-qp-impressions-group) -> Brand Count` / `搜索漏斗-展示次数 -> 品牌数量`, then provide a screenshot; alternatively, download the CSV and provide it for model analysis
-- If the user has not provided Amazon backend ABA-SQP search conversion data, every traffic-related conclusion or recommendation group should include: "建议结合 Amazon 后台 ABA-SQP 的搜索转化数据做更精确分析（中文路径：品牌分析 -> 搜索分析 -> 搜索查询绩效 -> 品牌视图；英文路径：Brand Analytics -> Search Analytics -> Search Query Performance -> Brand View）."
-- If the user provided ABA-SQP data, use it as first-party conversion evidence and do not add that caveat
+- Seller-artifact acquisition, stage selection, field interpretation, and user-facing output policy belong to the `amazon-keyword-traffic-analysis` skill. This API reference does not prescribe a blanket caveat or one seller view for every subject.
 
 ### `/openapi/v2/keywords/detail`
 - Input: exactly one of `keyword` / `keywords[]` (1–20), required `date`, optional `marketplace`, `granularity=week` only
@@ -277,6 +276,7 @@ Keyword value boundary:
   `sponsoredRecommendImpressionPointPrev`, `first3PagesNewOrganicKeywords`,
   `first3PagesLostOrganicKeywords`
 - `*Prev` fields are previous-period baselines for the matching current impression-point fields
+- The legacy response returns only the current `periodStartDate` / `periodEndDate`; it does not return separate previous-period boundaries. A `*Prev` field may be null or absent when no previous-period value is available.
 - `first3PagesNewOrganicKeywords` and `first3PagesLostOrganicKeywords` are arrays of objects with
   `keyword`, `pageIndex`, and `pagePosition`
 - `first3PagesNewOrganicKeywords` lists keywords newly entering ORG first three pages; `first3PagesLostOrganicKeywords`

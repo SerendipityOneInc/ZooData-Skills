@@ -1,0 +1,18 @@
+# Amazon Keyword Traffic Analysis
+
+This package provides the `amazon-keyword-traffic-analysis` Codex skill for Amazon keyword demand, market structure, traffic-term discovery, and evidence-bounded ASIN × keyword diagnosis.
+
+This README is a human-facing overview and module index. Runtime behavior is defined by [`SKILL.md`](SKILL.md) and the owner modules it routes to; this file does not add or override skill policy.
+
+## Package map
+
+- [`SKILL.md`](SKILL.md) — runtime router, loading path, responsibility map, and global boundaries
+- [`references/reference.md`](references/reference.md) — production API and acquisition-surface contract
+- [`references/execution-guide.md`](references/execution-guide.md) — shared scenario/stage contract, Gate order, handoff, and stage-end selection rules
+- [`references/evidence-protocols.md`](references/evidence-protocols.md) — evidence planning, retrieval, reconciliation, coverage, continuity, and batching
+- [`references/diagnosis-action-protocols.md`](references/diagnosis-action-protocols.md) — causal-diagnosis and evidence-to-action procedures
+- [`references/output-rules.md`](references/output-rules.md) — localized progress, canonical report template and headings, Data Notes, and API usage
+- `references/metrics-*.md`, [`serp-and-rollover.md`](references/serp-and-rollover.md), and [`traffic-observation-semantics.md`](references/traffic-observation-semantics.md) — returned-field semantics and inference limits
+- [`references/sqp-field-semantics.md`](references/sqp-field-semantics.md) — seller-artifact acquisition and field semantics
+- `references/scenarios-*.md` — scenario-specific stage entry requirements, capability selection, conclusion authority, and report-section content
+- [`scripts/zoodata.py`](scripts/zoodata.py) — bundled ZooData CLI

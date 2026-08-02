@@ -43,37 +43,6 @@ The final column lists **related audit fields**, not published formulas. Do not 
 - Describe low `top20OrganicEntryDifficulty` as **relatively lower modeled entry difficulty**, never as “easy to rank.”
 - Describe `organicProductBenchmark` as a market-relative barrier, not an Amazon ranking formula.
 - Raw detail fields may provide traceability or a different named inference. They do not override the metric result and must not be used to reverse-engineer an undocumented formula.
-- When `annualSeasonality` is unsupported or has no returned peak evidence, omit seasonal timing and seasonal-cause narratives entirely. Hedging with `may`, `might`, `possibly`, or `可能` does not authorize an invented season, peak, or explanation.
+- When `annualSeasonality` is unsupported or has no returned peak evidence, omit seasonal timing and seasonal-cause narratives entirely. Hedging with `may`, `might`, `possibly`, or an equivalent in any language does not authorize an invented season, peak, or explanation.
 
-## Cross-metric reconciliation framework
-
-Apply this framework to any current or future dimensions that inform the same operator question. Do not maintain a fixed list of metric pairs.
-
-### Normalize each signal
-
-| Attribute | Question |
-|---|---|
-| Subject | What entity or phenomenon is measured? |
-| Measure | What quantity, classification, or profile is returned? |
-| Population / grain | Which result set, aggregation level, or observation grain does it cover? |
-| Period | Snapshot, fixed trend window, or returned observation period? |
-| Reference scope | Absolute value, same-marketplace normalized index, returned-row sample, or another comparison basis? |
-| Direction | What does higher/lower/positive/negative mean according to the returned contract? |
-| Conclusion authority | What is the strongest direct conclusion, and which stronger inference is forbidden? |
-
-### Classify the relationship
-
-| Relationship | Test | Handling |
-|---|---|---|
-| `aligned` | Same relevant scope and mutually reinforcing direction | Synthesize only the intersection of supported conclusions |
-| `complementary` | Same operator question but different subjects, grains, periods, or axes | Preserve each signal and explain their bounded joint meaning |
-| `incomparable` | No valid common scope or denominator | Report separately; do not rank, average, or reconcile numerically |
-| `genuinely inconsistent` | Same subject, definition, grain, period, and reference scope but incompatible results | Recheck status/context/fields; report unresolved unless additional evidence discriminates |
-
-### Synthesis rules
-
-- Use `signal A scope + signal B scope → common supported implication → remaining unknown`.
-- The joint conclusion cannot exceed the authority of any evidence used to support it.
-- Do not infer causality merely because two signals move together or differ.
-- Do not explain a composite score with related raw fields unless those fields were retrieved and the contract documents the relationship; related audit fields are not formulas.
-- Put any material aligned, complementary, incomparable, or inconsistent relationship needed for the decision in the first report. Do not wait for a follow-up question.
+For relationships among multiple returned dimensions, apply the cross-metric reconciliation protocol in `evidence-protocols.md`. The field-specific distinctions and inference limits above remain authoritative for each market-profile dimension.

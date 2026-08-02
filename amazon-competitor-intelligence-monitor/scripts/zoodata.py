@@ -95,6 +95,13 @@ REQUEST_TIMEOUT = 60  # Request timeout in seconds; realtime/product can be slow
 # after printing the complete machine-readable response for the calling agent.
 _cli_had_error = False
 
+# Terminal signal consumed by Agent workflows. The CLI classifies the failure;
+# the active skill owns the resulting stop behavior and user-facing rendering.
+INTERFACE_FAILURE_ACTION = (
+    "STOP_CURRENT_TURN. APPLY_SKILL_INTERFACE_FAILURE_TEMPLATE. "
+    "DO_NOT_SELECT_ANOTHER_COMMAND."
+)
+
 # Global request pacer — prevents burst rate limit violations
 _last_request_time = 0.0
 
@@ -319,24 +326,10 @@ def api_call(endpoint: str, params: dict) -> dict:
         try:
             req = urllib.request.Request(url, data=body, headers=headers, method="POST")
             with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-                _CREDITS.record(data.get("meta"))
-                if data.get("success"):
-                    # Inject _query metadata so AI knows exactly what was sent
-                    data["_query"] = {
-                        "endpoint": endpoint,
-                        "params": actual_params,
-                    }
-                    return data
-                else:
-                    err = data.get("error", {})
-                    err_msg = err.get('message', json.dumps(err))
-                    print(f"API error: {err.get('code', 'unknown')} — {err_msg}", file=sys.stderr)
-                    # Return error as structured result instead of exiting
-                    # This allows composite commands to continue with other steps
-                    _mark_cli_error()
-                    data["_query"] = {"endpoint": endpoint, "params": actual_params}
-                    return data
+                transport_status = getattr(resp, "status", None)
+                if not isinstance(transport_status, int):
+                    transport_status = resp.getcode()
+                response_body = resp.read()
         except urllib.error.HTTPError as e:
             status = e.code
             response_text = ""
@@ -365,12 +358,18 @@ def api_call(endpoint: str, params: dict) -> dict:
                     delay *= 2
                     continue
                 else:
-                    return _error_result(429, "Rate limit exceeded after retries",
-                        "Try again later or reduce request frequency",
-                        endpoint, actual_params)
+                    result = _error_result(
+                        429,
+                        "Rate limit exceeded after retries",
+                        INTERFACE_FAILURE_ACTION,
+                        endpoint,
+                        actual_params,
+                    )
+                    result["error"]["retryExhausted"] = True
+                    return result
             elif status == 404:
                 return _error_result(404, f"Endpoint '{endpoint}' not found",
-                    f"Check {API_DOCS} for current endpoints",
+                    INTERFACE_FAILURE_ACTION,
                     endpoint, actual_params)
             elif status == 422:
                 server_response = None
@@ -390,10 +389,7 @@ def api_call(endpoint: str, params: dict) -> dict:
                     continue
                 else:
                     if status >= 500:
-                        action = (
-                            "STOP_CURRENT_TURN. APPLY_SKILL_INTERFACE_FAILURE_TEMPLATE. "
-                            "DO_NOT_SELECT_ANOTHER_COMMAND."
-                        )
+                        action = INTERFACE_FAILURE_ACTION
                     else:
                         action = (
                             "Stop this workflow and review the HTTP error; change request "
@@ -411,9 +407,75 @@ def api_call(endpoint: str, params: dict) -> dict:
                 time.sleep(delay)
                 continue
             else:
-                return _error_result(0, f"Request failed: {e}",
-                    "Check network connection",
-                    endpoint, actual_params)
+                result = _error_result(
+                    0,
+                    f"Request failed: {e}",
+                    INTERFACE_FAILURE_ACTION,
+                    endpoint,
+                    actual_params,
+                )
+                result["error"]["retryExhausted"] = True
+                return result
+
+        # Transport succeeded. Response parsing and schema handling happen
+        # outside the retrying transport block so a paid response is never
+        # requested again merely because local post-processing failed.
+        try:
+            data = json.loads(response_body.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as e:
+            return _malformed_response_result(
+                endpoint,
+                actual_params,
+                transport_status,
+                f"Response body is not valid UTF-8 JSON: {e}",
+            )
+
+        if not isinstance(data, dict):
+            return _malformed_response_result(
+                endpoint,
+                actual_params,
+                transport_status,
+                f"Expected a JSON object, received {type(data).__name__}",
+            )
+
+        if isinstance(transport_status, int) and 100 <= transport_status <= 599:
+            # The outer HTTP status is authoritative. Always overwrite any
+            # response-body field with the same name before the calling agent
+            # inspects success or nested error fields.
+            data["_transport"] = {"status": transport_status}
+        _CREDITS.record(data.get("meta"))
+        success = data.get("success")
+        if success is True:
+            # Inject _query metadata so AI knows exactly what was sent
+            data["_query"] = {
+                "endpoint": endpoint,
+                "params": actual_params,
+            }
+            return data
+
+        if success is not False:
+            return _malformed_response_result(
+                endpoint,
+                actual_params,
+                transport_status,
+                "Expected top-level success to be a JSON boolean",
+            )
+
+        err = data.get("error", {})
+        if not isinstance(err, dict):
+            return _malformed_response_result(
+                endpoint,
+                actual_params,
+                transport_status,
+                f"Expected error to be a JSON object, received {type(err).__name__}",
+            )
+        err_msg = err.get("message", json.dumps(err))
+        print(f"API error: {err.get('code', 'unknown')} — {err_msg}", file=sys.stderr)
+        # Return error as structured result instead of exiting. This allows
+        # composite commands to continue with other steps.
+        _mark_cli_error()
+        data["_query"] = {"endpoint": endpoint, "params": actual_params}
+        return data
 
     return _error_result(0, "Unexpected retry loop exit", "This should not happen", endpoint, actual_params)
 
@@ -531,6 +593,22 @@ def _mark_cli_error():
     _cli_had_error = True
 
 
+def _malformed_response_result(endpoint, params, transport_status, detail):
+    """Return a terminal Agent-control result for local response failures."""
+    result = _error_result(
+        0,
+        f"Malformed response from endpoint '{endpoint}'",
+        INTERFACE_FAILURE_ACTION,
+        endpoint,
+        params,
+    )
+    result["error"]["code"] = "MALFORMED_RESPONSE"
+    result["error"]["detail"] = detail
+    if isinstance(transport_status, int) and 100 <= transport_status <= 599:
+        result["_transport"] = {"status": transport_status}
+    return result
+
+
 def _error_result(
     status: int,
     message: str,
@@ -546,15 +624,25 @@ def _error_result(
     _mark_cli_error()
     print(f"ERROR: {message}", file=sys.stderr)
 
+    transport = None
+    if isinstance(status, int) and 100 <= status <= 599:
+        # Preserve the authoritative outer HTTP status separately from the
+        # response body.  In particular, a structured 422 body may omit a
+        # numeric status or contain nested status-like fields that must not
+        # override the transport classification.
+        transport = {"status": status}
+
     # Preserve a structured server error verbatim for the calling agent.  Only
     # add CLI metadata; do not flatten VALIDATION_ERROR details into a string.
     if isinstance(server_response, dict):
         result = dict(server_response)
-        result.setdefault("success", False)
+        result["success"] = False
+        if transport is not None:
+            result["_transport"] = transport
         result["_query"] = {"endpoint": endpoint, "params": params}
         return result
 
-    return {
+    result = {
         "success": False,
         "error": {
             "status": status,
@@ -566,6 +654,9 @@ def _error_result(
             "params": params,
         },
     }
+    if transport is not None:
+        result["_transport"] = transport
+    return result
 
 
 def output(data, fmt="json"):
@@ -2584,7 +2675,7 @@ def cmd_check(args):
     results = {}
     all_ok = True
 
-    for endpoint, params, desc in endpoints:
+    for index, (endpoint, params, desc) in enumerate(endpoints):
         try:
             result = api_call(endpoint, params)
             if result.get("success"):
@@ -2598,6 +2689,18 @@ def cmd_check(args):
                 print(f"❌ {endpoint:30} FAILED: {message}", file=sys.stderr)
                 results[endpoint] = {"status": "failed", "message": message}
                 all_ok = False
+                transport = result.get("_transport")
+                transport_status = (
+                    transport.get("status") if isinstance(transport, dict) else None
+                )
+                if transport_status in (401, 402):
+                    for skipped_endpoint, _, _ in endpoints[index + 1:]:
+                        results[skipped_endpoint] = {
+                            "status": "skipped",
+                            "reason": "terminal account failure",
+                            "afterStatus": transport_status,
+                        }
+                    break
         except SystemExit:
             print(f"❌ {endpoint:30} FAILED", file=sys.stderr)
             results[endpoint] = {"status": "failed"}
