@@ -33,6 +33,8 @@ Environment:
 """
 
 import argparse
+import contextlib
+import io
 import json
 import os
 import sys
@@ -94,6 +96,12 @@ REQUEST_TIMEOUT = 60  # Request timeout in seconds; realtime/product can be slow
 # partial results.  Track those errors separately so the CLI still exits non-zero
 # after printing the complete machine-readable response for the calling agent.
 _cli_had_error = False
+
+# The agent-facing CLI exposes exactly one result channel per invocation.
+# Commands that reach output() emit one final JSON document on stdout and any
+# progress/retry diagnostics produced along the way are suppressed. Failures
+# that occur before a structured result exists keep using stderr exclusively.
+_cli_emitted_output = False
 
 # Terminal signal consumed by Agent workflows. The CLI classifies the failure;
 # the active skill owns the resulting stop behavior and user-facing rendering.
@@ -665,6 +673,7 @@ def _error_result(
 
 def output(data, fmt="json"):
     """Print output in the requested format."""
+    global _cli_emitted_output
     _annotate_credits(data)
     if isinstance(data, dict) and data.get("success") is False:
         _mark_cli_error()
@@ -674,6 +683,7 @@ def output(data, fmt="json"):
         print(json.dumps(data, ensure_ascii=False))
     else:
         print(json.dumps(data, indent=2, ensure_ascii=False))
+    _cli_emitted_output = True
 
 
 # ─── Helper: parse category string ──────────────────────────────────────────
@@ -3076,8 +3086,9 @@ def cmd_product_traffic_terms_timeline(args):
 # ─── CLI Setup ───────────────────────────────────────────────────────────────
 
 def main():
-    global _cli_had_error
+    global _cli_had_error, _cli_emitted_output
     _cli_had_error = False
+    _cli_emitted_output = False
 
     parser = argparse.ArgumentParser(
         description="ZooData CLI — Amazon Product Research",
@@ -3452,7 +3463,21 @@ Examples:
         print(f"ERROR: Unrecognized argument(s): {' '.join(unknown)}", file=sys.stderr)
         print(f"Run 'zoodata.py {cmd} --help' to see valid options.", file=sys.stderr)
         sys.exit(1)
-    args.func(args)
+    # Codex and other agent runtimes may merge stdout and stderr into one tool
+    # result. Buffer stderr while the command runs so retry/progress messages
+    # cannot corrupt the final machine-readable JSON. If the command exits
+    # before output() creates a structured result, surface the buffered stderr
+    # as the sole result channel instead.
+    diagnostics = io.StringIO()
+    try:
+        with contextlib.redirect_stderr(diagnostics):
+            args.func(args)
+    except BaseException:
+        if not _cli_emitted_output:
+            sys.stderr.write(diagnostics.getvalue())
+        raise
+    if not _cli_emitted_output:
+        sys.stderr.write(diagnostics.getvalue())
     if _cli_had_error:
         raise SystemExit(1)
 

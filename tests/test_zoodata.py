@@ -15,6 +15,7 @@ Run from repo root:
 """
 
 import importlib.util
+import http.client
 import io
 import json
 import os
@@ -538,6 +539,82 @@ class TestOutputFormat(unittest.TestCase):
     def test_json_is_indented(self):
         out = run_cli_stdout("json", "market", "--keyword", "yoga")
         self.assertGreater(out.count("\n"), 1)
+
+
+class TestSingleChannelCliOutput(unittest.TestCase):
+
+    def test_success_after_incomplete_read_emits_only_final_stdout_json(self):
+        response = MockHttpResponse(200, {
+            "success": True,
+            "data": {"brands": []},
+        })
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+
+        with patch.object(zoodata, "get_api_key", return_value="test_key"), \
+             patch.object(
+                 zoodata.urllib.request,
+                 "urlopen",
+                 side_effect=[http.client.IncompleteRead(b"partial", 10), response],
+             ) as urlopen, \
+             patch.object(zoodata.time, "sleep"), \
+             patch.object(sys, "argv", [
+                 "zoodata.py", "brand-detail", "--keyword", "storage bins",
+             ]), \
+             patch("sys.stdout", stdout), \
+             patch("sys.stderr", stderr):
+            zoodata.main()
+
+        self.assertEqual(urlopen.call_count, 2)
+        self.assertEqual(stderr.getvalue(), "")
+        result = json.loads(stdout.getvalue())
+        self.assertIs(result["success"], True)
+        self.assertEqual(result["_query"]["endpoint"], "products/brand-detail")
+
+    def test_exhausted_retry_emits_only_final_stdout_error_json(self):
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+
+        with patch.object(zoodata, "get_api_key", return_value="test_key"), \
+             patch.object(
+                 zoodata.urllib.request,
+                 "urlopen",
+                 side_effect=http.client.IncompleteRead(b"partial", 10),
+             ), \
+             patch.object(zoodata.time, "sleep"), \
+             patch.object(sys, "argv", [
+                 "zoodata.py", "brand-detail", "--keyword", "storage bins",
+             ]), \
+             patch("sys.stdout", stdout), \
+             patch("sys.stderr", stderr), \
+             self.assertRaises(SystemExit) as raised:
+            zoodata.main()
+
+        self.assertEqual(raised.exception.code, 1)
+        self.assertEqual(stderr.getvalue(), "")
+        result = json.loads(stdout.getvalue())
+        self.assertIs(result["success"], False)
+        self.assertIs(result["error"]["retryExhausted"], True)
+
+    def test_pre_result_failure_emits_only_stderr(self):
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+
+        def missing_key():
+            print("credential failure", file=sys.stderr)
+            raise SystemExit(1)
+
+        with patch.object(zoodata, "get_api_key", side_effect=missing_key), \
+             patch.object(sys, "argv", [
+                 "zoodata.py", "brand-detail", "--keyword", "storage bins",
+             ]), \
+             patch("sys.stdout", stdout), \
+             patch("sys.stderr", stderr), \
+             self.assertRaises(SystemExit):
+            zoodata.main()
+
+        self.assertEqual(stdout.getvalue(), "")
+        self.assertEqual(stderr.getvalue(), "credential failure\n")
 
 
 class TestApiErrorPropagation(unittest.TestCase):
