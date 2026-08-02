@@ -843,6 +843,7 @@ def fetch_realtime_reviews_all(asin: str, marketplace: str = "US",
     reviews = []
     cursor = None
     pages = 0
+    failure = None
     t0 = time.time()
     for i in range(1, max_pages + 1):
         params = {"asin": asin, "marketplace": marketplace}
@@ -850,6 +851,7 @@ def fetch_realtime_reviews_all(asin: str, marketplace: str = "US",
             params["cursor"] = cursor
         resp = api_call("realtime/reviews", params)
         if not resp.get("success"):
+            failure = resp
             break
         data = resp.get("data") or {}
         page_reviews = data.get("reviews") or []
@@ -859,12 +861,15 @@ def fetch_realtime_reviews_all(asin: str, marketplace: str = "US",
         log(f"  page {i}: {len(page_reviews)} reviews, cursor={'yes' if cursor else 'end'}")
         if not cursor:
             break
-    return {
+    result = {
         "reviews": reviews,
         "pages": pages,
         "capped": pages >= max_pages and cursor is not None,
         "fetchSeconds": round(time.time() - t0, 2),
     }
+    if failure is not None:
+        result["_failure"] = failure
+    return result
 
 
 def aggregate_review_insights(reviews: list, tagged: list, clusters_per_dim: dict) -> dict:
@@ -952,13 +957,25 @@ def aggregate_review_insights(reviews: list, tagged: list, clusters_per_dim: dic
 def cmd_reviews_raw(args):
     log_fn = (lambda m: print(m, file=sys.stderr)) if args.verbose else None
     result = fetch_realtime_reviews_all(args.asin, args.marketplace, args.max_pages, log_fn=log_fn)
-    output({
-        "success": True,
+    failure = result.pop("_failure", None)
+    payload = {
+        "success": failure is None,
         "data": result,
         "_query": {"endpoint": "realtime/reviews",
                    "params": {"asin": args.asin, "marketplace": args.marketplace,
                               "maxPages": args.max_pages}},
-    })
+    }
+    if isinstance(failure, dict):
+        payload["error"] = failure.get("error") or {
+            "message": "realtime/reviews pagination failed"
+        }
+        if isinstance(failure.get("_transport"), dict):
+            payload["_transport"] = failure["_transport"]
+        if isinstance(failure.get("_query"), dict):
+            payload["_failedQuery"] = failure["_query"]
+        if isinstance(failure.get("meta"), dict):
+            payload["meta"] = failure["meta"]
+    output(payload)
 
 
 def _load_json_arg(inline: str, path: str, name: str):

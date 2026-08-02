@@ -101,11 +101,10 @@ One request cannot contain more than 20 subjects. Each response preserves order 
 
 ### Empty results and errors
 
-- The bundled CLI preserves the authoritative outer status for every parsed HTTP response in `_transport.status`. Response-body or nested status-like fields do not override it.
+- Apply the local `cli-result-contract.md` for authoritative transport status, retry exhaustion, terminal-interface classification, process exit, and partial-result handling.
 - `status=empty` means no matching observation in the resolved snapshot/window. It does not prove low demand.
 - `keywords/extends` may return an empty `rows[]`; this is a valid successful response.
-- HTTP 422 means request validation failed; its structured detail identifies the reported contract violation. The bundled CLI leaves the structured server error fields intact alongside `_transport.status=422`.
-- HTTP 5xx after the client's built-in retries means the service is currently unavailable for that request. The bundled CLI preserves the outer HTTP status in `error.status` and sets `error.retryExhausted=true` when that retry budget is consumed. It also returns the Agent-control action `STOP_CURRENT_TURN. APPLY_SKILL_INTERFACE_FAILURE_TEMPLATE. DO_NOT_SELECT_ANOTHER_COMMAND.` These are technical control facts, not user-facing prose. Response-body text or a nested non-5xx-like error does not change the authoritative outer HTTP status. The HTTP 5xx result does not establish that the requested date or other parameters are invalid.
+- Endpoint-specific validation details remain authoritative only when the shared contract classifies the outer response as HTTP 422. Keyword endpoints exposing granularity currently accept `week` only.
 
 ### Credits
 

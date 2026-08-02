@@ -649,6 +649,32 @@ class TestApiErrorPropagation(unittest.TestCase):
         self.assertNotIn("parameterMutationAllowed", result["error"])
         self.assertEqual(result["_query"]["params"], params)
 
+    def test_non_keyword_http_500_uses_the_same_terminal_contract(self):
+        def service_error(*args, **kwargs):
+            raise urllib.error.HTTPError(
+                "https://api.zoodata.ai/openapi/v2/markets/search",
+                500,
+                "Internal Server Error",
+                {},
+                io.BytesIO(b"{}"),
+            )
+
+        with patch.object(zoodata, "get_api_key", return_value="test_key"), \
+             patch.object(zoodata.urllib.request, "urlopen", side_effect=service_error), \
+             patch.object(zoodata.time, "sleep"):
+            result = zoodata.api_call("markets/search", {
+                "categoryKeyword": "yoga mat",
+                "pageSize": 20,
+            })
+
+        self.assertEqual(result["_transport"], {"status": 500})
+        self.assertEqual(
+            result["error"]["action"],
+            "STOP_CURRENT_TURN. APPLY_SKILL_INTERFACE_FAILURE_TEMPLATE. "
+            "DO_NOT_SELECT_ANOTHER_COMMAND.",
+        )
+        self.assertIs(result["error"]["retryExhausted"], True)
+
     def test_http_429_uses_rate_limit_attempt_budget_and_preserves_status(self):
         def rate_limit_error(*args, **kwargs):
             raise urllib.error.HTTPError(
@@ -816,6 +842,81 @@ class TestApiErrorPropagation(unittest.TestCase):
 
         self.assertEqual(raised.exception.code, 1)
         self.assertEqual(json.loads(stdout.getvalue()), error)
+
+    def test_non_keyword_command_prints_structured_error_before_nonzero_exit(self):
+        error = {
+            "success": False,
+            "error": {
+                "status": 500,
+                "message": "HTTP 500 after 3 attempts",
+                "action": "STOP_CURRENT_TURN. APPLY_SKILL_INTERFACE_FAILURE_TEMPLATE. "
+                          "DO_NOT_SELECT_ANOTHER_COMMAND.",
+                "retryExhausted": True,
+            },
+            "_transport": {"status": 500},
+            "_query": {
+                "endpoint": "markets/search",
+                "params": {"categoryKeyword": "yoga mat"},
+            },
+        }
+        stdout = io.StringIO()
+
+        with patch.object(zoodata, "api_call", return_value=error), \
+             patch.object(sys, "argv", [
+                 "zoodata.py", "market", "--keyword", "yoga mat",
+             ]), \
+             patch("sys.stdout", stdout), \
+             self.assertRaises(SystemExit) as raised:
+            zoodata.main()
+
+        self.assertEqual(raised.exception.code, 1)
+        self.assertEqual(json.loads(stdout.getvalue()), error)
+
+    def test_reviews_raw_surfaces_partial_pagination_failure(self):
+        page_one = {
+            "success": True,
+            "data": {
+                "reviews": [{"id": "R1", "rating": 5}],
+                "nextCursor": "cursor-2",
+            },
+        }
+        failure = {
+            "success": False,
+            "error": {
+                "status": 500,
+                "message": "HTTP 500 after 3 attempts",
+                "action": "STOP_CURRENT_TURN. APPLY_SKILL_INTERFACE_FAILURE_TEMPLATE. "
+                          "DO_NOT_SELECT_ANOTHER_COMMAND.",
+                "retryExhausted": True,
+            },
+            "_transport": {"status": 500},
+            "_query": {
+                "endpoint": "realtime/reviews",
+                "params": {
+                    "asin": "B01CGLCGRA",
+                    "marketplace": "US",
+                    "cursor": "cursor-2",
+                },
+            },
+        }
+        captured = {}
+        args = type("Args", (), {
+            "asin": "B01CGLCGRA",
+            "marketplace": "US",
+            "max_pages": 10,
+            "verbose": False,
+        })()
+
+        with patch.object(zoodata, "api_call", side_effect=[page_one, failure]), \
+             patch.object(zoodata, "output", side_effect=lambda data, fmt="json": captured.update(data)):
+            zoodata.cmd_reviews_raw(args)
+
+        self.assertIs(captured["success"], False)
+        self.assertEqual(captured["data"]["pages"], 1)
+        self.assertEqual(captured["data"]["reviews"], page_one["data"]["reviews"])
+        self.assertEqual(captured["error"], failure["error"])
+        self.assertEqual(captured["_transport"], {"status": 500})
+        self.assertEqual(captured["_failedQuery"], failure["_query"])
 
     def test_keyword_commands_reject_whitespace_only_required_subjects(self):
         cases = (

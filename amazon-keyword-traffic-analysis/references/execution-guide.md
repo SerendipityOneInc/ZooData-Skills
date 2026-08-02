@@ -158,23 +158,14 @@ Before translating or interpreting an API field, screenshot, CSV, or report fiel
 
 ### Interface Failure Stop Gate
 
-Inspect the authoritative HTTP transport status before interpreting any response-body field. If that status is in the `500–599` range, apply the HTTP 5xx decision blacklist below before considering `message`, `action`, `detail`, `serverResponse`, nested error codes, or suggested recovery text. Only a result whose authoritative transport status is outside the `500–599` range may enter another status-specific route such as credential, credit, or validation handling. Independently apply this gate to exhausted non-HTTP transport/service failures, unavailable endpoints, exhausted rate limits, non-zero execution without a valid structured result, and malformed/unparseable responses.
-
-#### HTTP 5xx Decision Blacklist
-
-For an HTTP 5xx result, the outer transport status controls classification. A response body that resembles a validation, credential, credit, parameter, or other non-5xx error does not override it. Never use response-body content to reinterpret a 5xx, authorize parameter correction, or select another date, marketplace, subject, filter, pagination value, endpoint, or surface.
-
-When `reference.md` identifies that the client's HTTP 5xx retry budget is exhausted, treat the result as a terminal failure for the current workflow and a hard interrupt for the turn. Apply this gate before selecting any next command. Do not execute any subsequent API or tool command in that turn.
+Classify every bundled CLI result through the local `cli-result-contract.md` before interpreting response fields or selecting another capability. Its terminal-interface classification is a hard interrupt for the active keyword stage and the current turn.
 
 A local parsing, transformation, extraction, or formatting command that fails after a paid API response is also an interface failure for that evidence unit. If the original valid structured response remains available, use it directly without another evidence call; otherwise stop. Never call the same paid endpoint again merely to change output format or recover from local post-processing failure.
 
-1. Stop the workflow immediately. Do not call another endpoint, retry through another surface, descend to a data layer, split/fan out the request, or continue to a later stage.
-2. Retain the failing endpoint/tool, request scope, retry state, and exact error internally. Surface only the endpoint identifier through `output-rules.md § Interface Failure Output` unless the user explicitly requests diagnostics.
-3. Do not produce the requested market/product/operating conclusion and do not request ASIN, price, margin, SQP, Ads, or any other next-stage input.
-4. Retain earlier successful retrieval for compatible later reuse, but expose only its endpoint identifier in the failure notice.
-5. Do not render the normal stage-end selection list.
-
-Parameter correction is available only after the authoritative HTTP transport status is outside `500–599` and the result independently enters the validation route. A valid `status=empty` may justify a separately supported alternate query or period under `evidence-protocols.md`; it is not interface-failure recovery. Never transfer either behavior to HTTP 5xx.
+1. Do not produce the requested market/product/operating conclusion and do not request ASIN, price, margin, SQP, Ads, or any other next-stage input.
+2. Retain earlier successful retrieval for compatible later reuse, but expose it only as permitted by `output-rules.md § Interface Failure Output`.
+3. Do not render the normal stage-end selection list.
+4. A result that the shared contract classifies as non-terminal may enter the separately supported credential, credit, validation, or `status=empty` route; none of those routes may override a terminal classification.
 
 ### Evidence Gate
 

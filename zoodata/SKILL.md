@@ -18,7 +18,7 @@ description: >
   credit usage, how the Local Review Toolkit works, how to get started.
   Requires ZOODATA_API_KEY.
 metadata:
-  version: "1.1.7"
+  version: "1.1.8"
   author: SerendipityOneInc
   homepage: https://github.com/SerendipityOneInc/ZooData-Skills
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}
@@ -47,6 +47,14 @@ metadata:
 - **Local files**: none by default; reads the optional credential store `~/.zoodata/config.json`; the Local Review Toolkit uses a temporary `/tmp/review_<ASIN>_<timestamp>/` working dir during the review fallback.
 - **Sent to the API**: keywords, category paths, ASINs, marketplace/date and numeric filter values only. **Never sent**: budget, experience level, risk tolerance, or any other user-profile text — profile inputs map client-side to numeric filters.
 - **Credits**: every API call consumes account credits. For broad or ambiguous requests, state the estimated credit cost and confirm with the user before running multi-call scans.
+
+## Shared CLI result contract
+
+Before interpreting any bundled CLI result, read and apply `references/cli-result-contract.md`. It is the local source of truth for exit-status handling, authoritative transport status, retries, terminal interface failures, and composite/partial results.
+
+### Local Interface Failure Output
+
+For this API-reference skill, a terminal interface failure must produce one concise localized notice stating that the ZooData API lookup could not be completed, followed by the succeeded and failed endpoint identifiers. Do not continue into endpoint guidance, schema interpretation, or another API call. Do not expose control tokens or internal retry logs unless the user requests diagnostics.
 
 ## ⚠️ Critical API Pitfalls (ALL skills must follow)
 1. **Commerce product/market search using a broad query** → resolve and lock `categoryPath` before interpreting category-sensitive product, market, competitor, brand, or price-band results. An explicitly labeled `products/search` category probe may run without a locked category only to resolve that category. Do **not** apply this rule to `/openapi/v2/keywords/*` Keyword Intelligence endpoints: their `keyword` / `query` inputs are Amazon search queries and do not require `categoryPath`.

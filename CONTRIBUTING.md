@@ -33,22 +33,28 @@ git reset --hard origin/main   # safe — discards stale local commits whose
 git checkout -b feat/my-thing
 ```
 
-## Shared CLI Script — `zoodata.py`
+## Shared ZooData Runtime Files
 
-The canonical script lives at `zoodata/scripts/zoodata.py`. Each `amazon-*`
-skill has a synced copy at `<skill>/scripts/zoodata.py`. **Never edit copies
-directly** — sync is enforced at three layers:
+The canonical runtime files are:
+
+- `zoodata/scripts/zoodata.py`
+- `zoodata/references/cli-result-contract.md`
+
+Each `amazon-*` skill has synced local copies at the matching `scripts/` and
+`references/` paths so the skill remains independently publishable. **Never
+edit copies directly** — sync is enforced at three layers:
 
 1. **Local pre-commit hook** — auto-syncs copies when canonical is staged.
    Install once per clone: `bash scripts/install-hooks.sh`
-2. **`scripts/sync-scripts.sh`** — mirrors canonical → copies. Refuses to
-   overwrite copies that differ without the canonical-source banner
-   (`# Canonical source - do not edit copies under amazon-* skill directories directly`).
-3. **CI check** (`.github/workflows/shared-files-distribution.yml`) — every
-   PR touching `scripts/**` or `*scripts/zoodata.py` runs a strict diff;
-   mismatched copies fail the PR.
+2. **`scripts/sync-scripts.sh`** — mirrors both canonical files → copies.
+   `--check` performs a read-only release check and fails on a missing or
+   byte-different copy. Normal sync refuses to overwrite a divergent copy
+   without the canonical-source managed-copy marker.
+3. **CI check** (`.github/workflows/shared-files-distribution.yml`) — every PR
+   runs the read-only check; missing or mismatched copies block release even
+   when a skill change forgot to update the canonical file or local copy.
 
-See the file header of `zoodata/scripts/zoodata.py` for full details.
+The canonical files own their respective managed-copy headers and content.
 
 ## Testing Your Changes
 

@@ -77,20 +77,24 @@ def test_skill_is_a_concise_router_not_a_second_execution_guide():
 def test_source_of_truth_boundaries_define_exclusive_module_ownership():
     skill = read("SKILL.md")
     output = read("references/output-rules.md")
+    contract = read("references/cli-result-contract.md")
 
     assert "This file owns only trigger classification, reference loading, scenario routing" in skill
     assert "must not define endpoint contracts, shared workflow procedures, field semantics" in skill
+    assert "`cli-result-contract.md` owns only project-wide CLI-result acquisition" in skill
+    assert "must not define endpoint fields, keyword evidence meaning, scenario selection" in skill
     assert "`reference.md` owns only production API and acquisition-surface facts" in skill
-    assert "must not define Agent workflow, action/output policy, business interpretation" in skill
+    assert "must not redefine the shared CLI result contract" in skill
     assert "`execution-guide.md` owns only the shared scenario/stage schema" in skill
-    assert "Gate order/decisions, evidence-level conclusion ceilings" in skill
-    assert "must not redefine API contracts, field meanings, detailed evidence procedures" in skill
+    assert "keyword-stage consequences after shared CLI classification" in skill
+    assert "must not redefine the shared CLI result contract, API contracts" in skill
     assert "`evidence-protocols.md` owns only shared evidence planning" in skill
     assert "must not select stages, define Gate outcomes, render handoff lists" in skill
     assert "`diagnosis-action-protocols.md` owns only the detailed causal-diagnosis" in skill
     assert "must not select stages, define the Diagnostic Closure Gate result" in skill
     assert "`output-rules.md` owns only user-facing language, progress updates" in skill
-    assert "must not select stages, define Gate outcomes, change conclusion authority" in skill
+    assert "the local interface-failure template" in skill
+    assert "must not select stages, define Gate outcomes" in skill
     assert "`traffic-observation-semantics.md`) own only" in skill
     assert "must not define production availability or request parameters, shared workflow policy" in skill
     assert "`sqp-field-semantics.md` owns seller-artifact acquisition order, schema identity" in skill
@@ -104,7 +108,9 @@ def test_source_of_truth_boundaries_define_exclusive_module_ownership():
     assert "Within those command paths, it must not define field meaning" in skill
     assert "Other commands bundled in the shared CLI remain outside this skill's responsibility map" in skill
     assert "must not define field meaning, stage selection, evidence interpretation" in skill
-    assert "`execution-guide.md` owns the Gate behavior and `output-rules.md` owns rendered prose" in skill
+    assert "`cli-result-contract.md` owns shared result handling" in skill
+    assert "`execution-guide.md` owns keyword-stage Gate consequences" in skill
+    assert "`output-rules.md` owns rendered prose including the local interface-failure template" in skill
     assert "The credential-only `check` path and opt-in endpoint probes are diagnostic utilities outside this evidence-command contract" in skill
     assert "`README.md` is a human-facing package overview and module index only" in skill
     assert "must not define or modify runtime routing" in skill
@@ -112,6 +118,7 @@ def test_source_of_truth_boundaries_define_exclusive_module_ownership():
     assert "split API fact, shared workflow consequence, field interpretation, and scenario application" in skill
     assert "Apply each rule from its responsible owner module above" in skill
     assert "A downstream module may narrow behavior but must not override an owner contract" in skill
+    assert "# ZooData CLI Result and Interface Failure Contract" in contract
     assert "surface it for discussion" not in skill
     assert "changing a top-level owner contract" not in skill
     assert "maintainer" not in skill.lower()
@@ -245,6 +252,7 @@ def test_interface_failure_policy_respects_module_ownership():
     skill = read("SKILL.md")
     guide = read("references/execution-guide.md")
     reference = read("references/reference.md")
+    contract = read("references/cli-result-contract.md")
     script = read("scripts/zoodata.py")
     scenarios = [
         path.read_text(encoding="utf-8")
@@ -263,15 +271,10 @@ def test_interface_failure_policy_respects_module_ownership():
     ):
         assert leaked_detail not in skill
 
-    # The API reference owns response meaning, not agent recovery behavior.
-    assert "preserves the authoritative outer status for every parsed HTTP response" in reference
-    assert "Response-body or nested status-like fields do not override it" in reference
-    assert "HTTP 422 means request validation failed" in reference
-    assert "HTTP 5xx after the client's built-in retries means the service is currently unavailable" in reference
-    assert "preserves the outer HTTP status in `error.status`" in reference
-    assert "sets `error.retryExhausted=true` when that retry budget is consumed" in reference
-    assert "Response-body text or a nested non-5xx-like error does not change" in reference
-    assert "does not establish that the requested date or other parameters are invalid" in reference
+    # The endpoint reference delegates shared CLI mechanics to the local contract.
+    assert "Apply the local `cli-result-contract.md`" in reference
+    assert "Endpoint-specific validation details remain authoritative only" in reference
+    assert "HTTP 5xx after the client's built-in retries" not in reference
     for leaked_action in (
         "Stop the current workflow",
         "retry the same request later",
@@ -280,20 +283,22 @@ def test_interface_failure_policy_respects_module_ownership():
     ):
         assert leaked_action not in reference
 
-    # The shared execution guide owns stop/retry/parameter-mutation policy.
+    # The local shared contract owns result classification and retry/stop policy.
+    assert "Treat `_transport.status` as the authoritative outer HTTP status" in contract
+    assert "The shared CLI owns transport retries" in contract
+    assert "exhausted HTTP 5xx" in contract
+    assert "Do not retry externally, mutate parameters, switch endpoints" in contract
+    assert "Do not reinterpret an HTTP 5xx body as validation" in contract
+    assert "A valid `status=empty` or a documented business/coverage error is not automatically terminal" in contract
+    assert "This shared contract intentionally defines no user-facing wording" in contract
+    assert "Service is currently unavailable" not in contract
+
+    # The execution guide owns keyword-stage consequences after classification.
     assert "### Interface Failure Stop Gate" in guide
-    assert "#### HTTP 5xx Decision Blacklist" in guide
-    assert "Inspect the authoritative HTTP transport status before interpreting any response-body field" in guide
-    assert "If that status is in the `500–599` range" in guide
-    assert "Only a result whose authoritative transport status is outside the `500–599` range" in guide
-    assert "the outer transport status controls classification" in guide
-    assert "A response body that resembles a validation, credential, credit, parameter" in guide
-    assert "Never use response-body content to reinterpret a 5xx" in guide
-    assert "Do not execute any subsequent API or tool command in that turn" in guide
-    assert "Parameter correction is available only after the authoritative HTTP transport status" in guide
-    assert "outside `500–599`" in guide
-    assert "A valid `status=empty` may justify a separately supported alternate query or period" in guide
-    assert "Route credential failure, credit failure, and the reference-classified validation response" not in guide
+    assert "Classify every bundled CLI result through the local `cli-result-contract.md`" in guide
+    assert "hard interrupt for the active keyword stage and the current turn" in guide
+    assert "Do not produce the requested market/product/operating conclusion" in guide
+    assert "do not render the normal stage-end selection list" in guide.lower()
     assert "`error.retryExhausted=true`" not in guide
     assert "HTTP 422 is a parameter validation error" not in guide
 
@@ -318,6 +323,7 @@ def test_interface_failure_policy_respects_module_ownership():
 def test_execution_guide_is_the_core_stage_and_gate_source():
     guide = read("references/execution-guide.md")
     output = read("references/output-rules.md")
+    contract = read("references/cli-result-contract.md")
 
     assert "## Authority and routing" in guide
     assert guide.index("## Contents") < guide.index("## Authority and routing")
@@ -406,8 +412,7 @@ def test_execution_guide_is_the_core_stage_and_gate_source():
     assert "## Usage Accounting Rule" not in guide
     assert "### Candidate Validation Rule" in guide
     assert "### Interface Failure Stop Gate" in guide
-    assert "Stop the workflow immediately" in guide
-    assert "Do not call another endpoint" in guide
+    assert "terminal-interface classification is a hard interrupt" in guide
     assert "do not request asin, price, margin, sqp, ads" in guide.lower()
     assert "local parsing, transformation, extraction, or formatting command that fails" in guide
     assert "Never call the same paid endpoint again merely to change output format" in guide
@@ -415,11 +420,14 @@ def test_execution_guide_is_the_core_stage_and_gate_source():
     assert "`output-rules.md § Interface Failure Output`" in guide
     assert "## Interface Failure Output" in output
     assert "`Service is currently unavailable. Please try again later.`" in output
-    assert "Do not execute any subsequent API or tool command in that turn" in guide
-    assert "select another date, marketplace, subject, filter, pagination value, endpoint, or surface" in guide
-    assert "Parameter correction is available only after the authoritative HTTP transport status is outside" in guide
-    assert "A valid `status=empty` may justify a separately supported alternate query or period" in guide
-    assert "Never transfer either behavior to HTTP 5xx" in guide
+    assert "`Succeeded interfaces: {comma-separated endpoint identifiers, or None}`" in output
+    assert "`Failed interfaces: {comma-separated endpoint identifiers}`" in output
+    assert "Service is currently unavailable" not in contract
+    assert "Do not retry externally, mutate parameters, switch endpoints" in contract
+    assert "another date, subject, marketplace, filter, or page" in contract
+    assert "A result that the shared contract classifies as non-terminal may enter" in guide
+    assert "`status=empty` route; none of those routes may override a terminal classification" in guide
+    assert "Never transfer either behavior to HTTP 5xx" not in guide
     assert "evidence → analysis → stage conclusion" in guide
     assert "Treat traffic-structure diagnosis through reverse ASIN and traffic-change diagnosis as mutually exclusive active routes" in guide
     assert "Apply the clarification gate when neither meaning is explicit" in guide
@@ -469,6 +477,7 @@ def test_support_protocols_are_progressively_loaded_and_do_not_own_stage_flow():
 def test_user_facing_output_boundary_hides_internal_failure_policy():
     guide = read("references/execution-guide.md")
     output = read("references/output-rules.md")
+    contract = read("references/cli-result-contract.md")
     scenarios = [
         path.read_text(encoding="utf-8")
         for path in sorted((ROOT / "references").glob("scenarios-*.md"))
@@ -486,12 +495,15 @@ def test_user_facing_output_boundary_hides_internal_failure_policy():
     assert "## Interface Failure Output" in output
     assert "For any hard interface-failure stop selected by `execution-guide.md`" in output
     assert "For an HTTP 5xx hard stop" not in output
+    assert "using only this localized template" in output
     assert "`Service is currently unavailable. Please try again later.`" in output
     assert "`Succeeded interfaces: {comma-separated endpoint identifiers, or None}`" in output
     assert "`Failed interfaces: {comma-separated endpoint identifiers}`" in output
     assert "Preserve endpoint identifiers exactly as documented" in output
+    assert "This shared contract intentionally defines no user-facing wording" in contract
+    assert "Service is currently unavailable" not in contract
     assert "only from calls completed in the current turn" in output
-    assert "exactly three non-empty plain-text lines with no blank lines" in output
+    assert "render exactly three non-empty plain-text lines" in output
     assert "The first emitted character must belong to the localized first line" in output
     assert "the last emitted character must belong to the failed-interface identifier on the third line" in output
     assert "Add no content before or after the template" in output
@@ -599,11 +611,12 @@ def test_interface_failure_never_descends_to_data_layer():
     guide = read("references/execution-guide.md")
     evidence = read("references/evidence-protocols.md")
     reference = read("references/reference.md")
+    contract = read("references/cli-result-contract.md")
 
-    assert "Do not call another endpoint" in guide
-    assert "descend to a data layer" in guide
+    assert "start another tool command" in contract
+    assert "continue to a later workflow step" in contract
     assert "Descend only after a successful metric response" in evidence
-    assert "does not establish that the requested date or other parameters are invalid" in reference
+    assert "Endpoint-specific validation details remain authoritative only" in reference
 
 
 def test_timeline_health_probe_omits_unsupported_pagination():

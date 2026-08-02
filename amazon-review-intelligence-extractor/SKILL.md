@@ -11,7 +11,7 @@ description: >
   review comparison, negative reviews, customer complaints, buying factors, user profile.
   Requires ZOODATA_API_KEY.
 metadata:
-  version: "1.0.8"
+  version: "1.0.9"
   author: SerendipityOneInc
   homepage: https://github.com/SerendipityOneInc/ZooData-Skills
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}
@@ -36,12 +36,20 @@ Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zooda
 - **Sent to the API**: keywords, category paths, ASINs, marketplace/date and numeric filter values only. **Never sent**: budget, experience level, risk tolerance, or any other user-profile text — profile inputs map client-side to numeric filters.
 - **Credits**: every API call consumes account credits. For broad or ambiguous requests, state the estimated credit cost and confirm with the user before running multi-call scans. The composite `review-deepdive` command executes ~14+ API calls (~10-20 credits) in ONE invocation and has NO skip/trim flags — under a credit cap, use the granular commands instead.
 
+## Shared CLI Result Handling
+
+After every bundled `zoodata.py` invocation, read and apply the local `references/cli-result-contract.md` before any fallback, additional call, state write, interpretation, or user-facing report. This applies to granular and composite commands. Always parse valid structured stdout even when the process exits non-zero; use this skill's fallback logic only when the shared contract classifies the result as non-terminal.
+
+### Local Interface Failure Output
+
+For a terminal interface failure, respond in the user's language that the review analysis could not be completed, followed by the succeeded and failed endpoint identifiers. Do not generate pain-point rankings, sentiment conclusions, listing copy, or differentiation recommendations. Keep control tokens, parameters, and retry logs internal unless diagnostics are requested.
+
 ## Input (one of)
 - **Single ASIN**: "Analyze reviews for B09V3KXJPB"
 - **Multi-ASIN**: "Compare review pain points across these 5 competitor ASINs"
 - **Category-wide**: keyword/category name → resolve via `categories` first (need ≥3-level deep path)
 
-## API Pitfalls (see zoodata skill for full list)
+## API Pitfalls (CRITICAL)
 - `reviews/analysis` needs **50+ reviews**. Fallback chain when sample is insufficient:
   1. **Lightweight**: `realtime/product` ratingBreakdown — only star distribution, no themes
   2. **Full 11-dim insights**: see "Insufficient Data Fallback" section below — use the
@@ -55,14 +63,14 @@ Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zooda
 
 ## On Missing Key
 
-When `ZOODATA_API_KEY` is not set (verify via `python {skill_base_dir}/scripts/zoodata.py check` — exits 2 if no key in env or `~/.zoodata/config.json`): follow the **"On Missing Key"** protocol in `zoodata/SKILL.md` — STOP before any call, link the user to https://zoodata.ai/en/api-keys, and DO NOT produce a "partial analysis from public knowledge" / "for reference only" fallback as a substitute.
+When `ZOODATA_API_KEY` is not set (verify via `python {skill_base_dir}/scripts/zoodata.py check` — exits 2 if no key in env or `~/.zoodata/config.json`), stop before any evidence call. Tell the user that a ZooData API key is required, link to https://zoodata.ai/en/api-keys, and explain that the key may be set in the environment or local config. Do not substitute public knowledge or a "for reference only" analysis.
 ## On 401 Invalid Key
 
-When `zoodata.py` returns code 401: follow the **"On 401 Invalid Key"** protocol in `zoodata/SKILL.md` — STOP further calls, tell the user the key was rejected and direct them to api-keys, do not fabricate missing data.
+When `_transport.status=401`, stop further calls, tell the user that the configured key was rejected, direct them to https://zoodata.ai/en/api-keys, and do not fabricate missing data.
 
 ## On 402 Credit Exhausted
 
-When `zoodata.py` returns code 402: follow the **"On 402 Credit Exhausted"** protocol in `zoodata/SKILL.md` — STOP further calls, report partial findings already gathered, do not fabricate missing data.
+When `_transport.status=402`, stop further calls. Report where the workflow stopped, any compatible partial findings already gathered, and returned credit metadata when present; direct the user to https://zoodata.ai/en/pricing and do not fabricate missing data.
 
 ## 11 Analysis Dimensions
 `painPoints` · `issues` · `positives` · `improvements` · `buyingFactors` · `keywords` · `userProfiles` · `scenarios` · `usageTimes` · `usageLocations` · `behaviors`
