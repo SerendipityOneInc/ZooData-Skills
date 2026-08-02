@@ -99,7 +99,7 @@ def test_source_of_truth_boundaries_define_exclusive_module_ownership():
     assert "They define evidence levels, not report headings/order, workflow-completion states" in skill
     assert "must not restate, relax, replace, or create exceptions" in skill
     assert "For the documented keyword endpoints and `realtime/product` used by this skill" in skill
-    assert "`scripts/zoodata.py` owns deterministic transport retries" in skill
+    assert "`{skill_base_dir}/scripts/zoodata.py` owns deterministic transport retries" in skill
     assert "machine-readable Agent-control signal vocabulary" in skill
     assert "Within those command paths, it must not define field meaning" in skill
     assert "Other commands bundled in the shared CLI remain outside this skill's responsibility map" in skill
