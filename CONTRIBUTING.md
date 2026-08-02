@@ -38,7 +38,7 @@ git checkout -b feat/my-thing
 The canonical runtime files are:
 
 - `zoodata/scripts/zoodata.py`
-- `zoodata/references/cli-result-contract.md`
+- `zoodata/references/cli-contract.md`
 
 Each `amazon-*` skill has synced local copies at the matching `scripts/` and
 `references/` paths so the skill remains independently publishable. **Never

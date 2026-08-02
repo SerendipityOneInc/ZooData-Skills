@@ -77,17 +77,19 @@ def test_skill_is_a_concise_router_not_a_second_execution_guide():
 def test_source_of_truth_boundaries_define_exclusive_module_ownership():
     skill = read("SKILL.md")
     output = read("references/output-rules.md")
-    contract = read("references/cli-result-contract.md")
+    contract = read("references/cli-contract.md")
 
     assert "This file owns only trigger classification, reference loading, scenario routing" in skill
     assert "must not define endpoint contracts, shared workflow procedures, field semantics" in skill
-    assert "`cli-result-contract.md` owns only project-wide CLI-result acquisition" in skill
-    assert "must not define endpoint fields, keyword evidence meaning, scenario selection" in skill
+    assert "`cli-contract.md` owns only the project-wide invocation form" in skill
+    assert "command-identity validation, execution-environment permission handling" in skill
+    assert "caller/CLI responsibilities, composite-result reuse" in skill
+    assert "must not define skill-specific command allowlists, endpoint fields" in skill
     assert "`reference.md` owns only production API and acquisition-surface facts" in skill
-    assert "must not redefine the shared CLI result contract" in skill
+    assert "must not redefine the shared CLI contract" in skill
     assert "`execution-guide.md` owns only the shared scenario/stage schema" in skill
     assert "keyword-stage consequences after shared CLI classification" in skill
-    assert "must not redefine the shared CLI result contract, API contracts" in skill
+    assert "must not redefine the shared CLI contract, API contracts" in skill
     assert "`evidence-protocols.md` owns only shared evidence planning" in skill
     assert "must not select stages, define Gate outcomes, render handoff lists" in skill
     assert "`diagnosis-action-protocols.md` owns only the detailed causal-diagnosis" in skill
@@ -108,7 +110,7 @@ def test_source_of_truth_boundaries_define_exclusive_module_ownership():
     assert "Within those command paths, it must not define field meaning" in skill
     assert "Other commands bundled in the shared CLI remain outside this skill's responsibility map" in skill
     assert "must not define field meaning, stage selection, evidence interpretation" in skill
-    assert "`cli-result-contract.md` owns shared result handling" in skill
+    assert "`cli-contract.md` owns shared invocation and result handling" in skill
     assert "`execution-guide.md` owns keyword-stage Gate consequences" in skill
     assert "`output-rules.md` owns rendered prose including the local interface-failure template" in skill
     assert "The credential-only `check` path and opt-in endpoint probes are diagnostic utilities outside this evidence-command contract" in skill
@@ -118,7 +120,7 @@ def test_source_of_truth_boundaries_define_exclusive_module_ownership():
     assert "split API fact, shared workflow consequence, field interpretation, and scenario application" in skill
     assert "Apply each rule from its responsible owner module above" in skill
     assert "A downstream module may narrow behavior but must not override an owner contract" in skill
-    assert "# ZooData CLI Result and Interface Failure Contract" in contract
+    assert "# ZooData CLI Contract" in contract
     assert "surface it for discussion" not in skill
     assert "changing a top-level owner contract" not in skill
     assert "maintainer" not in skill.lower()
@@ -252,7 +254,7 @@ def test_interface_failure_policy_respects_module_ownership():
     skill = read("SKILL.md")
     guide = read("references/execution-guide.md")
     reference = read("references/reference.md")
-    contract = read("references/cli-result-contract.md")
+    contract = read("references/cli-contract.md")
     script = read("scripts/zoodata.py")
     scenarios = [
         path.read_text(encoding="utf-8")
@@ -272,7 +274,7 @@ def test_interface_failure_policy_respects_module_ownership():
         assert leaked_detail not in skill
 
     # The endpoint reference delegates shared CLI mechanics to the local contract.
-    assert "Apply the local `cli-result-contract.md`" in reference
+    assert "Apply the local `cli-contract.md`" in reference
     assert "Endpoint-specific validation details remain authoritative only" in reference
     assert "HTTP 5xx after the client's built-in retries" not in reference
     for leaked_action in (
@@ -295,7 +297,7 @@ def test_interface_failure_policy_respects_module_ownership():
 
     # The execution guide owns keyword-stage consequences after classification.
     assert "### Interface Failure Stop Gate" in guide
-    assert "Classify every bundled CLI result through the local `cli-result-contract.md`" in guide
+    assert "Classify every bundled CLI result through the local `cli-contract.md`" in guide
     assert "hard interrupt for the active keyword stage and the current turn" in guide
     assert "Do not produce the requested market/product/operating conclusion" in guide
     assert "do not render the normal stage-end selection list" in guide.lower()
@@ -323,7 +325,7 @@ def test_interface_failure_policy_respects_module_ownership():
 def test_execution_guide_is_the_core_stage_and_gate_source():
     guide = read("references/execution-guide.md")
     output = read("references/output-rules.md")
-    contract = read("references/cli-result-contract.md")
+    contract = read("references/cli-contract.md")
 
     assert "## Authority and routing" in guide
     assert guide.index("## Contents") < guide.index("## Authority and routing")
@@ -477,7 +479,7 @@ def test_support_protocols_are_progressively_loaded_and_do_not_own_stage_flow():
 def test_user_facing_output_boundary_hides_internal_failure_policy():
     guide = read("references/execution-guide.md")
     output = read("references/output-rules.md")
-    contract = read("references/cli-result-contract.md")
+    contract = read("references/cli-contract.md")
     scenarios = [
         path.read_text(encoding="utf-8")
         for path in sorted((ROOT / "references").glob("scenarios-*.md"))
@@ -611,7 +613,7 @@ def test_interface_failure_never_descends_to_data_layer():
     guide = read("references/execution-guide.md")
     evidence = read("references/evidence-protocols.md")
     reference = read("references/reference.md")
-    contract = read("references/cli-result-contract.md")
+    contract = read("references/cli-contract.md")
 
     assert "start another tool command" in contract
     assert "continue to a later workflow step" in contract

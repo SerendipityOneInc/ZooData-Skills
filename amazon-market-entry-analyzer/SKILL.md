@@ -33,14 +33,36 @@ Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zooda
 ## Capabilities & Data Flow
 
 - **Network**: only `https://api.zoodata.ai` (Bearer `ZOODATA_API_KEY`). Setting `ZOODATA_BASE_URL` to an untrusted host (anything other than `api.zoodata.ai` / `*.zoodata.ai` / localhost) makes the CLI **refuse the request and withhold the key** — the Bearer token is never sent to an untrusted host.
-- **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). The shared CLI exposes ALL ZooData endpoints as subcommands; this skill's workflows use: `market-entry`, `categories`, `market`, `competitors`, `product`, `check`, plus the review fallback toolkit (`reviews-raw` / `review-tag-prompt` / `review-reduce-prompt` / `review-aggregate`). Do not invoke unrelated subcommands for this skill's tasks.
+- **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). This skill allows only the composite, granular, diagnostic, and review-fallback commands explicitly routed below.
 - **Local files**: a temporary `/tmp/review_<ASIN>_<timestamp>/` working dir during the review fallback; reads the optional credential store `~/.zoodata/config.json`.
 - **Sent to the API**: keywords, category paths, ASINs, marketplace/date and numeric filter values only. **Never sent**: budget, experience level, risk tolerance, or any other user-profile text — profile inputs map client-side to numeric filters.
 - **Credits**: every API call consumes account credits. For broad or ambiguous requests, state the estimated credit cost and confirm with the user before running multi-call scans. The composite `market-entry` command executes ~17+ API calls (~15-25 credits) in ONE invocation and has NO skip/trim flags — under a credit cap, use the granular commands instead.
 
-## Shared CLI Result Handling
+### CLI Route Selection
 
-After every bundled `zoodata.py` invocation, read and apply the local `references/cli-result-contract.md` before any fallback, additional call, state write, interpretation, or user-facing report. This applies to granular and composite commands. Always parse valid structured stdout even when the process exits non-zero; use this skill's fallback logic only when the shared contract classifies the result as non-terminal.
+- Use `market-entry` for the full assessment.
+- Use granular commands only when the workflow selected a granular route before the composite call, or when an explicit non-terminal fallback in this skill requires evidence not already returned.
+- Map granular evidence requests only through this table:
+
+| API endpoint | CLI subcommand |
+|---|---|
+| `categories` | `categories` |
+| `markets/search` | `market` |
+| `products/search` | `products` |
+| `products/competitors` | `competitors` |
+| `realtime/product` | `product` |
+| `reviews/analysis` | `analyze` |
+| `products/price-band-overview` | `price-band-overview` |
+| `products/price-band-detail` | `price-band-detail` |
+| `products/brand-overview` | `brand-overview` |
+| `products/brand-detail` | `brand-detail` |
+| `products/history` | `history` |
+
+Use `check` only for credential diagnostics. Use `reviews-raw`, `review-tag-prompt`, `review-reduce-prompt`, and `review-aggregate` only for the documented review fallback.
+
+## Shared CLI Contract
+
+Before selecting or invoking the first command, read and apply the local `references/cli-contract.md`. Reapply it after every granular or composite result and before any fallback, additional call, state write, interpretation, or user-facing report. Use this skill's fallback logic only when the shared contract classifies the result as non-terminal.
 
 ### Local Interface Failure Output
 
@@ -155,7 +177,7 @@ Decision adjustment (precedence is pinned — apply in order):
 ```bash
 python3 {skill_base_dir}/scripts/zoodata.py market-entry --keyword "{kw}" --category "{path}"
 ```
-Runs all 11 endpoints (~20 calls). Output JSON is large — use targeted extraction, not full read.
+Runs all 11 endpoints (~20 calls). Apply `references/cli-contract.md` to its invocation and returned composite bundle.
 
 ## Output
 Respond in user's language.

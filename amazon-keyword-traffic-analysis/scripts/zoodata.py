@@ -163,9 +163,13 @@ def _resolve_credential():
 
     Sources, in order:
       1. ZOODATA_API_KEY env var
-      2. APICLAW_API_KEY env var    (deprecated — warns)
-      3. ~/.zoodata/config.json
+      2. ~/.zoodata/config.json
+      3. APICLAW_API_KEY env var    (deprecated — warns)
       4. ~/.apiclaw/config.json     (deprecated — warns)
+
+    The two legacy sources are considered only when neither new source
+    contains a key. A selected new key remains authoritative even if an API
+    request later rejects it; request handling must not fall through here.
 
     The former {skill_dir}/config.json fallback was removed for security: the
     skill directory ships inside the published bundle, so a key placed there
@@ -175,13 +179,13 @@ def _resolve_credential():
     if key:
         return key
 
+    key = _read_config_api_key(os.path.expanduser("~/.zoodata/config.json"))
+    if key:
+        return key
+
     key = os.environ.get("APICLAW_API_KEY", "").strip()
     if key:
         _warn_deprecated_source("APICLAW_API_KEY", "ZOODATA_API_KEY")
-        return key
-
-    key = _read_config_api_key(os.path.expanduser("~/.zoodata/config.json"))
-    if key:
         return key
 
     key = _read_config_api_key(os.path.expanduser("~/.apiclaw/config.json"))

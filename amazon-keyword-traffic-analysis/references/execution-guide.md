@@ -158,7 +158,7 @@ Before translating or interpreting an API field, screenshot, CSV, or report fiel
 
 ### Interface Failure Stop Gate
 
-Classify every bundled CLI result through the local `cli-result-contract.md` before interpreting response fields or selecting another capability. Its terminal-interface classification is a hard interrupt for the active keyword stage and the current turn.
+Classify every bundled CLI result through the local `cli-contract.md` before interpreting response fields or selecting another capability. Its terminal-interface classification is a hard interrupt for the active keyword stage and the current turn.
 
 A local parsing, transformation, extraction, or formatting command that fails after a paid API response is also an interface failure for that evidence unit. If the original valid structured response remains available, use it directly without another evidence call; otherwise stop. Never call the same paid endpoint again merely to change output format or recover from local post-processing failure.
 

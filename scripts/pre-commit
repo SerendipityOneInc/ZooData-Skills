@@ -5,10 +5,10 @@
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 
 # Check whether either canonical shared file is staged in this commit.
-if git diff --cached --name-only | grep -Eq "^zoodata/(scripts/zoodata.py|references/cli-result-contract.md)$"; then
+if git diff --cached --name-only | grep -Eq "^zoodata/(scripts/zoodata.py|references/cli-contract.md)$"; then
   echo "Detected canonical ZooData shared-file changes, syncing copies..."
   bash "$REPO_ROOT/scripts/sync-scripts.sh"
   git add "$REPO_ROOT"/amazon-*/scripts/zoodata.py
-  git add "$REPO_ROOT"/amazon-*/references/cli-result-contract.md
+  git add "$REPO_ROOT"/amazon-*/references/cli-contract.md
   echo "Shared copies synced and staged for this commit."
 fi

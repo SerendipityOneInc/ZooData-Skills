@@ -5,7 +5,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SCRIPT_SOURCE="$REPO_ROOT/zoodata/scripts/zoodata.py"
-CONTRACT_SOURCE="$REPO_ROOT/zoodata/references/cli-result-contract.md"
+CONTRACT_SOURCE="$REPO_ROOT/zoodata/references/cli-contract.md"
 CHECK_ONLY=0
 
 if [[ ${1:-} == "--check" ]]; then
@@ -85,9 +85,9 @@ for skill_dir in "$REPO_ROOT"/amazon-*/; do
     "scripts/zoodata.py"
   sync_managed_file \
     "$CONTRACT_SOURCE" \
-    "$skill_dir/references/cli-result-contract.md" \
+    "$skill_dir/references/cli-contract.md" \
     "$skill_name" \
-    "references/cli-result-contract.md"
+    "references/cli-contract.md"
 done
 
 echo ""

@@ -1053,8 +1053,8 @@ class TestMarketEntryCategoryFallback(unittest.TestCase):
 
 class TestCredentialResolution(unittest.TestCase):
     """`_resolve_credential()` resolves the ZooData key from four sources, in
-    order: ZOODATA_API_KEY env, APICLAW_API_KEY env (deprecated),
-    ~/.zoodata/config.json, ~/.apiclaw/config.json (deprecated). The legacy
+    order: ZOODATA_API_KEY env, ~/.zoodata/config.json,
+    APICLAW_API_KEY env (deprecated), ~/.apiclaw/config.json (deprecated). The legacy
     APICLAW sources still work but emit a deprecation warning. The in-bundle
     {skill_dir}/config.json fallback was removed for good: the skill directory
     ships inside the published bundle, so a key placed there would leak."""
@@ -1080,6 +1080,13 @@ class TestCredentialResolution(unittest.TestCase):
                         {"ZOODATA_API_KEY": "new", "APICLAW_API_KEY": "old"},
                         clear=True):
             self.assertEqual(zoodata._resolve_credential(), "new")
+
+    def test_zoodata_home_config_beats_legacy_apiclaw_env(self):
+        home_zoodata = os.path.expanduser("~/.zoodata/config.json")
+        with patch.dict("os.environ", {"APICLAW_API_KEY": "old"}, clear=True), \
+             patch("os.path.exists", side_effect=lambda p: p == home_zoodata), \
+             patch("builtins.open", mock_open(read_data='{"api_key":"new_home"}')):
+            self.assertEqual(zoodata._resolve_credential(), "new_home")
 
     def test_legacy_apiclaw_env_is_a_deprecated_fallback(self):
         """APICLAW_API_KEY still resolves but warns about deprecation."""

@@ -101,7 +101,7 @@ One request cannot contain more than 20 subjects. Each response preserves order 
 
 ### Empty results and errors
 
-- Apply the local `cli-result-contract.md` for authoritative transport status, retry exhaustion, terminal-interface classification, process exit, and partial-result handling.
+- Apply the local `cli-contract.md` for authoritative transport status, retry exhaustion, terminal-interface classification, process exit, and partial-result handling.
 - `status=empty` means no matching observation in the resolved snapshot/window. It does not prove low demand.
 - `keywords/extends` may return an empty `rows[]`; this is a valid successful response.
 - Endpoint-specific validation details remain authoritative only when the shared contract classifies the outer response as HTTP 422. Keyword endpoints exposing granularity currently accept `week` only.

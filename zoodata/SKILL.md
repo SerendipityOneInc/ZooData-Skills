@@ -43,14 +43,14 @@ metadata:
 ## Capabilities & Data Flow
 
 - **Network**: only `https://api.zoodata.ai` (Bearer `ZOODATA_API_KEY`). Setting `ZOODATA_BASE_URL` to an untrusted host (anything other than `api.zoodata.ai` / `*.zoodata.ai` / localhost) makes the CLI **refuse the request and withhold the key** — the Bearer token is never sent to an untrusted host.
-- **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). The shared CLI exposes ALL ZooData endpoints as subcommands; this skill's workflows use: all subcommands — this is the data-layer reference skill, so the full CLI surface is the declared surface. Do not invoke unrelated subcommands for this skill's tasks.
-- **Local files**: none by default; reads the optional credential store `~/.zoodata/config.json`; the Local Review Toolkit uses a temporary `/tmp/review_<ASIN>_<timestamp>/` working dir during the review fallback.
+- **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). This data-layer reference skill allows the complete literal subcommand surface exposed by the bundled client's current top-level help.
+- **Local files**: none by default; reads `~/.zoodata/config.json` and, only when no new credential is configured, the legacy `~/.apiclaw/config.json` credential store; the Local Review Toolkit uses a temporary `/tmp/review_<ASIN>_<timestamp>/` working dir during the review fallback.
 - **Sent to the API**: keywords, category paths, ASINs, marketplace/date and numeric filter values only. **Never sent**: budget, experience level, risk tolerance, or any other user-profile text — profile inputs map client-side to numeric filters.
 - **Credits**: every API call consumes account credits. For broad or ambiguous requests, state the estimated credit cost and confirm with the user before running multi-call scans.
 
-## Shared CLI result contract
+## Shared CLI contract
 
-Before interpreting any bundled CLI result, read and apply `references/cli-result-contract.md`. It is the local source of truth for exit-status handling, authoritative transport status, retries, terminal interface failures, and composite/partial results.
+Before selecting or invoking a bundled CLI command, read and apply `references/cli-contract.md`; reapply it after every result. It is the local source of truth for invocation, command identity, execution-environment permission handling, composite reuse, exit-status handling, authoritative transport status, retries, terminal interface failures, and partial results.
 
 ### Local Interface Failure Output
 
@@ -93,11 +93,12 @@ When `zoodata.py` returns a structured error with `_transport.status=401`,
 `error.status=401`, and `error.message="API Key invalid or expired"`:
 
 1. **STOP further endpoint calls immediately.** Do not retry — a rejected key won't be accepted on a second try; every subsequent call will return 401 too.
-2. **Report to the user**:
-   - The `ZOODATA_API_KEY` in use was rejected (likely invalid, revoked, or expired)
+2. **Keep the selected credential authoritative.** Do not inspect, compare, export, or switch to a lower-priority legacy credential after rejection. A legacy credential may be selected only when neither new source is configured; trying another endpoint or asking to continue does not change this precedence.
+3. **Report to the user**:
+   - The selected ZooData credential was rejected (likely invalid, revoked, or expired)
    - If any partial findings were collected before the failure, show them and mark as partial
    - Fix at https://zoodata.ai/en/api-keys (verify the key, regenerate if needed)
-3. **Do not fabricate or guess** the data the failed calls would have returned. This includes "training-data fallback" / "industry common-sense" headlines disguised as preview — those are fabrications.
+4. **Do not fabricate or guess** the data the failed calls would have returned. This includes "training-data fallback" / "industry common-sense" headlines disguised as preview — those are fabrications.
 
 ## On 402 Credit Exhausted
 

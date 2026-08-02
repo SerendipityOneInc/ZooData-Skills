@@ -32,14 +32,14 @@ Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zooda
 ## Capabilities & Data Flow
 
 - **Network**: only `https://api.zoodata.ai` (Bearer `ZOODATA_API_KEY`). Setting `ZOODATA_BASE_URL` to an untrusted host (anything other than `api.zoodata.ai` / `*.zoodata.ai` / localhost) makes the CLI **refuse the request and withhold the key** — the Bearer token is never sent to an untrusted host.
-- **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). The shared CLI exposes ALL ZooData endpoints as subcommands; this skill's workflows use: `categories`, `product`, `products`, `competitors`, `market`, `price-band-overview`, `price-band-detail`, `brand-overview`, `brand-detail`, `history`, `analyze`, `check`. Do not invoke unrelated subcommands for this skill's tasks.
+- **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). This skill allows `categories`, `product`, `products`, `competitors`, `market`, `price-band-overview`, `price-band-detail`, `brand-overview`, `brand-detail`, `history`, `analyze`, and `check`. Do not invoke unrelated subcommands for this skill's tasks.
 - **Local files**: none; reads the optional credential store `~/.zoodata/config.json`.
 - **Sent to the API**: keywords, category paths, ASINs, marketplace/date and numeric filter values only. **Never sent**: budget, experience level, risk tolerance, or any other user-profile text — profile inputs map client-side to numeric filters.
 - **Credits**: every API call consumes account credits. This skill drives the endpoints granularly (no single composite command); a per-ASIN pricing analysis orchestrates ~11 endpoints for ~20-25 credits, and batch runs scale by unique category (see API Budget below). For batch or broad requests, state the estimated credit cost and confirm with the user before running.
 
-## Shared CLI Result Handling
+## Shared CLI Contract
 
-After every bundled `zoodata.py` invocation, read and apply the local `references/cli-result-contract.md` before any fallback, additional call, state write, interpretation, or user-facing report. This applies to granular and composite commands. Always parse valid structured stdout even when the process exits non-zero; use this skill's fallback logic only when the shared contract classifies the result as non-terminal.
+Before selecting or invoking the first command, read and apply the local `references/cli-contract.md`. Reapply it after every granular or composite result and before any fallback, additional call, state write, interpretation, or user-facing report. Use this skill's fallback logic only when the shared contract classifies the result as non-terminal.
 
 ### Local Interface Failure Output
 
