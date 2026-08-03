@@ -1,9 +1,13 @@
 name: Release notify (Lark)
 
-# Sends a "Launch Tracking" Lark message to the ZooData Launch Tracking Group when a
-# production publish is tagged. ZooData-Skills publishes its skills to ClawHub manually
-# via `clawhub sync`; a production release is marked by pushing a
-# `zoodata-skills-v*-release` tag, which fires this workflow.
+# Sends a "Launch Tracking" Lark message to the ZooData Launch Tracking Group on each
+# repo-level production release. ZooData-Skills publishes its skills to ClawHub manually
+# via `clawhub sync`; a release is a repo-level milestone (0, 1, or many skills) cut as a
+# GitHub Release. Publishing this Release fires the notification.
+#
+# The release TAG must end in `-release` (e.g. v1.2.3-release) — the shared reusable's
+# changelog baseline detection matches production tags by a `release$` suffix. A normal
+# vX.Y.Z release (no suffix) is skipped, not an error.
 #
 # The heavy lifting — baseline / rollback detection, PR changelog, Claude-generated
 # release notes, and the Lark send — is delegated to the shared reusable workflow
@@ -20,13 +24,12 @@ name: Release notify (Lark)
 # the shell to avoid command injection.
 
 on:
-  push:
-    tags:
-      - 'zoodata-skills-v*-release'
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag, e.g. zoodata-skills-v1.2.3-release'
+        description: 'Release tag, e.g. v1.2.3-release'
         required: true
       dry_run:
         description: 'Only generate release notes, do NOT send the Lark message'
@@ -60,56 +63,59 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # Full tag history: dispatch resolves the input tag to a commit SHA.
+          # Full tag history so the tag can be resolved to a commit SHA.
           fetch-depth: 0
 
       - name: Resolve context (tag / sha / actor)
         id: ctx
         env:
-          EVENT_NAME: ${{ github.event_name }}
-          REF_NAME:   ${{ github.ref_name }}
-          PUSH_SHA:   ${{ github.sha }}
-          INPUT_TAG:  ${{ github.event.inputs.tag }}
-          DRY_RUN:    ${{ github.event.inputs.dry_run }}
-          GH_ACTOR:   ${{ github.actor }}
+          EVENT_NAME:          ${{ github.event_name }}
+          RELEASE_TAG:         ${{ github.event.release.tag_name }}
+          RELEASE_ACTOR_LOGIN: ${{ github.event.release.author.login }}
+          INPUT_TAG:           ${{ github.event.inputs.tag }}
+          DRY_RUN:             ${{ github.event.inputs.dry_run }}
+          GH_ACTOR:            ${{ github.actor }}
         run: |
           set -euo pipefail
 
-          # chat_id only matters for an actual send. A dry_run dispatch (notes preview)
-          # is allowed to run before the group is configured; a real send (tag push, or
-          # dispatch with dry_run=false) fails fast when the target group is unset rather
-          # than posting to the wrong group.
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            TAG="$INPUT_TAG"
+            ACTOR="$GH_ACTOR"
+          else
+            TAG="$RELEASE_TAG"
+            ACTOR="${RELEASE_ACTOR_LOGIN:-$GH_ACTOR}"
+          fi
+
+          # Only production release tags (must end in -release, matching the reusable's
+          # baseline detection). A plain vX.Y.Z release is skipped quietly, not an error.
+          case "$TAG" in
+            v*-release) : ;;
+            *)
+              echo "::notice::Release tag '${TAG:-<empty>}' is not a v*-release production tag; skipping notify."
+              echo "should_notify=false" >> "$GITHUB_OUTPUT"
+              exit 0
+              ;;
+          esac
+
+          # chat_id only matters for an actual send. A dry_run dispatch (notes preview) is
+          # allowed before the group is configured; a real send fails fast when unset.
           if [ -z "$RELEASE_CHAT_ID" ] && [ "$DRY_RUN" != "true" ]; then
             echo "::error::vars.LARK_CHAT_RELEASE_GROUP is empty; set it to the ZooData Launch Tracking Group chat_id before a real release notify (a dry_run preview does not need it)."
             exit 1
           fi
 
-          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
-            TAG="$INPUT_TAG"
-            # ^{commit} peels an annotated tag to its commit SHA so the reusable's
-            # changelog/baseline range compares against a real commit, not a tag object.
-            SHA="$(git rev-parse "${TAG}^{commit}" 2>/dev/null)" || {
-              echo "::error::Tag '${TAG}' not found in repo"; exit 1; }
-          else
-            TAG="$REF_NAME"
-            SHA="$PUSH_SHA"
-          fi
-
-          case "$TAG" in
-            zoodata-skills-v*-release) : ;;
-            *)
-              echo "::error::Unsupported tag: ${TAG} (expected zoodata-skills-v*-release)"
-              exit 1
-              ;;
-          esac
+          # ^{commit} peels an annotated tag to its commit SHA so the reusable's
+          # changelog/baseline range compares against a real commit, not a tag object.
+          SHA="$(git rev-parse "${TAG}^{commit}" 2>/dev/null)" || {
+            echo "::error::Tag '${TAG}' not found in repo"; exit 1; }
 
           {
             echo "should_notify=true"
             echo "tag=$TAG"
             echo "sha=$SHA"
-            echo "release_actor=$GH_ACTOR"
+            echo "release_actor=$ACTOR"
           } >> "$GITHUB_OUTPUT"
-          echo "Context: tag=$TAG sha=$SHA actor=$GH_ACTOR"
+          echo "Context: tag=$TAG sha=$SHA actor=$ACTOR"
 
   notify:
     needs: resolve
@@ -119,11 +125,12 @@ jobs:
       tag:                  ${{ needs.resolve.outputs.tag }}
       head_sha:             ${{ needs.resolve.outputs.sha }}
       project_name:         ZooData-Skills
-      # Whole-repo: skills are published together, no per-service path prefix.
+      # Whole-repo: a release is a repo-level milestone across all skills.
       path_filter:          ''
       # No k8s deploy workflow; baseline lookup degrades to git-tag / root-commit.
       deploy_workflow_file: shared-files-distribution.yml
-      tag_prefix:           zoodata-skills
+      # Empty prefix -> reusable matches bare `v*-release` tags (this repo's convention).
+      tag_prefix:           ''
       chat_id:              ${{ vars.LARK_CHAT_RELEASE_GROUP }}
       triggering_event:     ${{ github.event_name }}
       is_test:              ${{ inputs.is_test || false }}

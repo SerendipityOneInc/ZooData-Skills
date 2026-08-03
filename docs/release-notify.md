@@ -10,22 +10,35 @@ Workflow: [`.github/workflows/release-notify-lark.yml`](../.github/workflows/rel
 
 ## How a release fires the notification
 
-ZooData-Skills publishes its skills to ClawHub **manually** (`clawhub sync`). A production
-release is marked by pushing a release **tag**, which triggers the notification:
+A release is a **repo-level milestone** — one release may publish 0, 1, or many skills.
+ZooData-Skills publishes its skills to ClawHub **manually** (`clawhub sync`); the release
+is then cut as a **GitHub Release**, and publishing that Release fires the notification
+(`on: release: [published]`). One release ⇒ one message.
 
 ```bash
-# 1. Publish to production as usual
+# 1. Publish to production as usual (manual; may touch 0, 1, or many skills)
 clawhub --dir . sync --all --owner apiclaw
 
-# 2. Tag the released commit and push the tag
-git tag zoodata-skills-v1.2.3-release
-git push origin zoodata-skills-v1.2.3-release
+# 2. Cut a GitHub Release whose tag ends in `-release`
+gh release create v1.2.3-release --title "v1.2.3 — <headline>" --notes "..."
+#   (or via the GitHub UI — Releases → Draft a new release)
 ```
 
-The tag pattern is `zoodata-skills-v*-release`. Pushing it runs `release-notify-lark.yml`,
-which resolves the tag/commit/actor and delegates to the shared reusable workflow to build
-and send the Lark message. The changelog covers PRs merged since the previous
-`zoodata-skills-v*-release` tag (first release ⇒ since the repo root commit).
+### Tag convention: the tag must end in `-release`
+
+The shared reusable matches the previous production release by a **`release$` tag suffix**
+(the same rule hermes uses). So release tags **must** be `v*-release` (e.g.
+`v1.2.3-release`), not the bare `v1.2.2` this repo used historically. A plain `vX.Y.Z`
+release (no `-release` suffix) is **skipped, not an error** — `resolve` logs a notice and
+sets `should_notify=false`.
+
+The changelog covers PRs merged since the previous `v*-release` tag. The **first** release
+under this convention has no prior `-release` tag, so its changelog falls back to the repo
+root commit (a one-time full history); every release after that is scoped correctly.
+
+> `clawhub sync` itself does **not** trigger anything — it is a local CLI call with no
+> GitHub event. The GitHub Release is the release signal; the workflow only *notifies* and
+> never handles the ClawHub key.
 
 ## Manual run / testing (`workflow_dispatch`)
 
@@ -38,7 +51,7 @@ Run **Actions → Release notify (Lark) → Run workflow** with:
 
 | Input | Default | Meaning |
 |-------|---------|---------|
-| `tag` | — (required) | An existing `zoodata-skills-v*-release` tag to (re)notify for |
+| `tag` | — (required) | An existing `v*-release` tag to (re)notify for |
 | `dry_run` | `true` | Generate the release notes but **do not** send to Lark — use this to preview |
 | `is_test` | `true` | Label the message as a test (`false` = manual resend of a real release) |
 
@@ -54,10 +67,10 @@ push) needs everything in the tables below.
 To dispatch a dry-run against a throwaway tag:
 
 ```bash
-git tag zoodata-skills-v0.0.0-release <some-commit> && git push origin zoodata-skills-v0.0.0-release
-gh workflow run "Release notify (Lark)" -f tag=zoodata-skills-v0.0.0-release -f dry_run=true -f is_test=true
+git tag v0.0.0-release <some-commit> && git push origin v0.0.0-release
+gh workflow run "Release notify (Lark)" -f tag=v0.0.0-release -f dry_run=true -f is_test=true
 # inspect the run logs for the rendered release-notes.md, then delete the throwaway tag
-git push origin :zoodata-skills-v0.0.0-release
+git push origin :v0.0.0-release
 ```
 
 ## Configuration prerequisites (one-time, ops)
