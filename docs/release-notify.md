@@ -29,6 +29,11 @@ and send the Lark message. The changelog covers PRs merged since the previous
 
 ## Manual run / testing (`workflow_dispatch`)
 
+> `workflow_dispatch` only becomes available **after this workflow is on the default
+> branch (`main`)** — GitHub does not expose the "Run workflow" button (or the
+> `gh workflow run` API) for a workflow that exists only on a feature branch. So merge
+> the PR first, then dispatch.
+
 Run **Actions → Release notify (Lark) → Run workflow** with:
 
 | Input | Default | Meaning |
@@ -38,6 +43,22 @@ Run **Actions → Release notify (Lark) → Run workflow** with:
 | `is_test` | `true` | Label the message as a test (`false` = manual resend of a real release) |
 
 Recommended first run: `dry_run: true` to verify the notes render, then `dry_run: false`.
+
+**A `dry_run: true` preview does not need the group configured** — `resolve` skips the
+`LARK_CHAT_RELEASE_GROUP` fail-fast, and the Lark send is skipped, so
+`LARK_CHAT_RELEASE_GROUP` and the `LARKSUITE_CLI_*` secrets are not required. It **does**
+still run Claude release-notes generation, so the `APP_ID` / `APP_PRIVATE_KEY` /
+`AWS_ROLE_TO_ASSUME` secrets must be available. A real send (`dry_run: false` or a tag
+push) needs everything in the tables below.
+
+To dispatch a dry-run against a throwaway tag:
+
+```bash
+git tag zoodata-skills-v0.0.0-release <some-commit> && git push origin zoodata-skills-v0.0.0-release
+gh workflow run "Release notify (Lark)" -f tag=zoodata-skills-v0.0.0-release -f dry_run=true -f is_test=true
+# inspect the run logs for the rendered release-notes.md, then delete the throwaway tag
+git push origin :zoodata-skills-v0.0.0-release
+```
 
 ## Configuration prerequisites (one-time, ops)
 

@@ -70,13 +70,17 @@ jobs:
           REF_NAME:   ${{ github.ref_name }}
           PUSH_SHA:   ${{ github.sha }}
           INPUT_TAG:  ${{ github.event.inputs.tag }}
+          DRY_RUN:    ${{ github.event.inputs.dry_run }}
           GH_ACTOR:   ${{ github.actor }}
         run: |
           set -euo pipefail
 
-          # vars.LARK_CHAT_RELEASE_GROUP unset -> fail-fast (avoid posting to the wrong group).
-          if [ -z "$RELEASE_CHAT_ID" ]; then
-            echo "::error::vars.LARK_CHAT_RELEASE_GROUP is empty; set it to the ZooData Launch Tracking Group chat_id before enabling release notify."
+          # chat_id only matters for an actual send. A dry_run dispatch (notes preview)
+          # is allowed to run before the group is configured; a real send (tag push, or
+          # dispatch with dry_run=false) fails fast when the target group is unset rather
+          # than posting to the wrong group.
+          if [ -z "$RELEASE_CHAT_ID" ] && [ "$DRY_RUN" != "true" ]; then
+            echo "::error::vars.LARK_CHAT_RELEASE_GROUP is empty; set it to the ZooData Launch Tracking Group chat_id before a real release notify (a dry_run preview does not need it)."
             exit 1
           fi
 
