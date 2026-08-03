@@ -1735,6 +1735,26 @@ class TestCompositeRobustness(unittest.TestCase):
         rt_calls = [ep for ep, _ in calls if ep == "realtime/product"]
         self.assertGreaterEqual(len(rt_calls), zoodata.REALTIME_EMPTY_RETRIES)  # did retry
 
+    def test_product_command_retries_and_sets_fallback(self):
+        """Granular `product` retries transient-empty realtime and, if still empty,
+        stamps the offline-fallback hint on meta (parity with composites / Quick Check)."""
+        def router(endpoint, params, calls):
+            return {"success": True, "data": {"asin": ""}, "meta": {"creditsConsumed": 1}}
+        calls, result = self._run(["product", "--asin", "B0DEAD0000"], router)
+        rt_calls = [ep for ep, _ in calls if ep == "realtime/product"]
+        self.assertEqual(len(rt_calls), zoodata.REALTIME_EMPTY_RETRIES)   # retried, not single-shot
+        self.assertEqual(result.get("_realtimeStatus"), "empty_after_retries")
+        self.assertIn("realtimeFallbackHint", result.get("meta", {}))
+
+    def test_product_command_success_no_retry_no_fallback(self):
+        def router(endpoint, params, calls):
+            return {"success": True, "data": {"asin": params["asin"], "title": "X"},
+                    "meta": {"creditsConsumed": 1}}
+        calls, result = self._run(["product", "--asin", "B01LP0U5X0"], router)
+        rt_calls = [ep for ep, _ in calls if ep == "realtime/product"]
+        self.assertEqual(len(rt_calls), 1)                    # data present → no retry
+        self.assertNotIn("realtimeFallbackHint", result.get("meta", {}))
+
 
 # Standalone runner
 # ---------------------------------------------------------------------------

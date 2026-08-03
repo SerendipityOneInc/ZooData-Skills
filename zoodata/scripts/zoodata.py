@@ -1283,11 +1283,17 @@ def cmd_product(args):
     if not args.asin:
         print("ERROR: --asin is required for product command.", file=sys.stderr)
         sys.exit(1)
-    params = {"asin": args.asin}
-    if args.marketplace:
-        params["marketplace"] = args.marketplace
-
-    result = api_call("realtime/product", params)
+    marketplace = args.marketplace or "US"
+    # realtime/product can return a transient 200-empty; retry like the composites do
+    # and, if still empty, surface the offline-fallback hint on the result's own meta so
+    # a per-ASIN poller (e.g. a Quick Check loop) gets the same signal to fall back to
+    # offline snapshot data instead of treating the empty payload as a real answer.
+    caller = lambda ep, p, label=None: api_call(ep, p)
+    result = _fetch_realtime(caller, args.asin, marketplace=marketplace)
+    if isinstance(result, dict) and result.get("_realtimeStatus") == "empty_after_retries":
+        meta = result.setdefault("meta", {})
+        meta["realtimeUnavailable"] = (meta.get("realtimeUnavailable") or 0) + 1
+        meta["realtimeFallbackHint"] = REALTIME_FALLBACK_HINT
     output(result, args.format)
 
 
