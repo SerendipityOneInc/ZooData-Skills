@@ -1,0 +1,129 @@
+name: Release notify (Lark)
+
+# Sends a "Launch Tracking" Lark message to the ZooData Launch Tracking Group when a
+# production publish is tagged. ZooData-Skills publishes its skills to ClawHub manually
+# via `clawhub sync`; a production release is marked by pushing a
+# `zoodata-skills-v*-release` tag, which fires this workflow.
+#
+# The heavy lifting — baseline / rollback detection, PR changelog, Claude-generated
+# release notes, and the Lark send — is delegated to the shared reusable workflow
+# SerendipityOneInc/srp-actions/.github/workflows/release-notify-lark.yml@main, the same
+# one hermes-workspace uses. So the message format matches hermes exactly.
+#
+# Config prerequisites (see docs/release-notify.md):
+#   - repo variable  LARK_CHAT_RELEASE_GROUP  = ZooData Launch Tracking Group chat_id (oc_...)
+#   - repo variable  USER_MAPPING_JSON        = optional GitHub-login -> feishu open_id JSONL
+#   - inherited org/repo secrets: LARKSUITE_CLI_APP_ID, LARKSUITE_CLI_APP_SECRET,
+#     APP_ID, APP_PRIVATE_KEY, AWS_ROLE_TO_ASSUME  (the Lark bot must be a member of the group)
+#
+# Security: every github.event.* string input is injected via env: and double-quoted in
+# the shell to avoid command injection.
+
+on:
+  push:
+    tags:
+      - 'zoodata-skills-v*-release'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag, e.g. zoodata-skills-v1.2.3-release'
+        required: true
+      dry_run:
+        description: 'Only generate release notes, do NOT send the Lark message'
+        type: boolean
+        default: true
+      is_test:
+        description: 'Mark as a test message (false = manual resend of a real release)'
+        type: boolean
+        default: true
+
+# The reusable workflow requires these four; a caller may not grant fewer.
+permissions:
+  contents: read
+  pull-requests: read
+  id-token: write
+  actions: read
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    env:
+      # Target group = ZooData Launch Tracking. The repo variable LARK_CHAT_RELEASE_GROUP
+      # must be set; resolve fails fast when it is empty (safer than a hardcoded fallback
+      # chat_id that could silently post to the wrong group).
+      RELEASE_CHAT_ID: ${{ vars.LARK_CHAT_RELEASE_GROUP }}
+    outputs:
+      tag:           ${{ steps.ctx.outputs.tag }}
+      sha:           ${{ steps.ctx.outputs.sha }}
+      release_actor: ${{ steps.ctx.outputs.release_actor }}
+      should_notify: ${{ steps.ctx.outputs.should_notify }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full tag history: dispatch resolves the input tag to a commit SHA.
+          fetch-depth: 0
+
+      - name: Resolve context (tag / sha / actor)
+        id: ctx
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME:   ${{ github.ref_name }}
+          PUSH_SHA:   ${{ github.sha }}
+          INPUT_TAG:  ${{ github.event.inputs.tag }}
+          GH_ACTOR:   ${{ github.actor }}
+        run: |
+          set -euo pipefail
+
+          # vars.LARK_CHAT_RELEASE_GROUP unset -> fail-fast (avoid posting to the wrong group).
+          if [ -z "$RELEASE_CHAT_ID" ]; then
+            echo "::error::vars.LARK_CHAT_RELEASE_GROUP is empty; set it to the ZooData Launch Tracking Group chat_id before enabling release notify."
+            exit 1
+          fi
+
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            TAG="$INPUT_TAG"
+            # ^{commit} peels an annotated tag to its commit SHA so the reusable's
+            # changelog/baseline range compares against a real commit, not a tag object.
+            SHA="$(git rev-parse "${TAG}^{commit}" 2>/dev/null)" || {
+              echo "::error::Tag '${TAG}' not found in repo"; exit 1; }
+          else
+            TAG="$REF_NAME"
+            SHA="$PUSH_SHA"
+          fi
+
+          case "$TAG" in
+            zoodata-skills-v*-release) : ;;
+            *)
+              echo "::error::Unsupported tag: ${TAG} (expected zoodata-skills-v*-release)"
+              exit 1
+              ;;
+          esac
+
+          {
+            echo "should_notify=true"
+            echo "tag=$TAG"
+            echo "sha=$SHA"
+            echo "release_actor=$GH_ACTOR"
+          } >> "$GITHUB_OUTPUT"
+          echo "Context: tag=$TAG sha=$SHA actor=$GH_ACTOR"
+
+  notify:
+    needs: resolve
+    if: needs.resolve.outputs.should_notify == 'true'
+    uses: SerendipityOneInc/srp-actions/.github/workflows/release-notify-lark.yml@main
+    with:
+      tag:                  ${{ needs.resolve.outputs.tag }}
+      head_sha:             ${{ needs.resolve.outputs.sha }}
+      project_name:         ZooData-Skills
+      # Whole-repo: skills are published together, no per-service path prefix.
+      path_filter:          ''
+      # No k8s deploy workflow; baseline lookup degrades to git-tag / root-commit.
+      deploy_workflow_file: shared-files-distribution.yml
+      tag_prefix:           zoodata-skills
+      chat_id:              ${{ vars.LARK_CHAT_RELEASE_GROUP }}
+      triggering_event:     ${{ github.event_name }}
+      is_test:              ${{ inputs.is_test || false }}
+      dry_run:              ${{ inputs.dry_run || false }}
+      release_actor:        ${{ needs.resolve.outputs.release_actor }}
+      user_mapping_json:    ${{ vars.USER_MAPPING_JSON }}
+    secrets: inherit
