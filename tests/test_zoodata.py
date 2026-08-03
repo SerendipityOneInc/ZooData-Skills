@@ -1609,6 +1609,35 @@ class TestCompositeRobustness(unittest.TestCase):
         self.assertLess(len(calls), 10,
                         f"composite kept calling after terminal failure: {len(calls)} calls")
 
+    def test_composite_does_NOT_abort_on_business_failure(self):
+        """Safety property: a per-endpoint business failure WITHOUT retryExhausted
+        (404/422/empty-but-success) must NOT abort the whole composite."""
+        def router(endpoint, params, calls):
+            if endpoint == "categories":
+                return {"success": True, "data": [{"categoryPath": ["Sports", "Yoga"]}]}
+            if endpoint == "markets/search":
+                # non-terminal business failure mid fan-out — must be tolerated, not abort
+                return {"success": False, "error": {"code": "HTTP_422", "message": "validation"}}
+            return {"success": True, "data": []}
+        calls, results = self._run(["market-entry", "--keyword", "yoga mat"], router)
+        self.assertFalse(results.get("meta", {}).get("aborted"),
+                         "composite wrongly aborted on a non-terminal business failure")
+        # composite must have continued PAST the failing markets/search to other endpoints
+        endpoints = {ep for ep, _ in calls}
+        self.assertTrue(endpoints - {"categories", "markets/search"},
+                        f"composite stopped after the non-terminal failure; only hit {endpoints}")
+
+    def test_listing_audit_empty_target_null_data(self):
+        """Empty target detected regardless of realtime data shape (None / list)."""
+        for empty in (None, []):
+            def router(endpoint, params, calls, _e=empty):
+                if endpoint == "realtime/product":
+                    return {"success": True, "data": _e}
+                return {"success": True, "data": []}
+            calls, results = self._run(["listing-audit", "--my-asin", "B00X"], router)
+            self.assertEqual(results.get("meta", {}).get("audit_status"),
+                             "not_auditable", f"data={empty!r} not treated as empty target")
+
 
 # Standalone runner
 # ---------------------------------------------------------------------------

@@ -91,7 +91,7 @@ When `_transport.status=402`, stop further calls. Report where the workflow stop
 
 ## On Empty Target
 
-When the target ASIN's realtime lookup returns no data (`data.asin` empty) and no category can be resolved, the `listing-audit` command now stops and returns `meta.audit_status = "not_auditable"` with `meta.target_status = "empty"` instead of benchmarking against an unfiltered leader set. If you see this, tell the user the ASIN was not found / not indexed by ZooData (or a transient upstream failure), ask them to re-check the ASIN or retry, and do not present any competitor/benchmark comparison — there is none.
+When the target ASIN's realtime lookup returns no data (`data.asin` empty), the `listing-audit` command now stops and returns `meta.audit_status = "not_auditable"` with `meta.target_status = "empty"` instead of benchmarking against an unfiltered (or category-mismatched) leader set. If you see this, tell the user the ASIN was not found / not indexed by ZooData (or a transient upstream failure), ask them to re-check the ASIN or retry, and do not present any competitor/benchmark comparison — there is none.
 
 ## Execution
 
