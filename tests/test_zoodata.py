@@ -15,10 +15,13 @@ Run from repo root:
 """
 
 import importlib.util
+import http.client
+import io
 import json
 import os
 import sys
 import unittest
+import urllib.error
 from unittest.mock import mock_open, patch
 
 # ---------------------------------------------------------------------------
@@ -35,6 +38,30 @@ with patch.dict("os.environ", {"ZOODATA_API_KEY": "test_key"}):
 # Helpers
 # ---------------------------------------------------------------------------
 MOCK_OK = {"success": True, "data": [], "_query": {"endpoint": "", "params": {}}}
+
+
+class MockHttpResponse:
+    """Minimal urllib response carrying an explicit outer HTTP status."""
+
+    def __init__(self, status, payload=None, raw_body=None):
+        self.status = status
+        self._body = (
+            raw_body
+            if raw_body is not None
+            else json.dumps(payload).encode("utf-8")
+        )
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, traceback):
+        return False
+
+    def getcode(self):
+        return self.status
+
+    def read(self):
+        return self._body
 
 
 def run_cli(*argv):
@@ -429,7 +456,8 @@ class TestEndpointRouting(unittest.TestCase):
                     "--explore-types", "ORG,SP")
         self.assertEqual(r["endpoint"], "keywords/search-results")
         self.assertEqual(r["params"]["exploreTypes"], ["ORG", "SP"])
-        self.assertEqual(r["params"]["lookbackDays"], 7)
+        self.assertEqual(r["params"]["granularity"], "week")
+        self.assertNotIn("lookbackDays", r["params"])
 
     def test_keyword_competitor_product_keywords(self):
         r = run_cli("keyword-competitor-product-keywords",
@@ -440,6 +468,8 @@ class TestEndpointRouting(unittest.TestCase):
         self.assertEqual(r["endpoint"], "keywords/competitor-product-keywords")
         self.assertEqual(r["params"]["keywordContains"], "yoga")
         self.assertEqual(r["params"]["exploreTypes"], ["ORG"])
+        self.assertEqual(r["params"]["granularity"], "week")
+        self.assertNotIn("lookbackDays", r["params"])
 
     def test_keyword_product_traffic_terms(self):
         r = run_cli("keyword-product-traffic-terms",
@@ -448,6 +478,8 @@ class TestEndpointRouting(unittest.TestCase):
         self.assertEqual(r["endpoint"], "keywords/product-traffic-terms")
         self.assertEqual(r["params"]["asin"], "B01CGLCGRA")
         self.assertEqual(r["params"]["sortBy"], "trafficShare")
+        self.assertEqual(r["params"]["granularity"], "week")
+        self.assertNotIn("lookbackDays", r["params"])
 
     def test_product_traffic_terms_overview(self):
         r = run_cli("product-traffic-terms-overview",
@@ -473,8 +505,7 @@ class TestEndpointRouting(unittest.TestCase):
             "dateFrom": "2026-06-23",
             "dateTo": "2026-06-29",
             "marketplace": "US",
-            "granularity": "lately_day",
-            "lookbackDays": 7,
+            "granularity": "week",
         })
 
     def test_product_traffic_terms_timeline_batch(self):
@@ -508,6 +539,482 @@ class TestOutputFormat(unittest.TestCase):
     def test_json_is_indented(self):
         out = run_cli_stdout("json", "market", "--keyword", "yoga")
         self.assertGreater(out.count("\n"), 1)
+
+
+class TestSingleChannelCliOutput(unittest.TestCase):
+
+    def test_success_after_incomplete_read_emits_only_final_stdout_json(self):
+        response = MockHttpResponse(200, {
+            "success": True,
+            "data": {"brands": []},
+        })
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+
+        with patch.object(zoodata, "get_api_key", return_value="test_key"), \
+             patch.object(
+                 zoodata.urllib.request,
+                 "urlopen",
+                 side_effect=[http.client.IncompleteRead(b"partial", 10), response],
+             ) as urlopen, \
+             patch.object(zoodata.time, "sleep"), \
+             patch.object(sys, "argv", [
+                 "zoodata.py", "brand-detail", "--keyword", "storage bins",
+             ]), \
+             patch("sys.stdout", stdout), \
+             patch("sys.stderr", stderr):
+            zoodata.main()
+
+        self.assertEqual(urlopen.call_count, 2)
+        self.assertEqual(stderr.getvalue(), "")
+        result = json.loads(stdout.getvalue())
+        self.assertIs(result["success"], True)
+        self.assertEqual(result["_query"]["endpoint"], "products/brand-detail")
+
+    def test_exhausted_retry_emits_only_final_stdout_error_json(self):
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+
+        with patch.object(zoodata, "get_api_key", return_value="test_key"), \
+             patch.object(
+                 zoodata.urllib.request,
+                 "urlopen",
+                 side_effect=http.client.IncompleteRead(b"partial", 10),
+             ), \
+             patch.object(zoodata.time, "sleep"), \
+             patch.object(sys, "argv", [
+                 "zoodata.py", "brand-detail", "--keyword", "storage bins",
+             ]), \
+             patch("sys.stdout", stdout), \
+             patch("sys.stderr", stderr), \
+             self.assertRaises(SystemExit) as raised:
+            zoodata.main()
+
+        self.assertEqual(raised.exception.code, 1)
+        self.assertEqual(stderr.getvalue(), "")
+        result = json.loads(stdout.getvalue())
+        self.assertIs(result["success"], False)
+        self.assertIs(result["error"]["retryExhausted"], True)
+
+    def test_pre_result_failure_emits_only_stderr(self):
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+
+        def missing_key():
+            print("credential failure", file=sys.stderr)
+            raise SystemExit(1)
+
+        with patch.object(zoodata, "get_api_key", side_effect=missing_key), \
+             patch.object(sys, "argv", [
+                 "zoodata.py", "brand-detail", "--keyword", "storage bins",
+             ]), \
+             patch("sys.stdout", stdout), \
+             patch("sys.stderr", stderr), \
+             self.assertRaises(SystemExit):
+            zoodata.main()
+
+        self.assertEqual(stdout.getvalue(), "")
+        self.assertEqual(stderr.getvalue(), "credential failure\n")
+
+
+class TestApiErrorPropagation(unittest.TestCase):
+
+    def test_successful_http_response_preserves_authoritative_transport_status(self):
+        response = MockHttpResponse(201, {
+            "success": True,
+            "data": {"status": "ok"},
+            "_transport": {"status": 599},
+        })
+
+        with patch.object(zoodata, "get_api_key", return_value="test_key"), \
+             patch.object(zoodata.urllib.request, "urlopen", return_value=response), \
+             patch.object(zoodata.time, "sleep"):
+            result = zoodata.api_call("keywords/detail", {
+                "keyword": "yoga mat",
+                "date": "2026-07-29",
+            })
+
+        self.assertIs(result["success"], True)
+        self.assertEqual(result["_transport"], {"status": 201})
+
+    def test_http_2xx_business_error_cannot_spoof_transport_status(self):
+        response = MockHttpResponse(200, {
+            "success": False,
+            "error": {
+                "code": "BUSINESS_ERROR",
+                "status": 500,
+                "message": "Request could not be completed",
+            },
+            "_transport": {"status": 500},
+        })
+
+        with patch.object(zoodata, "get_api_key", return_value="test_key"), \
+             patch.object(zoodata.urllib.request, "urlopen", return_value=response), \
+             patch.object(zoodata.time, "sleep"):
+            result = zoodata.api_call("keywords/detail", {
+                "keyword": "yoga mat",
+                "date": "2026-07-29",
+            })
+
+        self.assertIs(result["success"], False)
+        self.assertEqual(result["error"]["status"], 500)
+        self.assertEqual(result["_transport"], {"status": 200})
+
+    def test_malformed_or_non_object_http_response_is_not_retried(self):
+        cases = (
+            (MockHttpResponse(200, payload=[]), "Expected a JSON object"),
+            (MockHttpResponse(200, raw_body=b"{not-json"), "not valid UTF-8 JSON"),
+            (
+                MockHttpResponse(200, payload={"data": {}}),
+                "Expected top-level success to be a JSON boolean",
+            ),
+        )
+
+        for response, expected_detail in cases:
+            with self.subTest(expected_detail=expected_detail), \
+                 patch.object(zoodata, "get_api_key", return_value="test_key"), \
+                 patch.object(zoodata.urllib.request, "urlopen", return_value=response) as urlopen, \
+                 patch.object(zoodata.time, "sleep"):
+                result = zoodata.api_call("keywords/detail", {
+                    "keyword": "yoga mat",
+                    "date": "2026-07-29",
+                })
+
+            self.assertEqual(urlopen.call_count, 1)
+            self.assertIs(result["success"], False)
+            self.assertEqual(result["error"]["code"], "MALFORMED_RESPONSE")
+            self.assertIn(expected_detail, result["error"]["detail"])
+            self.assertEqual(
+                result["error"]["action"],
+                "STOP_CURRENT_TURN. APPLY_SKILL_INTERFACE_FAILURE_TEMPLATE. "
+                "DO_NOT_SELECT_ANOTHER_COMMAND.",
+            )
+            self.assertEqual(result["_transport"], {"status": 200})
+
+    def test_http_500_stops_after_internal_retries_without_parameter_recovery(self):
+        def service_error(*args, **kwargs):
+            raise urllib.error.HTTPError(
+                "https://api.zoodata.ai/openapi/v2/keywords/product-traffic-terms",
+                500,
+                "Internal Server Error",
+                {},
+                io.BytesIO(b"{}"),
+            )
+
+        params = {
+            "asin": "B0F8P9MQWY",
+            "date": "2026-07-27",
+            "marketplace": "US",
+        }
+        with patch.object(zoodata, "get_api_key", return_value="test_key"), \
+             patch.object(zoodata.urllib.request, "urlopen", side_effect=service_error) as urlopen, \
+             patch.object(zoodata.time, "sleep"):
+            result = zoodata.api_call("keywords/product-traffic-terms", params)
+
+        self.assertEqual(urlopen.call_count, zoodata.MAX_RETRIES)
+        self.assertEqual(result["error"]["status"], 500)
+        self.assertEqual(result["error"]["message"], "HTTP 500 after 3 attempts")
+        self.assertEqual(result["_transport"], {"status": 500})
+        self.assertEqual(
+            result["error"]["action"],
+            "STOP_CURRENT_TURN. APPLY_SKILL_INTERFACE_FAILURE_TEMPLATE. "
+            "DO_NOT_SELECT_ANOTHER_COMMAND.",
+        )
+        self.assertIs(result["error"]["retryExhausted"], True)
+        self.assertNotIn("workflowDisposition", result["error"])
+        self.assertNotIn("retryPolicy", result["error"])
+        self.assertNotIn("parameterMutationAllowed", result["error"])
+        self.assertEqual(result["_query"]["params"], params)
+
+    def test_non_keyword_http_500_uses_the_same_terminal_contract(self):
+        def service_error(*args, **kwargs):
+            raise urllib.error.HTTPError(
+                "https://api.zoodata.ai/openapi/v2/markets/search",
+                500,
+                "Internal Server Error",
+                {},
+                io.BytesIO(b"{}"),
+            )
+
+        with patch.object(zoodata, "get_api_key", return_value="test_key"), \
+             patch.object(zoodata.urllib.request, "urlopen", side_effect=service_error), \
+             patch.object(zoodata.time, "sleep"):
+            result = zoodata.api_call("markets/search", {
+                "categoryKeyword": "yoga mat",
+                "pageSize": 20,
+            })
+
+        self.assertEqual(result["_transport"], {"status": 500})
+        self.assertEqual(
+            result["error"]["action"],
+            "STOP_CURRENT_TURN. APPLY_SKILL_INTERFACE_FAILURE_TEMPLATE. "
+            "DO_NOT_SELECT_ANOTHER_COMMAND.",
+        )
+        self.assertIs(result["error"]["retryExhausted"], True)
+
+    def test_http_429_uses_rate_limit_attempt_budget_and_preserves_status(self):
+        def rate_limit_error(*args, **kwargs):
+            raise urllib.error.HTTPError(
+                "https://api.zoodata.ai/openapi/v2/keywords/detail",
+                429,
+                "Too Many Requests",
+                {},
+                io.BytesIO(b"{}"),
+            )
+
+        with patch.object(zoodata, "get_api_key", return_value="test_key"), \
+             patch.object(zoodata.urllib.request, "urlopen", side_effect=rate_limit_error) as urlopen, \
+             patch.object(zoodata.time, "sleep"), \
+             patch.object(zoodata.random, "uniform", return_value=0):
+            result = zoodata.api_call("keywords/detail", {
+                "keyword": "yoga mat",
+                "date": "2026-07-29",
+            })
+
+        self.assertEqual(urlopen.call_count, zoodata.RATE_LIMIT_RETRIES)
+        self.assertEqual(result["error"]["status"], 429)
+        self.assertEqual(result["error"]["message"], "Rate limit exceeded after retries")
+        self.assertEqual(
+            result["error"]["action"],
+            "STOP_CURRENT_TURN. APPLY_SKILL_INTERFACE_FAILURE_TEMPLATE. "
+            "DO_NOT_SELECT_ANOTHER_COMMAND.",
+        )
+        self.assertIs(result["error"]["retryExhausted"], True)
+
+    def test_unavailable_endpoint_emits_terminal_interface_failure_signal(self):
+        http_error = urllib.error.HTTPError(
+            "https://api.zoodata.ai/openapi/v2/keywords/detail",
+            404,
+            "Not Found",
+            {},
+            io.BytesIO(b"{}"),
+        )
+
+        with patch.object(zoodata, "get_api_key", return_value="test_key"), \
+             patch.object(zoodata.urllib.request, "urlopen", side_effect=http_error):
+            result = zoodata.api_call("keywords/detail", {
+                "keyword": "yoga mat",
+                "date": "2026-07-29",
+            })
+
+        self.assertEqual(result["_transport"], {"status": 404})
+        self.assertEqual(
+            result["error"]["action"],
+            "STOP_CURRENT_TURN. APPLY_SKILL_INTERFACE_FAILURE_TEMPLATE. "
+            "DO_NOT_SELECT_ANOTHER_COMMAND.",
+        )
+        self.assertNotIn("retryExhausted", result["error"])
+
+    def test_exhausted_network_failure_emits_terminal_interface_failure_signal(self):
+        network_error = urllib.error.URLError("network unavailable")
+
+        with patch.object(zoodata, "get_api_key", return_value="test_key"), \
+             patch.object(zoodata.urllib.request, "urlopen", side_effect=network_error) as urlopen, \
+             patch.object(zoodata.time, "sleep"):
+            result = zoodata.api_call("keywords/detail", {
+                "keyword": "yoga mat",
+                "date": "2026-07-29",
+            })
+
+        self.assertEqual(urlopen.call_count, zoodata.MAX_RETRIES)
+        self.assertEqual(result["error"]["status"], 0)
+        self.assertEqual(
+            result["error"]["action"],
+            "STOP_CURRENT_TURN. APPLY_SKILL_INTERFACE_FAILURE_TEMPLATE. "
+            "DO_NOT_SELECT_ANOTHER_COMMAND.",
+        )
+        self.assertIs(result["error"]["retryExhausted"], True)
+
+    def test_http_422_preserves_structured_server_response(self):
+        server_response = {
+            "success": False,
+            "error": {
+                "code": "VALIDATION_ERROR",
+                "message": "Remove `lookbackDays` and set `granularity` to `week`.",
+                "details": [{"field": "lookbackDays", "type": "extra_forbidden"}],
+            },
+            "meta": {"requestId": "req_test"},
+        }
+        http_error = urllib.error.HTTPError(
+            "https://api.zoodata.ai/openapi/v2/keywords/search-results",
+            422,
+            "Unprocessable Entity",
+            {},
+            io.BytesIO(json.dumps(server_response).encode("utf-8")),
+        )
+
+        with patch.object(zoodata, "get_api_key", return_value="test_key"), \
+             patch.object(zoodata.urllib.request, "urlopen", side_effect=http_error), \
+             patch.object(zoodata.time, "sleep"):
+            result = zoodata.api_call("keywords/search-results", {
+                "keyword": "yoga mat",
+                "date": "2026-07-23",
+                "granularity": "lately_day",
+                "lookbackDays": 7,
+            })
+
+        self.assertEqual(result["error"], server_response["error"])
+        self.assertEqual(result["meta"], server_response["meta"])
+        self.assertIs(result["success"], False)
+        self.assertEqual(result["_transport"], {"status": 422})
+        self.assertEqual(result["_query"]["params"]["lookbackDays"], 7)
+
+    def test_http_422_transport_status_cannot_be_overridden_by_response_body(self):
+        server_response = {
+            "success": True,
+            "error": {
+                "code": "VALIDATION_ERROR",
+                "status": 500,
+                "message": "Invalid request",
+            },
+        }
+        http_error = urllib.error.HTTPError(
+            "https://api.zoodata.ai/openapi/v2/keywords/detail",
+            422,
+            "Unprocessable Entity",
+            {},
+            io.BytesIO(json.dumps(server_response).encode("utf-8")),
+        )
+
+        with patch.object(zoodata, "get_api_key", return_value="test_key"), \
+             patch.object(zoodata.urllib.request, "urlopen", side_effect=http_error), \
+             patch.object(zoodata.time, "sleep"):
+            result = zoodata.api_call("keywords/detail", {
+                "keyword": "yoga mat",
+                "date": "2026-07-29",
+            })
+
+        self.assertIs(result["success"], False)
+        self.assertEqual(result["error"]["status"], 500)
+        self.assertEqual(result["_transport"], {"status": 422})
+
+    def test_structured_api_error_prints_full_json_before_nonzero_exit(self):
+        error = {
+            "success": False,
+            "error": {
+                "code": "VALIDATION_ERROR",
+                "message": "Remove `lookbackDays` and set `granularity` to `week`.",
+                "details": [{"field": "lookbackDays", "type": "extra_forbidden"}],
+            },
+            "meta": {"requestId": "req_test"},
+            "_query": {
+                "endpoint": "keywords/search-results",
+                "params": {
+                    "keyword": "yoga mat",
+                    "date": "2026-07-23",
+                    "granularity": "week",
+                },
+            },
+        }
+        stdout = io.StringIO()
+
+        with patch.object(zoodata, "api_call", return_value=error), \
+             patch.object(sys, "argv", [
+                 "zoodata.py", "keyword-search-results",
+                 "--keyword", "yoga mat", "--date", "2026-07-23",
+             ]), \
+             patch("sys.stdout", stdout), \
+             self.assertRaises(SystemExit) as raised:
+            zoodata.main()
+
+        self.assertEqual(raised.exception.code, 1)
+        self.assertEqual(json.loads(stdout.getvalue()), error)
+
+    def test_non_keyword_command_prints_structured_error_before_nonzero_exit(self):
+        error = {
+            "success": False,
+            "error": {
+                "status": 500,
+                "message": "HTTP 500 after 3 attempts",
+                "action": "STOP_CURRENT_TURN. APPLY_SKILL_INTERFACE_FAILURE_TEMPLATE. "
+                          "DO_NOT_SELECT_ANOTHER_COMMAND.",
+                "retryExhausted": True,
+            },
+            "_transport": {"status": 500},
+            "_query": {
+                "endpoint": "markets/search",
+                "params": {"categoryKeyword": "yoga mat"},
+            },
+        }
+        stdout = io.StringIO()
+
+        with patch.object(zoodata, "api_call", return_value=error), \
+             patch.object(sys, "argv", [
+                 "zoodata.py", "market", "--keyword", "yoga mat",
+             ]), \
+             patch("sys.stdout", stdout), \
+             self.assertRaises(SystemExit) as raised:
+            zoodata.main()
+
+        self.assertEqual(raised.exception.code, 1)
+        self.assertEqual(json.loads(stdout.getvalue()), error)
+
+    def test_reviews_raw_surfaces_partial_pagination_failure(self):
+        page_one = {
+            "success": True,
+            "data": {
+                "reviews": [{"id": "R1", "rating": 5}],
+                "nextCursor": "cursor-2",
+            },
+        }
+        failure = {
+            "success": False,
+            "error": {
+                "status": 500,
+                "message": "HTTP 500 after 3 attempts",
+                "action": "STOP_CURRENT_TURN. APPLY_SKILL_INTERFACE_FAILURE_TEMPLATE. "
+                          "DO_NOT_SELECT_ANOTHER_COMMAND.",
+                "retryExhausted": True,
+            },
+            "_transport": {"status": 500},
+            "_query": {
+                "endpoint": "realtime/reviews",
+                "params": {
+                    "asin": "B01CGLCGRA",
+                    "marketplace": "US",
+                    "cursor": "cursor-2",
+                },
+            },
+        }
+        captured = {}
+        args = type("Args", (), {
+            "asin": "B01CGLCGRA",
+            "marketplace": "US",
+            "max_pages": 10,
+            "verbose": False,
+        })()
+
+        with patch.object(zoodata, "api_call", side_effect=[page_one, failure]), \
+             patch.object(zoodata, "output", side_effect=lambda data, fmt="json": captured.update(data)):
+            zoodata.cmd_reviews_raw(args)
+
+        self.assertIs(captured["success"], False)
+        self.assertEqual(captured["data"]["pages"], 1)
+        self.assertEqual(captured["data"]["reviews"], page_one["data"]["reviews"])
+        self.assertEqual(captured["error"], failure["error"])
+        self.assertEqual(captured["_transport"], {"status": 500})
+        self.assertEqual(captured["_failedQuery"], failure["_query"])
+
+    def test_keyword_commands_reject_whitespace_only_required_subjects(self):
+        cases = (
+            ("keyword-detail", "--keyword", "   ", "--date", "2026-07-29"),
+            ("keyword-extends", "--query", "   "),
+            ("keyword-search-results", "--keyword", "   ", "--date", "2026-07-29"),
+            ("keyword-product-traffic-terms", "--asin", "   ", "--date", "2026-07-29"),
+            ("product-traffic-terms-overview", "--asin", "   ", "--date", "2026-07-29"),
+            (
+                "product-traffic-terms-timeline",
+                "--asin", "   ",
+                "--keyword", "yoga mat",
+                "--date-from", "2026-07-01",
+                "--date-to", "2026-07-29",
+            ),
+        )
+
+        for argv in cases:
+            with self.subTest(command=argv[0]), \
+                 self.assertRaisesRegex(SystemExit, "non-empty value"):
+                run_cli(*argv)
 
 
 # ---------------------------------------------------------------------------
@@ -623,8 +1130,8 @@ class TestMarketEntryCategoryFallback(unittest.TestCase):
 
 class TestCredentialResolution(unittest.TestCase):
     """`_resolve_credential()` resolves the ZooData key from four sources, in
-    order: ZOODATA_API_KEY env, APICLAW_API_KEY env (deprecated),
-    ~/.zoodata/config.json, ~/.apiclaw/config.json (deprecated). The legacy
+    order: ZOODATA_API_KEY env, ~/.zoodata/config.json,
+    APICLAW_API_KEY env (deprecated), ~/.apiclaw/config.json (deprecated). The legacy
     APICLAW sources still work but emit a deprecation warning. The in-bundle
     {skill_dir}/config.json fallback was removed for good: the skill directory
     ships inside the published bundle, so a key placed there would leak."""
@@ -650,6 +1157,13 @@ class TestCredentialResolution(unittest.TestCase):
                         {"ZOODATA_API_KEY": "new", "APICLAW_API_KEY": "old"},
                         clear=True):
             self.assertEqual(zoodata._resolve_credential(), "new")
+
+    def test_zoodata_home_config_beats_legacy_apiclaw_env(self):
+        home_zoodata = os.path.expanduser("~/.zoodata/config.json")
+        with patch.dict("os.environ", {"APICLAW_API_KEY": "old"}, clear=True), \
+             patch("os.path.exists", side_effect=lambda p: p == home_zoodata), \
+             patch("builtins.open", mock_open(read_data='{"api_key":"new_home"}')):
+            self.assertEqual(zoodata._resolve_credential(), "new_home")
 
     def test_legacy_apiclaw_env_is_a_deprecated_fallback(self):
         """APICLAW_API_KEY still resolves but warns about deprecation."""
@@ -839,7 +1353,48 @@ class TestCheckCommand(unittest.TestCase):
 
         self.assertEqual(captured["endpoints"]["categories"]["status"], "failed")
 
-    def test_keyword_check_includes_market_profile_on_localhost_only(self):
+    def test_keyword_check_stops_after_terminal_account_failure(self):
+        captured = {}
+
+        def fake_output(data, fmt="json"):
+            captured.update(data)
+
+        args = type("Args", (), {
+            "format": "json",
+            "endpoints": False,
+            "keyword_endpoints": True,
+            "keyword": "yoga mat",
+            "date": "2026-06-29",
+            "asin": "B01CGLCGRA",
+        })()
+
+        for status in (401, 402):
+            error = {
+                "success": False,
+                "error": {"status": status, "message": "terminal account failure"},
+                "_transport": {"status": status},
+            }
+            captured.clear()
+            with self.subTest(status=status), \
+                 patch.object(zoodata, "_resolve_credential", return_value="test_key"), \
+                 patch.object(zoodata, "api_call", return_value=error) as api_call, \
+                 patch.object(zoodata, "output", side_effect=fake_output):
+                zoodata.cmd_check(args)
+
+            self.assertEqual(api_call.call_count, 1)
+            self.assertEqual(
+                captured["endpoints"]["keywords/detail"]["status"],
+                "failed",
+            )
+            skipped = [
+                result for endpoint, result in captured["endpoints"].items()
+                if endpoint != "keywords/detail"
+            ]
+            self.assertTrue(skipped)
+            self.assertTrue(all(result["status"] == "skipped" for result in skipped))
+            self.assertTrue(all(result["afterStatus"] == status for result in skipped))
+
+    def test_keyword_check_includes_published_profile_endpoints_on_all_hosts(self):
         args = type("Args", (), {
             "format": "json",
             "endpoints": False,
@@ -849,9 +1404,9 @@ class TestCheckCommand(unittest.TestCase):
             "asin": None,
         })()
 
-        for base_url, expected in [
-            ("http://localhost:8080/openapi/v2", True),
-            ("https://api.zoodata.ai/openapi/v2", False),
+        for base_url in [
+            "http://localhost:8080/openapi/v2",
+            "https://api.zoodata.ai/openapi/v2",
         ]:
             calls = []
 
@@ -865,7 +1420,8 @@ class TestCheckCommand(unittest.TestCase):
                  patch.object(zoodata, "output"):
                 zoodata.cmd_check(args)
 
-            self.assertEqual("keywords/market-profile" in calls, expected)
+            self.assertIn("keywords/market-profile", calls)
+            self.assertIn("keywords/trend-profile", calls)
 
 
 class TestCategoriesMarketplace(unittest.TestCase):

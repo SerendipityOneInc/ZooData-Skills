@@ -33,22 +33,28 @@ git reset --hard origin/main   # safe — discards stale local commits whose
 git checkout -b feat/my-thing
 ```
 
-## Shared CLI Script — `zoodata.py`
+## Shared ZooData Runtime Files
 
-The canonical script lives at `zoodata/scripts/zoodata.py`. Each `amazon-*`
-skill has a synced copy at `<skill>/scripts/zoodata.py`. **Never edit copies
-directly** — sync is enforced at three layers:
+The canonical runtime files are:
+
+- `zoodata/scripts/zoodata.py`
+- `zoodata/references/cli-contract.md`
+
+Each `amazon-*` skill has synced local copies at the matching `scripts/` and
+`references/` paths so the skill remains independently publishable. **Never
+edit copies directly** — sync is enforced at three layers:
 
 1. **Local pre-commit hook** — auto-syncs copies when canonical is staged.
    Install once per clone: `bash scripts/install-hooks.sh`
-2. **`scripts/sync-scripts.sh`** — mirrors canonical → copies. Refuses to
-   overwrite copies that differ without the canonical-source banner
-   (`# Canonical source - do not edit copies under amazon-* skill directories directly`).
-3. **CI check** (`.github/workflows/shared-files-distribution.yml`) — every
-   PR touching `scripts/**` or `*scripts/zoodata.py` runs a strict diff;
-   mismatched copies fail the PR.
+2. **`scripts/sync-scripts.sh`** — mirrors both canonical files → copies.
+   `--check` performs a read-only release check and fails on a missing or
+   byte-different copy. Normal sync refuses to overwrite a divergent copy
+   without the canonical-source managed-copy marker.
+3. **CI check** (`.github/workflows/shared-files-distribution.yml`) — every PR
+   runs the read-only check; missing or mismatched copies block release even
+   when a skill change forgot to update the canonical file or local copy.
 
-See the file header of `zoodata/scripts/zoodata.py` for full details.
+The canonical files own their respective managed-copy headers and content.
 
 ## Testing Your Changes
 
@@ -68,6 +74,38 @@ export ZOODATA_API_KEY='hms_live_xxx'
 python amazon-analysis/scripts/zoodata.py products --keyword "test" --mode beginner
 python amazon-analysis/scripts/zoodata.py categories --keyword "electronics"
 ```
+
+## Skill Specification Ownership
+
+Each skill's `SKILL.md` is that skill's runtime router and module-responsibility
+manifest. It must define the trigger and loading path, route requests to any
+bundled modules, declare the owner of each policy class used by the skill, and
+state the non-negotiable runtime boundaries shared by those modules. Keep it
+concise: it may declare ownership and dispatch, but must not absorb the detailed
+contracts, procedures, semantics, scenarios, or repository-maintenance process
+owned elsewhere.
+
+Every bundled reference, scenario, script-facing instruction, and other skill
+module must follow the ownership map declared by its own `SKILL.md`.
+Cross-module references are allowed; copying or redefining another module's
+contract is not. Split a cross-cutting statement into the owner-specific parts
+declared by that skill instead of placing the whole rule in multiple files.
+
+Human reviewers and automated consistency checks must read the affected
+`SKILL.md` first and review every bundled module strictly against its declared
+responsibility. They must flag foreign definitions, duplicated policy, and
+downstream overrides; they must not invent a parallel ownership model in the
+review program. A change to the ownership map is an architectural change and
+must be reviewed as such, not silently adjusted to make another file or test
+pass. This repository-level contract constrains what a `SKILL.md` may own; it
+does not define or duplicate any skill's domain-specific policy.
+
+If a change exposes an inseparable conflict between owner contracts, stop and
+request a maintainer decision in the issue or pull request. Do not silently
+change a top-level contract, combine competing rules, or invent a fallback.
+Keep this repository-maintenance process out of runtime skill instructions and
+user-facing reports. Add or update consistency tests to enforce both ownership
+and the absence of maintenance-language leakage.
 
 ## Commit Convention
 

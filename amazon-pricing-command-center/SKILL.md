@@ -12,7 +12,7 @@ description: >
   price comparison, price positioning, repricing, should I raise or lower price.
   Requires ZOODATA_API_KEY.
 metadata:
-  version: "1.1.6"
+  version: "1.1.7"
   author: SerendipityOneInc
   homepage: https://github.com/SerendipityOneInc/ZooData-Skills
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}
@@ -32,10 +32,18 @@ Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zooda
 ## Capabilities & Data Flow
 
 - **Network**: only `https://api.zoodata.ai` (Bearer `ZOODATA_API_KEY`). Setting `ZOODATA_BASE_URL` to an untrusted host (anything other than `api.zoodata.ai` / `*.zoodata.ai` / localhost) makes the CLI **refuse the request and withhold the key** — the Bearer token is never sent to an untrusted host.
-- **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). The shared CLI exposes ALL ZooData endpoints as subcommands; this skill's workflows use: `categories`, `product`, `products`, `competitors`, `market`, `price-band-overview`, `price-band-detail`, `brand-overview`, `brand-detail`, `history`, `analyze`, `check`. Do not invoke unrelated subcommands for this skill's tasks.
+- **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). This skill allows `categories`, `product`, `products`, `competitors`, `market`, `price-band-overview`, `price-band-detail`, `brand-overview`, `brand-detail`, `history`, `analyze`, and `check`. Do not invoke unrelated subcommands for this skill's tasks.
 - **Local files**: none; reads the optional credential store `~/.zoodata/config.json`.
 - **Sent to the API**: keywords, category paths, ASINs, marketplace/date and numeric filter values only. **Never sent**: budget, experience level, risk tolerance, or any other user-profile text — profile inputs map client-side to numeric filters.
 - **Credits**: every API call consumes account credits. This skill drives the endpoints granularly (no single composite command); a per-ASIN pricing analysis orchestrates ~11 endpoints for ~20-25 credits, and batch runs scale by unique category (see API Budget below). For batch or broad requests, state the estimated credit cost and confirm with the user before running.
+
+## Shared CLI Contract
+
+Before selecting or invoking the first command, read and apply the local `references/cli-contract.md`. Reapply it after every granular or composite result and before any fallback, additional call, state write, interpretation, or user-facing report. Use this skill's fallback logic only when the shared contract classifies the result as non-terminal.
+
+### Local Interface Failure Output
+
+For a terminal interface failure, respond in the user's language that the pricing assessment could not be completed, followed by the succeeded and failed endpoint identifiers. Do not issue RAISE/HOLD/LOWER, a recommended price, or a profit simulation. Keep control tokens, parameters, and retry logs internal unless diagnostics are requested.
 
 ## Input
 - **Required**: one or more ASINs (your products). No keyword needed — category is auto-detected.
@@ -61,14 +69,14 @@ On first interaction, tell user: "Give me your ASIN(s). I support single or batc
 
 ## On Missing Key
 
-When `ZOODATA_API_KEY` is not set (verify via `python {skill_base_dir}/scripts/zoodata.py check` — exits 2 if no key in env or `~/.zoodata/config.json`): follow the **"On Missing Key"** protocol in `zoodata/SKILL.md` — STOP before any call, link the user to https://zoodata.ai/en/api-keys, and DO NOT produce a "partial analysis from public knowledge" / "for reference only" fallback as a substitute.
+When `ZOODATA_API_KEY` is not set (verify via `python {skill_base_dir}/scripts/zoodata.py check` — exits 2 if no key in env or `~/.zoodata/config.json`), stop before any evidence call. Tell the user that a ZooData API key is required, link to https://zoodata.ai/en/api-keys, and explain that the key may be set in the environment or local config. Do not substitute public knowledge or a "for reference only" analysis.
 ## On 401 Invalid Key
 
-When `zoodata.py` returns code 401: follow the **"On 401 Invalid Key"** protocol in `zoodata/SKILL.md` — STOP further calls, tell the user the key was rejected and direct them to api-keys, do not fabricate missing data.
+When `_transport.status=401`, stop further calls, tell the user that the configured key was rejected, direct them to https://zoodata.ai/en/api-keys, and do not fabricate missing data.
 
 ## On 402 Credit Exhausted
 
-When `zoodata.py` returns code 402: follow the **"On 402 Credit Exhausted"** protocol in `zoodata/SKILL.md` — STOP further calls, report partial findings already gathered, do not fabricate missing data.
+When `_transport.status=402`, stop further calls. Report where the workflow stopped, any compatible partial findings already gathered, and returned credit metadata when present; direct the user to https://zoodata.ai/en/pricing and do not fabricate missing data.
 
 ## Pricing Signal Logic
 

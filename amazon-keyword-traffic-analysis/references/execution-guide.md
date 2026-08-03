@@ -1,477 +1,271 @@
 # Execution Guide — Amazon Keyword Intelligence
 
-This file defines the task-constraint protocol for the four keyword scenarios.
+This file defines the shared scenario/stage contract and Gate system for Amazon keyword workflows. Scenario files instantiate stages; this guide controls how one stage is selected, executed, bounded, and closed.
 
 ## Contents
 
-- [Execution Mode](#execution-mode)
-- [Evidence-Level Progression](#evidence-level-progression)
-- [Evidence-Seeking Diagnosis Protocol](#evidence-seeking-diagnosis-protocol)
-- [Evidence-to-Action Protocol](#evidence-to-action-protocol)
-- [Seller Data Contract](#seller-data-contract)
-- [Quick Mode Output](#quick-mode-output)
-- [Full-Mode Checklist](#full-mode-checklist)
-- [Evidence Capability Matrix](#evidence-capability-matrix)
-- [General Rules](#general-rules)
-- [Output Rules](#output-rules)
+- [Authority and routing](#authority-and-routing)
+- [Execution mode](#execution-mode)
+- [Scenario contract](#scenario-contract)
+- [Stage schema](#stage-schema)
+- [Shared evidence levels](#shared-evidence-levels)
+- [Stage execution sequence](#stage-execution-sequence)
+- [Gate order](#gate-order)
+- [ASIN Traffic Diagnosis Intent Clarification Gate](#asin-traffic-diagnosis-intent-clarification-gate)
+- [Structured Field Identity Gate](#structured-field-identity-gate)
+- [Interactive Stage Gate](#interactive-stage-gate)
+- [Interface Failure Stop Gate](#interface-failure-stop-gate)
+- [Evidence Gate](#evidence-gate)
+- [General Conclusion Authority Gate](#general-conclusion-authority-gate)
+- [Diagnostic Closure Gate](#diagnostic-closure-gate)
+- [Stage Handoff Closure Gate](#stage-handoff-closure-gate)
+- [Stage-End Selection List Rule](#stage-end-selection-list-rule)
+- [Final Output Gate](#final-output-gate)
+- [Pending Handoff Reclassification Rule](#pending-handoff-reclassification-rule)
+- [Scenario Selection Rule](#scenario-selection-rule)
+- [Candidate Validation Rule](#candidate-validation-rule)
+- [HTTP Validation Rule](#http-validation-rule)
+- [Credential and Credit Failures](#credential-and-credit-failures)
 
-## Execution Mode
+## Authority and routing
 
-| Task Type | Mode | Behavior |
-|-----------|------|----------|
-| Single lookup such as one snapshot field | Quick | Return the key metric with light interpretation |
-| Expansion, full keyword judgment, reverse ASIN, keyword traffic diagnosis | Full | Run only the evidence calls justified for the current stage, apply scoring, and output API usage |
+Apply this control sequence:
 
-## Evidence-Level Progression
+`question → scenario → active stage → stage evidence → Gate checks → stage conclusion → stage-end selection list → final output validation`.
 
-Apply these rules to every full-mode scenario. Scenario files define their own stage sequence, inputs, and next-step prompts.
+- `SKILL.md` owns trigger classification, module loading, and non-negotiable boundaries.
+- This guide owns the shared scenario/stage structure, Gate order and decisions, evidence-level conclusion ceilings, stage handoff, final pre-send validation, and follow-up reclassification.
+- `evidence-protocols.md` owns shared evidence planning, retrieval, interpretation, reconciliation, coverage, continuity, and batching procedures.
+- `diagnosis-action-protocols.md` owns the detailed causal-diagnosis and evidence-to-action procedures. This guide retains the Diagnostic Closure Gate that decides whether a diagnostic stage may close.
+- `output-rules.md` owns language, progress updates, the canonical report template and headings, Data Notes, and API-usage presentation. This guide retains the stage-end selection contract.
+- Scenario files define scenario-specific stage entry requirements, capability combinations, conclusion authority, and section-content requirements. They must not redefine report headings/order, workflow-completion states, automatic progression, Gate exceptions, or a competing handoff rule.
+- `reference.md` remains authoritative for API facts. Field-semantic references remain authoritative for returned-field meaning and inference limits.
 
-| Evidence level | Evidence scope | Maximum conclusion authority |
-|----------------|----------------|------------------------------|
+When owner modules conflict, apply the stricter evidence/action limit. Never recover a capability from non-equivalent evidence or let a downstream scenario weaken a Gate.
+
+## Execution mode
+
+| Task type | Mode | Stage behavior |
+|---|---|---|
+| One exact field or snapshot lookup | Quick | Answer under `output-rules.md § Quick Mode Output`; no scenario stage is required unless the follow-up broadens the task. |
+| Expansion, target-keyword judgment, traffic-structure diagnosis, traffic-change diagnosis | Full | Select and complete exactly one applicable scenario stage, then render the stage-end selection list. |
+
+Quick Mode still applies the Structured Field Identity Gate, Interface Failure Stop Gate, and Final Output Gate. It is not a multi-stage workflow and does not require the stage-end list.
+
+## Scenario contract
+
+Every full-mode scenario must:
+
+1. define an ordered set of evidence stages using the Stage Schema below;
+2. select capabilities only for the active stage's named evidence;
+3. keep every conclusion within that stage's authority and the shared evidence ceiling;
+4. inherit every applicable Gate in this guide;
+5. render the active stage's new evidence plus only the compatible prior-stage evidence needed to support its analysis and conclusion; and
+6. close every normally completed stage with the Stage-End Selection List Rule.
+
+The ordered stage list expresses increasing or different evidence authority. It is not a mandatory traversal, automatic queue, workflow status model, or promise that every later stage will be visited.
+
+## Stage schema
+
+Every scenario stage row must contain exactly these runtime roles:
+
+| Role | Required definition |
+|---|---|
+| `Stage` | A stable stage name and the decision scope it addresses. |
+| `Entry input` | The exact subject, selection, artifact, or compatible prior evidence required before the stage may start. |
+| `Evidence` | The capability combination or user-provided evidence that may be acquired and interpreted inside this stage. |
+| `Conclusion authority` | The strongest conclusion this evidence can support and the stronger conclusions still prohibited. |
+
+Do not add a transition, completion, next-stage trigger, or handoff-status column. The shared handoff rule derives any supported continuation from the user's still-current question, the current conclusion, and the next applicable stage's `Entry input`.
+
+## Shared evidence levels
+
+| Evidence level | Evidence scope | Shared maximum authority |
+|---|---|---|
 | Market evidence | Keyword demand, trend, market profile, and SERP observations | Market attractiveness, structure, relative difficulty, and directional opportunity |
 | Subject observation evidence | Market evidence plus observed ASIN, listing, placement, traffic, or timeline signals | Subject-specific fit, current posture, movement, and evidence-supported bounded hypotheses |
-| Seller-real evidence | User-provided ABA-SQP funnel and, when relevant, Amazon Ads performance | Calibrated operating decisions, subject to the fields actually provided |
+| Seller-real evidence | User-provided ABA-SQP funnel and, when relevant, Amazon Ads performance | Calibrated operating decisions limited to the supplied seller fields |
 
-### General Progression Rules
+A scenario may impose a stricter stage ceiling but cannot exceed the shared ceiling.
 
-- Determine the highest evidence level currently available before selecting endpoints or drafting conclusions.
-- Never allow a conclusion to exceed the authority of its supporting evidence level.
-- Treat all conclusions below seller-real evidence as provisional when the request concerns product-specific priority, conversion, profitability, bids, spend, or budget.
-- Request only the next evidence that resolves the named decision gap. Do not expose every possible future input at once.
-- If the user already supplied higher-level evidence, skip unnecessary earlier steps. A scenario sequence is not a mandatory call chain.
-- Reuse compatible evidence already obtained in the conversation. Do not repeat API calls when subject, marketplace, period, filters, and required grain are unchanged.
-- Keep observed facts, Agent inference, provisional action, and final action distinct.
-- If evidence required for the user's requested decision is unavailable, stop with three logical parts: current evidence-level conclusion, unresolved decision, and required next evidence. Omit unresolved branches that are not needed for that decision.
+## Stage execution sequence
+
+For one active full-mode stage:
+
+1. Verify the Stage Entry input and retain later-stage inputs without interpreting them.
+2. Translate the current question into the evidence named by the stage. Use `evidence-protocols.md` for evidence planning and capability execution.
+3. Retrieve only evidence required to complete this stage. Multiple justified calls and valid batch chunks remain inside one stage.
+4. Apply the Interface Failure Stop Gate after every tool or retrieval result before selecting another command.
+5. Apply the Structured Field Identity Gate and the routed semantic owner before interpreting returned fields.
+6. Apply the Evidence Gate, General Conclusion Authority Gate, and Diagnostic Closure Gate when applicable.
+7. Render one stage in `evidence → analysis → stage conclusion` order through `output-rules.md`.
+8. After required usage reporting, render the Stage-End Selection List. Do not execute a later stage in the same turn.
+9. Apply the Final Output Gate to the complete rendered response immediately before sending it.
+
+Retrieval and interpretation remain separate operations inside the stage, while the stage's `Evidence` cell decides what must be acquired.
+
+## Gate order
+
+| Order | Gate | Apply when | Effect |
+|---:|---|---|---|
+| 1 | ASIN Traffic Diagnosis Intent Clarification Gate | An ASIN keyword-traffic request does not explicitly distinguish current structure from temporal change | Stop before scenario selection and show the intent list. |
+| 2 | Interactive Stage Gate | A full-mode scenario has been selected | Select one stage whose entry input exists; block later-stage calls. |
+| 3 | Interface Failure Stop Gate | After every tool/result | Hard-stop the turn on a qualifying interface failure. |
+| 4 | Structured Field Identity Gate | Before translating or interpreting any field | Block interpretation when source identity is unresolved. |
+| 5 | Evidence Gate | Before drafting a claim | Require the correct evidence type and forbid endpoint substitution. |
+| 6 | General Conclusion Authority Gate | Before the stage conclusion | Cap the conclusion at the shared and scenario-specific authority. |
+| 7 | Diagnostic Closure Gate | A causal or anomaly branch is part of the active stage | Block unsupported or abandoned diagnostic branches. |
+| 8 | Stage Handoff Closure Gate | After the stage conclusion | Determine which continuation items, if any, are supported without assigning a workflow status. |
+| 9 | Stage-End Selection List Rule | Every normally completed full-mode stage | Render all supported continuations plus the fixed new-question/exit item. |
+| 10 | Final Output Gate | Immediately before every user-facing send | Validate the entire rendered draft against its selected output route; discard and re-render any noncompliant draft. |
+| 11 | Pending Handoff Reclassification Rule | At the next user turn | Follow the user's actual reply instead of forcing the pending path. |
+
+The hard-stop interface, credential, and credit failure routes are not normally completed stages and do not render a stage-end list.
+
+### ASIN Traffic Diagnosis Intent Clarification Gate
+
+Apply this gate when `SKILL.md` classifies a generic ASIN keyword-traffic diagnosis request as lacking an explicit desired output that distinguishes the two valid diagnosis types. Broad requests for an analysis, overview, health check, or keyword-traffic perspective remain ambiguous even when they do not mention change; absence of change intent is not traffic-structure intent. An explicit named-keyword question about current ASIN fit, relevance, or targeting value is the target-keyword route defined by `SKILL.md`, not an ambiguous diagnosis request.
+
+1. Apply this gate before any user-visible progress or classification prose. Perform any reference reads needed to load this gate silently, without announcing their purpose. Do not select a scenario, inspect product/keyword evidence, or execute an API/tool evidence call before clarification.
+2. Make the localized clarification question or heading and the following numbered list the first user-visible content:
+   - `1` **Traffic-structure diagnosis** — examine the ASIN's current observed traffic terms, traffic-source and placement structure, and candidate keywords.
+   - `2` **Traffic-change diagnosis** — compare current and previous aggregate movement, then locate the changed scope or keywords.
+   - `3` **Ask another question or end this analysis**
+3. Omit progress preambles and internal process explanations. Do not expose the skill, Gate, scenario/module names, capability checks, credits, or quota.
+4. Do not mark a diagnosis route as recommended unless the user's wording already supports it; when the wording is sufficient, skip this gate and route directly.
+5. Treat the user's displayed final-list number, localized label, or equivalent natural-language reply as the new explicit intent. Internally start only the selected scenario.
+
+### Structured Field Identity Gate
+
+Before translating or interpreting an API field, screenshot, CSV, or report field:
+
+1. Resolve `(source, view, selected subject, metric path, field, unit, denominator, grain, period)`; leave unreadable components unknown.
+2. Preserve the full metric path and ownership. Do not reassign market, brand, ASIN, query, placement, or campaign evidence to another subject.
+3. Translate the documented measurement, not a presumed business meaning. Verify compatible denominators before comparing or calculating rates; label each derivation with its formula.
+4. Treat cross-stage or cross-metric patterns as bounded relationships, never as causes or operating actions without separately authorized evidence.
+
+### Interactive Stage Gate
+
+1. Complete at most one user-decision stage per assistant turn. A stage changes evidence level, subject scope, candidate set, or decision authority.
+2. Enter a stage only when its `Entry input` is available and the user's latest request asks for a report or decision within that stage's `Conclusion authority`. Possession of compatible data does not by itself select a stage. A broad request for a complete analysis does not supply missing inputs or pre-authorize later stages.
+3. Keep all calls, field interpretation, analysis, and conclusions inside the active stage's `Evidence` and `Conclusion authority` cells.
+4. Retain compatible later-stage data supplied early without interpreting it. Do not ask the user to upload or supply the same exact input again.
+5. A supplied required ASIN, file, or candidate set may select a displayed continuation and satisfy its entry input in one reply. Do not require a second confirmation.
+6. A displayed final-list number, label, `confirm`, or `continue` selects a route only when its referent is unambiguous. A bare integer refers only to the most recent final numbered selection list; numeric ranks or metric values elsewhere in the report are not selectable identifiers. Do not start the next stage until its required entry input is also available.
+7. Do not combine several stage conclusions, call a later-stage capability, or narrate the full future stage list in the current response.
+8. Enter a seller-funnel, Ads-performance, profitability, or advertising-control stage only when the user's latest request explicitly asks for the corresponding report or decision. Completion of an earlier stage does not make any later seller-data stage mandatory.
+9. Base the active stage conclusion on its new evidence together with compatible prior-stage evidence. Carry only the prior evidence needed for the current question; do not repeat an earlier report or import later-stage evidence.
+
+### Interface Failure Stop Gate
+
+Classify every bundled CLI result through the local `cli-contract.md` before interpreting response fields or selecting another capability. Its terminal-interface classification is a hard interrupt for the active keyword stage and the current turn.
+
+A local parsing, transformation, extraction, or formatting command that fails after a paid API response is also an interface failure for that evidence unit. If the original valid structured response remains available, use it directly without another evidence call; otherwise stop. Never call the same paid endpoint again merely to change output format or recover from local post-processing failure.
+
+1. Do not produce the requested market/product/operating conclusion and do not request ASIN, price, margin, SQP, Ads, or any other next-stage input.
+2. Retain earlier successful retrieval for compatible later reuse, but expose it only as permitted by `output-rules.md § Interface Failure Output`.
+3. Do not render the normal stage-end selection list.
+4. A result that the shared contract classifies as non-terminal may enter the separately supported credential, credit, validation, or `status=empty` route; none of those routes may override a terminal classification.
+
+### Evidence Gate
+
+- Every claim must use the evidence type and subject designed for that claim.
+- Do not bridge a missing evidence type with an adjacent endpoint, documentation statement, keyword wording, or unrelated seller field.
+- A successful valid empty/unsupported result follows `evidence-protocols.md`; it is not an interface failure and does not silently become negative evidence.
+- A causal claim requires discriminating evidence through `diagnosis-action-protocols.md`; a compatible cause list is not a diagnosis.
+- Observed facts, Agent inference, provisional action, and seller-calibrated action must remain distinct.
 
 ### General Conclusion Authority Gate
 
 - Market evidence cannot support product-specific priority, measured conversion performance, profitability, bids, spend, budget allocation, or unconditional go/no-go decisions.
-- Subject observation evidence cannot support measured click/conversion claims without seller funnel data, and it cannot support profitability or exact ad-budget decisions without Ads performance.
-- Intermediate labels describe current posture or validation priority only; they do not authorize execution changes unless the scenario explicitly reaches seller-real calibration.
-- Use bounded language before seller-real calibration: `merits further validation`, `controlled-test candidate`, `current evidence does not support advancing`, or `awaiting seller evidence`.
-- Reserve `Final calibrated conclusion` for decisions supported by the relevant seller-real fields.
-- Require Amazon Ads performance in addition to ABA-SQP for profitability, ACOS/ROAS, exact bid changes, or exact ad-budget allocation.
-
-## Evidence-Seeking Diagnosis Protocol
-
-Apply this protocol whenever the task asks what is wrong, why a metric moved, or what explains a funnel pattern.
-
-1. Record the observed fact without causal language.
-2. Identify the narrowest problem domain supported by that fact.
-3. Convert the problem into an unresolved question.
-4. Identify the smallest evidence that can distinguish among material explanations.
-5. Acquire that evidence when it is available through authorized in-scope tools or already-provided context; do not finalize while a usable discriminating source remains unchecked.
-6. Form an explanation only from the evidence actually obtained, while retaining material alternatives not yet ruled out.
-7. Apply the Evidence-to-Action Protocol before recommending a test, change, scale, or stop decision.
-
-All evidence acquisition in this protocol must use ZooData-owned acquisition channels. Use the matching structured data API first. For a known page URL, use ZooData WebTools `/scrape`; use `/scrape-interactive` only when rendering or page actions are required, and `/search` only when the URL must first be discovered. Never switch to an external interactive browser, direct Amazon navigation, or public web search. If neither ZooData channel can obtain the discriminating evidence, carry that exact gap into the single next-step request for user-provided evidence.
-
-An anomaly is not a diagnosis. Do not fill an evidence gap with a standard inventory of possible causes. A list of compatible causes is allowed only as an internal evidence-search map or when each reported hypothesis has supporting evidence. If discriminating evidence is unavailable, report the identified problem, the unresolved question, the minimum next evidence, and the decision that cannot yet be made.
+- Subject observation evidence cannot support measured click/conversion claims without seller-funnel data or profitability/exact ad-budget decisions without Ads performance.
+- Intermediate labels describe current posture or validation priority only; they do not authorize execution changes.
+- Use bounded language below seller-real evidence. Do not call a pre-seller-data result a final calibrated conclusion.
+- Never volunteer a numeric bid, bid range, bid-change percentage, budget amount, or budget-allocation percentage. Such a value is in scope only when the user's latest request explicitly asks for that exact advertising decision.
+- An explicit request is not action authorization. A numeric advertising recommendation remains prohibited unless `diagnosis-action-protocols.md` authorizes a `Change` using seller evidence interpreted through `sqp-field-semantics.md`. If authorization is absent, give no number and return only the exact evidence gap to the guide-owned handoff rule.
+- Require Amazon Ads performance in addition to ABA-SQP for ACOS/ROAS interpretation, but do not infer profitability from either source alone. A profitability conclusion additionally requires seller-supplied unit economics or an explicit break-even/target ACOS or ROAS grounded in those economics.
+- Apply the active scenario's stricter `Conclusion authority` after applying this shared ceiling.
 
 ### Diagnostic Closure Gate
 
-- Open a diagnostic branch only when the user requested a causal explanation or when the requested operating decision depends on resolving it.
-- If the current evidence already supports the requested operating decision without explaining cause, state that decision and omit unused causal discussion. Do not append “this is not caused by X” or “factors Y/Z require investigation” merely to demonstrate caution.
-- Every diagnostic branch mentioned in the report must end in exactly one of three states: `resolved by cited evidence`, `actively pursued with an in-scope evidence call`, or `carried into the single Next Step with directly matching evidence`.
-- The requested next evidence must discriminate the exact explanations named in the unresolved question. Evidence for Ads economics/order attribution does not by itself resolve detail-page, price, promotion, offer, fulfillment, variation, or asset-quality explanations.
-- If no available or requestable evidence can resolve the branch, omit the branch unless the user's explicit question requires reporting that it is unresolved.
-- Do not continue the report as though a diagnostic branch were closed after writing only “further investigation is needed.”
+Use `diagnosis-action-protocols.md` for the detailed diagnostic procedure, then apply this gate before closing a diagnostic stage:
 
-## Evidence-to-Action Protocol
+- Open a branch only when the user requested a causal explanation or the requested decision depends on it.
+- Every reported diagnostic branch must be resolved by cited evidence, actively pursued inside the current stage, or represented by one directly matching continuation item in the stage-end list.
+- The requested evidence must discriminate the exact explanations named in the unresolved question.
+- If no available or requestable evidence can resolve a branch, omit it unless the user's explicit question requires stating the unresolved boundary.
+- Do not treat “further investigation is needed” as a closed branch.
 
-Apply this protocol after scoping the conclusion and before writing recommendations. Confidence labels describe evidentiary strength; they do not authorize a more specific action.
+### Stage Handoff Closure Gate
 
-### Authorization checklist
+After the stage conclusion and before rendering the stage-end list:
 
-For every proposed action, record:
+1. Re-read the user's still-current question and the current stage conclusion.
+2. Add a continuation only when the current decision still requires another evidence level or subject, an authorized source can resolve the named gap, and a scenario stage names the exact `Entry input`.
+3. If multiple finite subjects are supported, add each supported subject as its own selectable continuation in the final list. Do not render a separate selectable-subject list in Evidence, Analysis, or Conclusion and then point to it from an umbrella action. If one ASIN, candidate-set confirmation, report, file, or field is required, add one continuation item containing that exact action.
+4. If no further evidence is required, do not manufacture a deeper analysis merely because a later stage or capability exists.
+5. If the decision remains unresolved but no authorized evidence/input can resolve it, state the boundary and add no continuation route.
+6. Scenario rows define evidence levels, not completion or transition states. Do not assume that every stage must be visited, create an automatic loop, or maintain a hidden pending queue.
 
-1. **Target** — exact asset, field, keyword, campaign setting, offer, or business decision affected.
-2. **Direct observation** — whether the target was inspected at sufficient fidelity.
-3. **Defect signal** — the concrete issue observed on that target.
-4. **Alternatives** — material alternative explanations that the evidence search must distinguish; compatibility alone does not make them findings.
-5. **Validation** — comparison, experiment, time series, or first-party measurement that distinguishes the target from alternatives.
-6. **Impact** — reversibility, cost, and downside if the action is wrong.
+### Stage-End Selection List Rule
 
-Map the evidence to the highest authorized action level:
+Every normally completed full-mode stage must end with one concise localized numbered selection list after API Usage when present, or immediately after the stage conclusion when no live API data was used. Use the list even when there is only one supported continuation or no supported continuation.
 
-| Level | Minimum authorization |
-|-------|-----------------------|
-| `Inspect` | A broad signal identifies a relevant problem domain |
-| `Diagnose` | Multiple bounded hypotheses are supported and alternatives remain explicit |
-| `Test` | The target was directly observed, a specific defect hypothesis exists, and the test is reversible with predefined success/failure criteria |
-| `Change` | Direct target evidence plus validation distinguishes the target from material alternatives |
-| `Scale` / `Stop` | Seller-real outcome evidence and thresholds justify the financial consequence |
+1. Populate continuation items only from the Stage Handoff Closure Gate. Write each continuation label and description in user-domain language; do not expose internal workflow identity, ordering, progression claims, control vocabulary, implementation details, or usage accounting.
+2. Keep every user-selectable subject and action out of separate lists in Evidence, Analysis, and Conclusion. Those sections may discuss the underlying evidence and named subjects naturally, but must not assign selection keys, present a candidate/action menu, or ask the user to select from body content.
+3. Merge every supported selectable subject and action directly into this one final list. Number the final selection list sequentially with bare integers `1`, `2`, `3`, ... in display order; it is the only user-selectable list in the response. Each item must contain the exact subject label and action needed to make the choice self-contained.
+4. When two or more finite subjects support the same repeatable continuation and the next stage accepts a set, first give every subject its own numbered item, then append exactly one numbered `select all` equivalent for that complete displayed subject set. Allow the user to choose one item, multiple individual items, or the select-all item. Do not emit a select-all item for one subject or when the next stage cannot accept a set.
+5. For one required ASIN, confirmation, report, file, or field, render that single continuation as one numbered item rather than a prose request.
+6. Append exactly one final numbered item, with no description or explanatory suffix, using a localized equivalent of: **Ask another question or end this analysis**.
+7. If no continuation is supported, `1` is the only item and is the fixed new-question/exit choice.
+8. Put an evidence-supported priority continuation first and mark it with a localized equivalent of `recommended`; otherwise preserve the evidence-supported order without manufacturing a recommendation.
+9. Tell the user they may reply with the displayed final-list number or label, one or more final-list numbers or the displayed select-all item when set selection is supported, directly supply/upload the listed input, enter a new question, or state that they want to stop.
+10. Do not auto-select an item. A route selection does not waive its stage `Entry input`.
+11. Keep the list decision-sized. Do not copy every raw row or append unsupported adjacent analyses.
 
-If any required condition is absent, downgrade the action itself. Do not retain a `Change`, `Scale`, or `Stop` action by softening its wording.
+This list is an interaction contract, not a workflow status. The user is never required to continue.
 
-### General examples
+### Final Output Gate
 
-| Available evidence | Not authorized | Authorized next action |
-|--------------------|----------------|------------------------|
-| Clicks/cart adds but weak purchases | Rebuild the first three secondary images or list generic conversion causes | Locate the unresolved issue at the post-click/purchase handoff, then request the smallest evidence that can distinguish traffic quality from purchase-condition explanations |
-| Search-result main-image thumbnail only | Rebuild the main image or secondary images | Inspect thumbnail-level subject recognition and request the full image set for asset-level review |
-| High ACOS alone | Lower bids by a fixed percentage | Diagnose search-term CPC, conversion, placement, and attribution; define a reversible bid test only after target-level evidence |
-| Organic rank decline | Pause the keyword or list every compatible cause | Define which movement remains unexplained, then retrieve the smallest time-aligned evidence that can distinguish demand, placement, subject, and market movement |
-| Review deterioration | Redesign the product | Cluster complaint themes and validate frequency, recency, variant scope, and product causality |
+Apply this gate immediately before every user-facing send, including clarification, Quick Mode, normally completed Full Mode, interface failure, credential failure, credit failure, and validation failure.
 
-Anti-pattern: `Current evidence does not support attributing this to the main image or title; detail-page persuasion, price, promotion, fulfillment, variation, and traffic source require further distinction.` This opens several unsupported branches without pursuing them. If causal diagnosis is not required, omit it and state only the supported operating implication. If it is required, retrieve or request evidence that directly resolves the named branch before continuing.
+1. Select exactly one output route, then obtain that route's complete permitted rendering shape from `output-rules.md` and, for a normally completed Full-Mode stage, the Stage-End Selection List Rule above.
+2. Validate the entire draft from its first emitted character through its last emitted character. Text that happens to contain a valid template is not compliant when any prefix, suffix, heading, explanation, separator, or unrelated block falls outside that route's permitted shape.
+3. If validation fails, discard the entire draft and render the selected route again from its owner contract. Do not patch the invalid draft, retain its wrapper, or append a correction.
+4. For a hard interface failure, validate the complete draft exclusively against `output-rules.md § Interface Failure Output`; any deviation from that owner-defined rendering contract fails this Gate.
+5. Apply `output-rules.md § Internal Identifier Rewrite` as an explicit whole-draft rejection check. Keep all identifier definitions, examples, and rewrite requirements authoritative in that output owner.
+6. Do not send until the complete assistant draft passes the selected route and the internal-identifier check. If an invalid draft cannot be repaired confidently, discard it and emit only that route's minimal owner-defined rendering. Client-generated task notifications are outside this assistant-output validation boundary.
 
-Acquisition anti-pattern: opening the Amazon detail page in an external browser because SQP shows clicks or cart adds without purchases. First use ZooData structured endpoints such as `realtime/product`; for page evidence absent from structured responses, use ZooData WebTools `/scrape` or `/scrape-interactive` as required. External browser and public-web fallback are prohibited even when those ZooData calls are incomplete or unavailable.
+### Pending Handoff Reclassification Rule
 
-### Asset-fidelity rule
+A stage-end list closes the current turn; it does not reserve the next turn.
 
-State what representation was actually observed when an asset enters the diagnosis: full-resolution asset, detail-page rendering, mobile rendering, search-result thumbnail, URL/change event, or no visual observation. An asset URL or detected change event proves that an asset changed, not that its content is defective or caused the performance movement.
+1. At every follow-up, classify the user's actual latest message through `SKILL.md` before continuing a displayed route.
+2. Continue a pending validation only when the message selects its item by displayed final-list number or label and supplies the required entry input, or when it directly supplies that input unambiguously.
+3. If a selected item still lacks its ASIN, artifact, candidate set, or field, do not make an evidence call. Re-render the smallest executable selection list containing the required-input action and the fixed new-question/exit item.
+4. If the user selects the fixed final item, asks a new question, changes scope, or states that they want to stop, leave the previous handoff inactive and follow the latest instruction.
+5. Do not treat arbitrary prose as an ASIN/artifact, invent a missing input, call a later-stage capability, or append a stale request to the new response.
+6. Reuse compatible earlier evidence if the user later returns to the prior journey.
 
-### Seller Data Contract
+### Scenario Selection Rule
 
-When a scenario advances to seller-real evidence, request ABA-SQP from `Brand Analytics → Search Analytics → Search Query Performance → Brand View`. Recommend sorting by `Search Funnel - Impressions → Brand Count` and accept screenshot or CSV. Prefer these fields:
+- Select a scenario by the user's input shape and requested judgment, then select one stage whose entry input exists and whose authority matches the current question.
+- Treat traffic-structure diagnosis through reverse ASIN and traffic-change diagnosis as mutually exclusive active routes. Apply the clarification gate when neither meaning is explicit; give traffic-change diagnosis precedence when the request clearly asks about movement or cause.
+- Combine scenario capabilities only when scenario boundaries are non-exclusive and every call belongs to the same active stage. Never combine scenarios to bypass a Gate or stage ceiling.
 
-| Funnel stage | Fields |
-|--------------|--------|
-| Impressions | Total Count, Brand Count, Brand Share |
-| Clicks | Total Count, Click Rate, Brand Count, Brand Share |
-| Cart Adds | Total Count, Brand Count, Brand Share |
-| Purchases | Total Count, Brand Count, Brand Share |
+### Candidate Validation Rule
 
-If the user also wants profitability or final ad-budget allocation, request Search term, Match type, Impressions, Clicks, Spend, Orders, Sales, CPC, CVR, and ACOS or ROAS.
+Use a scenario label only as a description of the current evidence-bounded validation posture. It must not imply a bid, match type, budget, pause, negative keyword, profitability, or final expansion decision.
 
-When seller funnel data is available, compare `impression share → click share → cart-add share → purchase share` rather than judging from click count alone. Use share gains as evidence of funnel strength and share losses to locate the likely handoff problem. When the required SQP/Ads fields are present and the Evidence-to-Action Protocol authorizes them, a calibrated strategy may cover core defense, priority expansion, long-tail harvest, controlled tests, lower-bid/negative terms, budget, 7–14 day validation metrics, and explicit decision thresholds.
-
-| Funnel pattern | Interpretation | Default action |
-|----------------|----------------|----------------|
-| Click share > impression share | The search-to-click handoff is comparatively strong; this pattern does not by itself explain which factor produced it | Consider an exposure test only after Ads economics and target-level evidence support it |
-| Cart-add share rises again | Product acceptance is comparatively stronger | Upgrade the validation posture; authorize a test/change only through the Evidence-to-Action Protocol |
-| Purchase share rises again | Query-level seller conversion evidence is comparatively stronger | Mark as a focused-expansion candidate; require Ads economics before scaling, match-type, bid, or budget execution |
-| Click share is high but purchase share is low | The unresolved issue is in the post-click/purchase handoff; SQP alone does not identify its cause | Obtain the smallest evidence that distinguishes traffic quality from purchase-condition explanations; if unavailable, stop without enumerating generic causes |
-| Impressions are high but clicks are low | The unresolved issue is in the search-to-click handoff; SQP alone does not identify its cause | Obtain the smallest evidence that distinguishes intent/placement from the visible search offer; if unavailable, stop without selecting a cause |
-| Click and purchase performance are good but market difficulty is high | The query is efficient in the supplied seller funnel but may be expensive to scale | Diagnose Ads economics and define controlled scale thresholds before authorizing expansion |
-| Market profile is favorable but the ASIN funnel is weak | The market may be viable while the ASIN is not capturing it; the responsible factor is unresolved | Define and acquire the minimum evidence needed to distinguish market capture, traffic quality, and purchase-handoff explanations before selecting a change or scaling |
-
-## Quick Mode Output
-
-For single-lookup tasks (e.g., "what's the search volume for X", "what's the ABA rank for X", "show me the SERP for Y"):
-
-- Answer the specific metric(s) directly with field name and value
-- Tag each value with one confidence label: 📊 for direct API field, 🔍 if derived
-- State endpoint and snapshot date inline: e.g., `(source: keywords/detail, snapshot 2024-06-28)`
-- No Data Provenance table required
-- API Usage table is required, same format as Full Mode: markdown table with `Endpoint / Calls / Credits` columns, a `Total` row, and `Credits remaining: N` on the final line; if credit fields are absent, write `not returned`
-- No full report disclaimer block required; if the metric is traffic-related and the current evidence set does not include ABA-SQP data, keep the answer directional and add at most one concise data-basis note after the answer, not inside each metric explanation
-- Do not upgrade a Quick task to Full mode unless the user's follow-up questions expand the scope
-
-## Full-Mode Checklist
-
-Before running any Full-mode keyword task:
-
-- [ ] Read the relevant tool documentation before selecting the tool: CLI help/reference docs for `zoodata.py`, or live schema / field descriptions for MCP/session tools
-- [ ] Write down the required judgment/evidence type and select its metric endpoint first; do not begin from a fixed data-endpoint chain
-- [ ] Inspect metric item status, period, returned scoring/profile version, each dimension's calculation status, and the fields exposed for the required inference
-- [ ] If the metric satisfies the inference, stop; if it does not, determine whether data actually contains additional evidence before calling it—an unsupported/unavailable dimension alone is not a fallback reason
-- [ ] Prefer `python {skill_base_dir}/scripts/zoodata.py` and choose the matching keyword subcommand after the documentation check
-- [ ] If you need session tool parity or fallback, inspect the active tool surface and read the live schema / field descriptions for candidate keyword tools before selecting or judging capability
-- [ ] Classify the task: seed keyword / target keyword / ASIN / ASIN + keyword
-- [ ] Confirm marketplace; default to `US` if absent
-- [ ] For endpoints independently justified by the inference plan, group compatible subjects into batch calls. `detail`, `market-profile`, `trend-profile`, and `trend` accept up to 20 keywords; timeline accepts one ASIN plus up to 20 keywords. Batch support does not justify calling multiple layers.
-- [ ] Before the first call to a batch-capable endpoint, collect the complete compatible subject set; do not issue per-keyword calls when one batch or sequential 20-item chunks can serve the same context
-- [ ] Check `reference.md § Production availability`; never route to a planned metric endpoint merely because it appears in the design.
-- [ ] Confirm the date lens: weekly snapshot, recent 4-8 weeks, or latest sliding window; for keyword lookups that require `date` or `dateTo`, prefer T-1 or earlier and avoid the current date unless explicitly requested. In user-facing progress updates, simply state the selected marketplace/date without extra rationale unless the user asks why.
-- [ ] Identify the current evidence level and, when applicable, the scenario-defined conversation stage before selecting conclusions or the next-step request
-- [ ] Check whether the user provided Amazon backend ABA-SQP search conversion data for the relevant ASIN/brand/query/date range
-- [ ] Add one standalone, localized `Data Notes` section near the top naming the evidence level and boundary; do not duplicate it near the end
-- [ ] Use the next-step request defined by the active scenario; do not infer a universal fixed sequence
-- [ ] Track every live API response for usage accounting: `_query.endpoint`, `_query.params`, `meta.creditsConsumed`, and `meta.creditsRemaining`
-- [ ] Separate traffic facts from strategy advice using confidence labels
-- [ ] Apply the Evidence-Seeking Diagnosis Protocol: state the unresolved question, acquire discriminating evidence, and do not substitute a generic cause list when evidence is missing
-- [ ] Apply the Diagnostic Closure Gate: every diagnostic branch is resolved, actively pursued, or matched to the single final evidence request; omit branches irrelevant to the requested decision
-- [ ] Apply the Evidence-to-Action Protocol to every recommendation; verify target observation, defect signal, alternatives, validation, and authorized action level
-- [ ] Include `API Usage` as the final report section; if credit fields are missing, write `not returned` instead of omitting the section
-
-## Evidence Capability Matrix
-
-Before calling endpoints, identify the input shape and requested judgment so the relevant scenario rules and evidence plan are loaded. After retrieval, use this matrix to narrow conclusions to the evidence actually returned; the initial route never guarantees the final conclusion scope.
-
-### Available Data → Conclusion Scope
-
-| Data retrieved | Conclusions enabled | If unavailable: tell the user explicitly |
-|----------------|---------------------|-----------------------------------------|
-| `keywords/extends` | Expansion candidates with relevance tiers; try both `phrase` and `fuzzy` before concluding low expandability | Cannot expand from this seed; no candidate list possible |
-| `keywords/detail` | Demand snapshot: weekly search volume, ABA rank, ad density, market structure | Cannot assess demand size or competition density for this keyword |
-| Metric layer `keywords/market-profile` when exposed on the target surface | Server-calculated weekly demand scale, Top3 concentration, ad activity, organic-entry difficulty, supply saturation, brand structure, organic benchmark, and independent volatility/annual-seasonality evidence; interpret scores through `context.scoringSpec` and `levelEvidence.score.{value,direction}` | Require item `status=available`. Mark a dimension unavailable when `supported=false`, `calculationStatus!=complete`, `level=unknown`, score value is null, or `unsupportedReason` is present. Keep volatility and annual-seasonality conclusions separate. Use `detail` only if it exposes different raw evidence required for a named inference |
-| `keywords/trend` | Demand direction across multiple weeks | Keep demand direction weak; snapshot-only; do not claim growth or decline |
-| `keywords/search-results` | Observed SERP: page-1 product mix, brand concentration, ad vs organic composition, intent shape | Cannot assess page-1 crowding, brand dominance, or intent fit |
-| `keywords/product-traffic-terms` or `keywords/competitor-product-keywords` | ASIN traffic-source map: which keywords drive visibility, traffic share, rank quality | Cannot build traffic-source map; do not substitute with keyword-detail or search-results |
-| `keywords/product-traffic-terms-timeline` | ASIN × keyword position/exposure/ad-activity timeline across dates | Keep ASIN-side movement claims directional only; cannot trace timeline |
-| `keywords/product-traffic-terms-overview` | All-keyword impression traffic changes vs previous period; ORG first-3-page keyword entries/exits | Cannot assess previous-period traffic delta or ORG first-3-page changes; omit those sections |
-| `keywords/trend-profile` | Server-calculated trend shape, volatility, slope, and direction consistency by fixed weekly window | Use raw trend only for required weekly points or omitted fields; do not claim lifecycle or seasonality output |
-| `keywords/search-results-metrics` when live | Server-calculated SERP structure, concentration, top ASIN/brand and target-ASIN evidence | Aggregate visible SERP rows transparently; do not invent metric objects or entry conclusions |
-| `keywords/product-traffic-term-changes` when live | Keyword losers/gainers and contribution within a defined scope | Current terms + flat overview cannot prove keyword change contribution; omit contribution claims |
-| `keywords/product-traffic-terms-timeline-review` when live | Drill-down evidence signals for specified ASIN + keyword items | Analyze raw timeline groups; label hypotheses as Agent inference, not API root cause |
-
-### Partial Data Protocol
-
-When some endpoints return data but others are unavailable:
-
-1. Produce conclusions only from the data actually retrieved
-2. For each missing evidence gap, explicitly state: "This conclusion requires [endpoint], which was not retrieved in this run, so it cannot be assessed."
-3. Do not infer a missing endpoint's output from adjacent endpoints (e.g., do not use `keywords/detail` to fabricate a reverse-ASIN traffic-source map)
-4. Downgrade the overall conclusion scope to match the weakest available evidence; do not frame partial data as a complete analysis
-
-### Metric-First Fallback Protocol
-
-1. Call the matching metric endpoint first when it exists on the target surface.
-2. Map each requested conclusion to a returned metric dimension/field and verify what the metric can actually express.
-3. Stop calling when all requested conclusions are supported.
-4. For each unsupported conclusion, distinguish calculation-data absence from metric-contract insufficiency. Calculation-data absence normally ends that conclusion; it does not automatically trigger data access.
-5. Descend only if the data contract exposes additional fields or grain required for a named Agent inference, or if the metric endpoint itself is unavailable and transparent calculation from data is valid.
-6. Before descending, record the missing inference and the exact extra fields/rows/series expected from data.
-7. Do not call a source data endpoint merely to duplicate or “double-check” a supported metric.
-8. Direct data access is correct when rows/series are the requested deliverable or no corresponding metric exists.
-
-### Batch Response Protocol
-
-1. After an endpoint is justified by the inference plan, collect all subjects sharing marketplace, date/range, granularity, window, filters, and sort context; timeline subjects must also share one ASIN.
-2. Prefer `--keywords` over repeated `--keyword` calls. Do not loop singles when a valid batch can carry them.
-3. Deduplicate case-insensitively and preserve first-occurrence order before calling.
-4. For more than 20 compatible keywords, send sequential chunks of 20 and merge `data.items[]` into global input order.
-5. Use a single-subject call only for one subject, incompatible request contexts, or an endpoint without batch capability.
-6. Inspect each item's `status`; retain `empty` and `error` items with their reasons.
-7. Analyze only `status=ok` evidence. Outer `success=true` does not upgrade empty/error items.
-8. Use `meta.creditsConsumed` from each batch response. Do not estimate billing from request size; final billing is based on successful items.
-9. Do not call both metric and source data merely because both support batching.
-
----
-
-## General Rules
-
-### Preferred Execution Path
-
-- Before selecting the execution path, read the candidate tool's docs/help/schema; do not choose from names alone
-- Default to the local CLI entry after the documentation check: `python {skill_base_dir}/scripts/zoodata.py`
-- Select endpoints by layer in this order: matching metric → inference-sufficiency check → verify that lower-layer data adds information → targeted data access → skill interpretation
-- For the selected endpoint, prefer execution shape in this order: one compatible batch → sequential max-20 chunks → single calls only when batching is impossible
-- Do not interpret the subcommand list below as a fixed call order or a requirement to call both metric and source data endpoints
-- For CLI calls, use exact argparse flag names from `--help`; do not invent camelCase flags or pass truncated dates
-- Dates in CLI calls must be complete `YYYY-MM-DD` strings. Never use ellipses, partial dates, or natural-language dates.
-- Use these subcommands as the first choice for execution:
-  - `keyword-detail`
-  - `keyword-market-profile` when the target surface exposes the pre-release endpoint
-  - `keyword-trend-profile`
-  - `keyword-trend`
-  - `keyword-extends`
-  - `keyword-search-results`
-  - `keyword-competitor-product-keywords`
-  - `keyword-product-traffic-terms`
-  - `product-traffic-terms-overview`
-  - `product-traffic-terms-timeline`
-- Use MCP callable tools as verification or fallback when you need to compare the live session surface or the local CLI path is unavailable
-- `market-profile` and `trend-profile` are currently localhost pre-release **metric-layer** endpoints with CLI subcommands; inspect the target surface before calling and do not assume production availability.
-- For `market-profile`, inspect in this order: item `status` → resolved context and `scoringSpec` → dimension support/status → `level` → `levelEvidence.score.value/direction`. A `not_found` item is an observation-coverage result, not a low-demand judgment.
-- Interpret `marketCharacteristics.volatility` and `marketCharacteristics.annualSeasonality` independently. Preserve their returned classifications and evidence; do not manufacture peak periods or resolve apparent disagreement without additional discriminating evidence.
-- If a `market-profile` batch returns HTTP 500, do not relabel it as an empty result and do not automatically retry all subjects individually. Perform at most one diagnostic split only when isolating a failing subject is necessary; otherwise stop that metric judgment and report the service failure.
-- Other planned metric endpoints have no CLI subcommands while production returns 404. Probe them only when the task materially benefits and the live surface may have changed; otherwise use the verified data endpoints.
-- Do not declare a keyword capability missing until you have checked the local CLI entry and, when relevant, the live tool surface/schema
-- Do not force a fixed endpoint order when the evidence gate can be satisfied more efficiently another way
-
-### Tool Naming
-
-- Distinguish HTTP endpoint paths such as `/openapi/v2/keywords/detail` from actual callable tool names such as draft `mcp__zoodata__openapi_v2_keyword_detail`
-- Never call a keyword tool from an inferred prefix, endpoint name, or friendly label alone
-- Never select or reject a candidate tool before reading its relevant docs/help/schema
-- Before first use, inspect the active tool surface and confirm the exact full callable name
-- If the live callable name differs from the draft docs, trust the live callable name
-- If the local CLI entry is unavailable and no keyword tool is exposed, stop and report that the tool is unavailable instead of guessing
-
-### Tool Discovery Fallback
-
-- If the local CLI subcommand exists, use it first and do not require live tool lookup as a prerequisite step
-- If the static tool list does not explicitly show the keyword tools, do not immediately fall back to API docs
-- First confirm whether the current session actually exposes the corresponding callable tool names when you need a fallback or parity check
-- Only fall back to ZooData docs for parameter confirmation when the local CLI path is unavailable, or a direct CLI/live tool call fails
-- If both the local CLI path and direct tool access are unavailable, report the limitation clearly. Do not substitute public knowledge, web search, products/search, or adjacent endpoints for missing keyword evidence; offer a narrower task only when it has its own valid evidence source.
-
-### Capability Inference Rule
-
-- Do not infer endpoint capability from the tool name alone
-- Determine capability in this order: relevant tool docs/help/schema, live tool schema and field descriptions when using MCP/session tools, then endpoint naming as a weak hint only
-- If a tool exposes fields such as `estimateSearchCountWeekly`, `keywordEstimateSearchCount`, `estimateSearchCount`, `abaRank`, or related traffic fields, treat it as having keyword-volume or trend-analysis capability even if the tool name is not explicit
-- Do not say "the keyword-volume interface is not available" unless you have checked the exposed schema/docs and confirmed the required fields are unavailable
-- Prohibit reasoning such as "I do not see a tool named keyword volume, so volume cannot be analyzed"
-- Prohibit capability claims such as "`products/search` proves this keyword has demand" unless the report explicitly labels that evidence as a secondary product-database signal rather than a keyword snapshot
-- Prohibit classifying `products/search` as a front-end SERP tool or any ZooData WebTools endpoint as a keyword-intelligence endpoint; these sources have different evidence roles and must be named accordingly
-
-### Scenario Routing Rule
-
-- Scenarios describe common input patterns and their recommended endpoint chains — they are reference guides, not mandatory pre-classification steps
-- Start from input shape, not scenario label:
-  - seed keyword only → use data-layer `extends` for candidate recall because rows are the deliverable; batch shortlisted terms through metric-layer `market-profile` and `trend-profile` when those judgments are required; call raw endpoints only for contract-omitted evidence or row-level requests
-  - target keyword → use `market-profile` first for weekly market judgment; use `detail` only if the metric endpoint is unavailable or a named inference requires raw fields omitted by its contract; unsupported calculation dimensions end those metric conclusions unless data provides distinct evidence for a different inference
-  - ASIN only → use metric-layer `product-traffic-terms-overview` first for aggregate movement; call one ASIN traffic-list data endpoint only when the task asks which keywords drive traffic; enrich selected terms with `market-profile` first and use `detail` only for explicitly required raw fields omitted by the metric
-  - ASIN + keyword → choose the metric matching the requested judgment (`market-profile`, `search-results-metrics`, or timeline review when live); call raw SERP, traffic-list, or timeline data only when the metric contract omits information required for a named inference, the metric endpoint is unavailable, or row/series evidence is requested; an unsupported/unavailable metric dimension alone is not a fallback trigger
-  - ASIN + keyword + date range → prefer `product-traffic-terms-timeline-review` when live; fall back to `product-traffic-terms-timeline` only for unavailable/insufficient metric evidence or requested raw series
-  - ASIN + multiple keywords + date range → batch through timeline review when live; otherwise batch the narrow fallback set through one timeline data call when there are at most 20
-- After data is retrieved, scope conclusions using the Evidence Capability Matrix above
-- If a request spans multiple patterns, structure the report in labeled sections rather than forcing one scenario label
-- Do not make reverse-ASIN conclusions unless at least one ASIN traffic-list endpoint returned data
-
-### Evidence Gate Rule
-
-- Every conclusion must be directly supported by the endpoint designed for that evidence type
-- If an endpoint returned no data or was unavailable, state the gap explicitly; do not downgrade silently
-- Do not bridge a missing evidence type with a loosely related endpoint
-- After detecting a problem, seek evidence that distinguishes explanations before stating a cause; if none is available, stop at the unresolved problem and request the minimum next evidence instead of listing generic causes
-
-### Non-Substitution Rule
-
-- `keywords/search-results` is the primary evidence for observed keyword SERP composition
-- `products/search` can supplement broader market context only when explicitly framed that way
-- `keywords/detail` can support keyword demand snapshot claims, but not reverse-ASIN source attribution
-- `keywords/trend` can support direction over weekly points, but not page-1 change claims
-
-### Conclusion Scope Rule
-
-- `Data-backed` means directly supported by the correct endpoint for that claim type
-- `Inferred` means evidence-backed reasoning, not endpoint substitution
-- `Directional` means evidence-bounded validation or monitoring advice. It does not permit an unsupported explanation, and it never means proven causality.
-- Strong wording is not allowed when the claim depends on optional enrichers that were not available
-
-### Comparative Claims Rule
-
-- Do not say the product, listing, CTR, CVR, rank, or traffic quality is better than competitors unless the report has direct competitor evidence for the same metric, same keyword/query, same marketplace, comparable date range, and comparable placement or position scope
-- When competitor-specific evidence is unavailable, compare to the market instead: above/below market median, ahead/behind the market midpoint, near the upper/lower band, or ranking toward the front/back
-- If a market average, median, or band is calculated from ABA/SQP screenshots, ZooData aggregates, or visible SERP samples, state how it was calculated and name the limitation
-- Do not treat a market-wide query average as competitor-specific proof
-- If position or placement cannot be controlled, downgrade confidence and use restrained wording such as "not an obvious weak point" rather than "significantly better than competitors"
-
-### Usage Accounting Rule
-
-- Every full-mode report that used live API data must end with `API Usage`
-- Do not include a separate `Data Provenance` table unless the user explicitly asks for source-by-section details
-- `API Usage` must be a markdown table, not a bullet list
-- The `API Usage` table must aggregate calls by endpoint and sum `meta.creditsConsumed` from the responses
-- The final row of the `API Usage` table must be `Total`, summing all endpoint calls and all returned credits consumed
-- If any endpoint's credits are `not returned`, write the total credits as `partial N + not returned` when some credits are known, or `not returned` when no credits are known
-- Required table format:
-  `| Endpoint | Calls | Credits |`
-  `|----------|-------|---------|`
-  `| keywords/detail | 1 | 1 |`
-  `| Total | 1 | 1 |`
-- End with `Credits remaining: N` using the latest `meta.creditsRemaining`
-- If `meta.creditsConsumed` or `meta.creditsRemaining` is absent, write `not returned`; do not infer or hide credit usage
-- Do not finish the response after recommendations, caveats, or limitations if API usage has not been reported
+Before assigning a product-specific candidate label, require appropriate subject evidence, supported material market dimensions, directly observed product-fit evidence, and no unobserved placement/conversion/strategy inference. A scenario may require more.
 
 ### HTTP Validation Rule
 
-- HTTP 422 is a parameter validation error, not a retryable transient failure.
-- Do not retry the same 422 request repeatedly.
-- Read the returned error detail and correct the call before retrying.
-- First checks for keyword workflows: exact CLI flag names from `--help`, full `YYYY-MM-DD` dates, `dateFrom <= dateTo`, all required fields present, and endpoint-specific range limits.
-- `keyword-trend` accepts up to 93 days; `product-traffic-terms-timeline` accepts up to 61 days. Do not probe longer ranges just to learn the limit from HTTP 422.
-- For batch endpoints, also check that exactly one of `keyword`/`keywords[]` is present, the batch has at most 20 subjects, and it contains no case-insensitive duplicates.
-- For `keyword-trend`, the canonical CLI pattern is:
-  `python {skill_base_dir}/scripts/zoodata.py keyword-trend --keyword "small baskets for organizing" --date-from 2026-04-01 --date-to 2026-07-02 --marketplace US`
+- For an HTTP 422 validation state classified by `reference.md`, do not repeat the unchanged request.
+- Inspect the structured error and request metadata, then use `reference.md` and CLI help to correct only the documented contract violation before retrying.
 
-### Data Notes Rule
+### Credential and Credit Failures
 
-- Full-mode reports use one localized `Data Notes` section immediately after the disclaimer. It names the current evidence level and what that level can and cannot decide.
-- Do not duplicate a `Data Notes Reminder` near the end and do not place evidence requests inside individual findings.
-- At market evidence level, state that the answer is a market-direction judgment and not a subject-specific operating decision. Use the active scenario to choose the next request.
-- At subject observation level, state that the diagnosis uses observed subject signals and remains provisional without the required seller-real evidence.
-- At seller-real-data level, name the provided SQP/Ads fields used and do not request them again.
-- Keep the wording natural and translated to the user's language. Avoid deficit-framed language and form-like status blocks.
-- Do not use ZooData estimated exposure/search/visibility signals as a substitute for user-provided ABA-SQP conversion evidence.
-- For ABA-SQP backend paths, fields, and recommended data provision method, see this file's `Seller Data Contract`.
-
-### Date Handling
-
-- Keyword endpoints are keyword-query workflows: inputs named `keyword` or `query` should be Amazon search queries / keyword phrases, not category paths or product-search substitutes
-- When a keyword endpoint requires `date` or `dateTo`, prefer T-1 or earlier; avoid using the current date unless explicitly requested. Keep this as an internal date-selection rule and do not proactively explain the rationale unless the user asks why.
-- Use the current date only when the user explicitly requests today's lookup, and label it as potentially incomplete if the returned data is missing or sparse
-- `keywords/detail` is a weekly snapshot. `keywords/extends` uses the latest weekly snapshot and does not require a request date.
-- `keywords/trend` is weekly time series
-- `keywords/search-results` and ASIN keyword endpoints are recent daily observations
-- `keywords/product-traffic-terms-overview` is the preferred core evidence for two-week / previous-period ASIN all-keyword impression traffic changes; compare current placement-level impression-point fields to matching `*Prev` fields for previous-period movement
-- For `keywords/product-traffic-terms-overview`, display the period from response `periodStartDate` / `periodEndDate` exactly; never substitute the request date or an inferred range as the overview period
-- In `keywords/product-traffic-terms-overview`, `first3PagesNewOrganicKeywords` lists keywords newly entering ORG first three pages, and `first3PagesLostOrganicKeywords` lists keywords that dropped out of ORG first three pages
-- `keywords/product-traffic-terms-timeline` is the preferred ASIN + keyword timeline input; requested ranges cannot exceed 61 days and one call may include up to 20 keywords for one ASIN
-- In `keywords/product-traffic-terms-timeline`, `keywordMetrics` uses its nested `metricWindow`, `asinSnapshot` is tied to `series[].date`, and `traffic` / `placement` / `adActivity` are rolling 7-day observations ending on that date
-- For timeline diagnosis, inspect price, BSR, sales, rating, and traffic-estimate curves separately; use keyword-level fields only as supporting context for traffic-estimate changes
-- Treat `asinSnapshot.latestTitle` and `asinSnapshot.latestMainImageLink` changes as listing events, not continuous curves
-- Never compare weekly and daily snapshots as if they were the same grain without stating the difference
-
-### Ad vs Organic Separation
-
-- Analyze `exploreType` separately
-- At minimum, split `ORG` and sponsored placements
-- Do not call a keyword "organic-friendly" if the visible page is dominated by ads
-
-### Anomaly Standards
-
-| Signal type | Minimum evidence | Max confidence |
-|-------------|------------------|----------------|
-| Weekly trend change | 2+ weekly points in same direction | 🔍 |
-| SERP change | 2 timestamps showing changed rank mix | 🔍 |
-| One-day movement | single snapshot difference | 💡 |
-
-### Monitoring Explanation Rule
-
-When investigating keyword anomalies, check evidence domains in this order:
-
-1. Search demand moved
-2. Ad density changed
-3. The target ASIN's position changed
-4. Price, BSR, sales, rating, or traffic-estimate curves moved
-5. Title or main image changed near the anomaly
-6. New head competitors entered
-7. The keyword's top-ASIN traffic concentration changed (check `abaTop3ClickShareRate`, `abaTop3ConversionShareRate`, or head-ASIN dominance visible in SERP)
-8. The ASIN's all-keyword impression traffic changed versus the previous period
-9. Keywords entered or dropped out of ORG first three pages
-
-Treat this order as an evidence-search sequence, not a cause checklist. Rank explanations only when the retrieved evidence materially supports and distinguishes them; otherwise report the unresolved question and the next evidence required.
-
-For ASIN + keyword movement, prefer `keywords/product-traffic-terms-timeline` as the ASIN-side movement source before stitching together isolated observations. For all-keyword ASIN traffic changes and ORG first-3-page entry/exit, use `keywords/product-traffic-terms-overview`; do not infer first-3-page organic gains/losses from SERP snapshots alone.
-
-## Output Rules
-
-### Candidate Tiering
-
-For keyword expansion outputs, classify validation priority into the following provisional tiers. Do not treat them as final expansion or spend tiers before seller-real calibration:
-
-- `Priority test`
-- `Selective test`
-- `Harvest`
-- `Observe only`
-- `Avoid`
-
-For reverse-ASIN outputs, classify into:
-
-- `Defend`
-- `Expand`
-- `Observe`
-- `Avoid`
-
-### Coarse Filtering Rule
-
-A keyword can only be `Priority test` if ALL are true:
-
-- demand is at least mid-tier for the batch
-- relevance is strong
-- competition is not the worst tier
-- there is a plausible placement strategy
-
-### High-Risk Flags
-
-Flag as risk when any of these appear:
-
-- very high `adCount`
-- search demand falling across multiple weekly points
-- ASIN appears only in sponsored placements, not organic
-- top results repeat the same few brands or parent ASIN families
-- low `daysCoverageRate` or low `observationCount`
-
-## Monitoring Cadence Suggestion
-
-Recommended default cadence:
-
-- weekly for keyword opportunity watchlists
-- 2-3 times per week for launched core terms
-- daily only for high-spend hero keywords or incident follow-up
+- If `ZOODATA_API_KEY` is missing, run the documented credential-only check, stop before evidence retrieval, and direct the user to the key page. Do not substitute another data source or render a stage-end list.
+- On HTTP 401, stop further calls and report that the key was rejected. Do not render a stage-end list.
+- On HTTP 402, stop further calls and report only already retrieved partial evidence. Do not estimate required credits from request size; request a credit top-up or narrower scope without presenting it as a completed-stage list.

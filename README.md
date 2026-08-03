@@ -46,9 +46,9 @@ This repo contains **11 agent skills** organized in two tiers:
 
 | Skill | What It Does | Input | Output | Key Advantage |
 |-------|-------------|-------|--------|---------------|
-| 📦 [`zoodata/`](zoodata/) | Direct access to all 11 API endpoints — categories, markets, products, competitors, realtime, reviews, price bands, brands, history | Keyword, category, ASIN, or brand | Raw API data with field mapping and quirk documentation | Complete API reference — every other skill builds on this |
+| 📦 [`zoodata/`](zoodata/) | Direct access to all 22 API endpoints — 12 commerce endpoints plus 10 keyword-intelligence endpoints | Keyword, category, ASIN, or brand | Raw API data with field mapping and quirk documentation | Complete API reference — every other skill builds on this |
 | 🎯 [`amazon-analysis/`](amazon-analysis/) | 13 built-in selection modes + market research, competitor analysis, ASIN evaluation, pricing, category research | Keyword/category/ASIN + intent | Analysis findings, top products, ASIN deep dives, confidence-tagged insights | Composite commands (`report`, `opportunity`) run multi-endpoint pipelines in one shot |
-| 🔎 [`amazon-keyword-traffic-analysis/`](amazon-keyword-traffic-analysis/) | Keyword intelligence workflows built on 8 keyword traffic endpoints | Seed keyword, target keyword, ASIN, or ASIN + keyword | Expansion tiers, single-keyword verdicts, reverse-ASIN traffic terms, anomaly explanations | Dedicated flows for keyword expansion, reverse ASIN, and keyword traffic monitoring |
+| 🔎 [`amazon-keyword-traffic-analysis/`](amazon-keyword-traffic-analysis/) | Keyword intelligence workflows built on 10 keyword traffic endpoints | Seed keyword, target keyword, ASIN, or ASIN + keyword | Expansion tiers, single-keyword verdicts, reverse-ASIN traffic terms, anomaly explanations | Dedicated flows for keyword expansion, reverse ASIN, and keyword traffic monitoring |
 
 **⚡ Specialized** — purpose-built for specific workflows:
 

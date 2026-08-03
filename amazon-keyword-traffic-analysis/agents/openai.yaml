@@ -1,0 +1,4 @@
+interface:
+  display_name: "Amazon Keyword Traffic Analysis"
+  short_description: "Analyze Amazon keyword demand, traffic, and trends"
+  default_prompt: "Use $amazon-keyword-traffic-analysis to analyze this Amazon keyword question with evidence-bounded conclusions."

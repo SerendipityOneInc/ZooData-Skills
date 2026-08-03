@@ -1,13 +1,14 @@
 #!/bin/bash
 # .git/hooks/pre-commit
-# When zoodata/scripts/zoodata.py is staged, sync copies and stage them too
+# When a canonical ZooData shared file is staged, sync and stage all copies.
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 
-# Check whether zoodata/scripts/zoodata.py is staged in this commit
-if git diff --cached --name-only | grep -q "^zoodata/scripts/zoodata.py$"; then
-  echo "Detected changes to zoodata/scripts/zoodata.py, syncing copies..."
+# Check whether either canonical shared file is staged in this commit.
+if git diff --cached --name-only | grep -Eq "^zoodata/(scripts/zoodata.py|references/cli-contract.md)$"; then
+  echo "Detected canonical ZooData shared-file changes, syncing copies..."
   bash "$REPO_ROOT/scripts/sync-scripts.sh"
   git add "$REPO_ROOT"/amazon-*/scripts/zoodata.py
-  echo "Copies synced and staged for this commit."
+  git add "$REPO_ROOT"/amazon-*/references/cli-contract.md
+  echo "Shared copies synced and staged for this commit."
 fi

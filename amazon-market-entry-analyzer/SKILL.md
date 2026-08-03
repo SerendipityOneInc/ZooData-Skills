@@ -13,7 +13,7 @@ description: >
   to track how categories shift over time, use amazon-market-trend-scanner.
   Requires ZOODATA_API_KEY.
 metadata:
-  version: "1.0.7"
+  version: "1.0.8"
   author: SerendipityOneInc
   homepage: https://github.com/SerendipityOneInc/ZooData-Skills
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}
@@ -33,10 +33,40 @@ Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zooda
 ## Capabilities & Data Flow
 
 - **Network**: only `https://api.zoodata.ai` (Bearer `ZOODATA_API_KEY`). Setting `ZOODATA_BASE_URL` to an untrusted host (anything other than `api.zoodata.ai` / `*.zoodata.ai` / localhost) makes the CLI **refuse the request and withhold the key** — the Bearer token is never sent to an untrusted host.
-- **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). The shared CLI exposes ALL ZooData endpoints as subcommands; this skill's workflows use: `market-entry`, `categories`, `market`, `competitors`, `product`, `check`, plus the review fallback toolkit (`reviews-raw` / `review-tag-prompt` / `review-reduce-prompt` / `review-aggregate`). Do not invoke unrelated subcommands for this skill's tasks.
+- **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). This skill allows only the composite, granular, diagnostic, and review-fallback commands explicitly routed below.
 - **Local files**: a temporary `/tmp/review_<ASIN>_<timestamp>/` working dir during the review fallback; reads the optional credential store `~/.zoodata/config.json`.
 - **Sent to the API**: keywords, category paths, ASINs, marketplace/date and numeric filter values only. **Never sent**: budget, experience level, risk tolerance, or any other user-profile text — profile inputs map client-side to numeric filters.
 - **Credits**: every API call consumes account credits. For broad or ambiguous requests, state the estimated credit cost and confirm with the user before running multi-call scans. The composite `market-entry` command executes ~17+ API calls (~15-25 credits) in ONE invocation and has NO skip/trim flags — under a credit cap, use the granular commands instead.
+
+### CLI Route Selection
+
+- Use `market-entry` for the full assessment.
+- Use granular commands only when the workflow selected a granular route before the composite call, or when an explicit non-terminal fallback in this skill requires evidence not already returned.
+- Map granular evidence requests only through this table:
+
+| API endpoint | CLI subcommand |
+|---|---|
+| `categories` | `categories` |
+| `markets/search` | `market` |
+| `products/search` | `products` |
+| `products/competitors` | `competitors` |
+| `realtime/product` | `product` |
+| `reviews/analysis` | `analyze` |
+| `products/price-band-overview` | `price-band-overview` |
+| `products/price-band-detail` | `price-band-detail` |
+| `products/brand-overview` | `brand-overview` |
+| `products/brand-detail` | `brand-detail` |
+| `products/history` | `history` |
+
+Use `check` only for credential diagnostics. Use `reviews-raw`, `review-tag-prompt`, `review-reduce-prompt`, and `review-aggregate` only for the documented review fallback.
+
+## Shared CLI Contract
+
+Before selecting or invoking the first command, read and apply the local `references/cli-contract.md`. Reapply it after every granular or composite result and before any fallback, additional call, state write, interpretation, or user-facing report. Use this skill's fallback logic only when the shared contract classifies the result as non-terminal.
+
+### Local Interface Failure Output
+
+For a terminal interface failure, respond in the user's language that the market-entry assessment could not be completed, followed by the succeeded and failed endpoint identifiers. Do not issue GO/CAUTION/AVOID, a viability score, risk-gate result, or entry strategy. Keep control tokens, parameters, and retry logs internal unless diagnostics are requested.
 
 ## Input
 - **Required**: keyword or categoryPath
@@ -48,7 +78,7 @@ Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zooda
 
   If the user hasn't supplied these, **ask once at the start of the workflow** (a single batched question is fine). If the user declines or skips, **omit the Risk Gates section from the final verdict** and add a line under Data Provenance: "Risk Gates: skipped — seller-side inputs not provided." **Do not guess thresholds** — silent gate evaluation with invented inputs produces inconsistent verdicts across runs.
 
-## API Pitfalls (shared with zoodata skill — critical!)
+## API Pitfalls (CRITICAL)
 - Keyword search is broad → categoryPath is auto-resolved via `categories` endpoint, with fallback to top search result. If `category_source` is `inferred_from_search`, confirm with user
 - Brand/price-band queries **MUST include --category** to avoid cross-category contamination
 - Revenue = `sampleAvgMonthlyRevenue` (NEVER calculate avgPrice × totalSales — overestimates 30-70%)
@@ -76,14 +106,14 @@ Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zooda
 
 ## On Missing Key
 
-When `ZOODATA_API_KEY` is not set (verify via `python {skill_base_dir}/scripts/zoodata.py check` — exits 2 if no key in env or `~/.zoodata/config.json`): follow the **"On Missing Key"** protocol in `zoodata/SKILL.md` — STOP before any call, link the user to https://zoodata.ai/en/api-keys, and DO NOT produce a "partial analysis from public knowledge" / "for reference only" fallback as a substitute.
+When `ZOODATA_API_KEY` is not set (verify via `python {skill_base_dir}/scripts/zoodata.py check` — exits 2 if no key in env or `~/.zoodata/config.json`), stop before any evidence call. Tell the user that a ZooData API key is required, link to https://zoodata.ai/en/api-keys, and explain that the key may be set in the environment or local config. Do not substitute public knowledge or a "for reference only" analysis.
 ## On 401 Invalid Key
 
-When `zoodata.py` returns code 401: follow the **"On 401 Invalid Key"** protocol in `zoodata/SKILL.md` — STOP further calls, tell the user the key was rejected and direct them to api-keys, do not fabricate missing data.
+When `_transport.status=401`, stop further calls, tell the user that the configured key was rejected, direct them to https://zoodata.ai/en/api-keys, and do not fabricate missing data.
 
 ## On 402 Credit Exhausted
 
-When `zoodata.py` returns code 402: follow the **"On 402 Credit Exhausted"** protocol in `zoodata/SKILL.md` — STOP further calls, report partial findings already gathered, do not fabricate missing data.
+When `_transport.status=402`, stop further calls. Report where the workflow stopped, any compatible partial findings already gathered, and returned credit metadata when present; direct the user to https://zoodata.ai/en/pricing and do not fabricate missing data.
 
 ## Unique Logic
 
@@ -147,7 +177,7 @@ Decision adjustment (precedence is pinned — apply in order):
 ```bash
 python3 {skill_base_dir}/scripts/zoodata.py market-entry --keyword "{kw}" --category "{path}"
 ```
-Runs all 11 endpoints (~20 calls). Output JSON is large — use targeted extraction, not full read.
+Runs all 11 endpoints (~20 calls). Apply `references/cli-contract.md` to its invocation and returned composite bundle.
 
 ## Output
 Respond in user's language.

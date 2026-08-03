@@ -36,6 +36,12 @@ def _discover_skills():
 
 
 SKILLS = _discover_skills()
+NON_KEYWORD_ZOODATA_SKILLS = {
+    name
+    for name, cli in SKILLS
+    if cli.name == "zoodata.py"
+    and name not in {"zoodata", "amazon-keyword-traffic-analysis"}
+}
 
 
 def _declared_subcommands(skill_dir: Path):
@@ -117,6 +123,104 @@ class TestSkillCliExecutes(unittest.TestCase):
                 self.assertNotIn("Traceback (most recent call last)", r.stderr,
                                  f"{name} check crashed:\n{r.stderr}")
                 self.assertIn(r.returncode, (0, 1, 2), f"{name} check exit {r.returncode}")
+
+    def test_shared_cli_contract_has_one_canonical_owner(self):
+        contract = (
+            REPO / "zoodata" / "references" / "cli-contract.md"
+        ).read_text()
+        self.assertIn(
+            "# ZooData CLI Contract",
+            contract,
+        )
+        for required in (
+            "## Invocation interface",
+            "## Command identity and composite reuse",
+            "## Execution-environment permission gate",
+            "Treat API endpoint identifiers and composite result keys as data identities",
+            "Treat a successful composite command's structured output as the evidence bundle",
+            "Use the execution tool's permission or escalation mechanism to request access",
+            "rerun the exact unchanged CLI command",
+            "Always inspect stdout, even when the process exits non-zero",
+            "Treat `_transport.status` as the authoritative outer HTTP status",
+            "STOP_CURRENT_TURN. APPLY_SKILL_INTERFACE_FAILURE_TEMPLATE. DO_NOT_SELECT_ANOTHER_COMMAND.",
+            "A valid `status=empty` or a documented business/coverage error is not automatically terminal",
+            "A partial pagination failure must return `success=false`",
+        ):
+            self.assertIn(required, contract)
+        self.assertIn(
+            "This shared contract intentionally defines no user-facing wording",
+            contract,
+        )
+        self.assertNotIn("## Default interface failure output", contract)
+        self.assertNotIn("Service is currently unavailable", contract)
+
+    def test_all_non_keyword_zoodata_skills_route_to_shared_cli_contract(self):
+        expected = {
+            "amazon-analysis",
+            "amazon-competitor-intelligence-monitor",
+            "amazon-daily-market-radar",
+            "amazon-listing-audit-pro",
+            "amazon-market-entry-analyzer",
+            "amazon-market-trend-scanner",
+            "amazon-opportunity-discoverer",
+            "amazon-pricing-command-center",
+            "amazon-review-intelligence-extractor",
+        }
+        self.assertEqual(NON_KEYWORD_ZOODATA_SKILLS, expected)
+        contract_ref = "Before selecting or invoking the first command, read and apply the local `references/cli-contract.md`"
+        for name in sorted(NON_KEYWORD_ZOODATA_SKILLS):
+            with self.subTest(skill=name):
+                skill = (REPO / name / "SKILL.md").read_text()
+                self.assertIn("## Shared CLI Contract", skill)
+                self.assertIn(contract_ref, skill)
+                self.assertIn("Reapply it after every granular or composite result", skill)
+                self.assertNotIn("Always parse valid structured stdout even when the process exits non-zero", skill)
+                self.assertIn("### Local Interface Failure Output", skill)
+                self.assertNotIn("zoodata/SKILL.md", skill)
+                self.assertIn("https://zoodata.ai/en/pricing", skill)
+
+        zoodata_skill = (REPO / "zoodata" / "SKILL.md").read_text()
+        self.assertIn("## Shared CLI contract", zoodata_skill)
+        self.assertIn("### Local Interface Failure Output", zoodata_skill)
+
+    def test_every_zoodata_skill_has_a_byte_identical_local_contract(self):
+        canonical = (
+            REPO / "zoodata" / "references" / "cli-contract.md"
+        ).read_bytes()
+        zoodata_skills = {
+            name for name, cli in SKILLS if cli.name == "zoodata.py" and name != "zoodata"
+        }
+        self.assertEqual(len(zoodata_skills), 10)
+        for name in sorted(zoodata_skills):
+            with self.subTest(skill=name):
+                copy = REPO / name / "references" / "cli-contract.md"
+                self.assertTrue(copy.is_file(), f"missing shared contract copy: {copy}")
+                self.assertEqual(
+                    copy.read_bytes(),
+                    canonical,
+                    f"out-of-sync shared contract copy: {copy}",
+                )
+
+    def test_release_workflow_blocks_unsynced_shared_files(self):
+        workflow = (REPO / ".github" / "workflows" / "shared-files-distribution.yml").read_text()
+        sync_script = (REPO / "scripts" / "sync-scripts.sh").read_text()
+        pre_commit = (REPO / "scripts" / "pre-commit").read_text()
+
+        self.assertIn("pull_request:", workflow)
+        self.assertNotIn("    paths:", workflow)
+        self.assertIn("name: Sync Shared Files & Test", workflow)
+        self.assertIn("run: bash scripts/sync-scripts.sh --check", workflow)
+        self.assertIn("CHECK_ONLY=1", sync_script)
+        self.assertIn("OUT-OF-SYNC", sync_script)
+        self.assertIn("references/cli-contract.md", pre_commit)
+
+    def test_keyword_skill_keeps_its_specialized_failure_gate(self):
+        skill = (REPO / "amazon-keyword-traffic-analysis" / "SKILL.md").read_text()
+        self.assertIn("Read the local `references/cli-contract.md`", skill)
+        self.assertIn(
+            "apply its `Interface Failure Stop Gate` before selecting any next capability or command",
+            skill,
+        )
 
 
 @unittest.skipUnless(

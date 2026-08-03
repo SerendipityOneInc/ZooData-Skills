@@ -3,10 +3,6 @@ name: Shared Files Distribution
 on:
   pull_request:
     branches: [main]
-    paths:
-      - 'zoodata/scripts/zoodata.py'
-      - 'scripts/**'
-      - 'amazon-*/scripts/zoodata.py'
   workflow_dispatch:
 
 permissions:
@@ -14,7 +10,7 @@ permissions:
 
 jobs:
   sync-and-test:
-    name: Sync Scripts & Test
+    name: Sync Shared Files & Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,37 +19,9 @@ jobs:
         with:
           python-version: '3.11'
 
-      # Verify all copies are in sync with the canonical source.
-      # Keep SKIP_SKILLS aligned with scripts/sync-scripts.sh — doc-only skills
-      # do not embed the CLI script and would otherwise fail the missing-file check.
-      - name: Verify scripts are in sync
-        run: |
-          shopt -s nullglob
-          SKIP_SKILLS=("amazon-keywords")
-          found=0
-          for skill_dir in amazon-*/; do
-            skill_name="${skill_dir%/}"
-            if [[ " ${SKIP_SKILLS[*]} " == *" $skill_name "* ]]; then
-              echo "Skipping doc-only skill: $skill_name"
-              continue
-            fi
-            found=1
-            target="${skill_dir}scripts/zoodata.py"
-            if [[ ! -f "$target" ]]; then
-              echo "::error::Missing copy file: $target"
-              echo "Run: bash scripts/sync-scripts.sh"
-              exit 1
-            fi
-            if ! diff -q zoodata/scripts/zoodata.py "$target" &>/dev/null; then
-              echo "::error::$target does not match zoodata/scripts/zoodata.py"
-              echo "Run: bash scripts/sync-scripts.sh"
-              exit 1
-            fi
-          done
-          if [[ "$found" -eq 0 ]]; then
-            echo "::error::No amazon-* skill directories were found, so sync validation cannot run."
-            exit 1
-          fi
+      # Missing or divergent copies are release blockers.
+      - name: Verify shared files are in sync
+        run: bash scripts/sync-scripts.sh --check
 
       # CLI smoke test against the canonical source
       - name: CLI smoke test

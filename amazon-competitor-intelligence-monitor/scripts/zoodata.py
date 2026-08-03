@@ -33,6 +33,8 @@ Environment:
 """
 
 import argparse
+import contextlib
+import io
 import json
 import os
 import sys
@@ -83,12 +85,30 @@ def _resolve_base_url():
 BASE_URL = _resolve_base_url()  # ZooData API base URL
 BASE_URL_TRUSTED = _is_trusted_host(BASE_URL)  # gates Bearer-token transmission
 API_DOCS = "https://api.zoodata.ai/api-docs"   # API documentation URL
-MAX_RETRIES = 3       # Maximum number of retry attempts for failed requests
+MAX_RETRIES = 3       # Total attempt budget for ordinary failed requests
 RETRY_DELAY = 2       # Initial retry delay in seconds; doubles on each retry
-RATE_LIMIT_RETRIES = 4  # Extra retries specifically for 429 rate limits
+RATE_LIMIT_RETRIES = 4  # Total attempt budget for 429 rate limits
 RATE_LIMIT_DELAY = 5    # Initial delay for 429 retries (seconds); doubles each time
 MIN_REQUEST_INTERVAL = 0.6  # Minimum seconds between requests (100 req/min = 0.6s)
 REQUEST_TIMEOUT = 60  # Request timeout in seconds; realtime/product can be slow (up to 30s)
+
+# API calls return structured errors so composite commands can finish collecting
+# partial results.  Track those errors separately so the CLI still exits non-zero
+# after printing the complete machine-readable response for the calling agent.
+_cli_had_error = False
+
+# The agent-facing CLI exposes exactly one result channel per invocation.
+# Commands that reach output() emit one final JSON document on stdout and any
+# progress/retry diagnostics produced along the way are suppressed. Failures
+# that occur before a structured result exists keep using stderr exclusively.
+_cli_emitted_output = False
+
+# Terminal signal consumed by Agent workflows. The CLI classifies the failure;
+# the active skill owns the resulting stop behavior and user-facing rendering.
+INTERFACE_FAILURE_ACTION = (
+    "STOP_CURRENT_TURN. APPLY_SKILL_INTERFACE_FAILURE_TEMPLATE. "
+    "DO_NOT_SELECT_ANOTHER_COMMAND."
+)
 
 # Global request pacer — prevents burst rate limit violations
 _last_request_time = 0.0
@@ -151,9 +171,13 @@ def _resolve_credential():
 
     Sources, in order:
       1. ZOODATA_API_KEY env var
-      2. APICLAW_API_KEY env var    (deprecated — warns)
-      3. ~/.zoodata/config.json
+      2. ~/.zoodata/config.json
+      3. APICLAW_API_KEY env var    (deprecated — warns)
       4. ~/.apiclaw/config.json     (deprecated — warns)
+
+    The two legacy sources are considered only when neither new source
+    contains a key. A selected new key remains authoritative even if an API
+    request later rejects it; request handling must not fall through here.
 
     The former {skill_dir}/config.json fallback was removed for security: the
     skill directory ships inside the published bundle, so a key placed there
@@ -163,13 +187,13 @@ def _resolve_credential():
     if key:
         return key
 
+    key = _read_config_api_key(os.path.expanduser("~/.zoodata/config.json"))
+    if key:
+        return key
+
     key = os.environ.get("APICLAW_API_KEY", "").strip()
     if key:
         _warn_deprecated_source("APICLAW_API_KEY", "ZOODATA_API_KEY")
-        return key
-
-    key = _read_config_api_key(os.path.expanduser("~/.zoodata/config.json"))
-    if key:
         return key
 
     key = _read_config_api_key(os.path.expanduser("~/.apiclaw/config.json"))
@@ -309,28 +333,15 @@ def api_call(endpoint: str, params: dict) -> dict:
 
     delay = RETRY_DELAY
     max_attempts = MAX_RETRIES
-    for attempt in range(1, max_attempts + 1):
+    for attempt in range(1, max(MAX_RETRIES, RATE_LIMIT_RETRIES) + 1):
         _last_request_time = time.monotonic()
         try:
             req = urllib.request.Request(url, data=body, headers=headers, method="POST")
             with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-                _CREDITS.record(data.get("meta"))
-                if data.get("success"):
-                    # Inject _query metadata so AI knows exactly what was sent
-                    data["_query"] = {
-                        "endpoint": endpoint,
-                        "params": actual_params,
-                    }
-                    return data
-                else:
-                    err = data.get("error", {})
-                    err_msg = err.get('message', json.dumps(err))
-                    print(f"API error: {err.get('code', 'unknown')} — {err_msg}", file=sys.stderr)
-                    # Return error as structured result instead of exiting
-                    # This allows composite commands to continue with other steps
-                    data["_query"] = {"endpoint": endpoint, "params": actual_params}
-                    return data
+                transport_status = getattr(resp, "status", None)
+                if not isinstance(transport_status, int):
+                    transport_status = resp.getcode()
+                response_body = resp.read()
         except urllib.error.HTTPError as e:
             status = e.code
             response_text = ""
@@ -348,7 +359,7 @@ def api_call(endpoint: str, params: dict) -> dict:
                     endpoint, actual_params)
             elif status == 429:
                 # Switch to longer retry strategy for rate limits
-                if attempt == 1:
+                if max_attempts != RATE_LIMIT_RETRIES:
                     max_attempts = RATE_LIMIT_RETRIES
                     delay = RATE_LIMIT_DELAY
                 if attempt < max_attempts:
@@ -359,42 +370,124 @@ def api_call(endpoint: str, params: dict) -> dict:
                     delay *= 2
                     continue
                 else:
-                    return _error_result(429, "Rate limit exceeded after retries",
-                        "Try again later or reduce request frequency",
-                        endpoint, actual_params)
+                    result = _error_result(
+                        429,
+                        "Rate limit exceeded after retries",
+                        INTERFACE_FAILURE_ACTION,
+                        endpoint,
+                        actual_params,
+                    )
+                    result["error"]["retryExhausted"] = True
+                    return result
             elif status == 404:
                 return _error_result(404, f"Endpoint '{endpoint}' not found",
-                    f"Check {API_DOCS} for current endpoints",
+                    INTERFACE_FAILURE_ACTION,
                     endpoint, actual_params)
             elif status == 422:
+                server_response = None
                 detail = response_text.strip()
                 if detail:
                     try:
-                        parsed = json.loads(detail)
-                        detail = json.dumps(parsed, ensure_ascii=False)
+                        server_response = json.loads(detail)
                     except json.JSONDecodeError:
                         pass
                 return _error_result(422, "Request validation failed",
                     detail or "Check request parameters, especially date formats and required fields",
-                    endpoint, actual_params)
+                    endpoint, actual_params, server_response=server_response)
             else:
                 if attempt < max_attempts:
                     print(f"HTTP {status}. Retrying {attempt}/{max_attempts}...", file=sys.stderr)
                     time.sleep(delay)
                     continue
                 else:
-                    return _error_result(status, f"HTTP {status} after {max_attempts} attempts",
-                        "Check network or try again later",
+                    if status >= 500:
+                        action = INTERFACE_FAILURE_ACTION
+                    else:
+                        action = (
+                            "Stop this workflow and review the HTTP error; change request "
+                            "parameters only when the server reports a validation error"
+                        )
+                    result = _error_result(status, f"HTTP {status} after {max_attempts} attempts",
+                        action,
                         endpoint, actual_params)
+                    if status >= 500:
+                        result["error"]["retryExhausted"] = True
+                    return result
         except Exception as e:
             if attempt < max_attempts:
                 print(f"Request failed: {e}. Retrying {attempt}/{max_attempts}...", file=sys.stderr)
                 time.sleep(delay)
                 continue
             else:
-                return _error_result(0, f"Request failed: {e}",
-                    "Check network connection",
-                    endpoint, actual_params)
+                result = _error_result(
+                    0,
+                    f"Request failed: {e}",
+                    INTERFACE_FAILURE_ACTION,
+                    endpoint,
+                    actual_params,
+                )
+                result["error"]["retryExhausted"] = True
+                return result
+
+        # Transport succeeded. Response parsing and schema handling happen
+        # outside the retrying transport block so a paid response is never
+        # requested again merely because local post-processing failed.
+        try:
+            data = json.loads(response_body.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as e:
+            return _malformed_response_result(
+                endpoint,
+                actual_params,
+                transport_status,
+                f"Response body is not valid UTF-8 JSON: {e}",
+            )
+
+        if not isinstance(data, dict):
+            return _malformed_response_result(
+                endpoint,
+                actual_params,
+                transport_status,
+                f"Expected a JSON object, received {type(data).__name__}",
+            )
+
+        if isinstance(transport_status, int) and 100 <= transport_status <= 599:
+            # The outer HTTP status is authoritative. Always overwrite any
+            # response-body field with the same name before the calling agent
+            # inspects success or nested error fields.
+            data["_transport"] = {"status": transport_status}
+        _CREDITS.record(data.get("meta"))
+        success = data.get("success")
+        if success is True:
+            # Inject _query metadata so AI knows exactly what was sent
+            data["_query"] = {
+                "endpoint": endpoint,
+                "params": actual_params,
+            }
+            return data
+
+        if success is not False:
+            return _malformed_response_result(
+                endpoint,
+                actual_params,
+                transport_status,
+                "Expected top-level success to be a JSON boolean",
+            )
+
+        err = data.get("error", {})
+        if not isinstance(err, dict):
+            return _malformed_response_result(
+                endpoint,
+                actual_params,
+                transport_status,
+                f"Expected error to be a JSON object, received {type(err).__name__}",
+            )
+        err_msg = err.get("message", json.dumps(err))
+        print(f"API error: {err.get('code', 'unknown')} — {err_msg}", file=sys.stderr)
+        # Return error as structured result instead of exiting. This allows
+        # composite commands to continue with other steps.
+        _mark_cli_error()
+        data["_query"] = {"endpoint": endpoint, "params": actual_params}
+        return data
 
     return _error_result(0, "Unexpected retry loop exit", "This should not happen", endpoint, actual_params)
 
@@ -506,13 +599,62 @@ def _resolve_category(api_caller, log_fn, keyword=None, asin=None, results=None)
     return category_path, category_source
 
 
-def _error_result(status: int, message: str, action: str, endpoint: str, params: dict) -> dict:
+def _mark_cli_error():
+    """Remember an API failure without interrupting a composite command."""
+    global _cli_had_error
+    _cli_had_error = True
+
+
+def _malformed_response_result(endpoint, params, transport_status, detail):
+    """Return a terminal Agent-control result for local response failures."""
+    result = _error_result(
+        0,
+        f"Malformed response from endpoint '{endpoint}'",
+        INTERFACE_FAILURE_ACTION,
+        endpoint,
+        params,
+    )
+    result["error"]["code"] = "MALFORMED_RESPONSE"
+    result["error"]["detail"] = detail
+    if isinstance(transport_status, int) and 100 <= transport_status <= 599:
+        result["_transport"] = {"status": transport_status}
+    return result
+
+
+def _error_result(
+    status: int,
+    message: str,
+    action: str,
+    endpoint: str,
+    params: dict,
+    server_response=None,
+) -> dict:
     """
     Build a structured error result instead of sys.exit().
     This lets AI read the error from JSON stdout and take appropriate action.
     """
+    _mark_cli_error()
     print(f"ERROR: {message}", file=sys.stderr)
-    return {
+
+    transport = None
+    if isinstance(status, int) and 100 <= status <= 599:
+        # Preserve the authoritative outer HTTP status separately from the
+        # response body.  In particular, a structured 422 body may omit a
+        # numeric status or contain nested status-like fields that must not
+        # override the transport classification.
+        transport = {"status": status}
+
+    # Preserve a structured server error verbatim for the calling agent.  Only
+    # add CLI metadata; do not flatten VALIDATION_ERROR details into a string.
+    if isinstance(server_response, dict):
+        result = dict(server_response)
+        result["success"] = False
+        if transport is not None:
+            result["_transport"] = transport
+        result["_query"] = {"endpoint": endpoint, "params": params}
+        return result
+
+    result = {
         "success": False,
         "error": {
             "status": status,
@@ -524,17 +666,24 @@ def _error_result(status: int, message: str, action: str, endpoint: str, params:
             "params": params,
         },
     }
+    if transport is not None:
+        result["_transport"] = transport
+    return result
 
 
 def output(data, fmt="json"):
     """Print output in the requested format."""
+    global _cli_emitted_output
     _annotate_credits(data)
+    if isinstance(data, dict) and data.get("success") is False:
+        _mark_cli_error()
     if fmt == "json":
         print(json.dumps(data, indent=2, ensure_ascii=False))
     elif fmt == "compact":
         print(json.dumps(data, ensure_ascii=False))
     else:
         print(json.dumps(data, indent=2, ensure_ascii=False))
+    _cli_emitted_output = True
 
 
 # ─── Helper: parse category string ──────────────────────────────────────────
@@ -708,6 +857,7 @@ def fetch_realtime_reviews_all(asin: str, marketplace: str = "US",
     reviews = []
     cursor = None
     pages = 0
+    failure = None
     t0 = time.time()
     for i in range(1, max_pages + 1):
         params = {"asin": asin, "marketplace": marketplace}
@@ -715,6 +865,7 @@ def fetch_realtime_reviews_all(asin: str, marketplace: str = "US",
             params["cursor"] = cursor
         resp = api_call("realtime/reviews", params)
         if not resp.get("success"):
+            failure = resp
             break
         data = resp.get("data") or {}
         page_reviews = data.get("reviews") or []
@@ -724,12 +875,15 @@ def fetch_realtime_reviews_all(asin: str, marketplace: str = "US",
         log(f"  page {i}: {len(page_reviews)} reviews, cursor={'yes' if cursor else 'end'}")
         if not cursor:
             break
-    return {
+    result = {
         "reviews": reviews,
         "pages": pages,
         "capped": pages >= max_pages and cursor is not None,
         "fetchSeconds": round(time.time() - t0, 2),
     }
+    if failure is not None:
+        result["_failure"] = failure
+    return result
 
 
 def aggregate_review_insights(reviews: list, tagged: list, clusters_per_dim: dict) -> dict:
@@ -817,13 +971,25 @@ def aggregate_review_insights(reviews: list, tagged: list, clusters_per_dim: dic
 def cmd_reviews_raw(args):
     log_fn = (lambda m: print(m, file=sys.stderr)) if args.verbose else None
     result = fetch_realtime_reviews_all(args.asin, args.marketplace, args.max_pages, log_fn=log_fn)
-    output({
-        "success": True,
+    failure = result.pop("_failure", None)
+    payload = {
+        "success": failure is None,
         "data": result,
         "_query": {"endpoint": "realtime/reviews",
                    "params": {"asin": args.asin, "marketplace": args.marketplace,
                               "maxPages": args.max_pages}},
-    })
+    }
+    if isinstance(failure, dict):
+        payload["error"] = failure.get("error") or {
+            "message": "realtime/reviews pagination failed"
+        }
+        if isinstance(failure.get("_transport"), dict):
+            payload["_transport"] = failure["_transport"]
+        if isinstance(failure.get("_query"), dict):
+            payload["_failedQuery"] = failure["_query"]
+        if isinstance(failure.get("meta"), dict):
+            payload["meta"] = failure["meta"]
+    output(payload)
 
 
 def _load_json_arg(inline: str, path: str, name: str):
@@ -2508,22 +2674,19 @@ def cmd_check(args):
             ("products/competitors", {"keyword": "test", "pageSize": 1}, "Competitor lookup"),
         ])
     if args.keyword_endpoints:
-        keyword = args.keyword or "yoga mat"
+        keyword = (args.keyword or "").strip() or "yoga mat"
         date = args.date or time.strftime("%Y-%m-%d", time.localtime(time.time() - 86400))
         keyword_probes = [
             ("keywords/detail", {"keyword": keyword, "date": date}, "Keyword snapshot"),
+            ("keywords/market-profile", {"keyword": keyword, "date": date}, "Keyword market profile"),
+            (
+                "keywords/trend-profile",
+                {"keyword": keyword, "date": date, "windowPeriods": [4], "granularity": "week"},
+                "Keyword trend profile",
+            ),
             ("keywords/extends", {"query": keyword, "date": date, "queryType": "phrase", "pageSize": 1}, "Keyword expansion"),
             ("keywords/search-results", {"keyword": keyword, "date": date, "pageSize": 1}, "Keyword SERP"),
         ]
-        if re.match(r"^https?://(?:localhost|127\.0\.0\.1)(?::|/)", BASE_URL):
-            keyword_probes[1:1] = [
-                ("keywords/market-profile", {"keyword": keyword, "date": date}, "Keyword market profile (pre-release)"),
-                (
-                    "keywords/trend-profile",
-                    {"keyword": keyword, "date": date, "windowPeriods": [4], "granularity": "week"},
-                    "Keyword trend profile (pre-release)",
-                ),
-            ]
         endpoints.extend(keyword_probes)
         if args.asin:
             endpoints.extend([
@@ -2534,7 +2697,7 @@ def cmd_check(args):
             if keyword:
                 endpoints.append((
                     "keywords/product-traffic-terms-timeline",
-                    {"asin": args.asin, "keyword": keyword, "dateFrom": date, "dateTo": date, "pageSize": 1},
+                    {"asin": args.asin, "keyword": keyword, "dateFrom": date, "dateTo": date},
                     "ASIN + keyword timeline",
                 ))
         else:
@@ -2543,7 +2706,7 @@ def cmd_check(args):
     results = {}
     all_ok = True
 
-    for endpoint, params, desc in endpoints:
+    for index, (endpoint, params, desc) in enumerate(endpoints):
         try:
             result = api_call(endpoint, params)
             if result.get("success"):
@@ -2557,6 +2720,18 @@ def cmd_check(args):
                 print(f"❌ {endpoint:30} FAILED: {message}", file=sys.stderr)
                 results[endpoint] = {"status": "failed", "message": message}
                 all_ok = False
+                transport = result.get("_transport")
+                transport_status = (
+                    transport.get("status") if isinstance(transport, dict) else None
+                )
+                if transport_status in (401, 402):
+                    for skipped_endpoint, _, _ in endpoints[index + 1:]:
+                        results[skipped_endpoint] = {
+                            "status": "skipped",
+                            "reason": "terminal account failure",
+                            "afterStatus": transport_status,
+                        }
+                    break
         except SystemExit:
             print(f"❌ {endpoint:30} FAILED", file=sys.stderr)
             results[endpoint] = {"status": "failed"}
@@ -2686,10 +2861,19 @@ def _split_csv(value):
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
+def _require_nonempty_text(value, name):
+    """Return stripped required text or fail before sending an invalid request."""
+    normalized = (value or "").strip()
+    if not normalized:
+        raise SystemExit(f"ERROR: {name} must contain a non-empty value")
+    return normalized
+
+
 def _keyword_subject(args, max_items=20):
     """Return the single or batch keyword request field after local validation."""
-    if getattr(args, "keyword", None):
-        return "keyword", args.keyword.strip()
+    keyword = getattr(args, "keyword", None)
+    if keyword is not None:
+        return "keyword", _require_nonempty_text(keyword, "--keyword")
     keywords = _split_csv(getattr(args, "keywords", None)) or []
     if not keywords:
         raise SystemExit("ERROR: --keywords must contain at least one non-empty keyword")
@@ -2804,7 +2988,7 @@ def cmd_keyword_extends(args):
     if args.date:
         _require_yyyy_mm_dd(args.date, "--date")
     params = {
-        "query": args.query,
+        "query": _require_nonempty_text(args.query, "--query"),
         "marketplace": args.marketplace,
         "page": args.page,
         "pageSize": args.page_size,
@@ -2822,11 +3006,10 @@ def cmd_keyword_search_results(args):
     """Get observed keyword SERP rows."""
     _require_yyyy_mm_dd(args.date, "--date")
     params = {
-        "keyword": args.keyword,
+        "keyword": _require_nonempty_text(args.keyword, "--keyword"),
         "date": args.date,
         "marketplace": args.marketplace,
-        "granularity": "lately_day",
-        "lookbackDays": 7,
+        "granularity": "week",
         "page": args.page,
         "pageSize": args.page_size,
         "exploreTypes": _split_csv(args.explore_types),
@@ -2840,11 +3023,10 @@ def cmd_keyword_search_results(args):
 def _asin_keyword_params(args):
     _require_yyyy_mm_dd(args.date, "--date")
     return {
-        "asin": args.asin,
+        "asin": _require_nonempty_text(args.asin, "--asin"),
         "date": args.date,
         "marketplace": args.marketplace,
-        "granularity": "lately_day",
-        "lookbackDays": 7,
+        "granularity": "week",
         "page": args.page,
         "pageSize": args.page_size,
         "exploreTypes": _split_csv(args.explore_types),
@@ -2870,7 +3052,7 @@ def cmd_product_traffic_terms_overview(args):
     """Get weekly product traffic-term overview for one ASIN."""
     _require_yyyy_mm_dd(args.date, "--date")
     params = {
-        "asin": args.asin,
+        "asin": _require_nonempty_text(args.asin, "--asin"),
         "date": args.date,
         "marketplace": args.marketplace,
     }
@@ -2889,12 +3071,11 @@ def cmd_product_traffic_terms_timeline(args):
         "product-traffic-terms-timeline",
     )
     params = {
-        "asin": args.asin,
+        "asin": _require_nonempty_text(args.asin, "--asin"),
         "dateFrom": args.date_from,
         "dateTo": args.date_to,
         "marketplace": args.marketplace,
-        "granularity": "lately_day",
-        "lookbackDays": 7,
+        "granularity": "week",
     }
     subject_field, subject_value = _keyword_subject(args)
     params[subject_field] = subject_value
@@ -2905,6 +3086,10 @@ def cmd_product_traffic_terms_timeline(args):
 # ─── CLI Setup ───────────────────────────────────────────────────────────────
 
 def main():
+    global _cli_had_error, _cli_emitted_output
+    _cli_had_error = False
+    _cli_emitted_output = False
+
     parser = argparse.ArgumentParser(
         description="ZooData CLI — Amazon Product Research",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -3278,7 +3463,23 @@ Examples:
         print(f"ERROR: Unrecognized argument(s): {' '.join(unknown)}", file=sys.stderr)
         print(f"Run 'zoodata.py {cmd} --help' to see valid options.", file=sys.stderr)
         sys.exit(1)
-    args.func(args)
+    # Codex and other agent runtimes may merge stdout and stderr into one tool
+    # result. Buffer stderr while the command runs so retry/progress messages
+    # cannot corrupt the final machine-readable JSON. If the command exits
+    # before output() creates a structured result, surface the buffered stderr
+    # as the sole result channel instead.
+    diagnostics = io.StringIO()
+    try:
+        with contextlib.redirect_stderr(diagnostics):
+            args.func(args)
+    except BaseException:
+        if not _cli_emitted_output:
+            sys.stderr.write(diagnostics.getvalue())
+        raise
+    if not _cli_emitted_output:
+        sys.stderr.write(diagnostics.getvalue())
+    if _cli_had_error:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
