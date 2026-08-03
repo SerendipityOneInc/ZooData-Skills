@@ -127,12 +127,17 @@ jobs:
       project_name:         ZooData-Skills
       # Whole-repo: a release is a repo-level milestone across all skills.
       path_filter:          ''
-      # No k8s deploy workflow; baseline lookup degrades to git-tag / root-commit.
-      deploy_workflow_file: shared-files-distribution.yml
+      # No deploy workflow exists; this is an intentional non-matching placeholder so the
+      # reusable's baseline lookup degrades to git-tag / root-commit (it does NOT gate releases).
+      deploy_workflow_file: no-deploy.yml
       # Empty prefix -> reusable matches bare `v*-release` tags (this repo's convention).
       tag_prefix:           ''
       chat_id:              ${{ vars.LARK_CHAT_RELEASE_GROUP }}
-      triggering_event:     ${{ github.event_name }}
+      # A GitHub Release is an automatic production release (hermes gets this via
+      # workflow_run after deploy); map it to workflow_run so the reusable emits the clean
+      # "正式发布" label instead of "正式发布（手动重发）". A manual dispatch keeps its own
+      # event so it still labels as a test / manual resend.
+      triggering_event:     ${{ github.event_name == 'release' && 'workflow_run' || github.event_name }}
       is_test:              ${{ inputs.is_test || false }}
       dry_run:              ${{ inputs.dry_run || false }}
       release_actor:        ${{ needs.resolve.outputs.release_actor }}
