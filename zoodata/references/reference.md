@@ -103,6 +103,8 @@ All endpoints return: `{success, data, error, meta}` with `meta.creditsRemaining
 | `listingDate` | string | When listed |
 | `salesGrowthRate` | float | Growth rate |
 | `variantCount` | int | Variants |
+| `categoryPath` | list | Full category path (root→leaf); always present — used to self-heal a keyword→category lookup without a realtime call |
+| `bsrCategory` | string | BSR category name (root); fallback when `categoryPath` is unexpectedly absent |
 
 ---
 

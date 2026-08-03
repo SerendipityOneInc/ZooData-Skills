@@ -533,7 +533,8 @@ def _resolve_category(api_caller, log_fn, keyword=None, asin=None, results=None)
     Priority:
       1. keyword → categories API
       2. asin → realtime/product → categoryPath or bestsellersRank leaf
-      3. keyword → products/search → first result → realtime/product
+      3. keyword → products/search → top row's categoryPath (else its bsrCategory);
+         no realtime call — the search row already carries the category.
     """
     category_path = None
     category_source = "user"
@@ -1304,9 +1305,9 @@ def cmd_report(args):
     topn = str(args.topn or 10)
     results = {}
 
-    # Step 1: Confirm category (self-healing: categories -> products/search -> realtime
-    # fallback, so a product keyword like "yoga mat" with no direct category match still
-    # resolves a categoryPath — otherwise the market step below returns empty).
+    # Step 1: Confirm category (self-healing: categories -> products/search row's
+    # categoryPath, so a product keyword like "yoga mat" with no direct category match
+    # still resolves a categoryPath — otherwise the market step below returns empty).
     print("Step 1/4: Confirming category...", file=sys.stderr)
     _caller = lambda ep, p, label=None: api_call(ep, p)
     _log = lambda m: print(m, file=sys.stderr)
@@ -1361,8 +1362,8 @@ def cmd_opportunity(args):
 
     results = {}
 
-    # Step 1: Confirm category (self-healing: categories -> products/search -> realtime
-    # fallback, so a product keyword with no direct category match still resolves a
+    # Step 1: Confirm category (self-healing: categories -> products/search row's
+    # categoryPath, so a product keyword with no direct category match still resolves a
     # categoryPath — otherwise the market validation below returns empty).
     print("Step 1/4: Confirming category...", file=sys.stderr)
     _caller = lambda ep, p, label=None: api_call(ep, p)
@@ -2135,6 +2136,10 @@ def cmd_daily_radar(args):
 
     # Step 1: Realtime Snapshot for All Tracked ASINs
     log(f"Step 1/7: Realtime snapshot ({len(tracked_asins)} ASINs)...")
+    # Note: unlike search-sourced composites, these ASINs are USER-SUPPLIED, so a
+    # persistent 200-empty may be a dead/typo ASIN rather than a transient miss. The
+    # empty-retry is still bounded (≤REALTIME_EMPTY_RETRIES fast calls per ASIN) and the
+    # offline-fallback hint surfaces it — a wrong ASIN costs a few extra credits, not a hang.
     realtime_snapshots = []
     for asin in tracked_asins:
         log(f"  → {asin}")
