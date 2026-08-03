@@ -572,9 +572,10 @@ def _resolve_category(api_caller, log_fn, keyword=None, asin=None, results=None)
                     log_fn(f"  → Auto-detected category: {' > '.join(category_path)}")
 
     # Priority 3: keyword → search → read categoryPath straight from the top product.
-    # products/search rows already carry categoryPath, so no extra realtime probe is
-    # needed (realtime is a flaky scrape endpoint). Fall back to the product's
-    # bsrCategory, then to a realtime probe only as a last resort.
+    # products/search rows already carry categoryPath, so category resolution needs NO
+    # realtime call here (realtime is a flaky scrape endpoint). Fall back to the
+    # product's bsrCategory; if even that is absent (a data anomaly), leave the category
+    # unresolved rather than gamble on a flaky realtime probe for one field we can't get.
     if not category_path and keyword:
         log_fn("  → Resolving category from top search result...")
         prod_result = api_caller("products/search", {
@@ -594,14 +595,6 @@ def _resolve_category(api_caller, log_fn, keyword=None, asin=None, results=None)
                     category_path = cat_data[0].get("categoryPath")
                     category_source = "inferred_from_search"
                     log_fn(f"  ⚠️ Auto-inferred category: {' > '.join(category_path or [])} — AI should confirm with user")
-            elif top.get("asin"):
-                # Last resort only: realtime probe (flaky) with transient-empty retry.
-                rt = _fetch_realtime(api_caller, top["asin"])
-                rt_data = rt.get("data", {}) or {}
-                if rt_data.get("categoryPath"):
-                    category_path = rt_data["categoryPath"]
-                    category_source = "inferred_from_search"
-                    log_fn(f"  ⚠️ Auto-inferred category: {' > '.join(category_path)} — AI should confirm with user")
 
     return category_path, category_source
 

@@ -1572,10 +1572,9 @@ class TestCompositeRobustness(unittest.TestCase):
             if endpoint == "categories":
                 return {"success": True, "data": []}            # no direct category match
             if endpoint == "products/search":
-                return {"success": True, "data": [{"asin": "B0PROBE001"}]}
-            if endpoint == "realtime/product":
-                return {"success": True, "data": {"asin": "B0PROBE001",
-                        "categoryPath": ["Sports & Outdoors", "Yoga", "Mats"]}}
+                # real products/search rows carry categoryPath — resolution reads it directly
+                return {"success": True, "data": [{"asin": "B0PROBE001",
+                        "categoryPath": ["Sports & Outdoors", "Yoga", "Mats"]}]}
             if endpoint == "markets/search":
                 return {"success": True, "data": [{"totalSkuCount": 100}]}
             return {"success": True, "data": []}
@@ -1691,6 +1690,36 @@ class TestCompositeRobustness(unittest.TestCase):
         self.assertEqual(results.get("meta", {}).get("category_source"), "inferred_from_search")
         market = [p for ep, p in calls if ep == "markets/search"]
         self.assertEqual(market[0].get("categoryPath"), ["Sports & Outdoors", "Yoga", "Mats"])
+
+    def test_resolve_category_never_calls_realtime(self):
+        """Category resolution reads categoryPath from the products/search row and
+        must NOT fall back to a flaky realtime probe."""
+        eps = []
+        def caller(endpoint, params, label=None):
+            eps.append(endpoint)
+            if endpoint == "categories":
+                return {"success": True, "data": []}
+            if endpoint == "products/search":
+                return {"success": True, "data": [{"asin": "B01", "categoryPath": ["A", "B", "C"]}]}
+            return {"success": True, "data": []}
+        cp, src = zoodata._resolve_category(caller, lambda m: None, keyword="yoga mat")
+        self.assertEqual(cp, ["A", "B", "C"])
+        self.assertEqual(src, "inferred_from_search")
+        self.assertNotIn("realtime/product", eps)
+
+    def test_resolve_category_bsr_fallback_still_no_realtime(self):
+        """If categoryPath is absent, fall back to bsrCategory — still no realtime."""
+        eps = []
+        def caller(endpoint, params, label=None):
+            eps.append(endpoint)
+            if endpoint == "products/search":
+                return {"success": True, "data": [{"asin": "B01", "bsrCategory": "Yoga Mats"}]}
+            if endpoint == "categories":
+                return {"success": True, "data": [{"categoryPath": ["Sports", "Yoga", "Mats"]}]}
+            return {"success": True, "data": []}
+        cp, src = zoodata._resolve_category(caller, lambda m: None, keyword="yoga mat")
+        self.assertEqual(cp, ["Sports", "Yoga", "Mats"])
+        self.assertNotIn("realtime/product", eps)
 
     def test_composite_sets_offline_fallback_hint_when_realtime_stays_empty(self):
         def router(endpoint, params, calls):
