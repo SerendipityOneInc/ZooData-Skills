@@ -599,6 +599,39 @@ def _resolve_category(api_caller, log_fn, keyword=None, asin=None, results=None)
     return category_path, category_source
 
 
+def _has_scope(keyword, category_path):
+    """A category-scoped discovery call (products/search, products/competitors,
+    markets/search for leaders) needs at least one filter. With neither keyword
+    nor categoryPath the API returns unfiltered global top-sellers — a real bug
+    that benchmarks a listing against random products. Callers MUST gate such
+    calls on this."""
+    return bool(keyword or category_path)
+
+
+def _is_terminal_failure(result):
+    """True when a call returned an exhausted terminal interface failure
+    (transport retries used up). Once one happens inside a composite, the
+    remaining fan-out calls will almost certainly hit the same wall, so the
+    composite should stop rather than stack retry x timeout for every endpoint."""
+    if not isinstance(result, dict):
+        return False
+    err = result.get("error")
+    return isinstance(err, dict) and bool(err.get("retryExhausted"))
+
+
+def _skipped_after_abort():
+    """Envelope a composite's safe_call returns once the command has aborted
+    after a terminal failure — no network call, no credits consumed."""
+    return {
+        "success": False,
+        "data": None,
+        "error": {
+            "code": "ABORTED_AFTER_TERMINAL_FAILURE",
+            "message": "skipped: an earlier call in this composite hit a terminal interface failure",
+        },
+    }
+
+
 def _mark_cli_error():
     """Remember an API failure without interrupting a composite command."""
     global _cli_had_error
@@ -1227,16 +1260,14 @@ def cmd_report(args):
     topn = str(args.topn or 10)
     results = {}
 
-    # Step 1: Confirm category
+    # Step 1: Confirm category (self-healing: categories -> products/search -> realtime
+    # fallback, so a product keyword like "yoga mat" with no direct category match still
+    # resolves a categoryPath — otherwise the market step below returns empty).
     print("Step 1/4: Confirming category...", file=sys.stderr)
-    cat_result = api_call("categories", {"categoryKeyword": keyword})
-    results["categories"] = cat_result
-    cat_data = cat_result.get("data", [])
-
-    # Use the first matching category path
-    category_path = None
-    if cat_data:
-        category_path = cat_data[0].get("categoryPath")
+    _caller = lambda ep, p, label=None: api_call(ep, p)
+    _log = lambda m: print(m, file=sys.stderr)
+    category_path, category_source = _resolve_category(_caller, _log, keyword=keyword, results=results)
+    results.setdefault("meta", {})["category_source"] = category_source
 
     # Step 2: Market data
     print("Step 2/4: Pulling market data...", file=sys.stderr)
@@ -1285,12 +1316,14 @@ def cmd_opportunity(args):
 
     results = {}
 
-    # Step 1: Confirm category
+    # Step 1: Confirm category (self-healing: categories -> products/search -> realtime
+    # fallback, so a product keyword with no direct category match still resolves a
+    # categoryPath — otherwise the market validation below returns empty).
     print("Step 1/4: Confirming category...", file=sys.stderr)
-    cat_result = api_call("categories", {"categoryKeyword": keyword})
-    results["categories"] = cat_result
-    cat_data = cat_result.get("data", [])
-    category_path = cat_data[0].get("categoryPath") if cat_data else None
+    _caller = lambda ep, p, label=None: api_call(ep, p)
+    _log = lambda m: print(m, file=sys.stderr)
+    category_path, category_source = _resolve_category(_caller, _log, keyword=keyword, results=results)
+    results.setdefault("meta", {})["category_source"] = category_source
 
     # Step 2: Market validation
     print("Step 2/4: Validating market...", file=sys.stderr)
@@ -1358,9 +1391,16 @@ def cmd_market_entry(args):
 
     def safe_call(endpoint, params, label=""):
         """Call API and return result. Never exit on error."""
+        # Fail-fast: once a terminal interface failure trips this composite,
+        # skip remaining fan-out calls instead of stacking retry x timeout.
+        if results.get("meta", {}).get("aborted"):
+            return _skipped_after_abort()
         r = api_call(endpoint, params)
         if r.get("success") is False:
             log(f"  ⚠️ {label or endpoint}: {r.get('error', {}).get('message', 'failed')}")
+            if _is_terminal_failure(r):
+                results.setdefault("meta", {})["aborted"] = True
+                results["meta"]["abort_reason"] = f"terminal interface failure on {label or endpoint}"
         return r
 
     # ── Step 0.5: Category Resolution ──
@@ -1608,9 +1648,16 @@ def cmd_competitor_analysis(args):
         print(msg, file=sys.stderr)
 
     def safe_call(endpoint, params, label=""):
+        # Fail-fast: once a terminal interface failure trips this composite,
+        # skip remaining fan-out calls instead of stacking retry x timeout.
+        if results.get("meta", {}).get("aborted"):
+            return _skipped_after_abort()
         r = api_call(endpoint, params)
         if r.get("success") is False:
             log(f"  ⚠️ {label or endpoint}: {r.get('error', {}).get('message', 'failed')}")
+            if _is_terminal_failure(r):
+                results.setdefault("meta", {})["aborted"] = True
+                results["meta"]["abort_reason"] = f"terminal interface failure on {label or endpoint}"
         return r
 
     # Category Resolution
@@ -1777,9 +1824,16 @@ def cmd_pricing_analysis(args):
         print(msg, file=sys.stderr)
 
     def safe_call(endpoint, params, label=""):
+        # Fail-fast: once a terminal interface failure trips this composite,
+        # skip remaining fan-out calls instead of stacking retry x timeout.
+        if results.get("meta", {}).get("aborted"):
+            return _skipped_after_abort()
         r = api_call(endpoint, params)
         if r.get("success") is False:
             log(f"  ⚠️ {label or endpoint}: {r.get('error', {}).get('message', 'failed')}")
+            if _is_terminal_failure(r):
+                results.setdefault("meta", {})["aborted"] = True
+                results["meta"]["abort_reason"] = f"terminal interface failure on {label or endpoint}"
         return r
 
     # Step 1: Current Price Snapshot
@@ -1973,9 +2027,16 @@ def cmd_daily_radar(args):
         print(msg, file=sys.stderr)
 
     def safe_call(endpoint, params, label=""):
+        # Fail-fast: once a terminal interface failure trips this composite,
+        # skip remaining fan-out calls instead of stacking retry x timeout.
+        if results.get("meta", {}).get("aborted"):
+            return _skipped_after_abort()
         r = api_call(endpoint, params)
         if r.get("success") is False:
             log(f"  ⚠️ {label or endpoint}: {r.get('error', {}).get('message', 'failed')}")
+            if _is_terminal_failure(r):
+                results.setdefault("meta", {})["aborted"] = True
+                results["meta"]["abort_reason"] = f"terminal interface failure on {label or endpoint}"
         return r
 
     # Step 0.5: Category Resolution
@@ -2127,9 +2188,16 @@ def cmd_listing_audit(args):
         print(msg, file=sys.stderr)
 
     def safe_call(endpoint, params, label=""):
+        # Fail-fast: once a terminal interface failure trips this composite,
+        # skip remaining fan-out calls instead of stacking retry x timeout.
+        if results.get("meta", {}).get("aborted"):
+            return _skipped_after_abort()
         r = api_call(endpoint, params)
         if r.get("success") is False:
             log(f"  ⚠️ {label or endpoint}: {r.get('error', {}).get('message', 'failed')}")
+            if _is_terminal_failure(r):
+                results.setdefault("meta", {})["aborted"] = True
+                results["meta"]["abort_reason"] = f"terminal interface failure on {label or endpoint}"
         return r
 
     # Step 0.5: Category Resolution
@@ -2144,22 +2212,50 @@ def cmd_listing_audit(args):
     results["target_realtime"] = safe_call("realtime/product", {"asin": my_asin, "marketplace": "US"}, f"realtime {my_asin}")
     results["meta"]["steps_completed"].append("audit_target")
 
-    # Step 2: Category Leaders
-    log("Step 2/7: Finding category leaders...")
-    prod_params = {"pageSize": 20, "sortBy": "monthlySalesFloor", "sortOrder": "desc"}
-    if keyword:
-        prod_params["keyword"] = keyword
-    if category_path:
-        prod_params["categoryPath"] = category_path
-    results["leader_products"] = safe_call("products/search", prod_params, "products leaders")
+    # Step 1.5: Empty-target guard. If the target ASIN has no realtime data and no
+    # category resolved, the leader search below would run UNFILTERED and benchmark
+    # the listing against random global top-sellers. A missing target is not
+    # auditable — stop here rather than fabricate an audit against garbage peers.
+    _tgt = results["target_realtime"].get("data")
+    _tgt = _tgt if isinstance(_tgt, dict) else {}
+    if not _tgt.get("asin"):
+        results["meta"]["target_status"] = "empty"
+        results["meta"]["audit_status"] = "not_auditable"
+        results["meta"]["reason"] = (
+            "Target ASIN returned no realtime data (not indexed by ZooData or a "
+            "transient upstream failure). A listing audit cannot benchmark a missing "
+            "target; re-check the ASIN or retry later."
+        )
+        _mark_cli_error()
+        output(results, args.format)
+        return
+    results["meta"]["target_status"] = "ok"
 
-    comp_params = {"pageSize": 20, "dateRange": "30d", "marketplace": "US", "page": 1,
-                   "sortBy": "monthlySalesFloor", "sortOrder": "desc"}
-    if keyword:
-        comp_params["keyword"] = keyword
-    if category_path:
-        comp_params["categoryPath"] = category_path
-    results["competitors"] = safe_call("products/competitors", comp_params, "competitors")
+    # Step 2: Category Leaders — only with a scope, else the search is unfiltered.
+    log("Step 2/7: Finding category leaders...")
+    if _has_scope(keyword, category_path):
+        prod_params = {"pageSize": 20, "sortBy": "monthlySalesFloor", "sortOrder": "desc"}
+        if keyword:
+            prod_params["keyword"] = keyword
+        if category_path:
+            prod_params["categoryPath"] = category_path
+        results["leader_products"] = safe_call("products/search", prod_params, "products leaders")
+
+        comp_params = {"pageSize": 20, "dateRange": "30d", "marketplace": "US", "page": 1,
+                       "sortBy": "monthlySalesFloor", "sortOrder": "desc"}
+        if keyword:
+            comp_params["keyword"] = keyword
+        if category_path:
+            comp_params["categoryPath"] = category_path
+        results["competitors"] = safe_call("products/competitors", comp_params, "competitors")
+    else:
+        _no_scope = {"success": False, "data": [], "error": {
+            "code": "NO_CATEGORY_SCOPE",
+            "message": "skipped: no keyword or category to scope discovery (would return unfiltered global results)"}}
+        results["leader_products"] = _no_scope
+        results["competitors"] = _no_scope
+        results["meta"].setdefault("warnings", []).append(
+            "leader/competitor discovery skipped — target had no category and no keyword to scope on")
     results["meta"]["steps_completed"].append("category_leaders")
 
     # Step 3: Benchmark Realtime (Top 5 leaders, deduplicated)
@@ -2319,9 +2415,16 @@ def cmd_opportunity_scan(args):
         print(msg, file=sys.stderr)
 
     def safe_call(endpoint, params, label=""):
+        # Fail-fast: once a terminal interface failure trips this composite,
+        # skip remaining fan-out calls instead of stacking retry x timeout.
+        if results.get("meta", {}).get("aborted"):
+            return _skipped_after_abort()
         r = api_call(endpoint, params)
         if r.get("success") is False:
             log(f"  ⚠️ {label or endpoint}: {r.get('error', {}).get('message', 'failed')}")
+            if _is_terminal_failure(r):
+                results.setdefault("meta", {})["aborted"] = True
+                results["meta"]["abort_reason"] = f"terminal interface failure on {label or endpoint}"
         return r
 
     # Category Resolution
@@ -2515,9 +2618,16 @@ def cmd_review_deepdive(args):
         print(msg, file=sys.stderr)
 
     def safe_call(endpoint, params, label=""):
+        # Fail-fast: once a terminal interface failure trips this composite,
+        # skip remaining fan-out calls instead of stacking retry x timeout.
+        if results.get("meta", {}).get("aborted"):
+            return _skipped_after_abort()
         r = api_call(endpoint, params)
         if r.get("success") is False:
             log(f"  ⚠️ {label or endpoint}: {r.get('error', {}).get('message', 'failed')}")
+            if _is_terminal_failure(r):
+                results.setdefault("meta", {})["aborted"] = True
+                results["meta"]["abort_reason"] = f"terminal interface failure on {label or endpoint}"
         return r
 
     # Category Resolution

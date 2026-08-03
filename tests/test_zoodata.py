@@ -1507,6 +1507,109 @@ class TestCreditAggregation(unittest.TestCase):
         self.assertNotIn("creditsConsumed", payload["meta"])
 
 
+class TestCompositeRobustness(unittest.TestCase):
+    """Composite fail-fast + scope guards (fixes for keyword->category self-heal,
+    terminal-failure abort, and listing-audit empty-target)."""
+
+    def _run(self, argv, router):
+        """Run a composite with a per-endpoint api_call router.
+        Returns (calls, results) where calls is a list of (endpoint, params)
+        actually sent to api_call, and results is what output() received."""
+        calls = []
+        captured = {}
+
+        def fake_api_call(endpoint, params):
+            calls.append((endpoint, dict(params)))
+            resp = dict(router(endpoint, dict(params), calls))
+            resp.setdefault("_query", {"endpoint": endpoint, "params": params})
+            return resp
+
+        def fake_output(data, fmt="json"):
+            captured["results"] = data
+
+        with patch.object(zoodata, "api_call", side_effect=fake_api_call), \
+             patch.object(zoodata, "output", side_effect=fake_output), \
+             patch.object(sys, "argv", ["zoodata.py", *argv]):
+            try:
+                zoodata.main()
+            except SystemExit:
+                pass
+        return calls, captured.get("results", {})
+
+    # --- Fix: listing-audit empty-target guard ---
+    def test_listing_audit_empty_target_is_not_auditable(self):
+        def router(endpoint, params, calls):
+            if endpoint == "realtime/product":
+                return {"success": True, "data": {"asin": ""}}   # empty target
+            return {"success": True, "data": []}
+        calls, results = self._run(["listing-audit", "--my-asin", "B00EMPTY000"], router)
+        self.assertEqual(results.get("meta", {}).get("target_status"), "empty")
+        self.assertEqual(results.get("meta", {}).get("audit_status"), "not_auditable")
+        # must NOT have issued an unfiltered products/search (no keyword, no categoryPath)
+        for ep, p in calls:
+            if ep == "products/search":
+                self.assertTrue(p.get("keyword") or p.get("categoryPath"),
+                                f"unfiltered products/search issued: {p}")
+
+    def test_listing_audit_valid_target_proceeds(self):
+        def router(endpoint, params, calls):
+            if endpoint == "realtime/product":
+                return {"success": True, "data": {"asin": params.get("asin"),
+                        "categoryPath": ["Sports & Outdoors", "Yoga", "Mats"]}}
+            return {"success": True, "data": []}
+        calls, results = self._run(["listing-audit", "--my-asin", "B08373YJTB"], router)
+        self.assertEqual(results.get("meta", {}).get("target_status"), "ok")
+        self.assertNotEqual(results.get("meta", {}).get("audit_status"), "not_auditable")
+
+    def test_has_scope_helper(self):
+        self.assertFalse(zoodata._has_scope(None, None))
+        self.assertTrue(zoodata._has_scope("yoga mat", None))
+        self.assertTrue(zoodata._has_scope(None, ["A", "B"]))
+
+    # --- Fix: report/opportunity self-heal category for a product keyword ---
+    def test_report_self_heals_category_for_product_keyword(self):
+        def router(endpoint, params, calls):
+            if endpoint == "categories":
+                return {"success": True, "data": []}            # no direct category match
+            if endpoint == "products/search":
+                return {"success": True, "data": [{"asin": "B0PROBE001"}]}
+            if endpoint == "realtime/product":
+                return {"success": True, "data": {"asin": "B0PROBE001",
+                        "categoryPath": ["Sports & Outdoors", "Yoga", "Mats"]}}
+            if endpoint == "markets/search":
+                return {"success": True, "data": [{"totalSkuCount": 100}]}
+            return {"success": True, "data": []}
+        calls, results = self._run(["report", "--keyword", "yoga mat"], router)
+        market_calls = [p for ep, p in calls if ep == "markets/search"]
+        self.assertTrue(market_calls, "markets/search was not called")
+        # self-heal: market must be scoped by the resolved categoryPath, not categoryKeyword
+        self.assertEqual(market_calls[0].get("categoryPath"),
+                         ["Sports & Outdoors", "Yoga", "Mats"])
+        self.assertNotIn("categoryKeyword", market_calls[0])
+
+    # --- Fix: terminal failure aborts composite fan-out ---
+    def test_is_terminal_failure_helper(self):
+        self.assertTrue(zoodata._is_terminal_failure(
+            {"success": False, "error": {"retryExhausted": True}}))
+        self.assertFalse(zoodata._is_terminal_failure(
+            {"success": False, "error": {"code": "EMPTY"}}))
+        self.assertFalse(zoodata._is_terminal_failure({"success": True, "data": []}))
+
+    def test_composite_aborts_after_terminal_failure(self):
+        def router(endpoint, params, calls):
+            # first call resolves category; the next real call is a terminal failure
+            if len(calls) >= 2:
+                return {"success": False, "error": {
+                    "code": "HTTP_503", "message": "unavailable", "retryExhausted": True}}
+            return {"success": True, "data": [{"categoryPath": ["Sports", "Yoga"]}]}
+        calls, results = self._run(["market-entry", "--keyword", "yoga mat"], router)
+        self.assertTrue(results.get("meta", {}).get("aborted"),
+                        "composite did not set aborted flag after terminal failure")
+        # a full market-entry issues 20+ calls; abort must bound real network calls
+        self.assertLess(len(calls), 10,
+                        f"composite kept calling after terminal failure: {len(calls)} calls")
+
+
 # Standalone runner
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
