@@ -66,6 +66,10 @@ The shared CLI owns transport retries. Once the execution-environment permission
 - If all failures are documented non-terminal business/coverage failures, a local skill may use its explicit fallback and the compatible successful sections. Label coverage precisely and never present the composite as fully successful.
 - Process exit status and JSON status must agree for a single-result command. A partial pagination failure must return `success=false` while preserving already collected rows under `data`.
 
+## Realtime unavailable — offline fallback
+
+`realtime/product` is a live scrape endpoint that can return a transient 200-success with an empty payload. Composites retry it a few times; if it is still empty, that item's result carries `_realtimeStatus="empty_after_retries"`, and the composite `meta` carries `realtimeUnavailable` (count) plus `realtimeFallbackHint`. When `realtimeFallbackHint` is present, tell the user realtime lookup is temporarily unavailable for those items, then continue the analysis using the offline snapshot data already gathered (products/search fields, history, price/BSR/rating). Do not stall, silently re-run, or fabricate the missing realtime detail.
+
 ## Partial review pagination
 
 When `reviews-raw` fails after one or more successful pages, it returns `success=false`, preserves collected reviews and page count under `data`, and exposes the failed page request through `_failedQuery`. Never treat that payload as a complete review sample.

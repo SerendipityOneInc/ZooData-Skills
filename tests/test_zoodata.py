@@ -1638,6 +1638,74 @@ class TestCompositeRobustness(unittest.TestCase):
             self.assertEqual(results.get("meta", {}).get("audit_status"),
                              "not_auditable", f"data={empty!r} not treated as empty target")
 
+    # --- realtime empty-retry + offline fallback ---
+    def test_is_empty_realtime_helper(self):
+        self.assertTrue(zoodata._is_empty_realtime({"success": True, "data": {"asin": ""}}))
+        self.assertTrue(zoodata._is_empty_realtime({"success": True, "data": {}}))
+        self.assertFalse(zoodata._is_empty_realtime({"success": True, "data": {"asin": "B01"}}))
+        self.assertFalse(zoodata._is_empty_realtime({"success": True, "data": []}))
+        self.assertFalse(zoodata._is_empty_realtime({"success": False, "data": None}))
+
+    def test_fetch_realtime_retries_transient_empty_then_succeeds(self):
+        seq = [
+            {"success": True, "data": {"asin": ""}},
+            {"success": True, "data": {"asin": ""}},
+            {"success": True, "data": {"asin": "B01", "categoryPath": ["A"]}},
+        ]
+        state = {"n": 0}
+        def caller(ep, params, label=None):
+            r = seq[state["n"]]; state["n"] += 1; return r
+        r = zoodata._fetch_realtime(caller, "B01")
+        self.assertEqual(state["n"], 3)               # retried until data arrived
+        self.assertEqual(r["data"]["asin"], "B01")
+        self.assertNotIn("_realtimeStatus", r)        # succeeded → no fallback mark
+
+    def test_fetch_realtime_gives_up_after_attempts(self):
+        state = {"n": 0}
+        def caller(ep, params, label=None):
+            state["n"] += 1
+            return {"success": True, "data": {"asin": ""}}
+        r = zoodata._fetch_realtime(caller, "B01")
+        self.assertEqual(state["n"], zoodata.REALTIME_EMPTY_RETRIES)   # bounded, not infinite
+        self.assertEqual(r.get("_realtimeStatus"), "empty_after_retries")
+
+    def test_fetch_realtime_does_not_retry_terminal_failure(self):
+        state = {"n": 0}
+        def caller(ep, params, label=None):
+            state["n"] += 1
+            return {"success": False, "error": {"retryExhausted": True}}
+        zoodata._fetch_realtime(caller, "B01")
+        self.assertEqual(state["n"], 1)               # terminal → hand off to ②, no retry
+
+    def test_report_category_resolves_from_products_not_realtime_probe(self):
+        def router(endpoint, params, calls):
+            if endpoint == "categories":
+                return {"success": True, "data": []}
+            if endpoint == "products/search":
+                return {"success": True, "data": [{"asin": "B01",
+                        "categoryPath": ["Sports & Outdoors", "Yoga", "Mats"]}]}
+            if endpoint == "markets/search":
+                return {"success": True, "data": [{"totalSkuCount": 1}]}
+            return {"success": True, "data": []}   # realtime (Step 4 detail) returns no category
+        calls, results = self._run(["report", "--keyword", "yoga mat"], router)
+        self.assertEqual(results.get("meta", {}).get("category_source"), "inferred_from_search")
+        market = [p for ep, p in calls if ep == "markets/search"]
+        self.assertEqual(market[0].get("categoryPath"), ["Sports & Outdoors", "Yoga", "Mats"])
+
+    def test_composite_sets_offline_fallback_hint_when_realtime_stays_empty(self):
+        def router(endpoint, params, calls):
+            if endpoint == "realtime/product":
+                return {"success": True, "data": {"asin": ""}}      # always transient-empty
+            if endpoint in ("categories", "products/search"):
+                return {"success": True, "data": [{"asin": "B01", "categoryPath": ["A", "B"]}]}
+            return {"success": True, "data": []}
+        calls, results = self._run(["opportunity", "--keyword", "yoga mat"], router)
+        meta = results.get("meta", {})
+        self.assertIn("realtimeFallbackHint", meta)
+        self.assertGreaterEqual(meta.get("realtimeUnavailable", 0), 1)
+        rt_calls = [ep for ep, _ in calls if ep == "realtime/product"]
+        self.assertGreaterEqual(len(rt_calls), zoodata.REALTIME_EMPTY_RETRIES)  # did retry
+
 
 # Standalone runner
 # ---------------------------------------------------------------------------

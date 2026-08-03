@@ -88,6 +88,7 @@ API_DOCS = "https://api.zoodata.ai/api-docs"   # API documentation URL
 MAX_RETRIES = 3       # Total attempt budget for ordinary failed requests
 RETRY_DELAY = 2       # Initial retry delay in seconds; doubles on each retry
 RATE_LIMIT_RETRIES = 4  # Total attempt budget for 429 rate limits
+REALTIME_EMPTY_RETRIES = 3  # Total attempts when realtime/product returns a transient 200-empty (scrape miss)
 RATE_LIMIT_DELAY = 5    # Initial delay for 429 retries (seconds); doubles each time
 MIN_REQUEST_INTERVAL = 0.6  # Minimum seconds between requests (100 req/min = 0.6s)
 REQUEST_TIMEOUT = 60  # Request timeout in seconds; realtime/product can be slow (up to 30s)
@@ -570,7 +571,10 @@ def _resolve_category(api_caller, log_fn, keyword=None, asin=None, results=None)
                     category_source = "asin_bsr"
                     log_fn(f"  → Auto-detected category: {' > '.join(category_path)}")
 
-    # Priority 3: keyword → search → first product → realtime
+    # Priority 3: keyword → search → read categoryPath straight from the top product.
+    # products/search rows already carry categoryPath, so no extra realtime probe is
+    # needed (realtime is a flaky scrape endpoint). Fall back to the product's
+    # bsrCategory, then to a realtime probe only as a last resort.
     if not category_path and keyword:
         log_fn("  → Resolving category from top search result...")
         prod_result = api_caller("products/search", {
@@ -578,23 +582,26 @@ def _resolve_category(api_caller, log_fn, keyword=None, asin=None, results=None)
         }, "products (category probe)")
         prod_data = prod_result.get("data", [])
         if isinstance(prod_data, list) and prod_data:
-            probe_asin = prod_data[0].get("asin")
-            if probe_asin:
-                rt = api_caller("realtime/product", {"asin": probe_asin, "marketplace": "US"}, f"realtime {probe_asin}")
+            top = prod_data[0]
+            if top.get("categoryPath"):
+                category_path = top["categoryPath"]
+                category_source = "inferred_from_search"
+                log_fn(f"  ⚠️ Auto-inferred category: {' > '.join(category_path)} — AI should confirm with user")
+            elif top.get("bsrCategory"):
+                cat_result = api_caller("categories", {"categoryKeyword": top["bsrCategory"]}, "categories")
+                cat_data = cat_result.get("data", [])
+                if cat_data:
+                    category_path = cat_data[0].get("categoryPath")
+                    category_source = "inferred_from_search"
+                    log_fn(f"  ⚠️ Auto-inferred category: {' > '.join(category_path or [])} — AI should confirm with user")
+            elif top.get("asin"):
+                # Last resort only: realtime probe (flaky) with transient-empty retry.
+                rt = _fetch_realtime(api_caller, top["asin"])
                 rt_data = rt.get("data", {}) or {}
                 if rt_data.get("categoryPath"):
                     category_path = rt_data["categoryPath"]
                     category_source = "inferred_from_search"
                     log_fn(f"  ⚠️ Auto-inferred category: {' > '.join(category_path)} — AI should confirm with user")
-                elif rt_data.get("bestsellersRank"):
-                    leaf = rt_data["bestsellersRank"][-1].get("category", "")
-                    if leaf:
-                        cat_result = api_caller("categories", {"categoryKeyword": leaf}, "categories")
-                        cat_data = cat_result.get("data", [])
-                        if cat_data:
-                            category_path = cat_data[0].get("categoryPath")
-                            category_source = "inferred_from_search"
-                            log_fn(f"  ⚠️ Auto-inferred category: {' > '.join(category_path)} — AI should confirm with user")
 
     return category_path, category_source
 
@@ -630,6 +637,50 @@ def _skipped_after_abort():
             "message": "skipped: an earlier call in this composite hit a terminal interface failure",
         },
     }
+
+
+REALTIME_FALLBACK_HINT = (
+    "Realtime data collection failed for one or more items after retries. Tell the "
+    "user realtime lookup is temporarily unavailable, then continue the analysis "
+    "using the offline snapshot data already gathered (products/search fields, "
+    "history, price/BSR/rating) — do not stall or fabricate the missing realtime detail."
+)
+
+
+def _is_empty_realtime(result):
+    """True when realtime/product returned a 200-success but empty payload
+    (`data.asin` blank) — a transient scrape miss, not a hard error."""
+    if not isinstance(result, dict):
+        return False
+    data = result.get("data")
+    return isinstance(data, dict) and not data.get("asin")
+
+
+def _fetch_realtime(caller, asin, marketplace="US", label=None, attempts=REALTIME_EMPTY_RETRIES):
+    """Fetch realtime/product for a known-good ASIN (it came from a search result),
+    retrying a transient 200-empty up to `attempts` total. `caller(endpoint, params,
+    label)` is the composite's safe_call or an api_call adapter. If still empty after
+    all attempts, stamps result['_realtimeStatus']='empty_after_retries' so callers
+    can surface the offline-fallback hint. Does NOT retry a terminal failure."""
+    params = {"asin": asin, "marketplace": marketplace}
+    lbl = label or f"realtime {asin}"
+    r = caller("realtime/product", params, lbl)
+    n = 1
+    while n < attempts and _is_empty_realtime(r) and not _is_terminal_failure(r):
+        n += 1
+        r = caller("realtime/product", params, lbl)
+    if _is_empty_realtime(r):
+        r["_realtimeStatus"] = "empty_after_retries"
+    return r
+
+
+def _note_realtime_fallback(results, result):
+    """If a realtime result came back empty after retries, bump the composite-level
+    counter and set the user-facing offline-fallback hint on results['meta']."""
+    if isinstance(result, dict) and result.get("_realtimeStatus") == "empty_after_retries":
+        m = results.setdefault("meta", {})
+        m["realtimeUnavailable"] = m.get("realtimeUnavailable", 0) + 1
+        m["realtimeFallbackHint"] = REALTIME_FALLBACK_HINT
 
 
 def _mark_cli_error():
@@ -1295,7 +1346,8 @@ def cmd_report(args):
         top_asin = product_data[0].get("asin")
         if top_asin:
             print(f"Step 4/4: Getting details for top ASIN {top_asin}...", file=sys.stderr)
-            detail_result = api_call("realtime/product", {"asin": top_asin, "marketplace": "US"})
+            detail_result = _fetch_realtime(_caller, top_asin)
+            _note_realtime_fallback(results, detail_result)
             results["topProductDetail"] = detail_result
     else:
         print("Step 4/4: No products found, skipping detail.", file=sys.stderr)
@@ -1356,7 +1408,9 @@ def cmd_opportunity(args):
         asin = p.get("asin")
         if asin:
             print(f"Step 4/4: Getting details for {asin}...", file=sys.stderr)
-            details.append(api_call("realtime/product", {"asin": asin, "marketplace": "US"}))
+            r = _fetch_realtime(_caller, asin)
+            _note_realtime_fallback(results, r)
+            details.append(r)
     results["topProductDetails"] = details
 
     print("Done.", file=sys.stderr)
@@ -1396,6 +1450,16 @@ def cmd_market_entry(args):
         if results.get("meta", {}).get("aborted"):
             return _skipped_after_abort()
         r = api_call(endpoint, params)
+        # realtime/product is a scrape endpoint that can return a transient 200-empty;
+        # the ASIN is known-good in a composite, so retry, then hint offline fallback.
+        if endpoint == "realtime/product":
+            n = 1
+            while n < REALTIME_EMPTY_RETRIES and _is_empty_realtime(r) and not _is_terminal_failure(r):
+                n += 1
+                r = api_call(endpoint, params)
+            if _is_empty_realtime(r):
+                r["_realtimeStatus"] = "empty_after_retries"
+                _note_realtime_fallback(results, r)
         if r.get("success") is False:
             log(f"  ⚠️ {label or endpoint}: {r.get('error', {}).get('message', 'failed')}")
             if _is_terminal_failure(r):
@@ -1653,6 +1717,16 @@ def cmd_competitor_analysis(args):
         if results.get("meta", {}).get("aborted"):
             return _skipped_after_abort()
         r = api_call(endpoint, params)
+        # realtime/product is a scrape endpoint that can return a transient 200-empty;
+        # the ASIN is known-good in a composite, so retry, then hint offline fallback.
+        if endpoint == "realtime/product":
+            n = 1
+            while n < REALTIME_EMPTY_RETRIES and _is_empty_realtime(r) and not _is_terminal_failure(r):
+                n += 1
+                r = api_call(endpoint, params)
+            if _is_empty_realtime(r):
+                r["_realtimeStatus"] = "empty_after_retries"
+                _note_realtime_fallback(results, r)
         if r.get("success") is False:
             log(f"  ⚠️ {label or endpoint}: {r.get('error', {}).get('message', 'failed')}")
             if _is_terminal_failure(r):
@@ -1829,6 +1903,16 @@ def cmd_pricing_analysis(args):
         if results.get("meta", {}).get("aborted"):
             return _skipped_after_abort()
         r = api_call(endpoint, params)
+        # realtime/product is a scrape endpoint that can return a transient 200-empty;
+        # the ASIN is known-good in a composite, so retry, then hint offline fallback.
+        if endpoint == "realtime/product":
+            n = 1
+            while n < REALTIME_EMPTY_RETRIES and _is_empty_realtime(r) and not _is_terminal_failure(r):
+                n += 1
+                r = api_call(endpoint, params)
+            if _is_empty_realtime(r):
+                r["_realtimeStatus"] = "empty_after_retries"
+                _note_realtime_fallback(results, r)
         if r.get("success") is False:
             log(f"  ⚠️ {label or endpoint}: {r.get('error', {}).get('message', 'failed')}")
             if _is_terminal_failure(r):
@@ -2032,6 +2116,16 @@ def cmd_daily_radar(args):
         if results.get("meta", {}).get("aborted"):
             return _skipped_after_abort()
         r = api_call(endpoint, params)
+        # realtime/product is a scrape endpoint that can return a transient 200-empty;
+        # the ASIN is known-good in a composite, so retry, then hint offline fallback.
+        if endpoint == "realtime/product":
+            n = 1
+            while n < REALTIME_EMPTY_RETRIES and _is_empty_realtime(r) and not _is_terminal_failure(r):
+                n += 1
+                r = api_call(endpoint, params)
+            if _is_empty_realtime(r):
+                r["_realtimeStatus"] = "empty_after_retries"
+                _note_realtime_fallback(results, r)
         if r.get("success") is False:
             log(f"  ⚠️ {label or endpoint}: {r.get('error', {}).get('message', 'failed')}")
             if _is_terminal_failure(r):
@@ -2193,6 +2287,16 @@ def cmd_listing_audit(args):
         if results.get("meta", {}).get("aborted"):
             return _skipped_after_abort()
         r = api_call(endpoint, params)
+        # realtime/product is a scrape endpoint that can return a transient 200-empty;
+        # the ASIN is known-good in a composite, so retry, then hint offline fallback.
+        if endpoint == "realtime/product":
+            n = 1
+            while n < REALTIME_EMPTY_RETRIES and _is_empty_realtime(r) and not _is_terminal_failure(r):
+                n += 1
+                r = api_call(endpoint, params)
+            if _is_empty_realtime(r):
+                r["_realtimeStatus"] = "empty_after_retries"
+                _note_realtime_fallback(results, r)
         if r.get("success") is False:
             log(f"  ⚠️ {label or endpoint}: {r.get('error', {}).get('message', 'failed')}")
             if _is_terminal_failure(r):
@@ -2420,6 +2524,16 @@ def cmd_opportunity_scan(args):
         if results.get("meta", {}).get("aborted"):
             return _skipped_after_abort()
         r = api_call(endpoint, params)
+        # realtime/product is a scrape endpoint that can return a transient 200-empty;
+        # the ASIN is known-good in a composite, so retry, then hint offline fallback.
+        if endpoint == "realtime/product":
+            n = 1
+            while n < REALTIME_EMPTY_RETRIES and _is_empty_realtime(r) and not _is_terminal_failure(r):
+                n += 1
+                r = api_call(endpoint, params)
+            if _is_empty_realtime(r):
+                r["_realtimeStatus"] = "empty_after_retries"
+                _note_realtime_fallback(results, r)
         if r.get("success") is False:
             log(f"  ⚠️ {label or endpoint}: {r.get('error', {}).get('message', 'failed')}")
             if _is_terminal_failure(r):
@@ -2623,6 +2737,16 @@ def cmd_review_deepdive(args):
         if results.get("meta", {}).get("aborted"):
             return _skipped_after_abort()
         r = api_call(endpoint, params)
+        # realtime/product is a scrape endpoint that can return a transient 200-empty;
+        # the ASIN is known-good in a composite, so retry, then hint offline fallback.
+        if endpoint == "realtime/product":
+            n = 1
+            while n < REALTIME_EMPTY_RETRIES and _is_empty_realtime(r) and not _is_terminal_failure(r):
+                n += 1
+                r = api_call(endpoint, params)
+            if _is_empty_realtime(r):
+                r["_realtimeStatus"] = "empty_after_retries"
+                _note_realtime_fallback(results, r)
         if r.get("success") is False:
             log(f"  ⚠️ {label or endpoint}: {r.get('error', {}).get('message', 'failed')}")
             if _is_terminal_failure(r):
