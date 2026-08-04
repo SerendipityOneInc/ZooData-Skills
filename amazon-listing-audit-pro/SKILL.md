@@ -89,6 +89,10 @@ When `_transport.status=401`, stop further calls, tell the user that the configu
 
 When `_transport.status=402`, stop further calls. Report where the workflow stopped, any compatible partial findings already gathered, and returned credit metadata when present; direct the user to https://zoodata.ai/en/pricing and do not fabricate missing data.
 
+## On Empty Target
+
+When the target ASIN's realtime lookup returns no data (`data.asin` empty), the `listing-audit` command now stops and returns `meta.audit_status = "not_auditable"` with `meta.target_status = "empty"` instead of benchmarking against an unfiltered (or category-mismatched) leader set. If you see this, tell the user the ASIN was not found / not indexed by ZooData (or a transient upstream failure), ask them to re-check the ASIN or retry, and do not present any competitor/benchmark comparison — there is none.
+
 ## Execution
 
 1. `listing-audit --my-asin X [--keyword Y] [--category Z]` (composite, auto-detects category from ASIN)

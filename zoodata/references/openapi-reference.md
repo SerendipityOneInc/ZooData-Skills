@@ -621,3 +621,5 @@ Boundary note:
 | fulfillment | String | FBA/FBM/AMZ |
 | listingDate | String | |
 | buyBoxSellerName | String | |
+| categoryPath | List | Full category path root→leaf; always present — lets a keyword→category lookup resolve from the search row without a realtime call |
+| bsrCategory | String | BSR category name (root); fallback when `categoryPath` is absent |
