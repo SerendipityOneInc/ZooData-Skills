@@ -1,108 +1,64 @@
 # Production release → Lark notification
 
-When ZooData-Skills is published to production, a "Launch Tracking" message is posted to
-the **ZooData Launch Tracking Group** on Lark/Feishu. The message format (Chinese release
-notes generated from the PR changelog, per-item source links and @mentions, rollback /
-redeploy detection) is identical to hermes — both delegate to the same shared reusable
-workflow `SerendipityOneInc/srp-actions/.github/workflows/release-notify-lark.yml`.
+When ZooData-Skills is released to production, a "Launch Tracking" message is posted to the
+**ZooData Launch Tracking Group** on Lark/Feishu, with the same format hermes uses (Chinese
+release notes generated from the PR changelog, source links, @mentions, rollback/redeploy
+detection).
 
-Workflow: [`.github/workflows/release-notify-lark.yml`](../.github/workflows/release-notify-lark.yml).
+## Why the notification does NOT run in this repo
 
-## How a release fires the notification
+ZooData-Skills is a **public** repo. The release-notify secrets (Lark bot, GitHub App, AWS
+Bedrock role) are org secrets that are — correctly — **not exposed to public repos**. So this
+repo does not (and should not) run the notification itself.
 
-A release is a **repo-level milestone** — one release may publish 0, 1, or many skills.
-ZooData-Skills publishes its skills to ClawHub **manually** (`clawhub sync`); the release
-is then cut as a **GitHub Release**, and publishing that Release fires the notification
-(`on: release: [published]`). One release ⇒ one message.
+Instead, **`hermes-workspace` (internal, which already has those secrets) runs the
+notification on this repo's behalf**, via the shared reusable's `source_repo` input. The
+reusable checks out ZooData-Skills (public, readable with the default token) and builds the
+changelog from this repo's history. **No notification credential ever lives in this public
+repo.**
+
+Moving parts:
+- `srp-actions/.github/workflows/release-notify-lark.yml` — shared reusable; `source_repo`
+  input lets it notify for a repo it does not run in.
+- `hermes-workspace/.github/workflows/zoodata-skills-release-notify.yml` — the manual
+  caller that runs it for ZooData-Skills.
+
+## Release flow
 
 ```bash
-# 1. Publish to production as usual (manual; may touch 0, 1, or many skills)
+# 1. Publish to ClawHub (manual, as today; the ClawHub key stays local)
 clawhub --dir . sync --all --owner apiclaw
 
-# 2. Cut a GitHub Release whose tag ends in `-release`
-gh release create v1.2.3-release --title "v1.2.3 — <headline>" --notes "..."
-#   (or via the GitHub UI — Releases → Draft a new release)
+# 2. Cut a GitHub Release whose tag ends in -release
+gh release create v1.3.0-release --title "v1.3.0 — <headline>" --notes "..."
 ```
+
+Then, to send the Lark notification:
+
+```
+# 3. In hermes-workspace: Actions → "ZooData-Skills release notify" → Run workflow
+#    tag = v1.3.0-release,  dry_run = true (preview) → then dry_run = false (send)
+```
+
+Step 3 is a **manual** action in hermes-workspace (no polling). Do a `dry_run: true` run
+first to preview the rendered notes, then `dry_run: false` to send.
 
 ### Tag convention: the tag must end in `-release`
 
-The shared reusable matches the previous production release by a **`release$` tag suffix**
-(the same rule hermes uses). So release tags **must** be `v*-release` (e.g.
-`v1.2.3-release`), not the bare `v1.2.2` this repo used historically. A plain `vX.Y.Z`
-release (no `-release` suffix) is **skipped, not an error** — `resolve` logs a notice and
-sets `should_notify=false`.
+The reusable matches the previous production release by a `release$` tag suffix, so release
+tags must be `v*-release` (e.g. `v1.3.0-release`), not the bare `v1.2.2` this repo used
+historically. The changelog covers PRs merged since the previous `v*-release` tag; the first
+release under this convention falls back to the repo root commit (a one-time full history).
 
-The changelog covers PRs merged since the previous `v*-release` tag. The **first** release
-under this convention has no prior `-release` tag, so its changelog falls back to the repo
-root commit (a one-time full history); every release after that is scoped correctly.
+## One-time configuration (ops)
 
-> `clawhub sync` itself does **not** trigger anything — it is a local CLI call with no
-> GitHub event. The GitHub Release is the release signal; the workflow only *notifies* and
-> never handles the ClawHub key.
+Done in **hermes-workspace / srp-actions**, not here:
 
-## Manual run / testing (`workflow_dispatch`)
+| Where | What |
+|-------|------|
+| srp-actions | reusable with the `source_repo` input (PR: "add optional source_repo") |
+| hermes-workspace | the `zoodata-skills-release-notify.yml` caller workflow |
+| hermes-workspace repo var | `LARK_CHAT_ZOODATA_RELEASE` = ZooData Launch Tracking Group `chat_id` |
+| hermes-workspace secrets | the existing release-notify secrets (already present); the Lark bot must be a member of the target group |
 
-> `workflow_dispatch` only becomes available **after this workflow is on the default
-> branch (`main`)** — GitHub does not expose the "Run workflow" button (or the
-> `gh workflow run` API) for a workflow that exists only on a feature branch. So merge
-> the PR first, then dispatch.
-
-Run **Actions → Release notify (Lark) → Run workflow** with:
-
-| Input | Default | Meaning |
-|-------|---------|---------|
-| `tag` | — (required) | An existing `v*-release` tag to (re)notify for |
-| `dry_run` | `true` | Generate the release notes but **do not** send to Lark — use this to preview |
-| `is_test` | `true` | Label the message as a test (`false` = manual resend of a real release) |
-
-Recommended first run: `dry_run: true` to verify the notes render, then `dry_run: false`.
-
-**A `dry_run: true` preview does not need the group configured** — `resolve` skips the
-`LARK_CHAT_RELEASE_GROUP` fail-fast, and the Lark send is skipped, so
-`LARK_CHAT_RELEASE_GROUP` and the `LARKSUITE_CLI_*` secrets are not required. It **does**
-still run Claude release-notes generation, so the `APP_ID` / `APP_PRIVATE_KEY` /
-`AWS_ROLE_TO_ASSUME` secrets must be available. A real send (`dry_run: false` or a tag
-push) needs everything in the tables below.
-
-To dispatch a dry-run against a throwaway tag:
-
-```bash
-git tag v0.0.0-release <some-commit> && git push origin v0.0.0-release
-gh workflow run "Release notify (Lark)" -f tag=v0.0.0-release -f dry_run=true -f is_test=true
-# inspect the run logs for the rendered release-notes.md, then delete the throwaway tag
-git push origin :v0.0.0-release
-```
-
-## Configuration prerequisites (one-time, ops)
-
-The workflow itself is committed, but it needs the following configured on the repo /
-org before it can send. Until `LARK_CHAT_RELEASE_GROUP` is set, the `resolve` job
-**fails fast** on purpose (rather than posting to the wrong group).
-
-### Repository variables (Settings → Secrets and variables → Actions → Variables)
-
-| Variable | Required | Value |
-|----------|----------|-------|
-| `LARK_CHAT_RELEASE_GROUP` | **yes** | The ZooData Launch Tracking Group `chat_id` (`oc_…`). Create the group if it does not exist and add the notifier bot to it. |
-| `USER_MAPPING_JSON` | no | JSONL mapping GitHub login → Feishu `open_id` for @mentions. Empty ⇒ mentions degrade to literal `@login` text. |
-
-### Inherited secrets (org or repo level; passed via `secrets: inherit`)
-
-The reusable workflow needs the same secrets hermes uses. Ensure they are available to
-ZooData-Skills (org-level secrets cover all repos; otherwise add them to this repo):
-
-| Secret | Used for |
-|--------|----------|
-| `LARKSUITE_CLI_APP_ID` / `LARKSUITE_CLI_APP_SECRET` | Lark bot app credentials (mint tenant token, send the message). **The bot must be a member of the target group.** |
-| `APP_ID` / `APP_PRIVATE_KEY` | GitHub App token for the Claude Code release-notes step |
-| `AWS_ROLE_TO_ASSUME` | AWS OIDC role → Bedrock (Claude generates the notes) |
-
-## Notes
-
-- **No ClawHub key in CI.** Publishing stays a manual `clawhub sync`; this workflow only
-  *notifies* on the release tag. It never handles the ClawHub API key.
-- **Baseline detection degrades gracefully.** ZooData-Skills has no k8s deploy workflow;
-  the reusable falls back from deploy-run history → previous release tag → repo root
-  commit, so the changelog range is always well-defined.
-- To change the message format, update the shared reusable in `srp-actions` — both hermes
-  and ZooData-Skills pick it up.
+Nothing needs to be configured in this (public) repo.

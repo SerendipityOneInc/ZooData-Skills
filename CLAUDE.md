@@ -10,8 +10,9 @@ change.
 
 Skills are published to ClawHub **manually** via `clawhub sync` (the ClawHub key stays
 local — never in CI). A release is a repo-level milestone cut as a GitHub Release whose
-tag ends in `-release` (e.g. `v1.2.3-release`); publishing that Release fires the Lark
-launch-tracking notification. See `docs/release-notify.md`.
+tag ends in `-release` (e.g. `v1.2.3-release`). This repo is public, so the Lark
+launch-tracking notification is run from hermes-workspace on this repo's behalf (no
+notification secrets live here). See `docs/release-notify.md`.
 
 Keep this file as an instruction bridge. Do not copy skill-specific contracts,
 module policies, or runtime rules into it.
