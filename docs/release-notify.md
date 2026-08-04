@@ -58,7 +58,7 @@ Done in **hermes-workspace / srp-actions**, not here:
 |-------|------|
 | srp-actions | reusable with the `source_repo` input (PR: "add optional source_repo") |
 | hermes-workspace | the `zoodata-skills-release-notify.yml` caller workflow |
-| hermes-workspace repo var | `LARK_CHAT_ZOODATA_RELEASE` = ZooData Launch Tracking Group `chat_id` |
+| hermes-workspace repo var | reuses the **existing** `LARK_CHAT_RELEASE_GROUP` — ZooData-Skills posts to the same launch-tracking group as hermes, so no new variable is needed |
 | hermes-workspace secrets | the existing release-notify secrets (already present); the Lark bot must be a member of the target group |
 
 Nothing needs to be configured in this (public) repo.
