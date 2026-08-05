@@ -1208,11 +1208,15 @@ class TestCommandAllowlist(unittest.TestCase):
                            capture_output=True, text=True, timeout=30)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         self.assertIn("--asins", r.stdout)
-        # ...but actually executing it is refused
+        # ...but actually executing it is refused. Hermetic env: if the
+        # refusal ever regresses, this degrades to a credential error
+        # instead of a live API call from a developer machine.
         r = subprocess.run([sys.executable, restricted_copy, "history",
                             "--asins", "B0X", "--start-date", "2026-01-01",
                             "--end-date", "2026-01-02"],
-                           capture_output=True, text=True, timeout=30)
+                           capture_output=True, text=True, timeout=30,
+                           env={"PATH": os.environ.get("PATH", ""),
+                                "HOME": "/nonexistent"})
         self.assertEqual(r.returncode, 2)
         self.assertEqual(json.loads(r.stdout)["error"]["status"], "COMMAND_NOT_ALLOWED")
 
@@ -1227,12 +1231,22 @@ class TestCommandAllowlist(unittest.TestCase):
         repo_root = os.path.join(os.path.dirname(__file__), "..")
         restricted_copy = os.path.join(
             repo_root, "amazon-market-trend-scanner", "scripts", "zoodata.py")
+        hermetic = {"PATH": os.environ.get("PATH", ""), "HOME": "/nonexistent"}
         r = subprocess.run(
             [sys.executable, restricted_copy, "--format", "json", "history",
              "--asins", "B0X", "--start-date", "2026-01-01",
              "--end-date", "2026-01-02"],
-            capture_output=True, text=True, timeout=30,
-            env={"PATH": os.environ.get("PATH", ""), "HOME": "/nonexistent"})
+            capture_output=True, text=True, timeout=30, env=hermetic)
+        self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
+        self.assertEqual(json.loads(r.stdout)["error"]["status"],
+                         "COMMAND_NOT_ALLOWED")
+        # A stray unknown argument must not demote the refusal to a usage
+        # error: the command can never run here, so the refusal wins.
+        r = subprocess.run(
+            [sys.executable, restricted_copy, "--format", "json", "history",
+             "--asins", "B0X", "--start-date", "2026-01-01",
+             "--end-date", "2026-01-02", "--bogus"],
+            capture_output=True, text=True, timeout=30, env=hermetic)
         self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
         self.assertEqual(json.loads(r.stdout)["error"]["status"],
                          "COMMAND_NOT_ALLOWED")
@@ -1388,6 +1402,29 @@ class TestCredentialResolution(unittest.TestCase):
         guidance = buf.getvalue()
         self.assertIn("umask 077", guidance)
         self.assertIn("chmod 700 ~/.zoodata", guidance)
+
+    def test_missing_key_guidance_flags_ignored_legacy_env_var(self):
+        """A user whose environment still sets APICLAW_API_KEY gets a hard
+        'not found' after the legacy removal — the guidance must tell them,
+        in-band, that the variable is set but no longer read, so they don't
+        need the CHANGELOG to connect the dots. No hint when it isn't set."""
+        import contextlib
+        import io
+
+        def _guidance(env):
+            buf = io.StringIO()
+            with patch.dict("os.environ", env, clear=True), \
+                 patch("os.path.exists", return_value=False), \
+                 contextlib.redirect_stderr(buf):
+                with self.assertRaises(SystemExit):
+                    zoodata.get_api_key()
+            return buf.getvalue()
+
+        with_legacy = _guidance({"APICLAW_API_KEY": "legacy"})
+        self.assertIn("APICLAW_API_KEY is set but no longer read", with_legacy)
+        self.assertIn("ZOODATA_API_KEY", with_legacy)
+        without_legacy = _guidance({})
+        self.assertNotIn("no longer read", without_legacy)
 
     def test_no_skill_doc_advertises_legacy_apiclaw_sources(self):
         """Doc-layer regression guard: the legacy APICLAW credential sources

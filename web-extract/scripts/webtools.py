@@ -69,6 +69,9 @@ def get_api_key():
             k = ""
         if k:
             return k
+    if os.environ.get("APICLAW_API_KEY", "").strip():
+        print("NOTE: APICLAW_API_KEY is set but no longer read (legacy source "
+              "removed); rename it to ZOODATA_API_KEY.", file=sys.stderr)
     print("ERROR: ZOODATA_API_KEY not set. Get one at "
           "https://zoodata.ai/en/api-keys", file=sys.stderr)
     sys.exit(2)

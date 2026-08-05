@@ -199,7 +199,9 @@ def _enforce_command_allowlist(command, fmt="json"):
             "message": (
                 f"Subcommand '{command}' is outside this skill's documented "
                 f"command set. Allowed commands: {', '.join(sorted(allowed))}. "
-                "No API request was made and no credits were consumed."
+                "No API request was made and no credits were consumed. "
+                "The full command surface remains available via the zoodata "
+                "data-layer reference skill (ships no manifest)."
             ),
         },
         "_query": {"endpoint": None, "params": {"command": command}},
@@ -243,6 +245,10 @@ def get_api_key():
 
     print("ERROR: API Key not found.", file=sys.stderr)
     print("", file=sys.stderr)
+    if os.environ.get("APICLAW_API_KEY", "").strip():
+        print("  NOTE: APICLAW_API_KEY is set but no longer read (legacy source removed).", file=sys.stderr)
+        print("  Rename it: export ZOODATA_API_KEY=\"$APICLAW_API_KEY\"", file=sys.stderr)
+        print("", file=sys.stderr)
     print("Please configure your API Key using one of these methods:", file=sys.stderr)
     print("", file=sys.stderr)
     print("  Method 1: Environment variable (recommended — no file written)", file=sys.stderr)
@@ -2923,6 +2929,8 @@ def cmd_check(args):
     else:
         print("❌ API Key: Not found", file=sys.stderr)
         print("   Checked: env ZOODATA_API_KEY, ~/.zoodata/config.json", file=sys.stderr)
+        if os.environ.get("APICLAW_API_KEY", "").strip():
+            print("   NOTE: APICLAW_API_KEY is set but no longer read (legacy source removed); rename it to ZOODATA_API_KEY.", file=sys.stderr)
         print("   Get one at: https://zoodata.ai/en/api-keys", file=sys.stderr)
         sys.exit(1)
 
@@ -3737,16 +3745,17 @@ Examples:
     p_check.set_defaults(func=cmd_check)
 
     args, unknown = parser.parse_known_args()
-    if unknown:
-        cmd = sys.argv[1] if len(sys.argv) > 1 else ""
-        print(f"ERROR: Unrecognized argument(s): {' '.join(unknown)}", file=sys.stderr)
-        print(f"Run 'zoodata.py {cmd} --help' to see valid options.", file=sys.stderr)
-        sys.exit(1)
     # Post-parse backstop: global options may legitimately precede the
     # subcommand (cli-contract.md documents that form), in which case the
     # early argv[1] check above never fired. Enforce on the parsed command
-    # so no invocation form can reach an API call out of scope.
-    _enforce_command_allowlist(args.command, getattr(args, "format", "json"))
+    # BEFORE the unknown-args exit so a disallowed command always yields
+    # the structured refusal, never a usage error for a command that could
+    # not run here anyway.
+    _enforce_command_allowlist(args.command, args.format)
+    if unknown:
+        print(f"ERROR: Unrecognized argument(s): {' '.join(unknown)}", file=sys.stderr)
+        print(f"Run 'zoodata.py {args.command} --help' to see valid options.", file=sys.stderr)
+        sys.exit(1)
     # Codex and other agent runtimes may merge stdout and stderr into one tool
     # result. Buffer stderr while the command runs so retry/progress messages
     # cannot corrupt the final machine-readable JSON. If the command exits
