@@ -16,13 +16,13 @@ A live, full-scope ZooData API key had been hand-placed into `zoodata/config.jso
 
 - **Removed the `{skill_dir}/config.json` credential fallback** from the shared CLI (present since v1.0.0). The skill directory ships inside the published bundle, so it must never be a credential source — a key placed there leaks publicly.
 - **Added `.clawhubignore`** (excluding `config.json`) to every skill directory so a stray config can never be bundled again; `.gitignore` does not apply to `clawhub sync`.
-- **Deprecated (not removed) the legacy `APICLAW_API_KEY` env var and `~/.apiclaw/config.json`.** They still resolve but now print a one-time deprecation warning; migrate to `ZOODATA_API_KEY` / `~/.zoodata/config.json`. They will be removed in a future release. The same soft-deprecation was applied to `web-extract`'s separate `webtools.py` CLI for consistency.
+- **Removed the legacy `APICLAW_API_KEY` env var and `~/.apiclaw/config.json` credential fallbacks** (briefly soft-deprecated with a warning during this release cycle, removed before shipping in response to a ClawHub scan finding: every extra readable secret source widens the CLI's credential surface beyond what the skills declare). Both CLIs (`zoodata.py` and `web-extract`'s separate `webtools.py`) now read exactly the two declared sources: `ZOODATA_API_KEY` env, then `~/.zoodata/config.json`. Regression tests assert the legacy sources no longer resolve and the legacy config file is never opened.
 - **`ZOODATA_BASE_URL` pointing at an untrusted host now withholds the key entirely.** Previously the CLI warned but still sent the Bearer token; now requests to any host other than `zoodata.ai` / `*.zoodata.ai` / localhost are refused before the key is transmitted, so credentials can never reach an arbitrary host. The 11 SKILL.md "Capabilities & Data Flow" declarations that carry a base-url note were updated to state this refusal (they previously said "triggers a CLI warning"); `web-extract` has no such declaration because its `webtools.py` hardcodes the base URL with no `ZOODATA_BASE_URL` override.
 - Hardened `_read_config_api_key` against a `{"api_key": null}` config (previously crashed on `None.strip()`); added tests for the untrusted-host refusal path and the null-key case.
 
 **Migration / impact on existing installs (only after `openclaw skills update`):**
 - `ZOODATA_API_KEY` env or `~/.zoodata/config.json` users — no change.
-- `APICLAW_API_KEY` env or `~/.apiclaw/config.json` users — still work, now warn.
+- `APICLAW_API_KEY` env or `~/.apiclaw/config.json` users — **no longer resolve** (breaking): the CLI reports "API Key not found" with setup guidance. Migrate the key to `ZOODATA_API_KEY` or `~/.zoodata/config.json` (same key value, new name/location).
 - Anyone who placed a key in the **skill directory's** `config.json` — that path no longer resolves; move the key to `ZOODATA_API_KEY` or `~/.zoodata/config.json`.
 
 ### Changed — LLM security-review content fixes (needs-review clearance)

@@ -34,13 +34,13 @@ Select **Amazon Daily Market Radar** when prompted.
 - Each run sends your tracked ASINs, competitor ASINs, keywords, category paths, and marketplace/date/numeric filters to the ZooData API (`api.zoodata.ai`). Because this skill is designed for scheduled, unattended execution, that transmission recurs on every scheduled run.
 - Nothing else is transmitted: no budget, seller-account, or free-text profile data leaves your machine.
 - Local state: `watchlist.json` and the `last-run.json` baseline under the skill's `data/` folder persist between runs for day-over-day comparison. Delete the folder anytime to reset monitoring and remove the retained data.
-- Recurring monitoring is opt-in — the skill asks for explicit confirmation before establishing a baseline or enabling any scheduled run. Every API call consumes account credits.
+- Baselines and scheduled runs are only established on your explicit request — never from a vague or merely related question — and recurring monitoring always requires your explicit opt-in. Every API call consumes account credits.
 
 ## Example Prompts
 
 The skill activates on explicit monitoring requests like these — it does not
-self-trigger on vague update questions, and it asks for confirmation before
-establishing a baseline or enabling any scheduled run:
+self-trigger on vague update questions, and recurring monitoring always
+requires your explicit opt-in:
 
 - *"Set up daily market monitoring for my ASINs: B0XXXXXXXX, B0YYYYYYYY"*
 - *"Set up daily market monitoring for keyword 'yoga mat', track these 3 ASINs"*

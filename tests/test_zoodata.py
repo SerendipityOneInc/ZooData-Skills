@@ -1187,6 +1187,31 @@ class TestCredentialResolution(unittest.TestCase):
         for call in opened.call_args_list:
             self.assertNotIn(".apiclaw", str(call))
 
+    def test_no_skill_doc_advertises_legacy_apiclaw_sources(self):
+        """Doc-layer regression guard: the legacy APICLAW credential sources
+        were removed from the CLIs, so no published skill document may
+        advertise them again. Scans every SKILL.md and README.md in the repo
+        (all ship inside published bundles); CHANGELOG history and CLI
+        docstrings that explain the removal are intentionally out of scope."""
+        repo_root = os.path.join(os.path.dirname(__file__), "..")
+        scanned = []
+        offenders = []
+        for dirpath, dirnames, filenames in os.walk(repo_root):
+            # Prune hidden dirs (.git, gitignored local snapshots like
+            # .agents/) and tooling dirs — only tracked skill docs matter.
+            dirnames[:] = [d for d in dirnames
+                           if not d.startswith(".")
+                           and d not in ("node_modules", "__pycache__")]
+            for name in filenames:
+                if name in ("SKILL.md", "README.md"):
+                    path = os.path.join(dirpath, name)
+                    scanned.append(path)
+                    with open(path, "r", encoding="utf-8") as f:
+                        if "apiclaw" in f.read().lower():
+                            offenders.append(os.path.relpath(path, repo_root))
+        self.assertGreater(len(scanned), 10)  # guard against vacuous pass
+        self.assertEqual(offenders, [])
+
     def test_skill_dir_config_is_not_a_source(self):
         """The in-bundle {skill_dir}/config.json fallback was removed so a
         committed key can never ship inside the published skill. Only
