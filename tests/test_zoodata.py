@@ -1284,26 +1284,21 @@ class TestCommandAllowlist(unittest.TestCase):
         market-entry's routing-table commands were missing from its first
         manifest); a wider one silently un-enforces the declaration.
 
-        Declaration sources per skill:
-        - 8 skills: the backticked commands in the SKILL.md Execution
-          bullet ("This skill allows ...")
-        - market-entry: commands appear across the SKILL.md routing table
-          and fallback prose → scan the whole SKILL.md
-        - keyword-traffic-analysis: SKILL.md delegates the endpoint→CLI
-          map to references/reference.md → scan both (cli-contract.md is
-          shared synced text and deliberately NOT a declaration source)
+        Every skill declares its command set on exactly ONE declaration
+        line — "This skill allows ..." (9 skills) or "The bundled manifest
+        allows exactly ..." (keyword-traffic-analysis). Only that line is
+        scanned, so ordinary prose edits elsewhere can never fire this
+        test; when a route is added or removed, update the declaration
+        line and the manifest together. (market-entry's endpoint→CLI
+        routing table is separately pinned by
+        tests/test_non_keyword_cli_routing.py.)
         """
         import glob
         import re
         repo_root = os.path.join(os.path.dirname(__file__), "..")
         src = open(SCRIPT_PATH, encoding="utf-8").read()
         real = set(re.findall(r"add_parser\(\s*[\"']([a-z0-9-]+)[\"']", src))
-
-        def commands_in(text):
-            found = {t for t in re.findall(r"`([a-z0-9-]+)`", text) if t in real}
-            found |= {t for t in re.findall(r"zoodata\.py ([a-z0-9-]+)", text)
-                      if t in real}
-            return found
+        MARKERS = ("This skill allows", "The bundled manifest allows exactly")
 
         for d in sorted(glob.glob(os.path.join(repo_root, "amazon-*"))):
             name = os.path.basename(d)
@@ -1311,17 +1306,16 @@ class TestCommandAllowlist(unittest.TestCase):
                       encoding="utf-8") as f:
                 manifest = set(json.load(f)["allowedCommands"])
             skill = open(os.path.join(d, "SKILL.md"), encoding="utf-8").read()
-            if name == "amazon-market-entry-analyzer":
-                declared = commands_in(skill)
-            elif name == "amazon-keyword-traffic-analysis":
-                ref = open(os.path.join(d, "references", "reference.md"),
-                           encoding="utf-8").read()
-                declared = commands_in(skill) | commands_in(ref)
-            else:
-                allows = [l for l in skill.splitlines() if "This skill allows" in l]
-                self.assertEqual(len(allows), 1, name)
-                declared = commands_in(allows[0])
+            declaration_lines = [l for l in skill.splitlines()
+                                 if any(m in l for m in MARKERS)]
             with self.subTest(skill=name):
+                self.assertEqual(
+                    len(declaration_lines), 1,
+                    f"{name}: expected exactly one declaration line "
+                    f"(markers: {MARKERS}), found {len(declaration_lines)}")
+                declared = {t for t in
+                            re.findall(r"`([a-z0-9-]+)`", declaration_lines[0])
+                            if t in real}
                 self.assertEqual(declared, manifest,
                                  f"{name}: declared-only={sorted(declared - manifest)} "
                                  f"manifest-only={sorted(manifest - declared)}")

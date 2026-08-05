@@ -81,4 +81,6 @@ python {skill_base_dir}/scripts/zoodata.py <documented-subcommand> ...
 
 Run bare `python {skill_base_dir}/scripts/zoodata.py check` for credential diagnostics only. Without `--endpoints` or `--keyword-endpoints`, it makes no evidence calls; those opt-in probe flags consume credits and are outside this skill's evidence workflow.
 
+The bundled manifest allows exactly: `keyword-detail`, `keyword-market-profile`, `keyword-trend-profile`, `keyword-trend`, `keyword-extends`, `keyword-search-results`, `keyword-competitor-product-keywords`, `keyword-product-traffic-terms`, `product-traffic-terms-overview`, `product-traffic-terms-timeline`, `product`, and the diagnostic `check`.
+
 WebTools has no bundled subcommand in this skill. Use only an exposed ZooData WebTools session/callable surface as documented in `reference.md`.

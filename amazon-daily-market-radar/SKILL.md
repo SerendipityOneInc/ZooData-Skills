@@ -9,12 +9,15 @@ description: >
   yesterday's snapshot.
   Designed for unattended scheduled automation (cron-style daily run) — set
   it once, get an alert digest every day.
-  Use when the user wants ongoing OPERATIONAL daily monitoring of their
-  products and the surrounding market — a "what changed since yesterday"
-  digest delivered automatically every day.
-  Use when user asks: what changed in my category today, daily category
-  briefing, set up daily monitoring, emerging brands alert, BSR shifts
-  daily, stockout signals, set-it-and-forget-it market watch.
+  Use when the user EXPLICITLY requests ongoing OPERATIONAL daily
+  monitoring of their products and the surrounding market — a "what
+  changed since yesterday" digest delivered automatically every day.
+  Use when user asks: set up daily market monitoring for my ASINs, run
+  my daily radar, what changed in my tracked market since yesterday,
+  daily briefing on my tracked ASINs and competitors, emerging-brand or
+  stockout alerts on my watchlist. Establishing monitoring and recurring
+  runs always require the user's explicit opt-in — do not activate on
+  vague update questions.
   Requires ZOODATA_API_KEY.
 metadata:
   version: "1.0.9"
