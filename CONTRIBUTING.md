@@ -117,7 +117,10 @@ manifest allows exactly ..."), and bundles the same set in
 the manifest match exactly, in both directions. When adding or removing a
 routed command, update the declaration line and the manifest together — never
 widen a manifest just to silence the test without also changing the skill's
-declared scope.
+declared scope. The marker phrases "This skill allows" and "The bundled
+manifest allows exactly" are reserved for that single declaration line: do not
+use either phrase in other SKILL.md prose, or the exactly-one-declaration
+assertion fails.
 
 ## Commit Convention
 
