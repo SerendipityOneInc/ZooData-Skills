@@ -1216,6 +1216,27 @@ class TestCommandAllowlist(unittest.TestCase):
         self.assertEqual(r.returncode, 2)
         self.assertEqual(json.loads(r.stdout)["error"]["status"], "COMMAND_NOT_ALLOWED")
 
+    def test_global_options_before_subcommand_cannot_bypass_enforcement(self):
+        """Regression: cli-contract.md instructs 'Place global options before
+        the subcommand', so `--format json <disallowed> ...` must be refused
+        exactly like the bare form. The original hook only inspected argv[1]
+        and let this canonical form straight through to the API. Run with a
+        credential-free env so a failed refusal surfaces as a credential
+        error (exit 1), never a live API call."""
+        import subprocess
+        repo_root = os.path.join(os.path.dirname(__file__), "..")
+        restricted_copy = os.path.join(
+            repo_root, "amazon-market-trend-scanner", "scripts", "zoodata.py")
+        r = subprocess.run(
+            [sys.executable, restricted_copy, "--format", "json", "history",
+             "--asins", "B0X", "--start-date", "2026-01-01",
+             "--end-date", "2026-01-02"],
+            capture_output=True, text=True, timeout=30,
+            env={"PATH": os.environ.get("PATH", ""), "HOME": "/nonexistent"})
+        self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
+        self.assertEqual(json.loads(r.stdout)["error"]["status"],
+                         "COMMAND_NOT_ALLOWED")
+
     def test_every_amazon_skill_ships_a_valid_manifest(self):
         """Repo-state guard: each amazon-* skill bundles a manifest matching
         the CLI's real subcommand surface; the zoodata data-layer reference
@@ -1241,6 +1262,55 @@ class TestCommandAllowlist(unittest.TestCase):
                 self.assertFalse(unknown, f"unknown subcommands: {unknown}")
         self.assertFalse(os.path.exists(os.path.join(
             repo_root, "zoodata", "scripts", "allowed-commands.json")))
+
+    def test_manifests_match_skill_md_declarations(self):
+        """Drift guard: each manifest is the ENFORCED copy of the command
+        policy its SKILL.md owns — the two must stay in exact agreement.
+        A narrower manifest breaks documented workflows (real incident:
+        market-entry's routing-table commands were missing from its first
+        manifest); a wider one silently un-enforces the declaration.
+
+        Declaration sources per skill:
+        - 8 skills: the backticked commands in the SKILL.md Execution
+          bullet ("This skill allows ...")
+        - market-entry: commands appear across the SKILL.md routing table
+          and fallback prose → scan the whole SKILL.md
+        - keyword-traffic-analysis: SKILL.md delegates the endpoint→CLI
+          map to references/reference.md → scan both (cli-contract.md is
+          shared synced text and deliberately NOT a declaration source)
+        """
+        import glob
+        import re
+        repo_root = os.path.join(os.path.dirname(__file__), "..")
+        src = open(SCRIPT_PATH, encoding="utf-8").read()
+        real = set(re.findall(r"add_parser\(\s*[\"']([a-z0-9-]+)[\"']", src))
+
+        def commands_in(text):
+            found = {t for t in re.findall(r"`([a-z0-9-]+)`", text) if t in real}
+            found |= {t for t in re.findall(r"zoodata\.py ([a-z0-9-]+)", text)
+                      if t in real}
+            return found
+
+        for d in sorted(glob.glob(os.path.join(repo_root, "amazon-*"))):
+            name = os.path.basename(d)
+            with open(os.path.join(d, "scripts", "allowed-commands.json"),
+                      encoding="utf-8") as f:
+                manifest = set(json.load(f)["allowedCommands"])
+            skill = open(os.path.join(d, "SKILL.md"), encoding="utf-8").read()
+            if name == "amazon-market-entry-analyzer":
+                declared = commands_in(skill)
+            elif name == "amazon-keyword-traffic-analysis":
+                ref = open(os.path.join(d, "references", "reference.md"),
+                           encoding="utf-8").read()
+                declared = commands_in(skill) | commands_in(ref)
+            else:
+                allows = [l for l in skill.splitlines() if "This skill allows" in l]
+                self.assertEqual(len(allows), 1, name)
+                declared = commands_in(allows[0])
+            with self.subTest(skill=name):
+                self.assertEqual(declared, manifest,
+                                 f"{name}: declared-only={sorted(declared - manifest)} "
+                                 f"manifest-only={sorted(manifest - declared)}")
 
 
 class TestCredentialResolution(unittest.TestCase):

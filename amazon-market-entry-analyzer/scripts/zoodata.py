@@ -180,7 +180,7 @@ def _load_command_allowlist():
         sys.exit(2)
 
 
-def _enforce_command_allowlist(command):
+def _enforce_command_allowlist(command, fmt="json"):
     """Refuse subcommands outside the bundling skill's manifest.
 
     The refusal is emitted as valid structured JSON WITHOUT the terminal
@@ -204,7 +204,8 @@ def _enforce_command_allowlist(command):
         },
         "_query": {"endpoint": None, "params": {"command": command}},
     }
-    print(json.dumps(refusal, ensure_ascii=False, indent=2))
+    indent = None if fmt == "compact" else 2
+    print(json.dumps(refusal, ensure_ascii=False, indent=indent))
     sys.exit(2)
 
 
@@ -3741,6 +3742,11 @@ Examples:
         print(f"ERROR: Unrecognized argument(s): {' '.join(unknown)}", file=sys.stderr)
         print(f"Run 'zoodata.py {cmd} --help' to see valid options.", file=sys.stderr)
         sys.exit(1)
+    # Post-parse backstop: global options may legitimately precede the
+    # subcommand (cli-contract.md documents that form), in which case the
+    # early argv[1] check above never fired. Enforce on the parsed command
+    # so no invocation form can reach an API call out of scope.
+    _enforce_command_allowlist(args.command, getattr(args, "format", "json"))
     # Codex and other agent runtimes may merge stdout and stderr into one tool
     # result. Buffer stderr while the command runs so retry/progress messages
     # cannot corrupt the final machine-readable JSON. If the command exits
