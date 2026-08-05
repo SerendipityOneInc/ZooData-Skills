@@ -56,8 +56,9 @@ Get a free key (1,000 credits) at [zoodata.ai/en/api-keys](https://zoodata.ai/en
 
 ```bash
 export ZOODATA_API_KEY='hms_live_xxx'
-# OR persist to disk:
-mkdir -p ~/.zoodata && echo '{"api_key":"hms_live_xxx"}' > ~/.zoodata/config.json
+# OR persist to disk (keep the file private — 0600; it holds a bearer credential):
+mkdir -p ~/.zoodata && chmod 700 ~/.zoodata
+(umask 077; echo '{"api_key":"hms_live_xxx"}' > ~/.zoodata/config.json)
 ```
 
 ## Capabilities & Data Flow
@@ -200,7 +201,7 @@ When no key is found through any mechanism:
    - **Get a free key** (1,000 credits, no credit card): https://zoodata.ai/en/api-keys
    - **Configure** via one of:
      - `export ZOODATA_API_KEY='hms_live_xxx'` (session only)
-     - `mkdir -p ~/.zoodata && echo '{"api_key":"hms_live_xxx"}' > ~/.zoodata/config.json` (persistent)
+     - `mkdir -p ~/.zoodata && chmod 700 ~/.zoodata && (umask 077; echo '{"api_key":"hms_live_xxx"}' > ~/.zoodata/config.json)` (persistent; keep the file private — 0600)
 
 ## On 401 Invalid Key
 

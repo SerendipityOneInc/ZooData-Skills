@@ -1,0 +1,18 @@
+{
+  "allowedCommands": [
+    "analyze",
+    "categories",
+    "check",
+    "competitors",
+    "history",
+    "market",
+    "opportunity",
+    "product",
+    "products",
+    "report",
+    "review-aggregate",
+    "review-reduce-prompt",
+    "review-tag-prompt",
+    "reviews-raw"
+  ]
+}

@@ -1128,6 +1128,121 @@ class TestMarketEntryCategoryFallback(unittest.TestCase):
         self.assertIn("categoryKeyword", market_calls[1])
 
 
+class TestCommandAllowlist(unittest.TestCase):
+    """Per-skill command-allowlist enforcement. The shared CLI ships
+    identically inside every skill bundle; an `allowed-commands.json`
+    manifest next to the script scopes which subcommands the bundling skill
+    may invoke. No manifest → full surface (canonical copy / zoodata
+    reference skill). Malformed manifest → fail closed. A refusal emits
+    valid structured JSON (success=false, error.status=COMMAND_NOT_ALLOWED,
+    no terminal interface-failure action token) and exits 2, so the shared
+    CLI contract classifies it as a documented non-terminal error, not a
+    terminal interface failure."""
+
+    MANIFEST = os.path.join(os.path.dirname(os.path.abspath(SCRIPT_PATH)),
+                            "allowed-commands.json")
+
+    def _enforce_capturing(self, command):
+        import contextlib
+        import io
+        out, err = io.StringIO(), io.StringIO()
+        code = None
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            try:
+                zoodata._enforce_command_allowlist(command)
+            except SystemExit as e:
+                code = e.code
+        return code, out.getvalue(), err.getvalue()
+
+    def test_no_manifest_allows_full_surface(self):
+        with patch("os.path.exists", return_value=False):
+            self.assertIsNone(zoodata._load_command_allowlist())
+            code, out, _err = self._enforce_capturing("products")
+        self.assertIsNone(code)
+        self.assertEqual(out, "")
+
+    def test_manifest_allows_declared_command(self):
+        manifest = '{"allowedCommands": ["market", "check"]}'
+        with patch("os.path.exists", side_effect=lambda p: p == self.MANIFEST), \
+             patch("builtins.open", mock_open(read_data=manifest)):
+            code, out, _err = self._enforce_capturing("market")
+        self.assertIsNone(code)
+        self.assertEqual(out, "")
+
+    def test_manifest_refuses_undeclared_command_with_structured_json(self):
+        manifest = '{"allowedCommands": ["market", "check"]}'
+        with patch("os.path.exists", side_effect=lambda p: p == self.MANIFEST), \
+             patch("builtins.open", mock_open(read_data=manifest)):
+            code, out, _err = self._enforce_capturing("products")
+        self.assertEqual(code, 2)
+        payload = json.loads(out)
+        self.assertFalse(payload["success"])
+        self.assertEqual(payload["error"]["status"], "COMMAND_NOT_ALLOWED")
+        self.assertIn("products", payload["error"]["message"])
+        self.assertIn("market", payload["error"]["message"])
+        # Must NOT carry the terminal interface-failure action token —
+        # the agent should pick a documented command, not stop the turn.
+        self.assertNotIn("action", payload["error"])
+
+    def test_malformed_manifest_fails_closed(self):
+        for bad in ('{not json', '{"allowedCommands": []}',
+                    '{"allowedCommands": "market"}', '{"other": 1}'):
+            with self.subTest(bad=bad), \
+                 patch("os.path.exists", side_effect=lambda p: p == self.MANIFEST), \
+                 patch("builtins.open", mock_open(read_data=bad)):
+                code, _out, err = self._enforce_capturing("market")
+                self.assertEqual(code, 2)
+                self.assertIn("allowed-commands.json", err)
+
+    def test_help_is_exempt_from_enforcement(self):
+        """`<cmd> --help` is documentation, not execution: it makes no API
+        call, so it must stay available for every subcommand in every
+        bundled copy (parser wellformedness remains verifiable everywhere).
+        Enforcement gates only actual execution."""
+        import subprocess
+        repo_root = os.path.join(os.path.dirname(__file__), "..")
+        restricted_copy = os.path.join(
+            repo_root, "amazon-market-trend-scanner", "scripts", "zoodata.py")
+        # 'history' is outside the trend-scanner allowlist
+        r = subprocess.run([sys.executable, restricted_copy, "history", "--help"],
+                           capture_output=True, text=True, timeout=30)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("--asins", r.stdout)
+        # ...but actually executing it is refused
+        r = subprocess.run([sys.executable, restricted_copy, "history",
+                            "--asins", "B0X", "--start-date", "2026-01-01",
+                            "--end-date", "2026-01-02"],
+                           capture_output=True, text=True, timeout=30)
+        self.assertEqual(r.returncode, 2)
+        self.assertEqual(json.loads(r.stdout)["error"]["status"], "COMMAND_NOT_ALLOWED")
+
+    def test_every_amazon_skill_ships_a_valid_manifest(self):
+        """Repo-state guard: each amazon-* skill bundles a manifest matching
+        the CLI's real subcommand surface; the zoodata data-layer reference
+        skill deliberately ships none (full surface, per its SKILL.md)."""
+        import glob
+        import re
+        repo_root = os.path.join(os.path.dirname(__file__), "..")
+        src = open(SCRIPT_PATH, encoding="utf-8").read()
+        real_commands = set(re.findall(r"add_parser\(\s*[\"']([a-z0-9-]+)[\"']", src))
+        skill_dirs = sorted(glob.glob(os.path.join(repo_root, "amazon-*")))
+        self.assertGreater(len(skill_dirs), 5)
+        for d in skill_dirs:
+            manifest_path = os.path.join(d, "scripts", "allowed-commands.json")
+            with self.subTest(skill=os.path.basename(d)):
+                self.assertTrue(os.path.exists(manifest_path),
+                                f"missing manifest: {manifest_path}")
+                with open(manifest_path, encoding="utf-8") as f:
+                    commands = json.load(f)["allowedCommands"]
+                self.assertTrue(commands)
+                self.assertIn("check", commands)
+                self.assertEqual(len(commands), len(set(commands)))
+                unknown = set(commands) - real_commands
+                self.assertFalse(unknown, f"unknown subcommands: {unknown}")
+        self.assertFalse(os.path.exists(os.path.join(
+            repo_root, "zoodata", "scripts", "allowed-commands.json")))
+
+
 class TestCredentialResolution(unittest.TestCase):
     """`_resolve_credential()` resolves the ZooData key from exactly two
     sources, in order: ZOODATA_API_KEY env, ~/.zoodata/config.json. The legacy
@@ -1186,6 +1301,23 @@ class TestCredentialResolution(unittest.TestCase):
         self.assertEqual(stderr, "")
         for call in opened.call_args_list:
             self.assertNotIn(".apiclaw", str(call))
+
+    def test_missing_key_guidance_creates_config_with_restrictive_permissions(self):
+        """The setup hint printed when no key is configured must create
+        ~/.zoodata/config.json without group/other access (umask 077 subshell
+        + chmod 700 on the directory) — the key is a bearer credential and a
+        world-readable file was a ClawHub scan finding."""
+        import contextlib
+        import io
+        buf = io.StringIO()
+        with patch.dict("os.environ", {}, clear=True), \
+             patch("os.path.exists", return_value=False), \
+             contextlib.redirect_stderr(buf):
+            with self.assertRaises(SystemExit):
+                zoodata.get_api_key()
+        guidance = buf.getvalue()
+        self.assertIn("umask 077", guidance)
+        self.assertIn("chmod 700 ~/.zoodata", guidance)
 
     def test_no_skill_doc_advertises_legacy_apiclaw_sources(self):
         """Doc-layer regression guard: the legacy APICLAW credential sources

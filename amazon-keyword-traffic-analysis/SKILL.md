@@ -63,7 +63,7 @@ Respond in the user's language.
 ## Non-negotiable boundaries
 
 - Require `ZOODATA_API_KEY`. If it is missing or rejected, follow the credential procedure in `execution-guide.md`; do not substitute public web data.
-- Use the bundled `{skill_base_dir}/scripts/zoodata.py` for documented keyword endpoints and `realtime/product`. Use ZooData WebTools `/search`, `/scrape`, and `/scrape-interactive` only through an exposed, documented ZooData WebTools surface after inspecting its live schema.
+- Use the bundled `{skill_base_dir}/scripts/zoodata.py` for documented keyword endpoints and `realtime/product`; the bundled manifest `scripts/allowed-commands.json` enforces that scope — the CLI refuses out-of-scope subcommands with a structured `COMMAND_NOT_ALLOWED` error before any API request. Use ZooData WebTools `/search`, `/scrape`, and `/scrape-interactive` only through an exposed, documented ZooData WebTools surface after inspecting its live schema.
 - Use only the acquisition routes whitelisted in `reference.md`. WebTools `/search` is permitted URL discovery; it is not `products/search`. Never use `products/search`, external browser automation, direct Amazon navigation, or non-ZooData public web search as evidence or fallback.
 - WebTools calls are read-only public-page acquisition. Never use `/scrape-interactive` actions to log in, submit forms, purchase, or otherwise change page or account state; use click/write/press/scroll/JavaScript actions only to render or reveal the requested public content.
 - Treat keyword inputs as Amazon search queries. Default an omitted marketplace to `US`; choose T-1 or earlier before the first request for endpoints requiring `date` or `dateTo` unless the user requests today's data.

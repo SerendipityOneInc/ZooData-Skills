@@ -1,0 +1,16 @@
+{
+  "allowedCommands": [
+    "check",
+    "competitors",
+    "daily-radar",
+    "history",
+    "market",
+    "price-band-overview",
+    "product",
+    "products",
+    "review-aggregate",
+    "review-reduce-prompt",
+    "review-tag-prompt",
+    "reviews-raw"
+  ]
+}

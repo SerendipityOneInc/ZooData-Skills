@@ -44,7 +44,7 @@ metadata:
 
 - **Network**: only `https://api.zoodata.ai` (Bearer `ZOODATA_API_KEY`). Setting `ZOODATA_BASE_URL` to an untrusted host (anything other than `api.zoodata.ai` / `*.zoodata.ai` / localhost) makes the CLI **refuse the request and withhold the key** — the Bearer token is never sent to an untrusted host.
 - **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). This data-layer reference skill allows the complete literal subcommand surface exposed by the bundled client's current top-level help.
-- **Local files**: none by default; reads the optional credential store `~/.zoodata/config.json`; the Local Review Toolkit uses a temporary `/tmp/review_<ASIN>_<timestamp>/` working dir during the review fallback.
+- **Local files**: none by default; reads the optional credential store `~/.zoodata/config.json`; the Local Review Toolkit uses a private temporary working dir (created with `mktemp -d`, removed when the fallback completes) during the review fallback.
 - **Sent to the API**: keywords, category paths, ASINs, marketplace/date and numeric filter values only. **Never sent**: budget, experience level, risk tolerance, or any other user-profile text — profile inputs map client-side to numeric filters.
 - **Credits**: every API call consumes account credits. For broad or ambiguous requests, state the estimated credit cost and confirm with the user before running multi-call scans.
 
@@ -84,7 +84,7 @@ When no key is found through any mechanism:
    - **Get a free key** (1,000 credits, no credit card): https://zoodata.ai/en/api-keys
    - **Configure** via one of:
      - `export ZOODATA_API_KEY='hms_live_xxx'` (session only)
-     - `mkdir -p ~/.zoodata && echo '{"api_key":"hms_live_xxx"}' > ~/.zoodata/config.json` (persistent)
+     - `mkdir -p ~/.zoodata && chmod 700 ~/.zoodata && (umask 077; echo '{"api_key":"hms_live_xxx"}' > ~/.zoodata/config.json)` (persistent; keep the file private — 0600)
 4. **Optionally** state in **one sentence** what the workflow will produce once the key is configured (deliverable shape only — no numbers, no market color, no "common sense" preview).
 
 ## On 401 Invalid Key

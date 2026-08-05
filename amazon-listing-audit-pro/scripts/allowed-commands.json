@@ -1,0 +1,13 @@
+{
+  "allowedCommands": [
+    "check",
+    "listing-audit",
+    "market",
+    "product",
+    "products",
+    "review-aggregate",
+    "review-reduce-prompt",
+    "review-tag-prompt",
+    "reviews-raw"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "allowedCommands": [
+    "analyze",
+    "categories",
+    "check",
+    "product",
+    "review-aggregate",
+    "review-deepdive",
+    "review-reduce-prompt",
+    "review-tag-prompt",
+    "reviews-raw"
+  ]
+}

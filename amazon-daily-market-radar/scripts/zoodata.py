@@ -149,6 +149,65 @@ def _read_config_api_key(path):
         return None
 
 
+def _load_command_allowlist():
+    """
+    Per-skill command-allowlist manifest.
+
+    The shared CLI ships byte-identical inside every skill bundle; the
+    `allowed-commands.json` manifest next to this script scopes which
+    subcommands the bundling skill may invoke. Returns a set of command
+    names, or None when no manifest exists (canonical copy / the zoodata
+    data-layer reference skill expose the full surface). A malformed
+    manifest fails closed: exit 2 with a diagnostic, never a silent
+    full-surface fallback.
+    """
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "allowed-commands.json")
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            commands = json.load(f)["allowedCommands"]
+        if (not isinstance(commands, list) or not commands
+                or not all(isinstance(c, str) and c for c in commands)):
+            raise ValueError("allowedCommands must be a non-empty list of strings")
+        return set(commands)
+    except (OSError, ValueError, KeyError, TypeError) as e:
+        print(f"ERROR: invalid command-allowlist manifest allowed-commands.json ({path}): {e}",
+              file=sys.stderr)
+        print("Refusing to run (fail-closed). Restore the manifest from the "
+              "published skill bundle or reinstall the skill.", file=sys.stderr)
+        sys.exit(2)
+
+
+def _enforce_command_allowlist(command):
+    """Refuse subcommands outside the bundling skill's manifest.
+
+    The refusal is emitted as valid structured JSON WITHOUT the terminal
+    interface-failure action token: per the shared CLI contract, non-zero
+    exit with valid JSON and no token is a documented non-terminal error,
+    so the calling agent selects a documented command instead of stopping
+    the turn. No API request is made and no credits are consumed.
+    """
+    allowed = _load_command_allowlist()
+    if allowed is None or command in allowed:
+        return
+    refusal = {
+        "success": False,
+        "error": {
+            "status": "COMMAND_NOT_ALLOWED",
+            "message": (
+                f"Subcommand '{command}' is outside this skill's documented "
+                f"command set. Allowed commands: {', '.join(sorted(allowed))}. "
+                "No API request was made and no credits were consumed."
+            ),
+        },
+        "_query": {"endpoint": None, "params": {"command": command}},
+    }
+    print(json.dumps(refusal, ensure_ascii=False, indent=2))
+    sys.exit(2)
+
+
 def _resolve_credential():
     """
     Resolve the ZooData API key. Returns the key string or None.
@@ -189,8 +248,9 @@ def get_api_key():
     print("    export ZOODATA_API_KEY='hms_live_yourkey'", file=sys.stderr)
     print("", file=sys.stderr)
     print("  Method 2: User-home config (persistent, shared across all skills)", file=sys.stderr)
-    print("    mkdir -p ~/.zoodata", file=sys.stderr)
-    print('    echo \'{"api_key":"hms_live_yourkey"}\' > ~/.zoodata/config.json', file=sys.stderr)
+    print("    mkdir -p ~/.zoodata && chmod 700 ~/.zoodata", file=sys.stderr)
+    print('    (umask 077; echo \'{"api_key":"hms_live_yourkey"}\' > ~/.zoodata/config.json)', file=sys.stderr)
+    print("    # keep the file private (0600) — it holds a bearer credential", file=sys.stderr)
     print("", file=sys.stderr)
     print("Get a free key at https://zoodata.ai/en/api-keys", file=sys.stderr)
     sys.exit(1)
@@ -3297,6 +3357,16 @@ def main():
     global _cli_had_error, _cli_emitted_output
     _cli_had_error = False
     _cli_emitted_output = False
+
+    # Enforce the per-skill allowlist BEFORE argparse touches the command:
+    # a disallowed subcommand must yield the structured refusal, not a
+    # usage error about its arguments (allow_abbrev=False everywhere, so
+    # argv[1] is the literal command name). Help is documentation, not
+    # execution — `<cmd> --help` makes no API call and stays available for
+    # the full surface in every bundle.
+    if (len(sys.argv) > 1 and not sys.argv[1].startswith("-")
+            and "-h" not in sys.argv and "--help" not in sys.argv):
+        _enforce_command_allowlist(sys.argv[1])
 
     parser = argparse.ArgumentParser(
         description="ZooData CLI — Amazon Product Research",

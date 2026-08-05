@@ -41,8 +41,8 @@ Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zooda
 ## Capabilities & Data Flow
 
 - **Network**: only `https://api.zoodata.ai` (Bearer `ZOODATA_API_KEY`). Setting `ZOODATA_BASE_URL` to an untrusted host (anything other than `api.zoodata.ai` / `*.zoodata.ai` / localhost) makes the CLI **refuse the request and withhold the key** — the Bearer token is never sent to an untrusted host.
-- **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). This skill allows `categories`, `market`, `competitors`, `products`, `product`, `history`, `analyze`, `competitor-analysis`, `check`, plus the review fallback toolkit (`reviews-raw` / `review-tag-prompt` / `review-reduce-prompt` / `review-aggregate`). Do not invoke unrelated subcommands for this skill's tasks.
-- **Local files**: a temporary `/tmp/review_<ASIN>_<timestamp>/` working dir during the review fallback; reads the optional credential store `~/.zoodata/config.json`.
+- **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). This skill allows `categories`, `market`, `competitors`, `products`, `product`, `history`, `analyze`, `competitor-analysis`, `check`, plus the review fallback toolkit (`reviews-raw` / `review-tag-prompt` / `review-reduce-prompt` / `review-aggregate`). Do not invoke unrelated subcommands for this skill's tasks — the bundled manifest `{skill_base_dir}/scripts/allowed-commands.json` enforces this: the CLI refuses out-of-scope subcommands with a structured `COMMAND_NOT_ALLOWED` error before any API request.
+- **Local files**: a private temporary working dir (created with `mktemp -d`, removed when the fallback completes) during the review fallback; reads the optional credential store `~/.zoodata/config.json`.
 - **Sent to the API**: keywords, category paths, ASINs, marketplace/date and numeric filter values only. **Never sent**: budget, experience level, risk tolerance, or any other user-profile text — profile inputs map client-side to numeric filters.
 - **Credits**: every API call consumes account credits. For broad or ambiguous requests, state the estimated credit cost and confirm with the user before running multi-call scans. The composite `competitor-analysis` command executes ~17+ API calls (Full Scan, ~28-35 credits documented) in ONE invocation and has NO skip/trim flags — under a credit cap, use the granular commands instead.
 
@@ -78,7 +78,7 @@ Brand queries MUST also include confirmed `--category`.
       d. `zoodata.py review-aggregate --reviews R --tagged T --clusters C`
          → consumerInsights output compatible with `/reviews/analysis`
    3. **Fallback caveats** (apply to the 4-step chain above — lessons from end-to-end validation):
-      - **Working dir**: `WORK=/tmp/review_<ASIN>_$(date +%s) && mkdir -p $WORK`
+      - **Working dir**: `WORK=$(mktemp -d)` (private, 0700 — not a predictable path); remove it with `rm -rf "$WORK"` after `review-aggregate` succeeds or the fallback aborts
       - **Step b CLI behavior**: `review-tag-prompt` RENDERS the prompt only; YOUR LLM produces the JSON. Render once to learn the schema, then produce tags for all N reviews in one in-context pass (don't call the CLI N times).
       - **Step c candidate extraction** (Python one-liner):
         `candidates = {d: sorted({el.strip().lower() for t in tagged for el in (t.get(d) or [])}) for d in DIMS}`
