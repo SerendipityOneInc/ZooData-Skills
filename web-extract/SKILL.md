@@ -51,7 +51,7 @@ Backed by the ZooData WebTools API. Six HTTP endpoints. One API key. **Structure
 
 ## Credential
 
-Required: `ZOODATA_API_KEY` (legacy `APICLAW_API_KEY` still works as fallback).
+Required: `ZOODATA_API_KEY`.
 Get a free key (1,000 credits) at [zoodata.ai/en/api-keys](https://zoodata.ai/en/api-keys).
 
 ```bash
@@ -189,7 +189,7 @@ Full schemas are in `references/reference.md`. Load that when you need exact fie
 
 ## On Missing Key (no credentials configured)
 
-**BEFORE calling any endpoint**, verify a credential is configured. Reliable check: `python {skill_base_dir}/scripts/webtools.py check` — exits 2 if no key is found in env (`ZOODATA_API_KEY` / legacy `APICLAW_API_KEY`) or config files (`~/.zoodata/config.json` / `~/.apiclaw/config.json`). A `[ -z "$ZOODATA_API_KEY" ]` test alone is NOT sufficient.
+**BEFORE calling any endpoint**, verify a credential is configured. Reliable check: `python {skill_base_dir}/scripts/webtools.py check` — exits 2 if no key is found in env (`ZOODATA_API_KEY`) or the config file (`~/.zoodata/config.json`). A `[ -z "$ZOODATA_API_KEY" ]` test alone is NOT sufficient.
 
 When no key is found through any mechanism:
 

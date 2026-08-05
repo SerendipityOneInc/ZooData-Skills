@@ -59,6 +59,8 @@ For a terminal interface failure, respond in the user's language that today's ra
 
 Collect in ONE message: ✅ my_asins (1-10) | 💡 competitor_asins (up to 20) | 📌 alert_preferences. Optional: keyword, category. Category is auto-detected from first tracked ASIN if not provided.
 
+Activation requires clear monitoring intent. Do not start a baseline run, update the watchlist, or enable scheduled/recurring execution from a vague or merely related request ("any updates?") — confirm explicitly with the user first; recurring monitoring always needs the user's explicit opt-in.
+
 ## API Pitfalls (CRITICAL)
 
 1. **Category auto-detection**: categoryPath is auto-detected from tracked ASINs. If `category_source` in output is `inferred_from_search`, confirm with user

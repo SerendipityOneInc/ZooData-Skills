@@ -1129,16 +1129,13 @@ class TestMarketEntryCategoryFallback(unittest.TestCase):
 
 
 class TestCredentialResolution(unittest.TestCase):
-    """`_resolve_credential()` resolves the ZooData key from four sources, in
-    order: ZOODATA_API_KEY env, ~/.zoodata/config.json,
-    APICLAW_API_KEY env (deprecated), ~/.apiclaw/config.json (deprecated). The legacy
-    APICLAW sources still work but emit a deprecation warning. The in-bundle
-    {skill_dir}/config.json fallback was removed for good: the skill directory
-    ships inside the published bundle, so a key placed there would leak."""
-
-    def setUp(self):
-        # Reset the once-per-process deprecation dedup so warnings fire per test.
-        zoodata._DEPRECATION_WARNED.clear()
+    """`_resolve_credential()` resolves the ZooData key from exactly two
+    sources, in order: ZOODATA_API_KEY env, ~/.zoodata/config.json. The legacy
+    APICLAW sources (APICLAW_API_KEY env, ~/.apiclaw/config.json) were removed:
+    the CLI must not read any credential source beyond the two it declares.
+    The in-bundle {skill_dir}/config.json fallback was removed for good: the
+    skill directory ships inside the published bundle, so a key placed there
+    would leak."""
 
     def _resolve_capturing_stderr(self):
         import contextlib
@@ -1152,38 +1149,43 @@ class TestCredentialResolution(unittest.TestCase):
         with patch.dict("os.environ", {"ZOODATA_API_KEY": "z"}, clear=True):
             self.assertEqual(zoodata._resolve_credential(), "z")
 
-    def test_zoodata_env_beats_legacy_apiclaw_env(self):
+    def test_zoodata_env_wins_even_when_legacy_apiclaw_env_is_set(self):
         with patch.dict("os.environ",
                         {"ZOODATA_API_KEY": "new", "APICLAW_API_KEY": "old"},
                         clear=True):
             self.assertEqual(zoodata._resolve_credential(), "new")
 
-    def test_zoodata_home_config_beats_legacy_apiclaw_env(self):
+    def test_zoodata_home_config_wins_even_when_legacy_apiclaw_env_is_set(self):
         home_zoodata = os.path.expanduser("~/.zoodata/config.json")
         with patch.dict("os.environ", {"APICLAW_API_KEY": "old"}, clear=True), \
              patch("os.path.exists", side_effect=lambda p: p == home_zoodata), \
              patch("builtins.open", mock_open(read_data='{"api_key":"new_home"}')):
             self.assertEqual(zoodata._resolve_credential(), "new_home")
 
-    def test_legacy_apiclaw_env_is_a_deprecated_fallback(self):
-        """APICLAW_API_KEY still resolves but warns about deprecation."""
+    def test_legacy_apiclaw_env_is_not_a_source(self):
+        """Regression: the deprecated APICLAW_API_KEY fallback was removed.
+        A key present ONLY in the legacy env var must not resolve — the CLI
+        reads no credential source beyond the two it declares."""
         with patch.dict("os.environ", {"APICLAW_API_KEY": "legacy"}, clear=True), \
              patch("os.path.exists", return_value=False):
             key, stderr = self._resolve_capturing_stderr()
-        self.assertEqual(key, "legacy")
-        self.assertIn("APICLAW_API_KEY", stderr)
-        self.assertIn("deprecated", stderr)
+        self.assertIsNone(key)
+        self.assertEqual(stderr, "")
 
-    def test_legacy_apiclaw_home_config_is_a_deprecated_fallback(self):
-        """~/.apiclaw/config.json still resolves (after ~/.zoodata) but warns."""
+    def test_legacy_apiclaw_home_config_is_not_a_source(self):
+        """Regression: the deprecated ~/.apiclaw/config.json fallback was
+        removed. A key present ONLY in the legacy config file must not
+        resolve, and the file must not even be opened."""
         apiclaw_home = os.path.expanduser("~/.apiclaw/config.json")
+        opened = mock_open(read_data='{"api_key":"legacy_home"}')
         with patch.dict("os.environ", {}, clear=True), \
              patch("os.path.exists", side_effect=lambda p: p == apiclaw_home), \
-             patch("builtins.open", mock_open(read_data='{"api_key":"legacy_home"}')):
+             patch("builtins.open", opened):
             key, stderr = self._resolve_capturing_stderr()
-        self.assertEqual(key, "legacy_home")
-        self.assertIn(".apiclaw", stderr)
-        self.assertIn("deprecated", stderr)
+        self.assertIsNone(key)
+        self.assertEqual(stderr, "")
+        for call in opened.call_args_list:
+            self.assertNotIn(".apiclaw", str(call))
 
     def test_skill_dir_config_is_not_a_source(self):
         """The in-bundle {skill_dir}/config.json fallback was removed so a

@@ -12,8 +12,8 @@ description: >
   Use when the user wants focused analysis on identified competitors:
   a one-shot teardown or an ongoing per-competitor watch.
   Use when user asks: analyze competitor B07XXX, battle card for ASIN Y,
-  side-by-side competitor teardown, spy on a brand, deep analysis of these
-  3 competitors, ongoing watch on a defined competitor set.
+  side-by-side competitor teardown, monitor a competitor brand, deep analysis
+  of these 3 competitors, ongoing watch on a defined competitor set.
   Requires ZOODATA_API_KEY.
 metadata:
   version: "1.1.8"

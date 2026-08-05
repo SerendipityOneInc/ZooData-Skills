@@ -138,21 +138,6 @@ PRODUCT_MODES = {
 
 # ─── API Client ──────────────────────────────────────────────────────────────
 
-_DEPRECATION_WARNED = set()
-
-
-def _warn_deprecated_source(label, replacement):
-    """Warn once per process when a legacy credential source is used."""
-    if label in _DEPRECATION_WARNED:
-        return
-    _DEPRECATION_WARNED.add(label)
-    print(
-        f"WARNING: {label} is deprecated and will be removed in a future "
-        f"release. Use {replacement} instead.",
-        file=sys.stderr,
-    )
-
-
 def _read_config_api_key(path):
     """Return the api_key from a JSON config file, or None if absent/unreadable."""
     if not os.path.exists(path):
@@ -173,36 +158,21 @@ def _resolve_credential():
     Sources, in order:
       1. ZOODATA_API_KEY env var
       2. ~/.zoodata/config.json
-      3. APICLAW_API_KEY env var    (deprecated — warns)
-      4. ~/.apiclaw/config.json     (deprecated — warns)
 
-    The two legacy sources are considered only when neither new source
-    contains a key. A selected new key remains authoritative even if an API
-    request later rejects it; request handling must not fall through here.
+    A selected key remains authoritative even if an API request later
+    rejects it; request handling must not fall through here.
 
-    The former {skill_dir}/config.json fallback was removed for security: the
-    skill directory ships inside the published bundle, so a key placed there
-    would be published publicly.
+    The legacy fallbacks (APICLAW_API_KEY env var, ~/.apiclaw/config.json)
+    were removed: the CLI reads no credential source beyond the two it
+    declares. The former {skill_dir}/config.json fallback was removed for
+    security: the skill directory ships inside the published bundle, so a
+    key placed there would be published publicly.
     """
     key = os.environ.get("ZOODATA_API_KEY", "").strip()
     if key:
         return key
 
-    key = _read_config_api_key(os.path.expanduser("~/.zoodata/config.json"))
-    if key:
-        return key
-
-    key = os.environ.get("APICLAW_API_KEY", "").strip()
-    if key:
-        _warn_deprecated_source("APICLAW_API_KEY", "ZOODATA_API_KEY")
-        return key
-
-    key = _read_config_api_key(os.path.expanduser("~/.apiclaw/config.json"))
-    if key:
-        _warn_deprecated_source("~/.apiclaw/config.json", "~/.zoodata/config.json")
-        return key
-
-    return None
+    return _read_config_api_key(os.path.expanduser("~/.zoodata/config.json"))
 
 
 def get_api_key():
@@ -2891,7 +2861,7 @@ def cmd_check(args):
         print("✅ API Key: configured", file=sys.stderr)
     else:
         print("❌ API Key: Not found", file=sys.stderr)
-        print("   Checked: env ZOODATA_API_KEY, ~/.zoodata/config.json (also legacy env APICLAW_API_KEY, ~/.apiclaw/config.json — deprecated)", file=sys.stderr)
+        print("   Checked: env ZOODATA_API_KEY, ~/.zoodata/config.json", file=sys.stderr)
         print("   Get one at: https://zoodata.ai/en/api-keys", file=sys.stderr)
         sys.exit(1)
 
