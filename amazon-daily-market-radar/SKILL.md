@@ -1,17 +1,16 @@
 ---
 name: amazon-daily-market-radar
 description: >
-  Automated daily Amazon market digest. Given the user's own ASINs (1-10) and
-  any competitor ASINs they want included (up to 20), produces a daily
-  change-detection briefing on Amazon: price moves, BSR shifts, new entrants
-  in the surrounding category, review wave detection, stockout signals. Output is
-  a triaged alert dashboard (RED/YELLOW/GREEN) comparing today against
-  yesterday's snapshot.
-  Designed for unattended scheduled automation (cron-style daily run) — set
-  it once, get an alert digest every day.
+  Automated daily Amazon market digest. Given the user's own ASINs (1-10)
+  and any competitor ASINs (up to 20), produces a daily change-detection
+  briefing: price moves, BSR shifts, new entrants in the surrounding
+  category, review wave detection, stockout signals. Output is a triaged
+  alert dashboard (RED/YELLOW/GREEN) comparing today against yesterday's
+  snapshot. Designed for unattended scheduled automation (cron-style daily
+  run).
   Use when the user EXPLICITLY requests ongoing OPERATIONAL daily
   monitoring of their products and the surrounding market — a "what
-  changed since yesterday" digest delivered automatically every day.
+  changed since yesterday" digest.
   Use when user asks: set up daily market monitoring for my ASINs, run
   my daily radar, what changed in my tracked market since yesterday,
   daily briefing on my tracked ASINs and competitors, emerging-brand or
