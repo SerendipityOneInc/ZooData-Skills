@@ -634,6 +634,13 @@ def _resolve_category(api_caller, log_fn, keyword=None, asin=None, results=None)
                     category_source = "inferred_from_search"
                     log_fn(f"  ⚠️ Auto-inferred category: {' > '.join(category_path or [])} — AI should confirm with user")
 
+    # Record the resolved category path in composite meta so an empty top-level
+    # `categories` section (Priority-1 miss for a multi-word product phrase) is not
+    # misread as missing data when a later priority resolved the category. Pairs
+    # with `meta.category_source`, which callers set to record HOW it resolved.
+    if results is not None:
+        results.setdefault("meta", {})["resolved_category_path"] = category_path
+
     return category_path, category_source
 
 

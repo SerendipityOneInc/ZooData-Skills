@@ -342,6 +342,53 @@ class TestEndpointRouting(unittest.TestCase):
         r = run_cli("price-band-detail", "--keyword", "yoga")
         self.assertEqual(r["endpoint"], "products/price-band-detail")
 
+
+class TestCategoryResolutionMeta(unittest.TestCase):
+    """Regression: an empty top-level `categories` section for a multi-word
+    product phrase must not read as missing data. `_resolve_category` resolves
+    via the products/search fallback and records the path in
+    `meta.resolved_category_path` so composites and callers can tell fallback
+    resolution apart from a genuine gap."""
+
+    def _caller(self, responses):
+        def api_caller(endpoint, params, label=None):
+            return responses.get(endpoint, {"success": True, "data": []})
+        return api_caller
+
+    def test_keyword_fallback_records_resolved_path(self):
+        path = ["Sports & Outdoors", "Exercise & Fitness", "Yoga", "Mats"]
+        responses = {
+            # Priority 1: categories/search misses on the product phrase.
+            "categories": {"success": True, "data": []},
+            # Priority 3: top product carries the real categoryPath.
+            "products/search": {"success": True, "data": [{"categoryPath": path}]},
+        }
+        results = {}
+        resolved, source = zoodata._resolve_category(
+            self._caller(responses), lambda *a, **k: None,
+            keyword="yoga mat", results=results,
+        )
+        self.assertEqual(resolved, path)
+        self.assertEqual(source, "inferred_from_search")
+        # The empty `categories` section is disambiguated by the resolved path.
+        self.assertEqual(results["categories"]["data"], [])
+        self.assertEqual(results["meta"]["resolved_category_path"], path)
+
+    def test_unresolved_keyword_records_null_path(self):
+        responses = {
+            "categories": {"success": True, "data": []},
+            "products/search": {"success": True, "data": []},
+        }
+        results = {}
+        resolved, source = zoodata._resolve_category(
+            self._caller(responses), lambda *a, **k: None,
+            keyword="zzz nonexistent niche", results=results,
+        )
+        self.assertIsNone(resolved)
+        # Path key is always present so consumers can branch on null vs a real path.
+        self.assertIn("resolved_category_path", results["meta"])
+        self.assertIsNone(results["meta"]["resolved_category_path"])
+
     def test_brand_overview(self):
         r = run_cli("brand-overview", "--keyword", "yoga")
         self.assertEqual(r["endpoint"], "products/brand-overview")
