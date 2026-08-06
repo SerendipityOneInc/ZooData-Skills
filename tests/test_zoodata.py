@@ -1770,6 +1770,14 @@ class TestCompositeEnvelopeShape(unittest.TestCase):
     """
 
     # Every fan-out command: one invocation dispatches to multiple endpoints.
+    # Curated by hand, NOT auto-derived: the CLI help text is not a reliable
+    # composite marker (e.g. `daily-radar` says "runs all tracking endpoints"
+    # with no "composite" keyword, while single-endpoint `keyword-market-profile`
+    # / `review-deepdive` mention "multidimensional"/"Full ... analysis"). A
+    # renamed or removed composite is already caught — a stale key becomes an
+    # unknown subcommand, argparse exits, `_run` returns {}, and the
+    # `assertIn("meta", out)` below fails loudly. Only a BRAND-NEW composite is
+    # invisible here; add its row when you add the command.
     COMPOSITES = {
         "report":              ["report", "--keyword", "yoga mat"],
         "opportunity":         ["opportunity", "--keyword", "yoga mat"],
@@ -1804,6 +1812,10 @@ class TestCompositeEnvelopeShape(unittest.TestCase):
     # The real API returns object-shaped `data` for these endpoints and
     # list-shaped `data` for collection endpoints; composites read them with
     # the matching access pattern, so the stub must mirror the real shape.
+    # WARNING: removing an entry (reclassifying a dict endpoint as list) makes
+    # the composite's `.get()` chain hit a list -> AttributeError, which
+    # surfaces as a test ERROR, not a clean shape assertion. Keep this in sync
+    # with the real per-endpoint shapes (characterized against live output).
     _DICT_DATA_ENDPOINTS = {
         "realtime/product", "products/brand-overview", "products/brand-detail",
         "products/price-band-overview", "products/price-band-detail",
