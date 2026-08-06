@@ -15,7 +15,7 @@ description: >
   is reported, how to get started, or how the Local Review Toolkit works.
   Requires ZOODATA_API_KEY.
 metadata:
-  version: "1.1.8"
+  version: "1.1.9"
   author: SerendipityOneInc
   homepage: https://github.com/SerendipityOneInc/ZooData-Skills
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}

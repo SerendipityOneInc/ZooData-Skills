@@ -20,7 +20,7 @@ description: >
 
   Requires ZOODATA_API_KEY (free key: https://zoodata.ai/en/api-keys).
 metadata:
-  version: "0.2.3"
+  version: "0.2.4"
   author: SerendipityOneInc
   homepage: https://github.com/SerendipityOneInc/ZooData-Skills
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}

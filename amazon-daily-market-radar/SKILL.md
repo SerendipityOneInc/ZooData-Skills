@@ -19,7 +19,7 @@ description: >
   vague update questions.
   Requires ZOODATA_API_KEY.
 metadata:
-  version: "1.0.9"
+  version: "1.0.10"
   author: SerendipityOneInc
   homepage: https://github.com/SerendipityOneInc/ZooData-Skills
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}
