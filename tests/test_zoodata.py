@@ -374,6 +374,15 @@ class TestCategoryResolutionMeta(unittest.TestCase):
         self.assertEqual(results["categories"]["data"], [])
         self.assertEqual(results["meta"]["resolved_category_path"], path)
 
+    def test_meta_key_name_is_consistent(self):
+        # Every composite records the resolved path under the single documented
+        # key `resolved_category_path`. The legacy `resolved_category` name (set by
+        # 7 composite bodies before standardization) must not reappear, or pricing
+        # and other ASIN-first paths drift back to an undocumented key.
+        src = open(SCRIPT_PATH).read()
+        self.assertNotIn('["resolved_category"]', src)
+        self.assertIn('["resolved_category_path"]', src)
+
     def test_unresolved_keyword_records_null_path(self):
         responses = {
             "categories": {"success": True, "data": []},

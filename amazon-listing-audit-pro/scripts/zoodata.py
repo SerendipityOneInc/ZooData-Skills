@@ -1515,7 +1515,7 @@ def cmd_market_entry(args):
     if not category_path:
         category_path, category_source = _resolve_category(safe_call, log, keyword=keyword, results=results)
         results["meta"]["category_source"] = category_source
-    results["meta"]["resolved_category"] = category_path
+    results["meta"]["resolved_category_path"] = category_path
 
     # ── Step 1: Market Landscape (3 calls) ──
     log("Step 1/6: Market landscape...")
@@ -1800,7 +1800,7 @@ def cmd_competitor_analysis(args):
     if category_path:
         comp_params["categoryPath"] = category_path
     results["competitors"] = safe_call("products/competitors", comp_params, "competitors")
-    results["meta"]["resolved_category"] = category_path
+    results["meta"]["resolved_category_path"] = category_path
     results["meta"]["steps_completed"].append("competitor_discovery")
 
     # Step 2: Market Context
@@ -1997,7 +1997,7 @@ def cmd_pricing_analysis(args):
         if not category_path and keyword:
             category_path, category_source = _resolve_category(safe_call, log, keyword=keyword, results=results)
             results["meta"]["category_source"] = category_source
-    results["meta"]["resolved_category"] = category_path
+    results["meta"]["resolved_category_path"] = category_path
 
     # Step 2: Price Band Intelligence
     log("Step 2/8: Price band intelligence...")
@@ -2182,7 +2182,7 @@ def cmd_daily_radar(args):
         category_path, category_source = _resolve_category(
             safe_call, log, keyword=keyword, asin=tracked_asins[0] if tracked_asins else None, results=results)
         results["meta"]["category_source"] = category_source
-    results["meta"]["resolved_category"] = category_path
+    results["meta"]["resolved_category_path"] = category_path
 
     # Step 1: Realtime Snapshot for All Tracked ASINs
     log(f"Step 1/7: Realtime snapshot ({len(tracked_asins)} ASINs)...")
@@ -2357,7 +2357,7 @@ def cmd_listing_audit(args):
         category_path, category_source = _resolve_category(
             safe_call, log, keyword=keyword, asin=my_asin, results=results)
         results["meta"]["category_source"] = category_source
-    results["meta"]["resolved_category"] = category_path
+    results["meta"]["resolved_category_path"] = category_path
 
     # Step 1: Audit Target
     log("Step 1/7: Auditing target listing...")
@@ -2593,7 +2593,7 @@ def cmd_opportunity_scan(args):
     if not category_path:
         category_path, category_source = _resolve_category(safe_call, log, keyword=keyword, results=results)
         results["meta"]["category_source"] = category_source
-    results["meta"]["resolved_category"] = category_path
+    results["meta"]["resolved_category_path"] = category_path
 
     # Step 1: Product Scan (mode-based + custom filters)
     scan_label = f"{len(modes)} modes" if "custom" not in modes else "custom filters"
@@ -2807,7 +2807,7 @@ def cmd_review_deepdive(args):
         category_path, category_source = _resolve_category(
             safe_call, log, keyword=keyword, asin=target_asin, results=results)
         results["meta"]["category_source"] = category_source
-    results["meta"]["resolved_category"] = category_path
+    results["meta"]["resolved_category_path"] = category_path
 
     # Step 1: Target Identification
     log("Step 1/5: Target identification...")
