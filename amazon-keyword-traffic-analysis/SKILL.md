@@ -8,7 +8,7 @@ description: >
   does not make direct bid, budget, pause, or negative-keyword decisions without
   seller ABA-SQP and Amazon Ads data. Requires ZOODATA_API_KEY.
 metadata:
-  version: "0.1.7"
+  version: "0.1.6"
   author: SerendipityOneInc
   homepage: https://github.com/SerendipityOneInc/ZooData-Skills
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}
