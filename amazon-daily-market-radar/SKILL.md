@@ -1,23 +1,25 @@
 ---
 name: amazon-daily-market-radar
 description: >
-  Automated daily Amazon market digest. Given the user's own ASINs (1-10) and
-  any competitor ASINs they want included (up to 20), produces a daily
-  change-detection briefing on Amazon: price moves, BSR shifts, new entrants
-  in the surrounding category, review wave detection, stockout signals. Output is
-  a triaged alert dashboard (RED/YELLOW/GREEN) comparing today against
-  yesterday's snapshot.
-  Designed for unattended scheduled automation (cron-style daily run) — set
-  it once, get an alert digest every day.
-  Use when the user wants ongoing OPERATIONAL daily monitoring of their
-  products and the surrounding market — a "what changed since yesterday"
-  digest delivered automatically every day.
-  Use when user asks: what changed in my category today, daily category
-  briefing, set up daily monitoring, emerging brands alert, BSR shifts
-  daily, stockout signals, set-it-and-forget-it market watch.
+  Automated daily Amazon market digest. Given the user's own ASINs (1-10)
+  and any competitor ASINs (up to 20), produces a daily change-detection
+  briefing: price moves, BSR shifts, new entrants in the surrounding
+  category, review wave detection, stockout signals. Output is a triaged
+  alert dashboard (RED/YELLOW/GREEN) comparing today against yesterday's
+  snapshot. Designed for unattended scheduled automation (cron-style daily
+  run).
+  Use when the user EXPLICITLY requests ongoing OPERATIONAL daily
+  monitoring of their products and the surrounding market — a "what
+  changed since yesterday" digest.
+  Use when user asks: set up daily market monitoring for my ASINs, run
+  my daily radar, what changed in my tracked market since yesterday,
+  daily briefing on my tracked ASINs and competitors, emerging-brand or
+  stockout alerts on my watchlist. Establishing monitoring and recurring
+  runs always require the user's explicit opt-in — do not activate on
+  vague update questions.
   Requires ZOODATA_API_KEY.
 metadata:
-  version: "1.0.9"
+  version: "1.0.10"
   author: SerendipityOneInc
   homepage: https://github.com/SerendipityOneInc/ZooData-Skills
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}
@@ -42,8 +44,8 @@ Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zooda
 ## Capabilities & Data Flow
 
 - **Network**: only `https://api.zoodata.ai` (Bearer `ZOODATA_API_KEY`). Setting `ZOODATA_BASE_URL` to an untrusted host (anything other than `api.zoodata.ai` / `*.zoodata.ai` / localhost) makes the CLI **refuse the request and withhold the key** — the Bearer token is never sent to an untrusted host.
-- **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). This skill allows `daily-radar`, `market`, `products`, `competitors`, `product`, `price-band-overview`, `history`, `check`, plus the review fallback toolkit (`reviews-raw` / `review-tag-prompt` / `review-reduce-prompt` / `review-aggregate`). Do not invoke unrelated subcommands for this skill's tasks.
-- **Local files**: baseline snapshots `{skill_base_dir}/data/last-run.json` and `{skill_base_dir}/data/watchlist.json`; a temporary `/tmp/review_<ASIN>_<timestamp>/` working dir during the review fallback; reads the optional credential store `~/.zoodata/config.json`.
+- **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). This skill allows `daily-radar`, `market`, `products`, `competitors`, `product`, `price-band-overview`, `history`, `check`, plus the review fallback toolkit (`reviews-raw` / `review-tag-prompt` / `review-reduce-prompt` / `review-aggregate`). Do not invoke unrelated subcommands for this skill's tasks — the bundled manifest `{skill_base_dir}/scripts/allowed-commands.json` enforces this: the CLI refuses out-of-scope subcommands with a structured `COMMAND_NOT_ALLOWED` error before any API request.
+- **Local files**: baseline snapshots `{skill_base_dir}/data/last-run.json` and `{skill_base_dir}/data/watchlist.json`; a private temporary working dir (created with `mktemp -d`, removed when the fallback completes) during the review fallback; reads the optional credential store `~/.zoodata/config.json`.
 - **Sent to the API**: keywords, category paths, ASINs, marketplace/date and numeric filter values only. **Never sent**: budget, experience level, risk tolerance, or any other user-profile text — profile inputs map client-side to numeric filters.
 - **Credits**: every API call consumes account credits. For broad or ambiguous requests, state the estimated credit cost and confirm with the user before running multi-call scans. The composite `daily-radar` command executes ~14+ API calls (~15-30 credits) in ONE invocation and has NO skip/trim flags — under a credit cap, use the granular commands instead.
 
@@ -58,6 +60,8 @@ For a terminal interface failure, respond in the user's language that today's ra
 ## Input (First Run)
 
 Collect in ONE message: ✅ my_asins (1-10) | 💡 competitor_asins (up to 20) | 📌 alert_preferences. Optional: keyword, category. Category is auto-detected from first tracked ASIN if not provided.
+
+Activation requires clear monitoring intent. Do not start a baseline run, update the watchlist, or enable scheduled/recurring execution from a vague or merely related request ("any updates?") — confirm explicitly with the user first; recurring monitoring always needs the user's explicit opt-in.
 
 ## API Pitfalls (CRITICAL)
 
@@ -76,7 +80,7 @@ Collect in ONE message: ✅ my_asins (1-10) | 💡 competitor_asins (up to 20) |
       d. `zoodata.py review-aggregate --reviews R --tagged T --clusters C`
          → consumerInsights output compatible with `/reviews/analysis`
    3. **Fallback caveats** (apply to the 4-step chain above — lessons from end-to-end validation):
-      - **Working dir**: `WORK=/tmp/review_<ASIN>_$(date +%s) && mkdir -p $WORK`
+      - **Working dir**: `WORK=$(mktemp -d)` (private, 0700 — not a predictable path); remove it with `rm -rf "$WORK"` after `review-aggregate` succeeds or the fallback aborts
       - **Step b CLI behavior**: `review-tag-prompt` RENDERS the prompt only; YOUR LLM produces the JSON. Render once to learn the schema, then produce tags for all N reviews in one in-context pass (don't call the CLI N times).
       - **Step c candidate extraction** (Python one-liner):
         `candidates = {d: sorted({el.strip().lower() for t in tagged for el in (t.get(d) or [])}) for d in DIMS}`

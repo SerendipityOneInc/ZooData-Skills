@@ -12,7 +12,7 @@ description: >
   price comparison, price positioning, repricing, should I raise or lower price.
   Requires ZOODATA_API_KEY.
 metadata:
-  version: "1.1.7"
+  version: "1.1.8"
   author: SerendipityOneInc
   homepage: https://github.com/SerendipityOneInc/ZooData-Skills
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}
@@ -32,7 +32,7 @@ Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zooda
 ## Capabilities & Data Flow
 
 - **Network**: only `https://api.zoodata.ai` (Bearer `ZOODATA_API_KEY`). Setting `ZOODATA_BASE_URL` to an untrusted host (anything other than `api.zoodata.ai` / `*.zoodata.ai` / localhost) makes the CLI **refuse the request and withhold the key** — the Bearer token is never sent to an untrusted host.
-- **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). This skill allows `categories`, `product`, `products`, `competitors`, `market`, `price-band-overview`, `price-band-detail`, `brand-overview`, `brand-detail`, `history`, `analyze`, and `check`. Do not invoke unrelated subcommands for this skill's tasks.
+- **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). This skill allows `categories`, `product`, `products`, `competitors`, `market`, `price-band-overview`, `price-band-detail`, `brand-overview`, `brand-detail`, `history`, `analyze`, and `check`. Do not invoke unrelated subcommands for this skill's tasks — the bundled manifest `{skill_base_dir}/scripts/allowed-commands.json` enforces this: the CLI refuses out-of-scope subcommands with a structured `COMMAND_NOT_ALLOWED` error before any API request.
 - **Local files**: none; reads the optional credential store `~/.zoodata/config.json`.
 - **Sent to the API**: keywords, category paths, ASINs, marketplace/date and numeric filter values only. **Never sent**: budget, experience level, risk tolerance, or any other user-profile text — profile inputs map client-side to numeric filters.
 - **Credits**: every API call consumes account credits. This skill drives the endpoints granularly (no single composite command); a per-ASIN pricing analysis orchestrates ~11 endpoints for ~20-25 credits, and batch runs scale by unique category (see API Budget below). For batch or broad requests, state the estimated credit cost and confirm with the user before running.

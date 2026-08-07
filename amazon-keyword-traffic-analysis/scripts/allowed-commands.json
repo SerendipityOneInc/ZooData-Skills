@@ -1,0 +1,16 @@
+{
+  "allowedCommands": [
+    "check",
+    "keyword-competitor-product-keywords",
+    "keyword-detail",
+    "keyword-extends",
+    "keyword-market-profile",
+    "keyword-product-traffic-terms",
+    "keyword-search-results",
+    "keyword-trend",
+    "keyword-trend-profile",
+    "product",
+    "product-traffic-terms-overview",
+    "product-traffic-terms-timeline"
+  ]
+}

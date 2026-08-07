@@ -1,0 +1,16 @@
+{
+  "allowedCommands": [
+    "analyze",
+    "brand-detail",
+    "brand-overview",
+    "categories",
+    "check",
+    "competitors",
+    "history",
+    "market",
+    "price-band-detail",
+    "price-band-overview",
+    "product",
+    "products"
+  ]
+}

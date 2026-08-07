@@ -16,3 +16,9 @@ This README is a human-facing overview and module index. Runtime behavior is def
 - [`references/sqp-field-semantics.md`](references/sqp-field-semantics.md) — seller-artifact acquisition and field semantics
 - `references/scenarios-*.md` — scenario-specific stage entry requirements, capability selection, conclusion authority, and report-section content
 - [`scripts/zoodata.py`](scripts/zoodata.py) — bundled ZooData CLI
+
+## Data & privacy
+
+- Runtime queries — keywords, ASINs, marketplaces, dates, and numeric filters — are sent to the ZooData API (`api.zoodata.ai`); WebTools page acquisition additionally sends the target public URLs. No seller-account or free-text profile data is transmitted.
+- WebTools usage is read-only public-page acquisition; the global boundaries in [`SKILL.md`](SKILL.md) prohibit state-changing page interactions.
+- The package persists no query state between runs; every API call consumes account credits.

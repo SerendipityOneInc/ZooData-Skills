@@ -1,24 +1,21 @@
 ---
 name: zoodata
 description: >
-  API endpoint reference for the ZooData data platform. Provides the 12
-  commerce endpoints plus 10 keyword intelligence endpoints (categories,
-  markets, products, competitors, realtime ASIN, AI review analysis, raw
-  reviews, price band, brand, history, keyword detail/trend/extends/search
-  results/market profile/product traffic/competitor keywords, traffic overview/timeline),
-  their inputs/outputs,
-  parameter quirks, Quick Start (auth, base URL), how credits are tracked
-  (meta.creditsConsumed field), and the Local Review Toolkit (Map/Reduce
-  for raw reviews).
-  Use when the user asks about the API itself — which endpoints exist,
-  how to call them, field schemas, parameter quirks, how to authenticate,
-  how credit consumption is reported, or how the Local Review Toolkit works.
-  Use when user asks: what endpoints does ZooData have, how do I call
-  /products/search, fields returned by reviews/analysis, how to check
-  credit usage, how the Local Review Toolkit works, how to get started.
+  API endpoint reference for the ZooData data platform: the 12 commerce
+  endpoints plus 10 keyword-intelligence endpoints (categories, markets,
+  products, competitors, realtime ASIN, AI review analysis, raw reviews,
+  price band, brand, history, and the keyword detail/trend/extends/search/
+  market-profile/product-traffic/competitor-keywords/traffic-timeline
+  family) — their inputs/outputs, parameter quirks, Quick Start (auth,
+  base URL), how credits are tracked (meta.creditsConsumed), and the Local
+  Review Toolkit (Map/Reduce for raw reviews).
+  Use when the user asks about the API itself: which endpoints exist, how
+  to call them (e.g. /products/search), field schemas returned by an
+  endpoint, parameter quirks, how to authenticate, how credit consumption
+  is reported, how to get started, or how the Local Review Toolkit works.
   Requires ZOODATA_API_KEY.
 metadata:
-  version: "1.1.8"
+  version: "1.1.9"
   author: SerendipityOneInc
   homepage: https://github.com/SerendipityOneInc/ZooData-Skills
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}
@@ -44,7 +41,7 @@ metadata:
 
 - **Network**: only `https://api.zoodata.ai` (Bearer `ZOODATA_API_KEY`). Setting `ZOODATA_BASE_URL` to an untrusted host (anything other than `api.zoodata.ai` / `*.zoodata.ai` / localhost) makes the CLI **refuse the request and withhold the key** — the Bearer token is never sent to an untrusted host.
 - **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). This data-layer reference skill allows the complete literal subcommand surface exposed by the bundled client's current top-level help.
-- **Local files**: none by default; reads `~/.zoodata/config.json` and, only when no new credential is configured, the legacy `~/.apiclaw/config.json` credential store; the Local Review Toolkit uses a temporary `/tmp/review_<ASIN>_<timestamp>/` working dir during the review fallback.
+- **Local files**: none by default; reads the optional credential store `~/.zoodata/config.json`; the Local Review Toolkit uses a private temporary working dir (created with `mktemp -d`, removed when the fallback completes) during the review fallback.
 - **Sent to the API**: keywords, category paths, ASINs, marketplace/date and numeric filter values only. **Never sent**: budget, experience level, risk tolerance, or any other user-profile text — profile inputs map client-side to numeric filters.
 - **Credits**: every API call consumes account credits. For broad or ambiguous requests, state the estimated credit cost and confirm with the user before running multi-call scans.
 
@@ -84,7 +81,7 @@ When no key is found through any mechanism:
    - **Get a free key** (1,000 credits, no credit card): https://zoodata.ai/en/api-keys
    - **Configure** via one of:
      - `export ZOODATA_API_KEY='hms_live_xxx'` (session only)
-     - `mkdir -p ~/.zoodata && echo '{"api_key":"hms_live_xxx"}' > ~/.zoodata/config.json` (persistent)
+     - `mkdir -p ~/.zoodata && chmod 700 ~/.zoodata && (umask 077; echo '{"api_key":"hms_live_xxx"}' > ~/.zoodata/config.json)` (persistent; keep the file private — 0600)
 4. **Optionally** state in **one sentence** what the workflow will produce once the key is configured (deliverable shape only — no numbers, no market color, no "common sense" preview).
 
 ## On 401 Invalid Key

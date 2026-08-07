@@ -342,6 +342,62 @@ class TestEndpointRouting(unittest.TestCase):
         r = run_cli("price-band-detail", "--keyword", "yoga")
         self.assertEqual(r["endpoint"], "products/price-band-detail")
 
+
+class TestCategoryResolutionMeta(unittest.TestCase):
+    """Regression: an empty top-level `categories` section for a multi-word
+    product phrase must not read as missing data. `_resolve_category` resolves
+    via the products/search fallback and records the path in
+    `meta.resolved_category_path` so composites and callers can tell fallback
+    resolution apart from a genuine gap."""
+
+    def _caller(self, responses):
+        def api_caller(endpoint, params, label=None):
+            return responses.get(endpoint, {"success": True, "data": []})
+        return api_caller
+
+    def test_keyword_fallback_records_resolved_path(self):
+        path = ["Sports & Outdoors", "Exercise & Fitness", "Yoga", "Mats"]
+        responses = {
+            # Priority 1: categories/search misses on the product phrase.
+            "categories": {"success": True, "data": []},
+            # Priority 3: top product carries the real categoryPath.
+            "products/search": {"success": True, "data": [{"categoryPath": path}]},
+        }
+        results = {}
+        resolved, source = zoodata._resolve_category(
+            self._caller(responses), lambda *a, **k: None,
+            keyword="yoga mat", results=results,
+        )
+        self.assertEqual(resolved, path)
+        self.assertEqual(source, "inferred_from_search")
+        # The empty `categories` section is disambiguated by the resolved path.
+        self.assertEqual(results["categories"]["data"], [])
+        self.assertEqual(results["meta"]["resolved_category_path"], path)
+
+    def test_meta_key_name_is_consistent(self):
+        # Every composite records the resolved path under the single documented
+        # key `resolved_category_path`. The legacy `resolved_category` name (set by
+        # 7 composite bodies before standardization) must not reappear, or pricing
+        # and other ASIN-first paths drift back to an undocumented key.
+        src = open(SCRIPT_PATH).read()
+        self.assertNotIn('["resolved_category"]', src)
+        self.assertIn('["resolved_category_path"]', src)
+
+    def test_unresolved_keyword_records_null_path(self):
+        responses = {
+            "categories": {"success": True, "data": []},
+            "products/search": {"success": True, "data": []},
+        }
+        results = {}
+        resolved, source = zoodata._resolve_category(
+            self._caller(responses), lambda *a, **k: None,
+            keyword="zzz nonexistent niche", results=results,
+        )
+        self.assertIsNone(resolved)
+        # Path key is always present so consumers can branch on null vs a real path.
+        self.assertIn("resolved_category_path", results["meta"])
+        self.assertIsNone(results["meta"]["resolved_category_path"])
+
     def test_brand_overview(self):
         r = run_cli("brand-overview", "--keyword", "yoga")
         self.assertEqual(r["endpoint"], "products/brand-overview")
@@ -1128,17 +1184,207 @@ class TestMarketEntryCategoryFallback(unittest.TestCase):
         self.assertIn("categoryKeyword", market_calls[1])
 
 
-class TestCredentialResolution(unittest.TestCase):
-    """`_resolve_credential()` resolves the ZooData key from four sources, in
-    order: ZOODATA_API_KEY env, ~/.zoodata/config.json,
-    APICLAW_API_KEY env (deprecated), ~/.apiclaw/config.json (deprecated). The legacy
-    APICLAW sources still work but emit a deprecation warning. The in-bundle
-    {skill_dir}/config.json fallback was removed for good: the skill directory
-    ships inside the published bundle, so a key placed there would leak."""
+class TestCommandAllowlist(unittest.TestCase):
+    """Per-skill command-allowlist enforcement. The shared CLI ships
+    identically inside every skill bundle; an `allowed-commands.json`
+    manifest next to the script scopes which subcommands the bundling skill
+    may invoke. No manifest → full surface (canonical copy / zoodata
+    reference skill). Malformed manifest → fail closed. A refusal emits
+    valid structured JSON (success=false, error.status=COMMAND_NOT_ALLOWED,
+    no terminal interface-failure action token) and exits 2, so the shared
+    CLI contract classifies it as a documented non-terminal error, not a
+    terminal interface failure."""
 
-    def setUp(self):
-        # Reset the once-per-process deprecation dedup so warnings fire per test.
-        zoodata._DEPRECATION_WARNED.clear()
+    MANIFEST = os.path.join(os.path.dirname(os.path.abspath(SCRIPT_PATH)),
+                            "allowed-commands.json")
+
+    def _enforce_capturing(self, command):
+        import contextlib
+        import io
+        out, err = io.StringIO(), io.StringIO()
+        code = None
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            try:
+                zoodata._enforce_command_allowlist(command)
+            except SystemExit as e:
+                code = e.code
+        return code, out.getvalue(), err.getvalue()
+
+    def test_no_manifest_allows_full_surface(self):
+        with patch("os.path.exists", return_value=False):
+            self.assertIsNone(zoodata._load_command_allowlist())
+            code, out, _err = self._enforce_capturing("products")
+        self.assertIsNone(code)
+        self.assertEqual(out, "")
+
+    def test_manifest_allows_declared_command(self):
+        manifest = '{"allowedCommands": ["market", "check"]}'
+        with patch("os.path.exists", side_effect=lambda p: p == self.MANIFEST), \
+             patch("builtins.open", mock_open(read_data=manifest)):
+            code, out, _err = self._enforce_capturing("market")
+        self.assertIsNone(code)
+        self.assertEqual(out, "")
+
+    def test_manifest_refuses_undeclared_command_with_structured_json(self):
+        manifest = '{"allowedCommands": ["market", "check"]}'
+        with patch("os.path.exists", side_effect=lambda p: p == self.MANIFEST), \
+             patch("builtins.open", mock_open(read_data=manifest)):
+            code, out, _err = self._enforce_capturing("products")
+        self.assertEqual(code, 2)
+        payload = json.loads(out)
+        self.assertFalse(payload["success"])
+        self.assertEqual(payload["error"]["status"], "COMMAND_NOT_ALLOWED")
+        self.assertIn("products", payload["error"]["message"])
+        self.assertIn("market", payload["error"]["message"])
+        # Must NOT carry the terminal interface-failure action token —
+        # the agent should pick a documented command, not stop the turn.
+        self.assertNotIn("action", payload["error"])
+
+    def test_malformed_manifest_fails_closed(self):
+        for bad in ('{not json', '{"allowedCommands": []}',
+                    '{"allowedCommands": "market"}', '{"other": 1}'):
+            with self.subTest(bad=bad), \
+                 patch("os.path.exists", side_effect=lambda p: p == self.MANIFEST), \
+                 patch("builtins.open", mock_open(read_data=bad)):
+                code, _out, err = self._enforce_capturing("market")
+                self.assertEqual(code, 2)
+                self.assertIn("allowed-commands.json", err)
+
+    def test_help_is_exempt_from_enforcement(self):
+        """`<cmd> --help` is documentation, not execution: it makes no API
+        call, so it must stay available for every subcommand in every
+        bundled copy (parser wellformedness remains verifiable everywhere).
+        Enforcement gates only actual execution."""
+        import subprocess
+        repo_root = os.path.join(os.path.dirname(__file__), "..")
+        restricted_copy = os.path.join(
+            repo_root, "amazon-market-trend-scanner", "scripts", "zoodata.py")
+        # 'history' is outside the trend-scanner allowlist
+        r = subprocess.run([sys.executable, restricted_copy, "history", "--help"],
+                           capture_output=True, text=True, timeout=30)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("--asins", r.stdout)
+        # ...but actually executing it is refused. Hermetic env: if the
+        # refusal ever regresses, this degrades to a credential error
+        # instead of a live API call from a developer machine.
+        r = subprocess.run([sys.executable, restricted_copy, "history",
+                            "--asins", "B0X", "--start-date", "2026-01-01",
+                            "--end-date", "2026-01-02"],
+                           capture_output=True, text=True, timeout=30,
+                           env={"PATH": os.environ.get("PATH", ""),
+                                "HOME": "/nonexistent"})
+        self.assertEqual(r.returncode, 2)
+        self.assertEqual(json.loads(r.stdout)["error"]["status"], "COMMAND_NOT_ALLOWED")
+
+    def test_global_options_before_subcommand_cannot_bypass_enforcement(self):
+        """Regression: cli-contract.md instructs 'Place global options before
+        the subcommand', so `--format json <disallowed> ...` must be refused
+        exactly like the bare form. The original hook only inspected argv[1]
+        and let this canonical form straight through to the API. Run with a
+        credential-free env so a failed refusal surfaces as a credential
+        error (exit 1), never a live API call."""
+        import subprocess
+        repo_root = os.path.join(os.path.dirname(__file__), "..")
+        restricted_copy = os.path.join(
+            repo_root, "amazon-market-trend-scanner", "scripts", "zoodata.py")
+        hermetic = {"PATH": os.environ.get("PATH", ""), "HOME": "/nonexistent"}
+        r = subprocess.run(
+            [sys.executable, restricted_copy, "--format", "json", "history",
+             "--asins", "B0X", "--start-date", "2026-01-01",
+             "--end-date", "2026-01-02"],
+            capture_output=True, text=True, timeout=30, env=hermetic)
+        self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
+        self.assertEqual(json.loads(r.stdout)["error"]["status"],
+                         "COMMAND_NOT_ALLOWED")
+        # A stray unknown argument must not demote the refusal to a usage
+        # error: the command can never run here, so the refusal wins.
+        r = subprocess.run(
+            [sys.executable, restricted_copy, "--format", "json", "history",
+             "--asins", "B0X", "--start-date", "2026-01-01",
+             "--end-date", "2026-01-02", "--bogus"],
+            capture_output=True, text=True, timeout=30, env=hermetic)
+        self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
+        self.assertEqual(json.loads(r.stdout)["error"]["status"],
+                         "COMMAND_NOT_ALLOWED")
+
+    def test_every_amazon_skill_ships_a_valid_manifest(self):
+        """Repo-state guard: each amazon-* skill bundles a manifest matching
+        the CLI's real subcommand surface; the zoodata data-layer reference
+        skill deliberately ships none (full surface, per its SKILL.md)."""
+        import glob
+        import re
+        repo_root = os.path.join(os.path.dirname(__file__), "..")
+        src = open(SCRIPT_PATH, encoding="utf-8").read()
+        real_commands = set(re.findall(r"add_parser\(\s*[\"']([a-z0-9-]+)[\"']", src))
+        skill_dirs = sorted(glob.glob(os.path.join(repo_root, "amazon-*")))
+        self.assertGreater(len(skill_dirs), 5)
+        for d in skill_dirs:
+            manifest_path = os.path.join(d, "scripts", "allowed-commands.json")
+            with self.subTest(skill=os.path.basename(d)):
+                self.assertTrue(os.path.exists(manifest_path),
+                                f"missing manifest: {manifest_path}")
+                with open(manifest_path, encoding="utf-8") as f:
+                    commands = json.load(f)["allowedCommands"]
+                self.assertTrue(commands)
+                self.assertIn("check", commands)
+                self.assertEqual(len(commands), len(set(commands)))
+                unknown = set(commands) - real_commands
+                self.assertFalse(unknown, f"unknown subcommands: {unknown}")
+        self.assertFalse(os.path.exists(os.path.join(
+            repo_root, "zoodata", "scripts", "allowed-commands.json")))
+
+    def test_manifests_match_skill_md_declarations(self):
+        """Drift guard: each manifest is the ENFORCED copy of the command
+        policy its SKILL.md owns — the two must stay in exact agreement.
+        A narrower manifest breaks documented workflows (real incident:
+        market-entry's routing-table commands were missing from its first
+        manifest); a wider one silently un-enforces the declaration.
+
+        Every skill declares its command set on exactly ONE declaration
+        line — "This skill allows ..." (9 skills) or "The bundled manifest
+        allows exactly ..." (keyword-traffic-analysis). Only that line is
+        scanned, so ordinary prose edits elsewhere can never fire this
+        test; when a route is added or removed, update the declaration
+        line and the manifest together. (market-entry's endpoint→CLI
+        routing table is separately pinned by
+        tests/test_non_keyword_cli_routing.py.)
+        """
+        import glob
+        import re
+        repo_root = os.path.join(os.path.dirname(__file__), "..")
+        src = open(SCRIPT_PATH, encoding="utf-8").read()
+        real = set(re.findall(r"add_parser\(\s*[\"']([a-z0-9-]+)[\"']", src))
+        MARKERS = ("This skill allows", "The bundled manifest allows exactly")
+
+        for d in sorted(glob.glob(os.path.join(repo_root, "amazon-*"))):
+            name = os.path.basename(d)
+            with open(os.path.join(d, "scripts", "allowed-commands.json"),
+                      encoding="utf-8") as f:
+                manifest = set(json.load(f)["allowedCommands"])
+            skill = open(os.path.join(d, "SKILL.md"), encoding="utf-8").read()
+            declaration_lines = [l for l in skill.splitlines()
+                                 if any(m in l for m in MARKERS)]
+            with self.subTest(skill=name):
+                self.assertEqual(
+                    len(declaration_lines), 1,
+                    f"{name}: expected exactly one declaration line "
+                    f"(markers: {MARKERS}), found {len(declaration_lines)}")
+                declared = {t for t in
+                            re.findall(r"`([a-z0-9-]+)`", declaration_lines[0])
+                            if t in real}
+                self.assertEqual(declared, manifest,
+                                 f"{name}: declared-only={sorted(declared - manifest)} "
+                                 f"manifest-only={sorted(manifest - declared)}")
+
+
+class TestCredentialResolution(unittest.TestCase):
+    """`_resolve_credential()` resolves the ZooData key from exactly two
+    sources, in order: ZOODATA_API_KEY env, ~/.zoodata/config.json. The legacy
+    APICLAW sources (APICLAW_API_KEY env, ~/.apiclaw/config.json) were removed:
+    the CLI must not read any credential source beyond the two it declares.
+    The in-bundle {skill_dir}/config.json fallback was removed for good: the
+    skill directory ships inside the published bundle, so a key placed there
+    would leak."""
 
     def _resolve_capturing_stderr(self):
         import contextlib
@@ -1152,38 +1398,108 @@ class TestCredentialResolution(unittest.TestCase):
         with patch.dict("os.environ", {"ZOODATA_API_KEY": "z"}, clear=True):
             self.assertEqual(zoodata._resolve_credential(), "z")
 
-    def test_zoodata_env_beats_legacy_apiclaw_env(self):
+    def test_zoodata_env_wins_even_when_legacy_apiclaw_env_is_set(self):
         with patch.dict("os.environ",
                         {"ZOODATA_API_KEY": "new", "APICLAW_API_KEY": "old"},
                         clear=True):
             self.assertEqual(zoodata._resolve_credential(), "new")
 
-    def test_zoodata_home_config_beats_legacy_apiclaw_env(self):
+    def test_zoodata_home_config_wins_even_when_legacy_apiclaw_env_is_set(self):
         home_zoodata = os.path.expanduser("~/.zoodata/config.json")
         with patch.dict("os.environ", {"APICLAW_API_KEY": "old"}, clear=True), \
              patch("os.path.exists", side_effect=lambda p: p == home_zoodata), \
              patch("builtins.open", mock_open(read_data='{"api_key":"new_home"}')):
             self.assertEqual(zoodata._resolve_credential(), "new_home")
 
-    def test_legacy_apiclaw_env_is_a_deprecated_fallback(self):
-        """APICLAW_API_KEY still resolves but warns about deprecation."""
+    def test_legacy_apiclaw_env_is_not_a_source(self):
+        """Regression: the deprecated APICLAW_API_KEY fallback was removed.
+        A key present ONLY in the legacy env var must not resolve — the CLI
+        reads no credential source beyond the two it declares."""
         with patch.dict("os.environ", {"APICLAW_API_KEY": "legacy"}, clear=True), \
              patch("os.path.exists", return_value=False):
             key, stderr = self._resolve_capturing_stderr()
-        self.assertEqual(key, "legacy")
-        self.assertIn("APICLAW_API_KEY", stderr)
-        self.assertIn("deprecated", stderr)
+        self.assertIsNone(key)
+        self.assertEqual(stderr, "")
 
-    def test_legacy_apiclaw_home_config_is_a_deprecated_fallback(self):
-        """~/.apiclaw/config.json still resolves (after ~/.zoodata) but warns."""
+    def test_legacy_apiclaw_home_config_is_not_a_source(self):
+        """Regression: the deprecated ~/.apiclaw/config.json fallback was
+        removed. A key present ONLY in the legacy config file must not
+        resolve, and the file must not even be opened."""
         apiclaw_home = os.path.expanduser("~/.apiclaw/config.json")
+        opened = mock_open(read_data='{"api_key":"legacy_home"}')
         with patch.dict("os.environ", {}, clear=True), \
              patch("os.path.exists", side_effect=lambda p: p == apiclaw_home), \
-             patch("builtins.open", mock_open(read_data='{"api_key":"legacy_home"}')):
+             patch("builtins.open", opened):
             key, stderr = self._resolve_capturing_stderr()
-        self.assertEqual(key, "legacy_home")
-        self.assertIn(".apiclaw", stderr)
-        self.assertIn("deprecated", stderr)
+        self.assertIsNone(key)
+        self.assertEqual(stderr, "")
+        for call in opened.call_args_list:
+            self.assertNotIn(".apiclaw", str(call))
+
+    def test_missing_key_guidance_creates_config_with_restrictive_permissions(self):
+        """The setup hint printed when no key is configured must create
+        ~/.zoodata/config.json without group/other access (umask 077 subshell
+        + chmod 700 on the directory) — the key is a bearer credential and a
+        world-readable file was a ClawHub scan finding."""
+        import contextlib
+        import io
+        buf = io.StringIO()
+        with patch.dict("os.environ", {}, clear=True), \
+             patch("os.path.exists", return_value=False), \
+             contextlib.redirect_stderr(buf):
+            with self.assertRaises(SystemExit):
+                zoodata.get_api_key()
+        guidance = buf.getvalue()
+        self.assertIn("umask 077", guidance)
+        self.assertIn("chmod 700 ~/.zoodata", guidance)
+
+    def test_missing_key_guidance_flags_ignored_legacy_env_var(self):
+        """A user whose environment still sets APICLAW_API_KEY gets a hard
+        'not found' after the legacy removal — the guidance must tell them,
+        in-band, that the variable is set but no longer read, so they don't
+        need the CHANGELOG to connect the dots. No hint when it isn't set."""
+        import contextlib
+        import io
+
+        def _guidance(env):
+            buf = io.StringIO()
+            with patch.dict("os.environ", env, clear=True), \
+                 patch("os.path.exists", return_value=False), \
+                 contextlib.redirect_stderr(buf):
+                with self.assertRaises(SystemExit):
+                    zoodata.get_api_key()
+            return buf.getvalue()
+
+        with_legacy = _guidance({"APICLAW_API_KEY": "legacy"})
+        self.assertIn("APICLAW_API_KEY is set but no longer read", with_legacy)
+        self.assertIn("ZOODATA_API_KEY", with_legacy)
+        without_legacy = _guidance({})
+        self.assertNotIn("no longer read", without_legacy)
+
+    def test_no_skill_doc_advertises_legacy_apiclaw_sources(self):
+        """Doc-layer regression guard: the legacy APICLAW credential sources
+        were removed from the CLIs, so no published skill document may
+        advertise them again. Scans every SKILL.md and README.md in the repo
+        (all ship inside published bundles); CHANGELOG history and CLI
+        docstrings that explain the removal are intentionally out of scope."""
+        repo_root = os.path.join(os.path.dirname(__file__), "..")
+        scanned = []
+        offenders = []
+        for dirpath, dirnames, filenames in os.walk(repo_root):
+            # Prune hidden dirs (.git, gitignored local snapshots like
+            # .agents/) and tooling dirs — only tracked skill docs matter.
+            dirnames[:] = [d for d in dirnames
+                           if not d.startswith(".")
+                           and d not in ("node_modules", "__pycache__")]
+            for name in filenames:
+                if name in ("SKILL.md", "README.md"):
+                    path = os.path.join(dirpath, name)
+                    scanned.append(path)
+                    with open(path, "r", encoding="utf-8") as f:
+                        if "apiclaw" in f.read().lower():
+                            offenders.append(os.path.relpath(path, repo_root))
+        self.assertGreater(len(scanned), 10)  # guard against vacuous pass
+        self.assertEqual(offenders, [])
 
     def test_skill_dir_config_is_not_a_source(self):
         """The in-bundle {skill_dir}/config.json fallback was removed so a

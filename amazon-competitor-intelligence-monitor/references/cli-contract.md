@@ -23,6 +23,7 @@ It owns the shared invocation form, command-identity validation, execution-envir
 3. Treat a successful composite command's structured output as the evidence bundle for that run. Perform selection, narrowing, transformation, extraction, and formatting locally.
 4. Do not make an additional API call solely to reread, reshape, or narrow evidence already present in the composite bundle.
 5. A granular call after a composite is allowed only for evidence absent from the bundle when the active skill's workflow or an explicit non-terminal fallback requires it.
+6. A keyword-driven composite resolves the working category through a fallback chain and records the outcome in `meta`: `meta.category_source` states how it resolved and `meta.resolved_category_path` carries the path used. An empty top-level `categories` section together with a non-null `meta.resolved_category_path` is successful fallback resolution (a multi-word product phrase not matching a category name), not missing data; read the resolved path and `category_source` before treating category evidence as absent.
 
 ## Execution-environment permission gate
 
