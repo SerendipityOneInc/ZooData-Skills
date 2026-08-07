@@ -53,6 +53,7 @@ Do not move Agent outputs such as `recommendedAction`, `conclusion`, `reasoning`
 - `requestedDate*` records the request. `resolvedDate*` records the actual available observation; endpoint-specific context or series fields expose the returned period boundaries.
 - Snapshot/current-window endpoints may contain `dataWindow.currentPeriod`; range endpoints use `resolvedDateFrom`, `resolvedDateTo`, and series dates instead.
 - `latestObservedAt` is row collection time rather than a snapshot-period field.
+- A null `resolvedDate*` returned with `status=empty` means the requested date resolved to no published observation: the date is outside the available window — more recent than the latest published week, or older than retained history — and is distinct from a resolved snapshot that simply does not contain the keyword. Weekly `date` / `dateTo` endpoints publish with a lag, so target a recent completed week rather than today.
 
 ### Batch behavior
 
@@ -107,6 +108,7 @@ One request cannot contain more than 20 subjects. Each response preserves order 
 
 - Apply the local `cli-contract.md` for authoritative transport status, retry exhaustion, terminal-interface classification, process exit, and partial-result handling.
 - `status=empty` means no matching observation in the resolved snapshot/window. It does not prove low demand.
+- Distinguish the two empties by `resolvedDate*`: a non-null `resolvedDate*` with `status=empty` is a genuine no-observation result for that resolved snapshot; a null `resolvedDate*` is an out-of-window date selection, not evidence about the keyword.
 - `keywords/extends` may return an empty `rows[]`; this is a valid successful response.
 - Endpoint-specific validation details remain authoritative only when the shared contract classifies the outer response as HTTP 422. Keyword endpoints exposing granularity currently accept `week` only.
 

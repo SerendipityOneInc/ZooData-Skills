@@ -144,6 +144,7 @@ Do not replace this chain with generic capability disclaimers, guessed recommend
 ## Date and channel handling
 
 - Treat keyword inputs as search queries, select dates from the documented contract, and report returned periods rather than inferred periods.
+- If a date endpoint returns `status=empty` with a null `resolvedDate` (the requested date is outside the available window per `reference.md`), reselect a recent completed in-window week and re-request once before interpreting; do not treat the out-of-window response as keyword evidence. A `status=empty` result carrying a non-null `resolvedDate` is valid no-observation evidence and is not re-requested on this basis.
 - Never compare incompatible grains or periods as equivalent.
 - Keep organic and sponsored observations separate.
 - Do not equate placement-record counts with exposure contribution or exposure with CPC, conversion, bid economics, or budget priority.

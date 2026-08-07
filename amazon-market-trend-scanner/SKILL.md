@@ -13,7 +13,7 @@ description: >
   to sell, use amazon-opportunity-discoverer.
   Requires ZOODATA_API_KEY.
 metadata:
-  version: "1.0.7"
+  version: "1.0.8"
   author: SerendipityOneInc
   homepage: https://github.com/SerendipityOneInc/ZooData-Skills
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}
@@ -38,8 +38,8 @@ Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zooda
 ## Capabilities & Data Flow
 
 - **Network**: only `https://api.zoodata.ai` (Bearer `ZOODATA_API_KEY`). Setting `ZOODATA_BASE_URL` to an untrusted host (anything other than `api.zoodata.ai` / `*.zoodata.ai` / localhost) makes the CLI **refuse the request and withhold the key** — the Bearer token is never sent to an untrusted host.
-- **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). This skill allows `categories`, `market`, `products`, and `check`. Do not invoke unrelated subcommands for this skill's tasks.
-- **Local files**: scan state under `{skill_base_dir}/scan-data/` (`baseline.json`, `watchlist.json`, `history/*.json`); reads the optional credential store `~/.zoodata/config.json`.
+- **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). This skill allows `categories`, `market`, `products`, and `check`. Do not invoke unrelated subcommands for this skill's tasks — the bundled manifest `{skill_base_dir}/scripts/allowed-commands.json` enforces this: the CLI refuses out-of-scope subcommands with a structured `COMMAND_NOT_ALLOWED` error before any API request.
+- **Local files**: scan state under `{skill_base_dir}/scan-data/` (`baseline.json`, `watchlist.json`, `alerts.json`, `history/*.json`); reads the optional credential store `~/.zoodata/config.json`. This state persists between runs solely for baseline comparison and alerting — it may be deleted at any time to reset monitoring, and old `history/` snapshots should be pruned when no longer needed.
 - **Sent to the API**: keywords, category paths, ASINs, marketplace/date and numeric filter values only. **Never sent**: budget, experience level, risk tolerance, or any other user-profile text — profile inputs map client-side to numeric filters.
 - **Credits**: every API call consumes account credits. For broad or ambiguous requests, state the estimated credit cost and confirm with the user before running multi-call scans.
 

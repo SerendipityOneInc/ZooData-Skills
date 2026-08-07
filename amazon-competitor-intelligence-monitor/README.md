@@ -29,6 +29,13 @@ Select **Amazon Competitor Intelligence Monitor** when prompted.
    export ZOODATA_API_KEY='hms_live_xxxxxx'
    ```
 
+## Data & Privacy
+
+- Each run sends your tracked ASINs, competitor ASINs, keywords, category paths, and marketplace/date/numeric filters to the ZooData API (`api.zoodata.ai`). With scheduled Quick Check monitoring enabled, this happens on a recurring, unattended basis.
+- Nothing else is transmitted: no budget, seller-account, or free-text profile data leaves your machine.
+- Local state: baselines, history, and alert files under the skill's `monitor-data/` folder persist between runs for change detection. Delete the folder anytime to reset monitoring and remove the retained data.
+- Scheduled monitoring is opt-in — the skill asks for explicit confirmation before enabling recurring runs. Every API call consumes account credits.
+
 ## Example Prompts
 
 - *"Analyze my competitors for ASIN B0XXXXXXXX in the yoga mat market"*

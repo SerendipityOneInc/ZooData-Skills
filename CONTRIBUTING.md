@@ -107,6 +107,21 @@ Keep this repository-maintenance process out of runtime skill instructions and
 user-facing reports. Add or update consistency tests to enforce both ownership
 and the absence of maintenance-language leakage.
 
+## Command Allowlists
+
+Every `amazon-*` skill declares its permitted CLI command set on exactly one
+declaration line in its `SKILL.md` ("This skill allows ..." or "The bundled
+manifest allows exactly ..."), and bundles the same set in
+`scripts/allowed-commands.json`, which the shared CLI enforces at runtime.
+`tests/test_zoodata.py::TestCommandAllowlist` asserts the declaration line and
+the manifest match exactly, in both directions. When adding or removing a
+routed command, update the declaration line and the manifest together — never
+widen a manifest just to silence the test without also changing the skill's
+declared scope. The marker phrases "This skill allows" and "The bundled
+manifest allows exactly" are reserved for that single declaration line: do not
+use either phrase in other SKILL.md prose, or the exactly-one-declaration
+assertion fails.
+
 ## Commit Convention
 
 We use conventional commits:

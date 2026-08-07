@@ -30,6 +30,13 @@ Select **Amazon Market Trend Scanner** when prompted.
    export ZOODATA_API_KEY='hms_live_xxxxxx'
    ```
 
+## Data & Privacy
+
+- Each scan sends your category names, keywords, and marketplace/date/numeric filters to the ZooData API (`api.zoodata.ai`). With scheduled Quick Check monitoring enabled, this happens on a recurring, unattended basis.
+- Nothing else is transmitted: no budget, seller-account, or free-text profile data leaves your machine.
+- Local state: `baseline.json`, `watchlist.json`, `alerts.json`, and `history/` snapshots under the skill's `scan-data/` folder persist between runs solely for trend comparison. Delete the folder (or prune old `history/` files) anytime to reset and remove the retained data.
+- Scheduled monitoring is opt-in — the skill asks for explicit confirmation before enabling recurring runs. Every API call consumes account credits.
+
 ## Example Prompts
 
 - *"Scan Pet Supplies for trending subcategories"*

@@ -128,21 +128,6 @@ PRODUCT_MODES = {
 
 # ─── API Client ──────────────────────────────────────────────────────────────
 
-_DEPRECATION_WARNED = set()
-
-
-def _warn_deprecated_source(label, replacement):
-    """Warn once per process when a legacy credential source is used."""
-    if label in _DEPRECATION_WARNED:
-        return
-    _DEPRECATION_WARNED.add(label)
-    print(
-        f"WARNING: {label} is deprecated and will be removed in a future "
-        f"release. Use {replacement} instead.",
-        file=sys.stderr,
-    )
-
-
 def _read_config_api_key(path):
     """Return the api_key from a JSON config file, or None if absent/unreadable."""
     if not os.path.exists(path):
@@ -154,6 +139,68 @@ def _read_config_api_key(path):
         return None
 
 
+def _load_command_allowlist():
+    """
+    Per-skill command-allowlist manifest.
+
+    The shared CLI ships byte-identical inside every skill bundle; the
+    `allowed-commands.json` manifest next to this script scopes which
+    subcommands the bundling skill may invoke. Returns a set of command
+    names, or None when no manifest exists (canonical copy / the zoodata
+    data-layer reference skill expose the full surface). A malformed
+    manifest fails closed: exit 2 with a diagnostic, never a silent
+    full-surface fallback.
+    """
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "allowed-commands.json")
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            commands = json.load(f)["allowedCommands"]
+        if (not isinstance(commands, list) or not commands
+                or not all(isinstance(c, str) and c for c in commands)):
+            raise ValueError("allowedCommands must be a non-empty list of strings")
+        return set(commands)
+    except (OSError, ValueError, KeyError, TypeError) as e:
+        print(f"ERROR: invalid command-allowlist manifest allowed-commands.json ({path}): {e}",
+              file=sys.stderr)
+        print("Refusing to run (fail-closed). Restore the manifest from the "
+              "published skill bundle or reinstall the skill.", file=sys.stderr)
+        sys.exit(2)
+
+
+def _enforce_command_allowlist(command, fmt="json"):
+    """Refuse subcommands outside the bundling skill's manifest.
+
+    The refusal is emitted as valid structured JSON WITHOUT the terminal
+    interface-failure action token: per the shared CLI contract, non-zero
+    exit with valid JSON and no token is a documented non-terminal error,
+    so the calling agent selects a documented command instead of stopping
+    the turn. No API request is made and no credits are consumed.
+    """
+    allowed = _load_command_allowlist()
+    if allowed is None or command in allowed:
+        return
+    refusal = {
+        "success": False,
+        "error": {
+            "status": "COMMAND_NOT_ALLOWED",
+            "message": (
+                f"Subcommand '{command}' is outside this skill's documented "
+                f"command set. Allowed commands: {', '.join(sorted(allowed))}. "
+                "No API request was made and no credits were consumed. "
+                "The full command surface remains available via the zoodata "
+                "data-layer reference skill (ships no manifest)."
+            ),
+        },
+        "_query": {"endpoint": None, "params": {"command": command}},
+    }
+    indent = None if fmt == "compact" else 2
+    print(json.dumps(refusal, ensure_ascii=False, indent=indent))
+    sys.exit(2)
+
+
 def _resolve_credential():
     """
     Resolve the ZooData API key. Returns the key string or None.
@@ -163,36 +210,21 @@ def _resolve_credential():
     Sources, in order:
       1. ZOODATA_API_KEY env var
       2. ~/.zoodata/config.json
-      3. APICLAW_API_KEY env var    (deprecated — warns)
-      4. ~/.apiclaw/config.json     (deprecated — warns)
 
-    The two legacy sources are considered only when neither new source
-    contains a key. A selected new key remains authoritative even if an API
-    request later rejects it; request handling must not fall through here.
+    A selected key remains authoritative even if an API request later
+    rejects it; request handling must not fall through here.
 
-    The former {skill_dir}/config.json fallback was removed for security: the
-    skill directory ships inside the published bundle, so a key placed there
-    would be published publicly.
+    The legacy fallbacks (APICLAW_API_KEY env var, ~/.apiclaw/config.json)
+    were removed: the CLI reads no credential source beyond the two it
+    declares. The former {skill_dir}/config.json fallback was removed for
+    security: the skill directory ships inside the published bundle, so a
+    key placed there would be published publicly.
     """
     key = os.environ.get("ZOODATA_API_KEY", "").strip()
     if key:
         return key
 
-    key = _read_config_api_key(os.path.expanduser("~/.zoodata/config.json"))
-    if key:
-        return key
-
-    key = os.environ.get("APICLAW_API_KEY", "").strip()
-    if key:
-        _warn_deprecated_source("APICLAW_API_KEY", "ZOODATA_API_KEY")
-        return key
-
-    key = _read_config_api_key(os.path.expanduser("~/.apiclaw/config.json"))
-    if key:
-        _warn_deprecated_source("~/.apiclaw/config.json", "~/.zoodata/config.json")
-        return key
-
-    return None
+    return _read_config_api_key(os.path.expanduser("~/.zoodata/config.json"))
 
 
 def get_api_key():
@@ -203,14 +235,19 @@ def get_api_key():
 
     print("ERROR: API Key not found.", file=sys.stderr)
     print("", file=sys.stderr)
+    if os.environ.get("APICLAW_API_KEY", "").strip():
+        print("  NOTE: APICLAW_API_KEY is set but no longer read (legacy source removed).", file=sys.stderr)
+        print("  Rename it: export ZOODATA_API_KEY=\"$APICLAW_API_KEY\"", file=sys.stderr)
+        print("", file=sys.stderr)
     print("Please configure your API Key using one of these methods:", file=sys.stderr)
     print("", file=sys.stderr)
     print("  Method 1: Environment variable (recommended — no file written)", file=sys.stderr)
     print("    export ZOODATA_API_KEY='hms_live_yourkey'", file=sys.stderr)
     print("", file=sys.stderr)
     print("  Method 2: User-home config (persistent, shared across all skills)", file=sys.stderr)
-    print("    mkdir -p ~/.zoodata", file=sys.stderr)
-    print('    echo \'{"api_key":"hms_live_yourkey"}\' > ~/.zoodata/config.json', file=sys.stderr)
+    print("    mkdir -p ~/.zoodata && chmod 700 ~/.zoodata", file=sys.stderr)
+    print('    (umask 077; echo \'{"api_key":"hms_live_yourkey"}\' > ~/.zoodata/config.json)', file=sys.stderr)
+    print("    # keep the file private (0600) — it holds a bearer credential", file=sys.stderr)
     print("", file=sys.stderr)
     print("Get a free key at https://zoodata.ai/en/api-keys", file=sys.stderr)
     sys.exit(1)
@@ -535,6 +572,13 @@ def _resolve_category(api_caller, log_fn, keyword=None, asin=None, results=None)
                     category_path = cat_data[0].get("categoryPath")
                     category_source = "inferred_from_search"
                     log_fn(f"  ⚠️ Auto-inferred category: {' > '.join(category_path or [])} — AI should confirm with user")
+
+    # Record the resolved category path in composite meta so an empty top-level
+    # `categories` section (Priority-1 miss for a multi-word product phrase) is not
+    # misread as missing data when a later priority resolved the category. Pairs
+    # with `meta.category_source`, which callers set to record HOW it resolved.
+    if results is not None:
+        results.setdefault("meta", {})["resolved_category_path"] = category_path
 
     return category_path, category_source
 
@@ -1460,7 +1504,7 @@ def cmd_market_entry(args):
     if not category_path:
         category_path, category_source = _resolve_category(safe_call, log, keyword=keyword, results=results)
         results["meta"]["category_source"] = category_source
-    results["meta"]["resolved_category"] = category_path
+    results["meta"]["resolved_category_path"] = category_path
 
     # ── Step 1: Market Landscape (3 calls) ──
     log("Step 1/6: Market landscape...")
@@ -1745,7 +1789,7 @@ def cmd_competitor_analysis(args):
     if category_path:
         comp_params["categoryPath"] = category_path
     results["competitors"] = safe_call("products/competitors", comp_params, "competitors")
-    results["meta"]["resolved_category"] = category_path
+    results["meta"]["resolved_category_path"] = category_path
     results["meta"]["steps_completed"].append("competitor_discovery")
 
     # Step 2: Market Context
@@ -1942,7 +1986,7 @@ def cmd_pricing_analysis(args):
         if not category_path and keyword:
             category_path, category_source = _resolve_category(safe_call, log, keyword=keyword, results=results)
             results["meta"]["category_source"] = category_source
-    results["meta"]["resolved_category"] = category_path
+    results["meta"]["resolved_category_path"] = category_path
 
     # Step 2: Price Band Intelligence
     log("Step 2/8: Price band intelligence...")
@@ -2127,7 +2171,7 @@ def cmd_daily_radar(args):
         category_path, category_source = _resolve_category(
             safe_call, log, keyword=keyword, asin=tracked_asins[0] if tracked_asins else None, results=results)
         results["meta"]["category_source"] = category_source
-    results["meta"]["resolved_category"] = category_path
+    results["meta"]["resolved_category_path"] = category_path
 
     # Step 1: Realtime Snapshot for All Tracked ASINs
     log(f"Step 1/7: Realtime snapshot ({len(tracked_asins)} ASINs)...")
@@ -2302,7 +2346,7 @@ def cmd_listing_audit(args):
         category_path, category_source = _resolve_category(
             safe_call, log, keyword=keyword, asin=my_asin, results=results)
         results["meta"]["category_source"] = category_source
-    results["meta"]["resolved_category"] = category_path
+    results["meta"]["resolved_category_path"] = category_path
 
     # Step 1: Audit Target
     log("Step 1/7: Auditing target listing...")
@@ -2538,7 +2582,7 @@ def cmd_opportunity_scan(args):
     if not category_path:
         category_path, category_source = _resolve_category(safe_call, log, keyword=keyword, results=results)
         results["meta"]["category_source"] = category_source
-    results["meta"]["resolved_category"] = category_path
+    results["meta"]["resolved_category_path"] = category_path
 
     # Step 1: Product Scan (mode-based + custom filters)
     scan_label = f"{len(modes)} modes" if "custom" not in modes else "custom filters"
@@ -2752,7 +2796,7 @@ def cmd_review_deepdive(args):
         category_path, category_source = _resolve_category(
             safe_call, log, keyword=keyword, asin=target_asin, results=results)
         results["meta"]["category_source"] = category_source
-    results["meta"]["resolved_category"] = category_path
+    results["meta"]["resolved_category_path"] = category_path
 
     # Step 1: Target Identification
     log("Step 1/5: Target identification...")
@@ -2880,7 +2924,9 @@ def cmd_check(args):
         print("✅ API Key: configured", file=sys.stderr)
     else:
         print("❌ API Key: Not found", file=sys.stderr)
-        print("   Checked: env ZOODATA_API_KEY, ~/.zoodata/config.json (also legacy env APICLAW_API_KEY, ~/.apiclaw/config.json — deprecated)", file=sys.stderr)
+        print("   Checked: env ZOODATA_API_KEY, ~/.zoodata/config.json", file=sys.stderr)
+        if os.environ.get("APICLAW_API_KEY", "").strip():
+            print("   NOTE: APICLAW_API_KEY is set but no longer read (legacy source removed); rename it to ZOODATA_API_KEY.", file=sys.stderr)
         print("   Get one at: https://zoodata.ai/en/api-keys", file=sys.stderr)
         sys.exit(1)
 
@@ -3327,6 +3373,16 @@ def main():
     _cli_had_error = False
     _cli_emitted_output = False
 
+    # Enforce the per-skill allowlist BEFORE argparse touches the command:
+    # a disallowed subcommand must yield the structured refusal, not a
+    # usage error about its arguments (allow_abbrev=False everywhere, so
+    # argv[1] is the literal command name). Help is documentation, not
+    # execution — `<cmd> --help` makes no API call and stays available for
+    # the full surface in every bundle.
+    if (len(sys.argv) > 1 and not sys.argv[1].startswith("-")
+            and "-h" not in sys.argv and "--help" not in sys.argv):
+        _enforce_command_allowlist(sys.argv[1])
+
     parser = argparse.ArgumentParser(
         description="ZooData CLI — Amazon Product Research",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -3697,10 +3753,16 @@ Examples:
     p_check.set_defaults(func=cmd_check)
 
     args, unknown = parser.parse_known_args()
+    # Post-parse backstop: global options may legitimately precede the
+    # subcommand (cli-contract.md documents that form), in which case the
+    # early argv[1] check above never fired. Enforce on the parsed command
+    # BEFORE the unknown-args exit so a disallowed command always yields
+    # the structured refusal, never a usage error for a command that could
+    # not run here anyway.
+    _enforce_command_allowlist(args.command, args.format)
     if unknown:
-        cmd = sys.argv[1] if len(sys.argv) > 1 else ""
         print(f"ERROR: Unrecognized argument(s): {' '.join(unknown)}", file=sys.stderr)
-        print(f"Run 'zoodata.py {cmd} --help' to see valid options.", file=sys.stderr)
+        print(f"Run 'zoodata.py {args.command} --help' to see valid options.", file=sys.stderr)
         sys.exit(1)
     # Codex and other agent runtimes may merge stdout and stderr into one tool
     # result. Buffer stderr while the command runs so retry/progress messages
