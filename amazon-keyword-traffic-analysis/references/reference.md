@@ -219,7 +219,7 @@ Request:
 - `queryType=phrase|fuzzy`
 - optional marketplace, page, pageSize (1–100), sortBy, sortOrder
 - compatibility-retained `granularity` supports only `week`
-- the current MCP schema has no `date` parameter; the service uses the latest available weekly snapshot. The CLI accepts legacy `--date` locally but omits it from the request.
+- the current MCP schema has no `date` parameter; the service uses the latest available weekly snapshot. The CLI has no `--date` option for this command.
 - `sortBy=relevanceScore|estimateSearchCount|abaRank|keyword`
 
 Response:

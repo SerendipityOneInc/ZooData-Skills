@@ -156,7 +156,7 @@ For every parsed HTTP response from `zoodata.py`, treat `_transport.status` as t
 - `keywords/detail` accepts exactly one of `keyword` / `keywords[]` (max 20), resolves `date` to the nearest available weekly snapshot, and returns input-ordered `data.items[]`; an unmatched item has `status=empty`, not top-level `data: null`
 - `keywords/market-profile` accepts one of `keyword` / `keywords[]` (max 20), requires `date`, supports weekly granularity only, and returns input-ordered `data.items[]` with `status=ok|empty`. `emptyReason` is descriptive no-result text, not an enum. A subject-specific calculation failure can return HTTP 500 for the whole batch.
 - `keywords/trend-profile` accepts one of `keyword` / `keywords[]` (max 20), requires `date` and 1–4 unique `windowPeriods` selected from 4/8/12/26, and supports weekly granularity only.
-- `keywords/extends` requires `query` (not `keyword`), uses the latest available weekly snapshot, supports `queryType` = `phrase` or `fuzzy`, and may legitimately return empty `data.rows[]`; the MCP schema has no `date` parameter, and the CLI omits its legacy `--date` value from requests
+- `keywords/extends` requires `query` (not `keyword`), uses the latest available weekly snapshot, supports `queryType` = `phrase` or `fuzzy`, and may legitimately return empty `data.rows[]`; the MCP schema has no `date` parameter, and the CLI has no `--date` option for this command
 - All eleven current keyword and product-traffic request schemas retain `granularity` for compatibility and accept only `week`; all currently support only marketplace `US`. The bundled CLI sends both values explicitly. Never send another granularity or legacy `lookbackDays`. Use returned weekly period boundaries instead of inferring a rolling window.
 - Batch keyword fields on `detail`, `market-profile`, `trend`, `trend-profile`, and `product-traffic-terms-trend` must already equal `LOWER(TRIM(value))`; the bundled CLI normalizes them. Single-keyword fields accept surrounding whitespace and letter case where the endpoint schema says so.
 - Keyword endpoints are keyword-query workflows; for inputs named `keyword` or `query`, use the Amazon search query / keyword phrase being analyzed
@@ -225,7 +225,7 @@ Keyword value boundary:
 ### `/openapi/v2/keywords/extends`
 - Input: required `query`; optional `marketplace`, `page`, `pageSize`, `queryType`, `sortBy`, `sortOrder`; compatibility-retained `granularity` supports only `week`; no date is required
 - Important quirk: seed field is `query`, not `keyword`; `queryType` supports `phrase` and `fuzzy`
-- Data window: latest available weekly snapshot; the MCP schema has no `date` parameter, and the CLI omits its legacy `--date` value from requests
+- Data window: latest available weekly snapshot; the MCP schema has no `date` parameter, and the CLI has no `--date` option for this command
 - Response shape: `data.context + data.query + data.queryType + data.rows[]`
 - Row fields: `matchData.{query,keyword,site,relevanceScore}` and `keywordSnapshot`, whose
   `dataWindow.currentPeriod` and snapshot metrics use the same current field families as `keywords/detail`

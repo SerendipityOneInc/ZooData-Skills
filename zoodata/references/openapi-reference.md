@@ -428,7 +428,7 @@ Use this metric endpoint first for trend shape and volatility; call raw `keyword
 | granularity | String | No | Compatibility field; only `week` is supported |
 
 ⚠️ Uses `query`, NOT `keyword`.
-⚠️ The current MCP schema has no `date` parameter; the service uses the latest available weekly snapshot. The bundled CLI accepts legacy `--date` locally but omits it from the request.
+⚠️ The current MCP schema has no `date` parameter; the service uses the latest available weekly snapshot. The bundled CLI has no `--date` option for this command.
 ⚠️ Empty `data.rows[]` is a normal success case.
 
 **Response:** `data.context + data.query + data.queryType + data.rows[]`.

@@ -3277,8 +3277,6 @@ def cmd_keyword_trend(args):
 
 def cmd_keyword_extends(args):
     """Get keyword expansion candidates."""
-    if args.date:
-        _require_yyyy_mm_dd(args.date, "--date")
     params = {
         "query": _require_nonempty_text(args.query, "--query"),
         "marketplace": args.marketplace,
@@ -3727,7 +3725,6 @@ Examples:
     # ── keyword-extends ──
     p_ke = sub.add_parser("keyword-extends", help="Keyword expansion", allow_abbrev=False)
     p_ke.add_argument("--query", required=True, help="Seed keyword (required)")
-    p_ke.add_argument("--date", help="Deprecated compatibility flag; validated locally but not sent (service uses latest snapshot)")
     p_ke.add_argument("--marketplace", choices=KEYWORD_MARKETPLACE_CHOICES, default="US", help="Marketplace (currently US only)")
     p_ke.add_argument("--page", type=int, default=1, help="Page number (default: 1)")
     p_ke.add_argument("--page-size", type=int, default=20, help="Page size (default: 20, max 100)")
