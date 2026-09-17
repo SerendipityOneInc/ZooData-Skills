@@ -26,6 +26,9 @@ Tell me your budget and experience. I find opportunities, score them, and rank.
 ## Files
 - **Script**: `{skill_base_dir}/scripts/zoodata.py` — run `--help` for params
 - **Reference**: `{skill_base_dir}/references/reference.md` (field names & response structure)
+- **Category selection**: `{skill_base_dir}/references/category-selection.md` (bounded market discovery and ranking)
+
+For category selection, this file routes the request and sets runtime boundaries; `references/reference.md` owns endpoint parameters and fields, `references/category-selection.md` owns scanning and ranking, `references/cli-contract.md` owns shared invocation/result handling, and `scripts/zoodata.py` owns request construction.
 
 ## Credential
 Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zoodata.ai/en/api-keys)
@@ -55,7 +58,7 @@ For a terminal interface failure, respond in the user's language that the opport
 - categoryPath is auto-resolved via `categories`, with fallback to top search result. If `category_source` is `inferred_from_search`, confirm with user — keyword-only queries contaminate results
 - All keyword-based endpoints MUST include `--category` when locked
 - **`mode`/`--sales-min`/`--ratings-max` are CLI-local, expanded client-side** — NOT API fields. A raw request must use expanded API filters, must not send `mode`/`salesMin`/`ratingsMax`, and must distinguish `ratingMax` from `ratingCountMax`; otherwise the API returns 422.
-- Market revenue = `totalMonthlyRevenue` directly. Sales = `monthlySalesFloor` (lower bound)
+- For market revenue and product sales fields, read `references/reference.md`; apply `references/category-selection.md` when ranking categories.
 - `reviews/analysis` needs 50+ reviews. Fallback chain when sample is insufficient:
   1. **Lightweight**: `realtime/product` ratingBreakdown — only star distribution, no themes
   2. **Full 11-dim insights** — bypass `/reviews/analysis` entirely:
@@ -102,8 +105,9 @@ When `_transport.status=402`, stop further calls. Report where the workflow stop
 ### User Criteria → Filter Params
 Always translate: "300+ monthly sales" → `--sales-min 300`, "reviews <100" → `--ratings-max 100`, "$15-35" → `--price-min 15 --price-max 35`. If user has specific criteria, use custom filters (Approach B/C), NOT default modes. (`--sales-min`/`--ratings-max`/`--modes` are CLI-local — see API Pitfalls before any raw call.)
 
-### Data-Driven Category Selection (no specific category given)
-Scan with `market --scope subtree --sales-min 200 --page-size 20` under a stated page/credit budget; do not paginate the entire global catalog by default. Rank observed category markets by `totalMonthlySales`, `top100ConservativeNewProductRate6m`, `top100FbmRate`, and `top100MedianPrice`. Treat Top 100 fields as selected-sample evidence and label the ranking as limited to scanned pages. Pick top 3-5; use their returned `categoryId` for deeper evidence.
+### Data-Driven Category Selection
+
+Load `references/category-selection.md` for the bounded category discovery workflow. It owns selection and ranking steps.
 
 ### Opportunity Score (per candidate, 1-100)
 | Dimension | Weight | Good | Medium | Warning |
@@ -177,7 +181,7 @@ Include a table at the end of every report:
 
 | Data | Endpoint | Key Params | Notes |
 |------|----------|------------|-------|
-| (e.g. Market Overview) | `markets/overview` | categoryId, categoryScope, sampleType | 📊 Full category and selected Top 100 metrics |
+| (e.g. Market Overview) | `markets/overview` | Copy actual `_query.params` | 📊 Full category and selected Top 100 metrics |
 | ... | ... | ... | ... |
 
 Extract endpoint and params from `_query` in JSON output. Add notes: sampling method, T+1 delay, realtime vs DB, minimum review threshold, etc.

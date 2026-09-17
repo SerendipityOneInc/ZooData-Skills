@@ -54,23 +54,10 @@ All endpoints return: `{success, data, error, meta}` with `meta.creditsRemaining
 
 ## 2. Market endpoints
 
-All four endpoints support only US. Resolve a human category path through `categories` to obtain `categoryId`. `categoryScope=direct` selects the node itself; `subtree` includes descendants without duplicates. The selected sample contains at most 100 products. At runtime, `sampleType` accepts `unitSalesTop100` or `revenueTop100`; the current MCP description still advertises `bySale100` / `byRevenue100`, which live validation rejects. Legacy market `categoryPath`, `categoryKeyword`, and `topN` requests are not accepted.
-
-### markets/search — discovery
-
-Required: `categoryScope`. Optional exact `categoryId` or `categoryName`, `date`, `sampleType`, `page`, `pageSize` (1–100), `sortBy` (`totalMonthlySales`, `totalMonthlyRevenue`, `top100MonthlySales`, `top100MonthlyRevenue`), `sortOrder`. Filters include `totalMonthlySalesMin`, `totalMonthlyRevenueMin`, `top100MonthlySalesMin`, `top100MonthlyRevenueMin`, `top100FbmRateMin/Max`, `top100APlusRateMin/Max`, `top100AvgSellerCountMin/Max`, `newProductMonthlyRevenueMin/Max`, `newProductRatingCountMin/Max`, `newProductRatingMin/Max`, and `sellerCountry`. Response `data[]` holds category identity, full-category `total*` size/sales/revenue and a selected `top100*` summary; `meta.total` is the total matching market count. `categoryName` is exact match, not keyword search.
-
-### markets/overview — one snapshot
-
-Required: `categoryId`. Optional: `categoryScope`, `sampleType`, `date`. Response `data` is an object. Full category: `totalSkuCount`, `totalSpuCount`, `totalMonthlySales`, `totalMonthlyRevenue`. Selected Top 100: `top100SkuCount`, `top100MonthlySales`, `top100MonthlyRevenue`, coverage rates, `top100MedianPrice`, brand/seller counts, `top100AvgRating`, `top100AvgRatingCount`, `top100FbmRate`, `top100APlusRate`, conservative six-month new-product metrics, and Top 10 product/brand concentration rates. Keep whole-category and Top 100 denominators separate.
-
-### markets/structure-profile — one distribution
-
-Required: `categoryId`, `dimension` (`brand`, `seller`, `price`, `sellerCountry`, `fulfillment`, `ratingCount`, `rating`, `listingAge`, `listingYear`, `productFeature`). Optional: `categoryScope`, `sampleType`, `date`. Response `data.buckets[]` describes the selected Top 100 only, with bucket label, `skuCount`/`skuRate`, sales/revenue and their shares, plus dimension-specific fields. `data.top100SkuCount` is the denominator.
-
-### markets/history — month-end series
-
-Required: `categoryId`, `startDate`, `endDate`. Optional: `categoryScope`, `sampleType`. Response `data.points[]` is ascending available month-end snapshots; absent months are omitted. Points include full-category and Top 100 size/sales/revenue, conservative six-month new-product measures, and MoM/YoY rates when comparable baselines exist. Check `actualStartDate`/`actualEndDate`.
+For the exact request and response contracts of `markets/search`,
+`markets/overview`, `markets/structure-profile`, and `markets/history`,
+read [openapi-reference.md](openapi-reference.md#2-marketssearch).
+This summary reference does not redefine those schemas.
 
 ---
 
@@ -294,3 +281,16 @@ Request params: `keyword`, `brand`, `asin`, `categoryPath`, `sortBy`, `pageSize`
 | Competition level | markets (topSalesRate) | brand-detail (top brand shares) |
 | Consumer demand | reviews/analysis | products (sales + growth) |
 | Avg rating quality | markets/overview (top100AvgRating) | brand-overview (sampleTop10AvgRating) |
+
+## Field Differences Across Endpoints
+
+| Data | markets | products/competitors | realtime/product | reviews/analysis | realtime/reviews | price-band | brand | history |
+|------|---------|---------------------|----------|---------|---------|------------|-------|---------|
+| Sales | totalMonthlySales / top100MonthlySales | monthlySalesFloor | ❌ | ❌ | ❌ | sampleSalesRate | sampleGroupMonthlySales | monthlySalesFloor[] |
+| Price | top100MedianPrice | price | buyboxWinner.price | ❌ | ❌ | bandMin/MaxPrice | sampleAvgPrice | price[] |
+| BSR | ❌ | bsr (int) | bestsellersRank[] | ❌ | ❌ | ❌ | ❌ | bsr[] |
+| Rating | top100AvgRating | rating | rating | avgRating | rating (per review) | sampleAvgRating | sampleAvgRating | rating[] |
+| Reviews | top100AvgRatingCount | ratingCount | ratingCount | reviewCount | reviews[] (raw text, max 100) | ❌ | sampleAvgRatingCount | ratingCount[] |
+| Insights | ❌ | ❌ | ❌ | ✅ consumerInsights | ❌ (raw only — feeds Local Review Toolkit) | ❌ | ❌ | ❌ |
+| Concentration | top100Top10BrandSalesRate | ❌ | ❌ | ❌ | ❌ | sampleTop3BrandSalesRate | CR10 | ❌ |
+| Opportunity | ❌ | ❌ | ❌ | ❌ | ❌ | sampleOpportunityIndex | ❌ | ❌ |

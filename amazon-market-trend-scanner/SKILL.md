@@ -29,7 +29,10 @@ metadata:
 |------|---------|
 | `{skill_base_dir}/scripts/zoodata.py` | **Execute** for all API calls (run `--help` for params) |
 | `{skill_base_dir}/references/reference.md` | Load for exact field names or response structure |
+| `{skill_base_dir}/references/scan-workflow.md` | Load for scan modes, baseline handling, signals, and ranking |
 | `{skill_base_dir}/scan-data/` | Runtime: watchlist.json, baseline.json, alerts.json, history/ (auto-created) |
+
+For market scanning, this file routes the request and sets runtime boundaries; `references/reference.md` owns endpoint parameters and fields, `references/scan-workflow.md` owns scan modes, baseline handling, and signals, `references/cli-contract.md` owns shared invocation/result handling, and `scripts/zoodata.py` owns request construction.
 
 ## Credential
 
@@ -61,9 +64,8 @@ Required: 1+ category paths or keywords. Optional: scan depth, metric preference
 
 1. **Category first**: resolve categoryPath via `categories --keyword` before anything
 2. **All keyword endpoints MUST include `--category`**; omitting it distorts aggregation
-3. **Use market fields directly**: full-category revenue=`totalMonthlyRevenue`, sales=`totalMonthlySales`; Top 100 measures use the `top100` prefix.
-4. **Key metrics per subcategory**: `totalMonthlySales`, `totalMonthlyRevenue`, `top100ConservativeNewProductRate6m`, `top100Top10BrandSalesRate`, `top100MedianPrice`, `totalSkuCount`, `top100FbmRate`.
-5. **`--mode` presets are CLI-local, NOT API params** — `zoodata.py` expands them via `PRODUCT_MODES` before the call; a raw `products/search` request must send the expanded filter fields and must not send `mode` (`mode` raw → 422)
+3. **Market metrics**: read `references/reference.md § 2` for the current field identity and denominator; apply `references/scan-workflow.md` for scan metrics and signals.
+4. **`--mode` presets are CLI-local, NOT API params** — `zoodata.py` expands them via `PRODUCT_MODES` before the call; a raw `products/search` request must send the expanded filter fields and must not send `mode` (`mode` raw → 422)
 
 ## On Missing Key
 
@@ -76,54 +78,9 @@ When `_transport.status=401`, stop further calls, tell the user that the configu
 
 When `_transport.status=402`, stop further calls. Report where the workflow stopped, any compatible partial findings already gathered, and returned credit metadata when present; direct the user to https://zoodata.ai/en/pricing and do not fabricate missing data.
 
-## Mode 1: Full Scan
+## Full scan, quick check, trend signals, and subcategory ranking
 
-1. `categories --keyword "{keyword}"` → resolve category path
-2. `categories --parent "{path}"` → child IDs; `market-overview --category-id "{id}" --scope subtree` for each child. Use `market` for size-filtered market discovery.
-3. Record 7 key metrics per subcategory (see Pitfalls #4)
-4. `products --keyword "{sub}" --category "{path}" --mode emerging --page-size 20` per hot subcategory
-5. `products --keyword "{sub}" --category "{path}" --mode new-release --page-size 20` per hot subcategory
-6. Save baseline → `{skill_base_dir}/scan-data/baseline.json`, config → `{skill_base_dir}/scan-data/watchlist.json`
-7. Output full trend report (see Output Spec)
-8. Offer Auto-Monitor setup
-
-## Mode 2: Quick Check (scheduled)
-
-1. Read `{skill_base_dir}/scan-data/watchlist.json` + `{skill_base_dir}/scan-data/baseline.json`
-2. Resolve each watched category path through `categories --category "{path}"` if its watchlist entry lacks `categoryId`; then run `market-overview --category-id "{id}" --scope subtree`. Use `market-history --category-id "{id}" --start-date YYYY-MM-DD --end-date YYYY-MM-DD` when a server month-end trend is needed.
-3. If the saved baseline contains legacy `sample*` market fields instead of the new `total*` / `top100*` fields, initialize a new baseline from the successful current snapshot and suppress change alerts for that first migrated check. Preserve the old snapshot in history for audit, but do not compare incompatible fields.
-4. Compare vs baseline using signal rules below
-5. 🔴 alerts → notify user; else silent log
-6. Save snapshot to `{skill_base_dir}/scan-data/history/{timestamp}.json`, update baseline and watchlist ID
-
-## Trend Signals
-
-| Signal | Condition | Level |
-|--------|-----------|-------|
-| Demand surge | `totalMonthlySales` >20% vs comparable baseline | 🔴 |
-| Red ocean warning | `top100Top10BrandSalesRate` >70% AND rising | 🔴 |
-| New entrant wave | `top100ConservativeNewProductRate6m` up >5 percentage points | 🟡 |
-| Brand loosening | `top100Top10BrandSalesRate` down >3 percentage points | 🟡 |
-| Price shift | `top100MedianPrice` change >10%; inspect `market-structure-profile --dimension price` | 🟡 |
-| Minor movement | None of the above triggered | 🟢 Silent log |
-
-### Trend Interpretation & Action Guide
-| Signal Combination | Market Phase | Recommended Action |
-|--------------------|-------------|-------------------|
-| Demand surge + New entrant wave | 🚀 Growth phase | Enter quickly, first-mover advantage matters 💡 |
-| Demand surge + Brand loosening | 🎯 Opportunity window | Best timing — demand up, incumbents losing grip 💡 |
-| Demand surge + Red ocean warning | ⚠️ Late stage growth | High demand but leaders consolidating — need strong differentiation 💡 |
-| Red ocean warning + No demand surge | 🔒 Mature/locked | Avoid — established players dominate with flat demand 💡 |
-| Brand loosening + Price band shift down | 💰 Price war | Wait — margins compressing, enter after shakeout 💡 |
-| New entrant wave + Price shift | 🔄 Disruption | Study the new products and price distribution 🔍 |
-
-### Subcategory Ranking Criteria
-Rank subcategories by composite attractiveness (apply market-entry scoring logic):
-- **Demand**: `totalMonthlySales` — higher observed demand 📊
-- **Competition**: `top100Top10BrandSalesRate` — lower selected-sample concentration 📊
-- **Entry barrier**: `top100AvgRatingCount` — lower review burden 📊
-- **Activity**: `top100ConservativeNewProductRate6m` — higher recent listing share 📊
-- **Price positioning**: `top100MedianPrice`; price alone does not establish margin 🔍
+Load `references/scan-workflow.md` for this workflow. That module owns the detailed steps and interpretation rules.
 
 ## Auto-Monitor
 
@@ -155,7 +112,7 @@ Include a table at the end of every report:
 
 | Data | Endpoint | Key Params | Notes |
 |------|----------|------------|-------|
-| (e.g. Market Overview) | `markets/overview` | categoryId, categoryScope, sampleType | 📊 Full category plus selected Top 100 metrics |
+| (e.g. Market Overview) | `markets/overview` | Copy actual `_query.params` | 📊 Full category and selected Top 100 metrics |
 | ... | ... | ... | ... |
 
 Extract endpoint and params from `_query` in JSON output. Add notes: sampling method, T+1 delay, realtime vs DB, minimum review threshold, etc.

@@ -6,7 +6,9 @@ All notable changes to this project will be documented in this file.
 
 ### Changed — Markets API v2 upgrade
 
-The shared CLI now uses the current `markets/search` discovery schema and exposes `market-overview`, `market-structure-profile`, and `market-history`. Composite market context resolves `categoryId` and reads `markets/overview`; skill references, examples, and routing tests use the new `total*` and selected `top100*` field families. Retired market CLI flags (`--category`, `--keyword`, `--topn`) were removed. The live market runtime accepts `sampleType=unitSalesTop100|revenueTop100`, although the current MCP description still lists older spellings.
+The shared CLI now uses the current `markets/search` discovery schema and exposes `market-overview`, `market-structure-profile`, and `market-history`. Composite market context resolves `categoryId` and reads `markets/overview`; skill references, examples, and routing tests use the new `total*` and selected `top100*` field families. Retired market CLI flags (`--category`, `--keyword`, `--topn`) were removed. The server recognizes legacy market filters in a separate compatibility mode, but the bundled CLI supports only the new parameters. Live MCP validation accepts `sampleType=unitSalesTop100` and rejects its advertised `bySale100` spelling; the MCP schema still requires `categoryScope` and cannot submit a pure legacy request.
+
+The market skill review moved detailed scoring, scan, category-selection, and market-health rules from `SKILL.md` into their owning reference modules. `zoodata/references/openapi-reference.md` owns the market endpoint schemas; the shorter reference links to it. Market provenance examples now direct agents to copy the actual `_query.params`.
 
 ### Chore — Patch-version bump across all 12 skills for ClawHub republish
 

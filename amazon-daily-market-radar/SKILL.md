@@ -67,7 +67,7 @@ Activation requires clear monitoring intent. Do not start a baseline run, update
 
 1. **Category auto-detection**: categoryPath is auto-detected from tracked ASINs. If `category_source` in output is `inferred_from_search`, confirm with user
 2. **All keyword-based endpoints MUST include `--category`**; ASIN-specific endpoints do NOT
-3. **Use API fields directly**: market revenue=`totalMonthlyRevenue` (NEVER price×sales), sales=`monthlySalesFloor`, market concentration=`top100Top10BrandSalesRate`
+3. **Use API fields directly**: read `references/reference.md § 2` for market revenue and concentration fields; use product sales as a lower-bound estimate
 4. **reviews/analysis**: needs 50+ reviews. Fallback chain when sample is insufficient:
    1. **Lightweight**: `realtime/product` ratingBreakdown — only star distribution, no themes
    2. **Full 11-dim insights** — bypass `/reviews/analysis` entirely:
@@ -184,7 +184,7 @@ Include a table at the end of every report:
 
 | Data | Endpoint | Key Params | Notes |
 |------|----------|------------|-------|
-| (e.g. Market Overview) | `markets/overview` | categoryId, categoryScope, sampleType | 📊 Full category and selected Top 100 metrics |
+| (e.g. Market Overview) | `markets/overview` | Copy actual `_query.params` | 📊 Full category and selected Top 100 metrics |
 | ... | ... | ... | ... |
 
 Extract endpoint and params from `_query` in JSON output. Add notes: sampling method, T+1 delay, realtime vs DB, minimum review threshold, etc.

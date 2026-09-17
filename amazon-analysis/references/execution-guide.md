@@ -179,6 +179,18 @@ Use this rendered template at the end of every report:
 
 ---
 
+## Market Health Assessment
+
+Use `totalMonthlyRevenue` from `markets/overview` for full-category revenue and `top100MonthlyRevenue` for its selected sample. Do not calculate revenue from price × sales; the field definitions are in `reference.md § 2`.
+
+| Indicator | Good | Caution | Warning |
+|-----------|------|---------|---------|
+| Monthly demand (top100MonthlySales) | >1,500 units 📊 | 500-1,500 📊 | <500 📊 |
+| Brand concentration (CR10) | <40% 📊 | 40-60% 📊 | >60% 📊 |
+| Conservative six-month new-product rate (top100ConservativeNewProductRate6m) | >15% 📊 | 5-15% 📊 | <5% 📊 |
+| Avg review count (top100AvgRatingCount) | <500 📊 | 500-5,000 📊 | >5,000 📊 |
+| FBM rate (top100FbmRate) | <40% 📊 | 40-60% 📊 | >60% 📊 |
+
 ## Interface Data Differences
 
 The interfaces return **different fields**. Do NOT assume they share the same structure.

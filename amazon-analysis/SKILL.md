@@ -29,11 +29,14 @@ metadata:
 |------|---------|
 | `{skill_base_dir}/scripts/zoodata.py` | **Execute** for all API calls (run `--help` for params) |
 | `{skill_base_dir}/references/reference.md` | Load when you need exact field names or filter details |
+| `{skill_base_dir}/references/execution-guide.md` | Load for market health thresholds and shared analysis workflow |
+
+For market analysis, this file routes the request and sets runtime boundaries; `references/reference.md` owns endpoint parameters and fields, `references/execution-guide.md` owns shared market-health interpretation, scenario modules own scenario-specific conclusions, `references/cli-contract.md` owns shared invocation/result handling, and `scripts/zoodata.py` owns request construction.
 
 
 ## Credential
 
-Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zoodata.ai/en/api-keys). Stored in `{skill_base_dir}/config.json` in skill root.
+Required: `ZOODATA_API_KEY`. Get a key at [zoodata.ai/api-keys](https://zoodata.ai/en/api-keys). Configure it in the environment or `~/.zoodata/config.json`.
 
 ## Capabilities & Data Flow
 
@@ -59,7 +62,7 @@ User provides: keyword, category, ASIN, or brand — depending on intent. Use in
 
 1. **Category first**: keyword search is broad → MUST lock `categoryPath` via `categories` endpoint before other calls
 2. **Brand + category**: Brand queries MUST include `--category` to avoid cross-category contamination
-3. **Use API fields directly**: market revenue=`totalMonthlyRevenue` from `markets/overview` (selected Top 100=`top100MonthlyRevenue`); product sales=`monthlySalesFloor` (lower bound); price-band opportunity=`sampleOpportunityIndex`.
+3. **Use API fields directly**: read `references/reference.md` for field identity and `references/execution-guide.md` for market revenue and denominator interpretation.
 4. **reviews/analysis**: needs 50+ reviews per ASIN; try category mode first (single call returns all dimensions), ASIN mode only if category call fails. Filter by `labelType` client-side from the `consumerInsights` array. Fallback chain when sample is insufficient:
    1. **Lightweight**: `realtime/product` ratingBreakdown — only star distribution, no themes
    2. **Full 11-dim insights** — bypass `/reviews/analysis` entirely:
@@ -120,13 +123,8 @@ Modes can combine with explicit filters (`--price-max`, `--sales-min`, etc). Ove
 Every analysis should address these dimensions where data is available:
 
 ### Market Health Assessment
-| Indicator | Good | Caution | Warning |
-|-----------|------|---------|---------|
-| Monthly demand (top100MonthlySales) | >1,500 units 📊 | 500-1,500 📊 | <500 📊 |
-| Brand concentration (CR10) | <40% 📊 | 40-60% 📊 | >60% 📊 |
-| Conservative six-month new-product rate (top100ConservativeNewProductRate6m) | >15% 📊 | 5-15% 📊 | <5% 📊 |
-| Avg review count (top100AvgRatingCount) | <500 📊 | 500-5,000 📊 | >5,000 📊 |
-| FBM rate (top100FbmRate) | <40% 📊 | 40-60% 📊 | >60% 📊 |
+
+Load `references/execution-guide.md § Market Health Assessment` for the metric thresholds and interpretation.
 
 ### Competitive Position Assessment
 - **Price vs category avg**: >20% above = premium positioning, >20% below = value play 🔍
@@ -143,7 +141,7 @@ When user asks "should I sell X" or "is this a good niche":
 ### Sales Estimation Notes
 - `monthlySalesFloor` is a **lower-bound** estimate 📊
 - Null sales fallback: Monthly sales ≈ 300,000 / BSR^0.65 🔍
-- Market revenue = `totalMonthlyRevenue` directly — never calculate price × sales 📊
+- For market revenue interpretation, load `references/execution-guide.md § Market Health Assessment`.
 
 ## Output Spec
 
@@ -187,7 +185,7 @@ Include a table at the end of every report:
 
 | Data | Endpoint | Key Params | Notes |
 |------|----------|------------|-------|
-| (e.g. Market Overview) | `markets/overview` | categoryId, categoryScope, sampleType | 📊 Full category plus selected Top 100 metrics |
+| (e.g. Market Overview) | `markets/overview` | Copy actual `_query.params` | 📊 Full category and selected Top 100 metrics |
 | ... | ... | ... | ... |
 
 Extract endpoint and params from `_query` in JSON output. Add notes: sampling method, T+1 delay, realtime vs DB, minimum review threshold, etc.

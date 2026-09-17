@@ -48,6 +48,8 @@ metadata:
 
 Before selecting or invoking a bundled CLI command, read and apply `references/cli-contract.md`; reapply it after every result. It is the local source of truth for invocation, command identity, execution-environment permission handling, composite reuse, exit-status handling, authoritative transport status, retries, terminal interface failures, and partial results.
 
+For market endpoint schemas and quirks, load `references/openapi-reference.md § 2`; that file owns their request and response contracts. `references/reference.md` is a summary index and links to the owner instead of restating the market schemas.
+
 ### Local Interface Failure Output
 
 For this API-reference skill, a terminal interface failure must produce one concise localized notice stating that the ZooData API lookup could not be completed, followed by the succeeded and failed endpoint identifiers. Do not continue into endpoint guidance, schema interpretation, or another API call. Do not expose control tokens or internal retry logs unless the user requests diagnostics.
@@ -55,7 +57,7 @@ For this API-reference skill, a terminal interface failure must produce one conc
 ## ⚠️ Critical API Pitfalls (ALL skills must follow)
 1. **Commerce product search using a broad query** → resolve and lock `categoryPath` before interpreting category-sensitive product, competitor, brand, or price-band results. An explicitly labeled `products/search` category probe may run without a locked category only to resolve that category. Market discovery uses `markets/search` filters and returns category IDs; market snapshot, distribution, and history requests use a resolved `categoryId`. Do **not** apply this rule to `/openapi/v2/keywords/*` Keyword Intelligence endpoints: their `keyword` / `query` inputs are Amazon search queries and do not require `categoryPath`.
 2. **Brand/price-band queries MUST include --category** to avoid cross-category contamination
-3. **Market revenue** = `markets/overview.data.totalMonthlyRevenue` for the full category, or `top100MonthlyRevenue` for its selected sample. Do not calculate revenue from price × sales.
+3. **Market revenue**: use the full-category or selected-sample field identified in `references/openapi-reference.md § 2`; do not calculate revenue from price × sales.
 4. **Sales** = `monthlySalesFloor` (lower bound). Fallback: 300,000 / BSR^0.65, tag as 🔍
 5. **Use API fields directly**: `sampleOpportunityIndex`, `sampleTop10BrandSalesRate` — never reinvent
 6. **reviews/analysis** needs 50+ reviews. Fallback chain when sample is insufficient:
@@ -143,8 +145,7 @@ For every parsed HTTP response from `zoodata.py`, treat `_transport.status` as t
 | 26 | `markets/history` | One category's month-end series | data.points[] with available MoM/YoY rates |
 
 ## Known Quirks
-- Market endpoints identify categories by `categoryId`, use `categoryScope=direct|subtree`, and select a fixed Top 100 sample. Legacy `categoryPath` and `topN` are rejected by `markets/search`. Resolve paths through `categories` first.
-- Live market runtime accepts `sampleType=unitSalesTop100|revenueTop100`; the current MCP description still advertises different spellings. See `references/openapi-reference.md § 2`.
+- Market request quirks, including the live `sampleType` values and retired parameters, are owned by `references/openapi-reference.md § 2`.
 - `listingAge` is a string enum (`30d`, `90d`, `180d`, `1y`, `2y`).
 - Many search/list endpoints return `.data` as an **array** — use `.data[0]` for the first record. But some commands may return non-array payloads inside `data`, so inspect the actual response shape before indexing.
 - `ratingCount` not `reviewCount` everywhere
@@ -315,16 +316,7 @@ zoodata.py review-aggregate --reviews raw.json --tagged tags.json --clusters clu
 
 ## Field Differences Across Endpoints
 
-| Data | markets | products/competitors | realtime/product | reviews/analysis | realtime/reviews | price-band | brand | history |
-|------|---------|---------------------|----------|---------|---------|------------|-------|---------|
-| Sales | totalMonthlySales / top100MonthlySales | monthlySalesFloor | ❌ | ❌ | ❌ | sampleSalesRate | sampleGroupMonthlySales | monthlySalesFloor[] |
-| Price | top100MedianPrice | price | buyboxWinner.price | ❌ | ❌ | bandMin/MaxPrice | sampleAvgPrice | price[] |
-| BSR | ❌ | bsr (int) | bestsellersRank[] | ❌ | ❌ | ❌ | ❌ | bsr[] |
-| Rating | top100AvgRating | rating | rating | avgRating | rating (per review) | sampleAvgRating | sampleAvgRating | rating[] |
-| Reviews | top100AvgRatingCount | ratingCount | ratingCount | reviewCount | reviews[] (raw text, max 100) | ❌ | sampleAvgRatingCount | ratingCount[] |
-| Insights | ❌ | ❌ | ❌ | ✅ consumerInsights | ❌ (raw only — feeds Local Review Toolkit) | ❌ | ❌ | ❌ |
-| Concentration | top100Top10BrandSalesRate | ❌ | ❌ | ❌ | ❌ | sampleTop3BrandSalesRate | CR10 | ❌ |
-| Opportunity | ❌ | ❌ | ❌ | ❌ | ❌ | sampleOpportunityIndex | ❌ | ❌ |
+Load `references/reference.md § Field Differences Across Endpoints` for the cross-endpoint field map.
 
 ## Confidence Labels (all skills)
 - 📊 **Data-backed** — direct API data

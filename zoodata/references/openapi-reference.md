@@ -42,7 +42,7 @@ Filters: `totalMonthlySalesMin`, `totalMonthlyRevenueMin`, `top100MonthlySalesMi
 
 Response: `data[]` rows carry `categoryId`, `categoryName`, `categoryPath`, `date`, `categoryScope`, `sampleType`, full-category `totalSkuCount`, `totalSpuCount`, `totalMonthlySales`, `totalMonthlyRevenue`, plus selected `top100*` summary fields. `meta.total` counts matching markets. There is no `topN` request parameter: the selected sample is fixed at up to 100 products.
 
-The MCP tool description currently advertises `bySale100` / `byRevenue100`, but the live tool rejects those and accepts `unitSalesTop100` / `revenueTop100`. Use the runtime-accepted values until the MCP schema is corrected. Legacy `categoryPath` and `topN` are rejected with HTTP 422.
+The MCP tool description currently advertises `bySale100` / `byRevenue100`, but live MCP validation rejects `bySale100` and accepts `unitSalesTop100`. Use `unitSalesTop100` / `revenueTop100` for new requests until the MCP schema is corrected. The server now recognizes legacy market filters such as `categoryPath`, `categoryKeyword`, and `topN` in a separate compatibility mode; combining them with new `categoryScope` returns HTTP 422. The current MCP tool schema requires `categoryScope`, so it cannot submit a pure legacy request. The bundled CLI supports only the new parameters.
 
 ## 2a. markets/overview
 

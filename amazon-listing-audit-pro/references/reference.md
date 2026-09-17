@@ -55,7 +55,7 @@ All endpoints return: `{success, data, error, meta}` with `meta.creditsRemaining
 
 ## 2. Market endpoints
 
-All four endpoints support only US. Resolve a human category path through `categories` to obtain `categoryId`. `categoryScope=direct` selects the node itself; `subtree` includes descendants without duplicates. The selected sample contains at most 100 products. At runtime, `sampleType` accepts `unitSalesTop100` or `revenueTop100`; the current MCP description still advertises `bySale100` / `byRevenue100`, which live validation rejects. Legacy market `categoryPath`, `categoryKeyword`, and `topN` requests are not accepted.
+All four endpoints support only US. Resolve a human category path through `categories` to obtain `categoryId`. `categoryScope=direct` selects the node itself; `subtree` includes descendants without duplicates. The selected sample contains at most 100 products. For new requests, use `sampleType=unitSalesTop100` or `revenueTop100`; the MCP schema still advertises `bySale100` / `byRevenue100`, and live MCP validation rejects `bySale100`. The server recognizes legacy `categoryPath`, `categoryKeyword`, and `topN` filters only in a separate compatibility mode: do not combine them with `categoryScope`. The bundled CLI uses only the new parameters; the current MCP schema requires `categoryScope` and cannot submit a pure legacy request.
 
 ### markets/search — discovery
 
