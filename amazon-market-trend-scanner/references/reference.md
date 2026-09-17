@@ -3,7 +3,8 @@
 > Load this file only when you need exact field names or response structure.
 > This is the shared ZooData endpoint field reference. This skill's workflows
 > use only the subcommands listed in SKILL.md (`categories`, `market`,
-> `products`, `check`); the endpoints below are documented purely for
+> `market-overview`, `market-structure-profile`, `market-history`, `products`,
+> `check`); the endpoints below are documented purely for
 > field-name / response-structure lookup, not as a claim that this skill
 > invokes all of them.
 
@@ -14,6 +15,9 @@
 | 1 | `categories` | Category path lookup |
 | 2 | `markets/search` | Paginated category-market discovery |
 | 3 | `products/search` | Product supply (100+ via pagination), brand/price drill |
+| 4 | `markets/overview` | One category market snapshot |
+| 5 | `markets/structure-profile` | Selected Top 100 distribution |
+| 6 | `markets/history` | Available month-end category history |
 
 Base URL: `https://api.zoodata.ai/openapi/v2`
 Auth: `Bearer $ZOODATA_API_KEY`

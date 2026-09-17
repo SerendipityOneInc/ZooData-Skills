@@ -103,7 +103,7 @@ When `_transport.status=402`, stop further calls. Report where the workflow stop
 Always translate: "300+ monthly sales" → `--sales-min 300`, "reviews <100" → `--ratings-max 100`, "$15-35" → `--price-min 15 --price-max 35`. If user has specific criteria, use custom filters (Approach B/C), NOT default modes. (`--sales-min`/`--ratings-max`/`--modes` are CLI-local — see API Pitfalls before any raw call.)
 
 ### Data-Driven Category Selection (no specific category given)
-Scan with `market --scope subtree --sales-min 200 --page-size 20` and paginate. Rank category markets by `totalMonthlySales`, `top100ConservativeNewProductRate6m`, `top100FbmRate`, and `top100MedianPrice`. Treat Top 100 fields as selected-sample evidence. Pick top 3-5; resolve their `categoryId` for deeper evidence.
+Scan with `market --scope subtree --sales-min 200 --page-size 20` under a stated page/credit budget; do not paginate the entire global catalog by default. Rank observed category markets by `totalMonthlySales`, `top100ConservativeNewProductRate6m`, `top100FbmRate`, and `top100MedianPrice`. Treat Top 100 fields as selected-sample evidence and label the ranking as limited to scanned pages. Pick top 3-5; use their returned `categoryId` for deeper evidence.
 
 ### Opportunity Score (per candidate, 1-100)
 | Dimension | Weight | Good | Medium | Warning |

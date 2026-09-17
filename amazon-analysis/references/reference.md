@@ -17,6 +17,9 @@
 | 5 | `realtime/product` | Live product detail |
 | 6 | `reviews/analysis` | Consumer pain points, buying factors |
 | 7 | `products/history` | 30-day price/BSR/sales trend |
+| 8 | `markets/overview` | One category market snapshot |
+| 9 | `markets/structure-profile` | Selected Top 100 distribution |
+| 10 | `markets/history` | Available month-end category history |
 
 Base URL: `https://api.zoodata.ai/openapi/v2`
 Auth: `Bearer $ZOODATA_API_KEY`

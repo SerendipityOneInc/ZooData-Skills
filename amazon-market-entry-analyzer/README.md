@@ -65,7 +65,7 @@ All 11 ZooData endpoints:
 | Endpoint | Purpose |
 |----------|---------|
 | `categories` | Category tree navigation and resolution |
-| `markets/overview` | Market-level metrics + sub-market discovery |
+| `markets/overview` | Snapshot metrics for a resolved sub-market ID |
 | `products/search` | Product supply analysis (100+ products) |
 | `products/competitors` | Competitor discovery |
 | `realtime/product` | Live competitor details |

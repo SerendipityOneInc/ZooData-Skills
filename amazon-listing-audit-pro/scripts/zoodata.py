@@ -340,11 +340,6 @@ def api_call(endpoint: str, params: dict) -> dict:
     # Clean params: remove None values
     params = {k: v for k, v in params.items() if v is not None}
 
-    # Quirk: topN and newProductPeriod must be strings
-    for str_field in ("topN", "newProductPeriod"):
-        if str_field in params and not isinstance(params[str_field], str):
-            params[str_field] = str(params[str_field])
-
     # Save the actual params sent to API (for _query metadata)
     actual_params = dict(params)
 

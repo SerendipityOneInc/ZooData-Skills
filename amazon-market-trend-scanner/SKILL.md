@@ -90,10 +90,11 @@ When `_transport.status=402`, stop further calls. Report where the workflow stop
 ## Mode 2: Quick Check (scheduled)
 
 1. Read `{skill_base_dir}/scan-data/watchlist.json` + `{skill_base_dir}/scan-data/baseline.json`
-2. `market-overview --category-id "{id}" --scope subtree` per watched category; use `market-history --category-id "{id}" --start-date YYYY-MM-DD --end-date YYYY-MM-DD` when a server month-end trend is needed
-3. Compare vs baseline using signal rules below
-4. 🔴 alerts → notify user; else silent log
-5. Save snapshot to `{skill_base_dir}/scan-data/history/{timestamp}.json`, update baseline
+2. Resolve each watched category path through `categories --category "{path}"` if its watchlist entry lacks `categoryId`; then run `market-overview --category-id "{id}" --scope subtree`. Use `market-history --category-id "{id}" --start-date YYYY-MM-DD --end-date YYYY-MM-DD` when a server month-end trend is needed.
+3. If the saved baseline contains legacy `sample*` market fields instead of the new `total*` / `top100*` fields, initialize a new baseline from the successful current snapshot and suppress change alerts for that first migrated check. Preserve the old snapshot in history for audit, but do not compare incompatible fields.
+4. Compare vs baseline using signal rules below
+5. 🔴 alerts → notify user; else silent log
+6. Save snapshot to `{skill_base_dir}/scan-data/history/{timestamp}.json`, update baseline and watchlist ID
 
 ## Trend Signals
 

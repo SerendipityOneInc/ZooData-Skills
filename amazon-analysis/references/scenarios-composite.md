@@ -4,7 +4,7 @@
 > Load when handling comprehensive product recommendations or seller origin case studies.
 > For API parameters, see `reference.md`.
 >
-> ⚠️ **Always resolve categoryPath before running these queries.** Tag conclusions with 📊/🔍/💡 confidence labels.
+> ⚠️ **Resolve categoryPath for product endpoints and categoryId for market endpoints before running these queries.** Tag conclusions with 📊/🔍/💡 confidence labels.
 
 ---
 

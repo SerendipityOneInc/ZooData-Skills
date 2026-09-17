@@ -21,6 +21,9 @@
 | 9 | `products/brand-overview` | Brand count, CR10, top-brand avg price/rating |
 | 10 | `products/brand-detail` | Per-brand SKU/sales/revenue/share ranking |
 | 11 | `products/history` | 30-day price/BSR/sales trend |
+| 12 | `markets/overview` | One category market snapshot |
+| 13 | `markets/structure-profile` | Selected Top 100 distribution |
+| 14 | `markets/history` | Available month-end category history |
 
 Base URL: `https://api.zoodata.ai/openapi/v2`
 Auth: `Bearer $ZOODATA_API_KEY`

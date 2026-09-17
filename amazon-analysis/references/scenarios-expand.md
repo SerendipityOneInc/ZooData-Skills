@@ -4,7 +4,7 @@
 > Load when handling product expansion, trend discovery, or discontinuation decisions.
 > For API parameters, see `reference.md`.
 >
-> ⚠️ **Always resolve categoryPath before running these queries.** Tag conclusions with 📊/🔍/💡 confidence labels.
+> ⚠️ **Resolve categoryPath for product endpoints and categoryId for market endpoints before running these queries.** Tag conclusions with 📊/🔍/💡 confidence labels.
 >
 > **Note**: Use `history` for ASIN-level historical trends. Use `brand-overview` for market scanning.
 

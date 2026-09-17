@@ -4,7 +4,7 @@
 > Load when handling market monitoring, competitor tracking, or anomaly detection.
 > For API parameters, see `reference.md`.
 >
-> ⚠️ **Always resolve categoryPath before running these queries.** Tag conclusions with 📊/🔍/💡 confidence labels.
+> ⚠️ **Resolve categoryPath for product endpoints and categoryId for market endpoints before running these queries.** Tag conclusions with 📊/🔍/💡 confidence labels.
 >
 > **Limitation**: Snapshot data only for most endpoints. Use `history` for historical trends on specific ASINs.
 
