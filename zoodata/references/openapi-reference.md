@@ -428,7 +428,7 @@ Use this metric endpoint first for trend shape and volatility; call raw `keyword
 | granularity | String | No | Compatibility field; only `week` is supported |
 
 ⚠️ Uses `query`, NOT `keyword`.
-⚠️ No date is required; the service uses the latest available weekly snapshot. A legacy `date` may be sent but is ignored.
+⚠️ The current MCP schema has no `date` parameter; the service uses the latest available weekly snapshot. The bundled CLI has no `--date` option for this command.
 ⚠️ Empty `data.rows[]` is a normal success case.
 
 **Response:** `data.context + data.query + data.queryType + data.rows[]`.
@@ -488,7 +488,7 @@ Interpretation rule:
 | keywordEstimateSearchCountMax | Integer | No | Maximum estimated keyword search count; at least 0 and no less than the minimum |
 | keywordAbaRankMin | Integer | No | Minimum numeric ABA rank; at least 1 and no greater than the maximum |
 | keywordAbaRankMax | Integer | No | Maximum numeric ABA rank; at least 1 and no less than the minimum |
-| sortBy | String | No | `trafficShare` / `estimateImpressionPoint` / `absolutePosition` / `avgPosition` / `keywordEstimateSearchCount` / `keywordAbaRank` / `latestObservedAt` / `keyword` |
+| sortBy | String | No | `trafficShare` / `estimateImpressionPoint` / `absolutePosition` / `avgPosition` / `keywordEstimateSearchCount` / `keywordAbaRank` / `keyword` |
 | sortOrder | String | No | `asc` / `desc` |
 | granularity | String | No | Compatibility field; only `week` is supported |
 

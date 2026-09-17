@@ -2959,7 +2959,7 @@ def cmd_check(args):
                 {"keyword": keyword, "date": date, "windowPeriods": [4], "granularity": "week"},
                 "Keyword trend profile",
             ),
-            ("keywords/extends", {"query": keyword, "date": date, "queryType": "phrase", "pageSize": 1, "granularity": "week"}, "Keyword expansion"),
+            ("keywords/extends", {"query": keyword, "queryType": "phrase", "pageSize": 1, "granularity": "week"}, "Keyword expansion"),
             ("keywords/search-results", {"keyword": keyword, "date": date, "pageSize": 1, "granularity": "week"}, "Keyword SERP"),
         ]
         endpoints.extend(keyword_probes)
@@ -3277,8 +3277,6 @@ def cmd_keyword_trend(args):
 
 def cmd_keyword_extends(args):
     """Get keyword expansion candidates."""
-    if args.date:
-        _require_yyyy_mm_dd(args.date, "--date")
     params = {
         "query": _require_nonempty_text(args.query, "--query"),
         "marketplace": args.marketplace,
@@ -3289,8 +3287,6 @@ def cmd_keyword_extends(args):
         "sortBy": args.sort_by,
         "sortOrder": args.sort_order,
     }
-    if args.date:
-        params["date"] = args.date
     result = api_call("keywords/extends", params)
     output(result, args.format)
 
@@ -3729,7 +3725,6 @@ Examples:
     # ── keyword-extends ──
     p_ke = sub.add_parser("keyword-extends", help="Keyword expansion", allow_abbrev=False)
     p_ke.add_argument("--query", required=True, help="Seed keyword (required)")
-    p_ke.add_argument("--date", help="Legacy lookup date (optional; service uses latest snapshot)")
     p_ke.add_argument("--marketplace", choices=KEYWORD_MARKETPLACE_CHOICES, default="US", help="Marketplace (currently US only)")
     p_ke.add_argument("--page", type=int, default=1, help="Page number (default: 1)")
     p_ke.add_argument("--page-size", type=int, default=20, help="Page size (default: 20, max 100)")
@@ -3763,7 +3758,7 @@ Examples:
     p_kptt.add_argument("--keyword-search-count-max", type=int, help="Maximum estimated keyword search count (>= 0)")
     p_kptt.add_argument("--keyword-aba-rank-min", type=int, help="Minimum numeric keyword ABA rank (>= 1)")
     p_kptt.add_argument("--keyword-aba-rank-max", type=int, help="Maximum numeric keyword ABA rank (>= 1)")
-    p_kptt.add_argument("--sort-by", choices=["trafficShare", "estimateImpressionPoint", "absolutePosition", "avgPosition", "keywordEstimateSearchCount", "keywordAbaRank", "latestObservedAt", "keyword"], default="trafficShare")
+    p_kptt.add_argument("--sort-by", choices=["trafficShare", "estimateImpressionPoint", "absolutePosition", "avgPosition", "keywordEstimateSearchCount", "keywordAbaRank", "keyword"], default="trafficShare")
     p_kptt.add_argument("--sort-order", choices=["asc", "desc"], default="desc")
     p_kptt.set_defaults(func=cmd_keyword_product_traffic_terms)
 

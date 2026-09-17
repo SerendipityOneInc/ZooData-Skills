@@ -505,7 +505,6 @@ class TestCategoryResolutionMeta(unittest.TestCase):
     def test_keyword_extends(self):
         r = run_cli("keyword-extends",
                     "--query", "yoga mat",
-                    "--date", "2026-06-29",
                     "--query-type", "fuzzy",
                     "--page-size", "50")
         self.assertEqual(r["endpoint"], "keywords/extends")
@@ -513,10 +512,18 @@ class TestCategoryResolutionMeta(unittest.TestCase):
         self.assertEqual(r["params"]["queryType"], "fuzzy")
         self.assertEqual(r["params"]["pageSize"], 50)
         self.assertEqual(r["params"]["granularity"], "week")
-
-    def test_keyword_extends_date_optional(self):
-        r = run_cli("keyword-extends", "--query", "yoga mat")
         self.assertNotIn("date", r["params"])
+
+    def test_keyword_extends_rejects_unsupported_date(self):
+        with self.assertRaises(SystemExit):
+            run_cli("keyword-extends", "--query", "yoga mat", "--date", "2026-06-29")
+
+    def test_product_traffic_terms_rejects_unsupported_latest_observation_sort(self):
+        with self.assertRaises(SystemExit):
+            run_cli(
+                "keyword-product-traffic-terms", "--asin", "B01CGLCGRA",
+                "--date", "2026-06-29", "--sort-by", "latestObservedAt",
+            )
 
     def test_keyword_search_results(self):
         r = run_cli("keyword-search-results",

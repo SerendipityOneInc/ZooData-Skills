@@ -219,7 +219,7 @@ Request:
 - `queryType=phrase|fuzzy`
 - optional marketplace, page, pageSize (1–100), sortBy, sortOrder
 - compatibility-retained `granularity` supports only `week`
-- no date is required; the service uses the latest available weekly snapshot. A legacy `date` may be sent but is ignored.
+- the current MCP schema has no `date` parameter; the service uses the latest available weekly snapshot. The CLI has no `--date` option for this command.
 - `sortBy=relevanceScore|estimateSearchCount|abaRank|keyword`
 
 Response:
@@ -260,7 +260,7 @@ Request:
 - compatibility-retained `granularity` supports only `week`; do not send legacy `lookbackDays`
 - optional `keywordContains`, `exploreTypes`, page/pageSize
 - optional `keywordEstimateSearchCountMin` / `keywordEstimateSearchCountMax` (integers >= 0) and `keywordAbaRankMin` / `keywordAbaRankMax` (integers >= 1); each minimum must not exceed its maximum
-- `sortBy=trafficShare|estimateImpressionPoint|absolutePosition|avgPosition|keywordEstimateSearchCount|keywordAbaRank|latestObservedAt|keyword`
+- `sortBy=trafficShare|estimateImpressionPoint|absolutePosition|avgPosition|keywordEstimateSearchCount|keywordAbaRank|keyword`
 
 Response:
 

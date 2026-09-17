@@ -40,7 +40,7 @@ Apply this control sequence:
 - Scenario files define scenario-specific stage entry requirements, capability combinations, conclusion authority, and section-content requirements. They must not redefine report headings/order, workflow-completion states, automatic progression, Gate exceptions, or a competing handoff rule.
 - `reference.md` remains authoritative for API facts. Field-semantic references remain authoritative for returned-field meaning and inference limits.
 
-When owner modules conflict, apply the stricter evidence/action limit. Never recover a capability from non-equivalent evidence or let a downstream scenario weaken a Gate.
+Never recover a capability from non-equivalent evidence or let a downstream scenario weaken a Gate.
 
 ## Execution mode
 
