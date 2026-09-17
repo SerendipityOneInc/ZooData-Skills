@@ -28,7 +28,7 @@ One input (keyword/category). Full market viability assessment with sub-market d
 - **Reference**: `{skill_base_dir}/references/reference.md` (field names & response structure)
 - **Market workflow**: `{skill_base_dir}/references/market-workflow.md` (sub-market selection, scoring, and risk gates)
 
-For market analysis, this file routes the request and sets runtime boundaries; `references/reference.md` owns endpoint parameters and fields, `references/market-workflow.md` owns selection and scoring, `references/cli-contract.md` owns shared invocation/result handling, and `scripts/zoodata.py` owns request construction.
+For market analysis, this file routes the request and sets runtime boundaries; `references/reference.md` owns endpoint parameters and fields, `references/market-workflow.md` owns selection and scoring, `references/cli-contract.md` owns shared invocation/result handling, and `{skill_base_dir}/scripts/zoodata.py` owns request construction.
 
 ## Credential
 Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zoodata.ai/en/api-keys)

@@ -32,7 +32,7 @@ metadata:
 | `{skill_base_dir}/references/scan-workflow.md` | Load for scan modes, baseline handling, signals, and ranking |
 | `{skill_base_dir}/scan-data/` | Runtime: watchlist.json, baseline.json, alerts.json, history/ (auto-created) |
 
-For market scanning, this file routes the request and sets runtime boundaries; `references/reference.md` owns endpoint parameters and fields, `references/scan-workflow.md` owns scan modes, baseline handling, and signals, `references/cli-contract.md` owns shared invocation/result handling, and `scripts/zoodata.py` owns request construction.
+For market scanning, this file routes the request and sets runtime boundaries; `references/reference.md` owns endpoint parameters and fields, `references/scan-workflow.md` owns scan modes, baseline handling, and signals, `references/cli-contract.md` owns shared invocation/result handling, and `{skill_base_dir}/scripts/zoodata.py` owns request construction.
 
 ## Credential
 

@@ -31,7 +31,7 @@ metadata:
 | `{skill_base_dir}/references/reference.md` | Load when you need exact field names or filter details |
 | `{skill_base_dir}/references/execution-guide.md` | Load for market health thresholds and shared analysis workflow |
 
-For market analysis, this file routes the request and sets runtime boundaries; `references/reference.md` owns endpoint parameters and fields, `references/execution-guide.md` owns shared market-health interpretation, scenario modules own scenario-specific conclusions, `references/cli-contract.md` owns shared invocation/result handling, and `scripts/zoodata.py` owns request construction.
+For market analysis, this file routes the request and sets runtime boundaries; `references/reference.md` owns endpoint parameters and fields, `references/execution-guide.md` owns shared market-health interpretation, scenario modules own scenario-specific conclusions, `references/cli-contract.md` owns shared invocation/result handling, and `{skill_base_dir}/scripts/zoodata.py` owns request construction.
 
 
 ## Credential

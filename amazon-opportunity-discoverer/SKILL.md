@@ -28,7 +28,7 @@ Tell me your budget and experience. I find opportunities, score them, and rank.
 - **Reference**: `{skill_base_dir}/references/reference.md` (field names & response structure)
 - **Category selection**: `{skill_base_dir}/references/category-selection.md` (bounded market discovery and ranking)
 
-For category selection, this file routes the request and sets runtime boundaries; `references/reference.md` owns endpoint parameters and fields, `references/category-selection.md` owns scanning and ranking, `references/cli-contract.md` owns shared invocation/result handling, and `scripts/zoodata.py` owns request construction.
+For category selection, this file routes the request and sets runtime boundaries; `references/reference.md` owns endpoint parameters and fields, `references/category-selection.md` owns scanning and ranking, `references/cli-contract.md` owns shared invocation/result handling, and `{skill_base_dir}/scripts/zoodata.py` owns request construction.
 
 ## Credential
 Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zoodata.ai/en/api-keys)
