@@ -100,7 +100,8 @@ python3 scripts/zoodata.py product --asin B09XXXXX
 # Step 1: Competitive landscape (primary data: sales, margins, seller count)
 python3 scripts/zoodata.py competitors --keyword "product keyword" --page-size 20
 # Step 2: Market context (category-level metrics)
-python3 scripts/zoodata.py market --category "category path" --topn 10
+python3 scripts/zoodata.py categories --category "category path"
+python3 scripts/zoodata.py market-overview --category-id "<categoryId from categories>"
 # Step 3 (optional): Review details for the target ASIN
 python3 scripts/zoodata.py product --asin B09XXXXX
 # Step 4 (recommended): Review sentiment for risk signal
@@ -117,7 +118,7 @@ Step 4 (`analyze`) provides AI-analyzed sentiment distribution and structured is
 |---------|---------|---------|---------|---------|
 | Competition Intensity | topSalesRate | < 40% | 40-60% | > 60% |
 | Review Barrier | Top avg ratingCount | < 200 | 200-1000 | > 1000 |
-| Brand Barrier/Moat | topBrandSalesRate | < 30% | 30-50% | > 50% |
+| Brand Barrier/Moat | top100Top10BrandSalesRate | < 30% | 30-50% | > 50% |
 | Price War Risk | Top price variance | High variance | Medium | Low variance |
 | Compliance Risk | categories | Regular | Requires certification | High-risk |
 | Review Sentiment | sentimentDistribution (negative) | < 15% | 15-30% | > 30% |

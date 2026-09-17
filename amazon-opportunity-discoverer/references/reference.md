@@ -11,7 +11,7 @@
 | # | Endpoint | Purpose |
 |---|----------|---------|
 | 1 | `categories` | Category path lookup |
-| 2 | `markets/search` | Market size, competition metrics, new-product rate |
+| 2 | `markets/search` | Paginated category-market discovery |
 | 3 | `products/search` | Product supply (100+ via pagination), brand/price drill |
 | 4 | `products/competitors` | Top competitor list |
 | 5 | `realtime/product` | Live product detail |
@@ -49,31 +49,25 @@ All endpoints return: `{success, data, error, meta}` with `meta.creditsRemaining
 
 ---
 
-## 2. markets/search
+## 2. Market endpoints
 
-**Key Request Params:**
-- `categoryPath`: List<String> (e.g. `["Pet Supplies", "Dogs"]`)
-- `categoryKeyword`: String
-- `topN`: **String** (`"10"` not `10`)
-- `sampleType`: `by_sale_100` / `by_bsr_100` / `avg`
-- `pageSize`: Integer (max 20)
+All four endpoints support only US. Resolve a human category path through `categories` to obtain `categoryId`. `categoryScope=direct` selects the node itself; `subtree` includes descendants without duplicates. The selected sample contains at most 100 products. At runtime, `sampleType` accepts `unitSalesTop100` or `revenueTop100`; the current MCP description still advertises `bySale100` / `byRevenue100`, which live validation rejects. Legacy market `categoryPath`, `categoryKeyword`, and `topN` requests are not accepted.
 
-**Key Response Fields:**
-| Field | Type | Used For |
-|-------|------|----------|
-| `totalSkuCount` | int | Market size |
-| `sampleAvgMonthlySales` | float | Demand level |
-| `sampleAvgMonthlyRevenue` | float | Market value |
-| `sampleAvgPrice` | float | Price benchmark |
-| `sampleAvgRating` | float | Quality benchmark |
-| `sampleBrandCount` | int | Brand diversity |
-| `sampleSellerCount` | int | Seller diversity |
-| `sampleFbaRate` | float | FBA adoption (decimal) |
-| `sampleNewSkuRate` | float | New entrant rate (decimal) |
-| `topSalesRate` | float | Product concentration (CR_topN) |
-| `topBrandSalesRate` | float | Brand concentration |
-| `topSellerSalesRate` | float | Seller concentration |
-| `sampleAPlusRate` | float | Margin benchmark |
+### markets/search — discovery
+
+Required: `categoryScope`. Optional exact `categoryId` or `categoryName`, `date`, `sampleType`, `page`, `pageSize` (1–100), `sortBy` (`totalMonthlySales`, `totalMonthlyRevenue`, `top100MonthlySales`, `top100MonthlyRevenue`), `sortOrder`. Filters include `totalMonthlySalesMin`, `totalMonthlyRevenueMin`, `top100MonthlySalesMin`, `top100MonthlyRevenueMin`, `top100FbmRateMin/Max`, `top100APlusRateMin/Max`, `top100AvgSellerCountMin/Max`, `newProductMonthlyRevenueMin/Max`, `newProductRatingCountMin/Max`, `newProductRatingMin/Max`, and `sellerCountry`. Response `data[]` holds category identity, full-category `total*` size/sales/revenue and a selected `top100*` summary; `meta.total` is the total matching market count. `categoryName` is exact match, not keyword search.
+
+### markets/overview — one snapshot
+
+Required: `categoryId`. Optional: `categoryScope`, `sampleType`, `date`. Response `data` is an object. Full category: `totalSkuCount`, `totalSpuCount`, `totalMonthlySales`, `totalMonthlyRevenue`. Selected Top 100: `top100SkuCount`, `top100MonthlySales`, `top100MonthlyRevenue`, coverage rates, `top100MedianPrice`, brand/seller counts, `top100AvgRating`, `top100AvgRatingCount`, `top100FbmRate`, `top100APlusRate`, conservative six-month new-product metrics, and Top 10 product/brand concentration rates. Keep whole-category and Top 100 denominators separate.
+
+### markets/structure-profile — one distribution
+
+Required: `categoryId`, `dimension` (`brand`, `seller`, `price`, `sellerCountry`, `fulfillment`, `ratingCount`, `rating`, `listingAge`, `listingYear`, `productFeature`). Optional: `categoryScope`, `sampleType`, `date`. Response `data.buckets[]` describes the selected Top 100 only, with bucket label, `skuCount`/`skuRate`, sales/revenue and their shares, plus dimension-specific fields. `data.top100SkuCount` is the denominator.
+
+### markets/history — month-end series
+
+Required: `categoryId`, `startDate`, `endDate`. Optional: `categoryScope`, `sampleType`. Response `data.points[]` is ascending available month-end snapshots; absent months are omitted. Points include full-category and Top 100 size/sales/revenue, conservative six-month new-product measures, and MoM/YoY rates when comparable baselines exist. Check `actualStartDate`/`actualEndDate`.
 
 ---
 
@@ -237,9 +231,9 @@ Request params: `keyword`, `brand`, `asin`, `categoryPath`, `sortBy`, `pageSize`
 
 | Data Point | Primary Source | Validation Source |
 |-----------|---------------|-------------------|
-| Market size | markets/search | products/search (total count) |
-| Brand concentration | brand-overview (sampleTop10BrandSalesRate) | markets/search (topBrandSalesRate) |
+| Market size | markets/overview | products/search (total count) |
+| Brand concentration | brand-overview (sampleTop10BrandSalesRate) | markets/overview (top100Top10BrandSalesRate) |
 | Price distribution | price-band-detail | products/search (price field) |
 | Competition level | markets (topSalesRate) | brand-detail (top brand shares) |
 | Consumer demand | reviews/analysis | products (sales + growth) |
-| Avg rating quality | markets (sampleAvgRating) | brand-overview (sampleTop10AvgRating) |
+| Avg rating quality | markets/overview (top100AvgRating) | brand-overview (sampleTop10AvgRating) |

@@ -55,7 +55,7 @@ For a terminal interface failure, respond in the user's language that the opport
 - categoryPath is auto-resolved via `categories`, with fallback to top search result. If `category_source` is `inferred_from_search`, confirm with user — keyword-only queries contaminate results
 - All keyword-based endpoints MUST include `--category` when locked
 - **`mode`/`--sales-min`/`--ratings-max` are CLI-local, expanded client-side** — NOT API fields. A raw request must use expanded API filters, must not send `mode`/`salesMin`/`ratingsMax`, and must distinguish `ratingMax` from `ratingCountMax`; otherwise the API returns 422.
-- Revenue = `sampleAvgMonthlyRevenue` directly. Sales = `monthlySalesFloor` (lower bound)
+- Market revenue = `totalMonthlyRevenue` directly. Sales = `monthlySalesFloor` (lower bound)
 - `reviews/analysis` needs 50+ reviews. Fallback chain when sample is insufficient:
   1. **Lightweight**: `realtime/product` ratingBreakdown — only star distribution, no themes
   2. **Full 11-dim insights** — bypass `/reviews/analysis` entirely:
@@ -103,7 +103,7 @@ When `_transport.status=402`, stop further calls. Report where the workflow stop
 Always translate: "300+ monthly sales" → `--sales-min 300`, "reviews <100" → `--ratings-max 100`, "$15-35" → `--price-min 15 --price-max 35`. If user has specific criteria, use custom filters (Approach B/C), NOT default modes. (`--sales-min`/`--ratings-max`/`--modes` are CLI-local — see API Pitfalls before any raw call.)
 
 ### Data-Driven Category Selection (no specific category given)
-Scan with `market --keyword "{broad}" --topn 10`, rank subcategories by: newSkuRate>10%, topBrandSalesRate<60%, fbaRate>50%, avgPrice $10-50, avgMonthlySales>200. Pick top 3-5.
+Scan with `market --scope subtree --sales-min 200 --page-size 20` and paginate. Rank category markets by `totalMonthlySales`, `top100ConservativeNewProductRate6m`, `top100FbmRate`, and `top100MedianPrice`. Treat Top 100 fields as selected-sample evidence. Pick top 3-5; resolve their `categoryId` for deeper evidence.
 
 ### Opportunity Score (per candidate, 1-100)
 | Dimension | Weight | Good | Medium | Warning |
@@ -177,7 +177,7 @@ Include a table at the end of every report:
 
 | Data | Endpoint | Key Params | Notes |
 |------|----------|------------|-------|
-| (e.g. Market Overview) | `markets/search` | categoryPath, topN=10 | 📊 Top N sampling, sales are lower-bound |
+| (e.g. Market Overview) | `markets/overview` | categoryId, categoryScope, sampleType | 📊 Full category and selected Top 100 metrics |
 | ... | ... | ... | ... |
 
 Extract endpoint and params from `_query` in JSON output. Add notes: sampling method, T+1 delay, realtime vs DB, minimum review threshold, etc.

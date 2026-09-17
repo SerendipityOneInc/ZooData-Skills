@@ -25,19 +25,36 @@ Response: `categoryId`, `categoryName`, `categoryPath`, `hasChildren`, `isRoot`,
 
 ## 2. markets/search
 
+Paginated **category-market discovery**. It does not return a complete market report.
+
 | Parameter | Type | Note |
 |-----------|------|------|
-| categoryPath | List\<String\> | e.g. `["Pet Supplies", "Dogs"]` |
-| categoryKeyword | String | Keyword match across levels |
-| topN | **String** | `"3"` / `"5"` / `"10"` / `"20"` ⚠️ must be string |
-| newProductPeriod | **String** | `"1"` / `"3"` / `"6"` / `"12"` ⚠️ must be string |
-| sampleType | String | `bySale100` / `byBsr100` / `avg` |
-| dateRange | String | default `30d` |
-| pageSize | Integer | default 20 |
-| sortBy | String | default `sampleAvgMonthlySales` |
+| categoryScope | String | **Required**: `direct` or `subtree` (descendants deduplicated) |
+| categoryId / categoryName | String | Optional exact match; `categoryName` is not keyword search |
+| sampleType | String | Runtime accepts `unitSalesTop100` / `revenueTop100` |
+| date | Date | Optional; omitted means latest available snapshot |
+| marketplace | String | `US` only |
+| page / pageSize | Integer | 1-based page; pageSize 1–100 |
+| sortBy | String | `totalMonthlySales`, `totalMonthlyRevenue`, `top100MonthlySales`, `top100MonthlyRevenue` |
 | sortOrder | String | `asc` / `desc` |
 
-Key response fields: `sampleAvgMonthlySales`, `sampleAvgPrice`, `sampleAvgMonthlyRevenue`, `sampleBrandCount`, `sampleSellerCount`, `sampleFbaRate`, `sampleNewSkuRate`, `topSalesRate`, `topBrandSalesRate`, `topSellerSalesRate`, `totalSkuCount`
+Filters: `totalMonthlySalesMin`, `totalMonthlyRevenueMin`, `top100MonthlySalesMin`, `top100MonthlyRevenueMin`, `top100FbmRateMin/Max`, `top100APlusRateMin/Max`, `top100AvgSellerCountMin/Max`, `newProductMonthlyRevenueMin/Max`, `newProductRatingCountMin/Max`, `newProductRatingMin/Max`, `sellerCountry`.
+
+Response: `data[]` rows carry `categoryId`, `categoryName`, `categoryPath`, `date`, `categoryScope`, `sampleType`, full-category `totalSkuCount`, `totalSpuCount`, `totalMonthlySales`, `totalMonthlyRevenue`, plus selected `top100*` summary fields. `meta.total` counts matching markets. There is no `topN` request parameter: the selected sample is fixed at up to 100 products.
+
+The MCP tool description currently advertises `bySale100` / `byRevenue100`, but the live tool rejects those and accepts `unitSalesTop100` / `revenueTop100`. Use the runtime-accepted values until the MCP schema is corrected. Legacy `categoryPath` and `topN` are rejected with HTTP 422.
+
+## 2a. markets/overview
+
+One category's current or dated market snapshot. Required `categoryId`; optional `categoryScope` (`direct` / `subtree`), `sampleType`, `date`, `marketplace=US`. Response `data` is an object with full-category `total*` size, sales and revenue, and selected `top100*` coverage, price, brand/seller, rating, content, conservative six-month new-product, and Top 10 concentration metrics. Use `totalMonthlyRevenue` for the whole category and `top100MonthlyRevenue` only for the selected sample.
+
+## 2b. markets/structure-profile
+
+Required `categoryId` and one `dimension`: `brand`, `seller`, `price`, `sellerCountry`, `fulfillment`, `ratingCount`, `rating`, `listingAge`, `listingYear`, or `productFeature`. Optional `categoryScope`, `sampleType`, `date`, `marketplace=US`. Response `data.buckets[]` describes **the selected Top 100**, not the whole category: bucket label, SKU count/share, estimated sales/revenue/share, and dimension-specific fields. `data.top100SkuCount` is the sample denominator; empty buckets indicate no available rows.
+
+## 2c. markets/history
+
+Required `categoryId`, `startDate`, `endDate`; optional `categoryScope`, `sampleType`, `marketplace=US`. Response `data.points[]` is sorted ascending and contains available month-end snapshots only. Missing months are omitted, not filled. Points carry full-category and selected Top 100 size/sales/revenue, conservative six-month new-product metrics, and MoM/YoY rates when a comparable baseline exists. Compare periods using returned `date`, `actualStartDate`, and `actualEndDate`.
 
 ---
 

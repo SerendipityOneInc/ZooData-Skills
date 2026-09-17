@@ -27,7 +27,7 @@ metadata:
 
 # ZooData — Commerce Data Infrastructure for AI Agents
 
-200M+ Amazon products. 23 Amazon and keyword-intelligence endpoints. One API key.
+200M+ Amazon products. 26 Amazon and keyword-intelligence endpoints. One API key.
 
 ## Quick Start
 1. Get key: [zoodata.ai/api-keys](https://zoodata.ai/en/api-keys) (1,000 free credits)
@@ -53,9 +53,9 @@ Before selecting or invoking a bundled CLI command, read and apply `references/c
 For this API-reference skill, a terminal interface failure must produce one concise localized notice stating that the ZooData API lookup could not be completed, followed by the succeeded and failed endpoint identifiers. Do not continue into endpoint guidance, schema interpretation, or another API call. Do not expose control tokens or internal retry logs unless the user requests diagnostics.
 
 ## ⚠️ Critical API Pitfalls (ALL skills must follow)
-1. **Commerce product/market search using a broad query** → resolve and lock `categoryPath` before interpreting category-sensitive product, market, competitor, brand, or price-band results. An explicitly labeled `products/search` category probe may run without a locked category only to resolve that category. Do **not** apply this rule to `/openapi/v2/keywords/*` Keyword Intelligence endpoints: their `keyword` / `query` inputs are Amazon search queries and do not require `categoryPath`.
+1. **Commerce product search using a broad query** → resolve and lock `categoryPath` before interpreting category-sensitive product, competitor, brand, or price-band results. An explicitly labeled `products/search` category probe may run without a locked category only to resolve that category. Market discovery uses `markets/search` filters and returns category IDs; market snapshot, distribution, and history requests use a resolved `categoryId`. Do **not** apply this rule to `/openapi/v2/keywords/*` Keyword Intelligence endpoints: their `keyword` / `query` inputs are Amazon search queries and do not require `categoryPath`.
 2. **Brand/price-band queries MUST include --category** to avoid cross-category contamination
-3. **Revenue** = `sampleAvgMonthlyRevenue` directly. **NEVER** calculate avgPrice × totalSales (overestimates 30-70%)
+3. **Market revenue** = `markets/overview.data.totalMonthlyRevenue` for the full category, or `top100MonthlyRevenue` for its selected sample. Do not calculate revenue from price × sales.
 4. **Sales** = `monthlySalesFloor` (lower bound). Fallback: 300,000 / BSR^0.65, tag as 🔍
 5. **Use API fields directly**: `sampleOpportunityIndex`, `sampleTop10BrandSalesRate` — never reinvent
 6. **reviews/analysis** needs 50+ reviews. Fallback chain when sample is insufficient:
@@ -111,12 +111,12 @@ When `zoodata.py` returns a structured error with `_transport.status=402`, apply
 
 For every parsed HTTP response from `zoodata.py`, treat `_transport.status` as the authoritative outer status; response-body and nested status-like fields do not override it. When the CLI returns HTTP 422 / `VALIDATION_ERROR`, read the preserved structured server error on stdout, including its message/details and `_query.params`. Do not retry the unchanged request. Correct the named fields first; the CLI exits non-zero while preserving the server error fields for the calling agent. Current keyword requests retain `granularity` for compatibility but accept only `week`; legacy `lookbackDays` remains unsupported.
 
-## 23 Amazon and Keyword Endpoints
+## 26 Amazon and Keyword Endpoints
 
 | # | Endpoint | Purpose | Key Output |
 |---|----------|---------|------------|
 | 1 | `categories` | Browse/search category tree | categoryPath, productCount |
-| 2 | `markets/search` | Market-level metrics | sampleAvgMonthlySales, sampleAvgPrice, topSalesRate, sampleNewSkuRate |
+| 2 | `markets/search` | Paginated category-market discovery | categoryId, totalMonthlySales/Revenue, selected top100* summary |
 | 3 | `products/search` | Product search (20+ filter fields) | asin, price, monthlySalesFloor, rating, ratingCount, fbaFee |
 | 4 | `products/competitors` | Competitor discovery | same fields as products/search |
 | 5 | `realtime/product` | Live ASIN detail | rating, features, bestsellersRank[], buyboxWinner.price, variants |
@@ -138,9 +138,14 @@ For every parsed HTTP response from `zoodata.py`, treat `_transport.status` as t
 | 21 | `/openapi/v2/keywords/product-traffic-terms-trend` | Per-keyword weekly traffic trend for one ASIN | `data.context + data.items[].series[]` with nested ASIN, traffic, placement, keyword, and ad groups |
 | 22 | `/openapi/v2/keywords/product-traffic-trend` | ASIN-level weekly raw traffic across all keywords | `data.context + data.items[].series[]` with total/organic/ad traffic and term coverage |
 | 23 | `/openapi/v2/keywords/product-traffic-trend-profile` | Server-calculated four-week ASIN traffic conclusions | `data.context + data.items[].rows[].trafficTrendProfile` |
+| 24 | `markets/overview` | One category's full snapshot | total* and selected top100* metrics |
+| 25 | `markets/structure-profile` | One Top 100 distribution | data.buckets[] for one dimension |
+| 26 | `markets/history` | One category's month-end series | data.points[] with available MoM/YoY rates |
 
 ## Known Quirks
-- `topN`, `listingAge`, `newProductPeriod` are **strings** (`"10"` not `10`)
+- Market endpoints identify categories by `categoryId`, use `categoryScope=direct|subtree`, and select a fixed Top 100 sample. Legacy `categoryPath` and `topN` are rejected by `markets/search`. Resolve paths through `categories` first.
+- Live market runtime accepts `sampleType=unitSalesTop100|revenueTop100`; the current MCP description still advertises different spellings. See `references/openapi-reference.md § 2`.
+- `listingAge` is a string enum (`30d`, `90d`, `180d`, `1y`, `2y`).
 - Many search/list endpoints return `.data` as an **array** — use `.data[0]` for the first record. But some commands may return non-array payloads inside `data`, so inspect the actual response shape before indexing.
 - `ratingCount` not `reviewCount` everywhere
 - `bsr` (int) in products vs `bestsellersRank` (array) in realtime
@@ -312,13 +317,13 @@ zoodata.py review-aggregate --reviews raw.json --tagged tags.json --clusters clu
 
 | Data | markets | products/competitors | realtime/product | reviews/analysis | realtime/reviews | price-band | brand | history |
 |------|---------|---------------------|----------|---------|---------|------------|-------|---------|
-| Sales | sampleAvgMonthlySales | monthlySalesFloor | ❌ | ❌ | ❌ | sampleSalesRate | sampleGroupMonthlySales | monthlySalesFloor[] |
-| Price | sampleAvgPrice | price | buyboxWinner.price | ❌ | ❌ | bandMin/MaxPrice | sampleAvgPrice | price[] |
-| BSR | sampleAvgBsr | bsr (int) | bestsellersRank[] | ❌ | ❌ | ❌ | ❌ | bsr[] |
-| Rating | sampleAvgRating | rating | rating | avgRating | rating (per review) | sampleAvgRating | sampleAvgRating | rating[] |
-| Reviews | sampleAvgReviewCount | ratingCount | ratingCount | reviewCount | reviews[] (raw text, max 100) | ❌ | sampleAvgRatingCount | ratingCount[] |
+| Sales | totalMonthlySales / top100MonthlySales | monthlySalesFloor | ❌ | ❌ | ❌ | sampleSalesRate | sampleGroupMonthlySales | monthlySalesFloor[] |
+| Price | top100MedianPrice | price | buyboxWinner.price | ❌ | ❌ | bandMin/MaxPrice | sampleAvgPrice | price[] |
+| BSR | ❌ | bsr (int) | bestsellersRank[] | ❌ | ❌ | ❌ | ❌ | bsr[] |
+| Rating | top100AvgRating | rating | rating | avgRating | rating (per review) | sampleAvgRating | sampleAvgRating | rating[] |
+| Reviews | top100AvgRatingCount | ratingCount | ratingCount | reviewCount | reviews[] (raw text, max 100) | ❌ | sampleAvgRatingCount | ratingCount[] |
 | Insights | ❌ | ❌ | ❌ | ✅ consumerInsights | ❌ (raw only — feeds Local Review Toolkit) | ❌ | ❌ | ❌ |
-| Concentration | topSalesRate | ❌ | ❌ | ❌ | ❌ | sampleTop3BrandSalesRate | CR10 | ❌ |
+| Concentration | top100Top10BrandSalesRate | ❌ | ❌ | ❌ | ❌ | sampleTop3BrandSalesRate | CR10 | ❌ |
 | Opportunity | ❌ | ❌ | ❌ | ❌ | ❌ | sampleOpportunityIndex | ❌ | ❌ |
 
 ## Confidence Labels (all skills)

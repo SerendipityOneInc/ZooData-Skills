@@ -77,7 +77,7 @@ When `products` or `competitors` returns ASINs in Full-mode analysis, call `prod
 3. If still no match, use realtime/product on a known ASIN to extract categoryPath
 4. Validate categoryPath matches the user's intended product type
 
-**Data-driven category selection:** When the user provides a broad interest (e.g. "home products") instead of a specific niche, do NOT pick categories from general knowledge. Use `market` endpoint to scan subcategories, then rank by composite score: newSkuRate > 10%, topBrandSalesRate < 60%, sampleFbaRate > 50%, sampleAvgPrice $10-$50. Select Top 3-5 subcategories for deeper analysis.
+**Data-driven category selection:** When the user provides a broad interest (e.g. "home products") instead of a specific niche, resolve its category ID with `categories`, browse children with `categories --parent`, and call `market-overview --category-id` for candidates. Rank using returned `top100ConservativeNewProductRate6m`, `top100Top10BrandSalesRate`, `top100FbmRate`, and `top100MedianPrice`; keep these Top 100 measures separate from full-category totals. Select Top 3-5 for deeper analysis.
 
 ---
 
@@ -162,7 +162,7 @@ Use this rendered template at the end of every report:
 | Interface | Calls |
 |-----------|-------|
 | categories | 1 |
-| markets/search | 1 |
+| markets/overview | 1 |
 | products/search | 2 |
 | realtime/product | 3 |
 | reviews/analysis | 1 |
@@ -183,14 +183,14 @@ Use this rendered template at the end of every report:
 
 The interfaces return **different fields**. Do NOT assume they share the same structure.
 
-| Data | `market` | `products`/`competitors` | `realtime/product` | `reviews/analysis` | `price-band` | `brand` | `history` |
+| Data | `market-overview` | `products`/`competitors` | `realtime/product` | `reviews/analysis` | `price-band` | `brand` | `history` |
 |------|----------|--------------------------|--------------------|--------------------|-------------|---------|-------------------|
-| Monthly Sales | `sampleAvgMonthlySales` | `monthlySalesFloor` | ❌ | ❌ | per-band avg | per-brand | historical |
-| Revenue | `sampleAvgMonthlyRevenue` | `monthlyRevenueFloor` | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Price | `sampleAvgPrice` | `price` | `buyboxWinner.price` | ❌ | band range | ❌ | historical |
-| BSR | `sampleAvgBsr` | `bsr` (integer) | `bestsellersRank` (array) | ❌ | ❌ | ❌ | historical |
-| Rating | `sampleAvgRating` | `rating` | `rating` | `avgRating` | ❌ | ❌ | historical |
-| Review Count | `sampleAvgReviewCount` | `ratingCount` | `ratingCount` | `reviewCount` | ❌ | ❌ | ❌ |
+| Monthly Sales | `totalMonthlySales` / `top100MonthlySales` | `monthlySalesFloor` | ❌ | ❌ | per-band avg | per-brand | historical |
+| Revenue | `totalMonthlyRevenue` / `top100MonthlyRevenue` | `monthlyRevenueFloor` | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Price | `top100MedianPrice` | `price` | `buyboxWinner.price` | ❌ | band range | ❌ | historical |
+| BSR | ❌ | `bsr` (integer) | `bestsellersRank` (array) | ❌ | ❌ | ❌ | historical |
+| Rating | `top100AvgRating` | `rating` | `rating` | `avgRating` | ❌ | ❌ | historical |
+| Review Count | `top100AvgRatingCount` | `ratingCount` | `ratingCount` | `reviewCount` | ❌ | ❌ | ❌ |
 | Sentiment | ❌ | ❌ | ❌ | `sentimentDistribution` | ❌ | ❌ | ❌ |
 | Consumer Insights | ❌ | ❌ | ❌ | `consumerInsights` (11 dims) | ❌ | ❌ | ❌ |
 | Brand Share | ❌ | ❌ | ❌ | ❌ | ❌ | `sampleTop10BrandSalesRate` | ❌ |

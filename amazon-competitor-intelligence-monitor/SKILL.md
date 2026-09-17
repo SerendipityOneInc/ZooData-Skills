@@ -65,7 +65,7 @@ Brand queries MUST also include confirmed `--category`.
 1. **Category auto-detection**: categoryPath is auto-detected from keyword, ASIN, or top search result. If `category_source` in output is `inferred_from_search`, MUST confirm with user before trusting results
 2. **All keyword-based endpoints MUST include `--category`**; ASIN-specific endpoints do NOT need it
 3. **Brand + category**: a brand sells across categories — only analyze within locked subcategory
-4. **Use API fields directly**: revenue=`sampleAvgMonthlyRevenue` (NEVER price×sales), sales=`monthlySalesFloor`, concentration=`sampleTop10BrandSalesRate`
+4. **Use API fields directly**: market revenue=`totalMonthlyRevenue` (NEVER price×sales), sales=`monthlySalesFloor`, market concentration=`top100Top10BrandSalesRate`
 5. **reviews/analysis**: needs 50+ reviews. Fallback chain when sample is insufficient:
    1. **Lightweight**: `realtime/product` ratingBreakdown — only star distribution, no themes
    2. **Full 11-dim insights** — bypass `/reviews/analysis` entirely:
@@ -193,7 +193,7 @@ Include a table at the end of every report:
 
 | Data | Endpoint | Key Params | Notes |
 |------|----------|------------|-------|
-| (e.g. Market Overview) | `markets/search` | categoryPath, topN=10 | 📊 Top N sampling, sales are lower-bound |
+| (e.g. Market Overview) | `markets/overview` | categoryId, categoryScope, sampleType | 📊 Full category and selected Top 100 metrics |
 | ... | ... | ... | ... |
 
 Extract endpoint and params from `_query` in JSON output. Add notes: sampling method, T+1 delay, realtime vs DB, minimum review threshold, etc.

@@ -54,7 +54,7 @@ Select **Amazon Opportunity Discoverer** when prompted.
 | Endpoint | Purpose |
 |----------|---------|
 | `categories` | Category resolution and selection |
-| `markets/search` | Market metrics for category ranking |
+| `markets/overview` | Market metrics for category ranking |
 | `products/search` | Multi-mode product scanning |
 | `products/competitors` | Competitive landscape |
 | `realtime/product` | Real-time validation of top candidates |

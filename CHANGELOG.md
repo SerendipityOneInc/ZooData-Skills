@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed — Markets API v2 upgrade
+
+The shared CLI now uses the current `markets/search` discovery schema and exposes `market-overview`, `market-structure-profile`, and `market-history`. Composite market context resolves `categoryId` and reads `markets/overview`; skill references, examples, and routing tests use the new `total*` and selected `top100*` field families. Retired market CLI flags (`--category`, `--keyword`, `--topn`) were removed. The live market runtime accepts `sampleType=unitSalesTop100|revenueTop100`, although the current MCP description still lists older spellings.
+
 ### Chore — Patch-version bump across all 12 skills for ClawHub republish
 
 All 12 skills received a patch bump so the fixes in this cycle (composite category-resolution metadata, ABA out-of-window date guidance, the standardized `resolved_category_path` meta key, CLI allowlist enforcement, credential-source hardening, and the SKILL.md description trims) propagate to installed users on `openclaw skills update`. The shared `zoodata.py` change touches every `amazon-*` skill's synced copy, so the bump is repo-wide rather than per-skill.

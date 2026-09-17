@@ -38,7 +38,7 @@ Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zooda
 ## Capabilities & Data Flow
 
 - **Network**: only `https://api.zoodata.ai` (Bearer `ZOODATA_API_KEY`). Setting `ZOODATA_BASE_URL` to an untrusted host (anything other than `api.zoodata.ai` / `*.zoodata.ai` / localhost) makes the CLI **refuse the request and withhold the key** — the Bearer token is never sent to an untrusted host.
-- **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). This skill allows `categories`, `market`, `products`, and `check`. Do not invoke unrelated subcommands for this skill's tasks — the bundled manifest `{skill_base_dir}/scripts/allowed-commands.json` enforces this: the CLI refuses out-of-scope subcommands with a structured `COMMAND_NOT_ALLOWED` error before any API request.
+- **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). This skill allows `categories`, `market`, `market-overview`, `market-structure-profile`, `market-history`, `products`, and `check`. Do not invoke unrelated subcommands for this skill's tasks — the bundled manifest `{skill_base_dir}/scripts/allowed-commands.json` enforces this: the CLI refuses out-of-scope subcommands with a structured `COMMAND_NOT_ALLOWED` error before any API request.
 - **Local files**: scan state under `{skill_base_dir}/scan-data/` (`baseline.json`, `watchlist.json`, `alerts.json`, `history/*.json`); reads the optional credential store `~/.zoodata/config.json`. This state persists between runs solely for baseline comparison and alerting — it may be deleted at any time to reset monitoring, and old `history/` snapshots should be pruned when no longer needed.
 - **Sent to the API**: keywords, category paths, ASINs, marketplace/date and numeric filter values only. **Never sent**: budget, experience level, risk tolerance, or any other user-profile text — profile inputs map client-side to numeric filters.
 - **Credits**: every API call consumes account credits. For broad or ambiguous requests, state the estimated credit cost and confirm with the user before running multi-call scans.
@@ -61,8 +61,8 @@ Required: 1+ category paths or keywords. Optional: scan depth, metric preference
 
 1. **Category first**: resolve categoryPath via `categories --keyword` before anything
 2. **All keyword endpoints MUST include `--category`**; omitting it distorts aggregation
-3. **Use API fields directly**: revenue=`sampleAvgMonthlyRevenue`, sales=`monthlySalesFloor`
-4. **Key metrics per subcategory**: sampleAvgMonthlySales, sampleNewSkuRate, topBrandSalesRate, sampleAvgPrice, sampleAPlusRate, totalSkuCount, sampleFbaRate
+3. **Use market fields directly**: full-category revenue=`totalMonthlyRevenue`, sales=`totalMonthlySales`; Top 100 measures use the `top100` prefix.
+4. **Key metrics per subcategory**: `totalMonthlySales`, `totalMonthlyRevenue`, `top100ConservativeNewProductRate6m`, `top100Top10BrandSalesRate`, `top100MedianPrice`, `totalSkuCount`, `top100FbmRate`.
 5. **`--mode` presets are CLI-local, NOT API params** — `zoodata.py` expands them via `PRODUCT_MODES` before the call; a raw `products/search` request must send the expanded filter fields and must not send `mode` (`mode` raw → 422)
 
 ## On Missing Key
@@ -79,7 +79,7 @@ When `_transport.status=402`, stop further calls. Report where the workflow stop
 ## Mode 1: Full Scan
 
 1. `categories --keyword "{keyword}"` → resolve category path
-2. `market --category "{path}" --page-size 20` → collect all subcategory market data (paginate)
+2. `categories --parent "{path}"` → child IDs; `market-overview --category-id "{id}" --scope subtree` for each child. Use `market` for size-filtered market discovery.
 3. Record 7 key metrics per subcategory (see Pitfalls #4)
 4. `products --keyword "{sub}" --category "{path}" --mode emerging --page-size 20` per hot subcategory
 5. `products --keyword "{sub}" --category "{path}" --mode new-release --page-size 20` per hot subcategory
@@ -90,7 +90,7 @@ When `_transport.status=402`, stop further calls. Report where the workflow stop
 ## Mode 2: Quick Check (scheduled)
 
 1. Read `{skill_base_dir}/scan-data/watchlist.json` + `{skill_base_dir}/scan-data/baseline.json`
-2. `market --category "{path}"` per watched category
+2. `market-overview --category-id "{id}" --scope subtree` per watched category; use `market-history --category-id "{id}" --start-date YYYY-MM-DD --end-date YYYY-MM-DD` when a server month-end trend is needed
 3. Compare vs baseline using signal rules below
 4. 🔴 alerts → notify user; else silent log
 5. Save snapshot to `{skill_base_dir}/scan-data/history/{timestamp}.json`, update baseline
@@ -99,12 +99,11 @@ When `_transport.status=402`, stop further calls. Report where the workflow stop
 
 | Signal | Condition | Level |
 |--------|-----------|-------|
-| Demand surge | sampleAvgMonthlySales >20% vs baseline | 🔴 |
-| Red ocean warning | topBrandSalesRate >70% AND rising | 🔴 |
-| New entrant wave | sampleNewSkuRate up >5 percentage points | 🟡 |
-| Brand loosening | topBrandSalesRate down >3 percentage points | 🟡 |
-| Price band shift | sampleAvgPrice change >10% | 🟡 |
-| Margin change | sampleAPlusRate change >5 percentage points | 🟡 |
+| Demand surge | `totalMonthlySales` >20% vs comparable baseline | 🔴 |
+| Red ocean warning | `top100Top10BrandSalesRate` >70% AND rising | 🔴 |
+| New entrant wave | `top100ConservativeNewProductRate6m` up >5 percentage points | 🟡 |
+| Brand loosening | `top100Top10BrandSalesRate` down >3 percentage points | 🟡 |
+| Price shift | `top100MedianPrice` change >10%; inspect `market-structure-profile --dimension price` | 🟡 |
 | Minor movement | None of the above triggered | 🟢 Silent log |
 
 ### Trend Interpretation & Action Guide
@@ -115,15 +114,15 @@ When `_transport.status=402`, stop further calls. Report where the workflow stop
 | Demand surge + Red ocean warning | ⚠️ Late stage growth | High demand but leaders consolidating — need strong differentiation 💡 |
 | Red ocean warning + No demand surge | 🔒 Mature/locked | Avoid — established players dominate with flat demand 💡 |
 | Brand loosening + Price band shift down | 💰 Price war | Wait — margins compressing, enter after shakeout 💡 |
-| New entrant wave + Margin change | 🔄 Disruption | Category being redefined — study new entrants' strategies 🔍 |
+| New entrant wave + Price shift | 🔄 Disruption | Study the new products and price distribution 🔍 |
 
 ### Subcategory Ranking Criteria
 Rank subcategories by composite attractiveness (apply market-entry scoring logic):
-- **Demand**: sampleAvgMonthlySales — higher = more attractive 📊
-- **Competition**: topBrandSalesRate — lower = more open 📊
-- **Entry barrier**: sampleAvgRatingCount — lower = easier entry 📊
-- **Activity**: sampleNewSkuRate — higher = more dynamic 📊
-- **Margin signal**: sampleAvgPrice — higher generally = better margins 🔍
+- **Demand**: `totalMonthlySales` — higher observed demand 📊
+- **Competition**: `top100Top10BrandSalesRate` — lower selected-sample concentration 📊
+- **Entry barrier**: `top100AvgRatingCount` — lower review burden 📊
+- **Activity**: `top100ConservativeNewProductRate6m` — higher recent listing share 📊
+- **Price positioning**: `top100MedianPrice`; price alone does not establish margin 🔍
 
 ## Auto-Monitor
 
@@ -155,7 +154,7 @@ Include a table at the end of every report:
 
 | Data | Endpoint | Key Params | Notes |
 |------|----------|------------|-------|
-| (e.g. Market Overview) | `markets/search` | categoryPath, topN=10 | 📊 Top N sampling, sales are lower-bound |
+| (e.g. Market Overview) | `markets/overview` | categoryId, categoryScope, sampleType | 📊 Full category plus selected Top 100 metrics |
 | ... | ... | ... | ... |
 
 Extract endpoint and params from `_query` in JSON output. Add notes: sampling method, T+1 delay, realtime vs DB, minimum review threshold, etc.

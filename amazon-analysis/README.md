@@ -52,7 +52,7 @@ Select **Amazon Analysis** when prompted.
 | Endpoint | Purpose |
 |----------|---------|
 | `categories` | Lock category path before analysis |
-| `markets/search` | Market-level metrics and context |
+| `markets/overview` | Market-level metrics and context |
 | `products/search` | Product scanning with 20+ filter fields (13 CLI presets) |
 | `products/competitors` | Competitive landscape |
 | `realtime/product` | Live ASIN validation |

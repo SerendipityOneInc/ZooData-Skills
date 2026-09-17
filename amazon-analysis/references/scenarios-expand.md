@@ -17,7 +17,8 @@
 python3 scripts/zoodata.py categories --parent "Pet Supplies,Dogs"
 
 # Step 2: Evaluate each
-python3 scripts/zoodata.py market --category "Pet Supplies > Dogs > Feeding & Watering" --topn 10
+python3 scripts/zoodata.py categories --category "Pet Supplies > Dogs > Feeding & Watering"
+python3 scripts/zoodata.py market-overview --category-id "<categoryId from categories>"
 ```
 
 ---
@@ -25,7 +26,8 @@ python3 scripts/zoodata.py market --category "Pet Supplies > Dogs > Feeding & Wa
 ## 7.2 New Category Evaluation
 
 ```bash
-python3 scripts/zoodata.py market --keyword "new category keyword" --topn 10
+python3 scripts/zoodata.py categories --keyword "new category keyword"
+python3 scripts/zoodata.py market-overview --category-id "<categoryId from categories>"
 ```
 
 ---
@@ -45,7 +47,8 @@ python3 scripts/zoodata.py products --keyword "pet supplies" --growth-min 0.2 --
 python3 scripts/zoodata.py competitors --asin B09XXXXX
 
 # Step 2: Category market trend
-python3 scripts/zoodata.py market --category "category path" --topn 10
+python3 scripts/zoodata.py categories --category "category path"
+python3 scripts/zoodata.py market-overview --category-id "<categoryId from categories>"
 ```
 
 **Discontinuation Signals**:
@@ -57,7 +60,7 @@ python3 scripts/zoodata.py market --category "category path" --topn 10
 | Sales decline | `salesGrowthRate` | Negative growth rate (current snapshot) |
 | High competition | `sellerCount` | Currently > 10 sellers |
 | BSR worsening | `bsrGrowthRate` | Negative BSR growth (rank number increasing) |
-| Weak market | `sampleAvgMonthlySales` | Category avg below viable threshold |
+| Weak market | `top100MonthlySales` | Category avg below viable threshold |
 
 **Note:** `salesGrowthRate` and `bsrGrowthRate` come from `products`/`competitors` interface. `realtime/product` does NOT provide these fields. For stronger evidence, run this analysis periodically and compare snapshots.
 

@@ -33,7 +33,7 @@ Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zooda
 ## Capabilities & Data Flow
 
 - **Network**: only `https://api.zoodata.ai` (Bearer `ZOODATA_API_KEY`). Setting `ZOODATA_BASE_URL` to an untrusted host (anything other than `api.zoodata.ai` / `*.zoodata.ai` / localhost) makes the CLI **refuse the request and withhold the key** — the Bearer token is never sent to an untrusted host.
-- **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). This skill allows `market-entry`, `categories`, `market`, `products`, `competitors`, `product`, `analyze`, `price-band-overview`, `price-band-detail`, `brand-overview`, `brand-detail`, `history`, `check`, plus the review fallback toolkit (`reviews-raw` / `review-tag-prompt` / `review-reduce-prompt` / `review-aggregate`) — each only as explicitly routed below. The bundled manifest `{skill_base_dir}/scripts/allowed-commands.json` enforces this set: the CLI refuses out-of-scope subcommands with a structured `COMMAND_NOT_ALLOWED` error before any API request.
+- **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). This skill allows `market-entry`, `categories`, `market`, `market-overview`, `market-structure-profile`, `market-history`, `products`, `competitors`, `product`, `analyze`, `price-band-overview`, `price-band-detail`, `brand-overview`, `brand-detail`, `history`, `check`, plus the review fallback toolkit (`reviews-raw` / `review-tag-prompt` / `review-reduce-prompt` / `review-aggregate`) — each only as explicitly routed below. The bundled manifest `{skill_base_dir}/scripts/allowed-commands.json` enforces this set: the CLI refuses out-of-scope subcommands with a structured `COMMAND_NOT_ALLOWED` error before any API request.
 - **Local files**: a private temporary working dir (created with `mktemp -d`, removed when the fallback completes) during the review fallback; reads the optional credential store `~/.zoodata/config.json`.
 - **Sent to the API**: keywords, category paths, ASINs, marketplace/date and numeric filter values only. **Never sent**: budget, experience level, risk tolerance, or any other user-profile text — profile inputs map client-side to numeric filters.
 - **Credits**: every API call consumes account credits. For broad or ambiguous requests, state the estimated credit cost and confirm with the user before running multi-call scans. The composite `market-entry` command executes ~17+ API calls (~15-25 credits) in ONE invocation and has NO skip/trim flags — under a credit cap, use the granular commands instead.
@@ -48,6 +48,9 @@ Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zooda
 |---|---|
 | `categories` | `categories` |
 | `markets/search` | `market` |
+| `markets/overview` | `market-overview` |
+| `markets/structure-profile` | `market-structure-profile` |
+| `markets/history` | `market-history` |
 | `products/search` | `products` |
 | `products/competitors` | `competitors` |
 | `realtime/product` | `product` |
@@ -81,7 +84,7 @@ For a terminal interface failure, respond in the user's language that the market
 ## API Pitfalls (CRITICAL)
 - Keyword search is broad → categoryPath is auto-resolved via `categories` endpoint, with fallback to top search result. If `category_source` is `inferred_from_search`, confirm with user
 - Brand/price-band queries **MUST include --category** to avoid cross-category contamination
-- Revenue = `sampleAvgMonthlyRevenue` (NEVER calculate avgPrice × totalSales — overestimates 30-70%)
+- Full-category revenue = `totalMonthlyRevenue` from `markets/overview`; selected Top 100 revenue = `top100MonthlyRevenue`. Never calculate price × sales.
 - Sales = `monthlySalesFloor` (lower bound). Fallback: 300,000 / BSR^0.65, tag 🔍
 - Use `sampleOpportunityIndex`, `sampleTop10BrandSalesRate` directly — never reinvent
 - `reviews/analysis` needs 50+ reviews. Fallback chain when sample is insufficient:
@@ -118,17 +121,16 @@ When `_transport.status=402`, stop further calls. Report where the workflow stop
 ## Unique Logic
 
 ### Sub-Market Discovery
-Run `market --category "{path}" --topn 10 --page-size 20`, paginate all pages. Score each sub-market (1-100):
+Resolve child nodes with `categories --parent "{path}"`, then call `market-overview --category-id "{id}" --scope subtree` for each candidate. Use `market --category-id "{id}"` when a discovery row is needed. Score each sub-market (1-100) from the returned fields:
 
 | Dimension | Weight | Field | Good→100 | Bad→0 |
 |-----------|--------|-------|----------|-------|
-| Demand | 25% | sampleAvgMonthlySales | ≥1500 | <200 |
-| Profit | 25% | sampleAPlusRate | ≥0.35 | <0.15 |
-| New Entrant | 20% | sampleNewSkuRate | ≥0.20 | <0.05 |
-| Brand Openness | 20% | topBrandSalesRate | ≤0.50 | ≥0.90 (inverted) |
-| Capacity | 10% | totalSkuCount | 300-8000 | extreme |
+| Demand | 30% | top100MonthlySales | ≥1500 | <200 |
+| New Entrant | 25% | top100ConservativeNewProductRate6m | ≥0.20 | <0.05 |
+| Brand Openness | 25% | top100Top10BrandSalesRate | ≤0.50 | ≥0.90 (inverted) |
+| Capacity | 20% | totalSkuCount | 300-8000 | extreme |
 
-**Fallback** (grossMargin=0 for all): redistribute to Demand 30%, New Entrant 25%, Brand 25%, Capacity 20%.
+No margin field exists in these market endpoints. Evaluate profit potential only when the seller supplies cost inputs; do not treat A+ content rate as margin.
 
 Present TOP 10 sub-markets. Ask user which to deep-dive (default: top 3). If ≤3 sub-markets, deep-dive all.
 
@@ -224,7 +226,7 @@ Include a table at the end of every report:
 
 | Data | Endpoint | Key Params | Notes |
 |------|----------|------------|-------|
-| (e.g. Market Overview) | `markets/search` | categoryPath, topN=10 | 📊 Top N sampling, sales are lower-bound |
+| (e.g. Market Overview) | `markets/overview` | categoryId, categoryScope, sampleType | 📊 Full category plus selected Top 100 metrics |
 | ... | ... | ... | ... |
 
 Extract endpoint and params from `_query` in JSON output. Add notes: sampling method, T+1 delay, realtime vs DB, minimum review threshold, etc.

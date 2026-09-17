@@ -16,6 +16,9 @@
     "review-aggregate",
     "review-reduce-prompt",
     "review-tag-prompt",
-    "reviews-raw"
+    "reviews-raw",
+    "market-overview",
+    "market-structure-profile",
+    "market-history"
   ]
 }
