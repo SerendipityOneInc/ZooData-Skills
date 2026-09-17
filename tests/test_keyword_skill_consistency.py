@@ -124,6 +124,7 @@ def test_source_of_truth_boundaries_define_exclusive_module_ownership():
 
 def test_maintenance_conflict_governance_stays_out_of_runtime_skill():
     skill = read("SKILL.md")
+    execution = read("references/execution-guide.md")
     contributing = (ROOT.parent / "CONTRIBUTING.md").read_text(encoding="utf-8")
 
     assert "## Skill Specification Ownership" in contributing
@@ -133,6 +134,8 @@ def test_maintenance_conflict_governance_stays_out_of_runtime_skill():
     assert "Keep this repository-maintenance process out of runtime skill instructions" in contributing
     assert "surface it for discussion" not in skill
     assert "request a maintainer decision" not in skill
+    assert "When owner modules conflict, apply the stricter" not in execution
+    assert "Never recover a capability from non-equivalent evidence" in execution
 
 
 def test_contributing_constrains_skill_router_and_ownership_reviews():
@@ -1188,7 +1191,8 @@ def test_missing_previous_period_evidence_is_not_inferred_or_replaced_by_wrong_g
     assert "Exposure-position fields under `placement` return `null` both when period data is unavailable" not in reference
     assert "Interpret their meanings, comparison boundaries" in reference
     assert "only if it preserves the claim's subject, grain, marketplace, and comparison meaning" in evidence
-    assert "cannot replace an ASIN-wide aggregate traffic-term profile" in evidence
+    assert "cannot replace an ASIN-wide traffic structure profile or all-keyword trend evidence" in evidence
+    assert "ASIN-wide aggregate traffic-term profile" not in evidence
     assert "leave the comparison unavailable and do not infer" in evidence
     assert "Do not infer a missing previous window from weekly cadence" in semantics
     assert "a null profile, or an omitted/nullable module field is a coverage boundary" in semantics
