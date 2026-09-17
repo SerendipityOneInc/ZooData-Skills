@@ -1302,6 +1302,20 @@ def test_public_keyword_endpoint_inventory_and_sqp_routing_are_consistent():
     assert "`openapi_v2_product_traffic_terms`" in openapi_reference
     assert "keyword-competitor-product-keywords" not in read("scripts/allowed-commands.json")
 
+    # Match the current MCP input schemas: extends has no date, and traffic
+    # terms expose latestObservedAt as a row field but not as a sort option.
+    assert "the current MCP schema has no `date` parameter" in keyword_reference
+    assert "The current MCP schema has no `date` parameter" in openapi_reference
+    assert "the MCP schema has no `date` parameter" in zoodata_skill
+    assert "A legacy `date` may be sent" not in keyword_reference
+    assert "A legacy `date` may be sent" not in openapi_reference
+    traffic_terms_sort = (
+        "`trafficShare` / `estimateImpressionPoint` / `absolutePosition` / "
+        "`avgPosition` / `keywordEstimateSearchCount` / `keywordAbaRank` / `keyword`"
+    )
+    assert traffic_terms_sort in openapi_reference
+    assert "sortBy=trafficShare|estimateImpressionPoint|absolutePosition|avgPosition|keywordEstimateSearchCount|keywordAbaRank|keyword`" in keyword_reference
+
     for profile_field in (
         "`currEstimateImpressionPoint`, `prevEstimateImpressionPoint`",
         "`currAsinTrafficShare`",
