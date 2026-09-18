@@ -85,6 +85,15 @@ class TestMarketSkillOwnership(unittest.TestCase):
         self.assertNotIn("## Interface Data Differences", guide)
         self.assertNotIn("## Output Spec", skill)
 
+    def test_focused_market_discovery_routes_away_from_general_skill(self):
+        general = (ROOT / "amazon-analysis" / "SKILL.md").read_text()
+        general_description = general.split("description: >", 1)[1].split("metadata:", 1)[0]
+        market_description = (MARKET / "SKILL.md").read_text().split(
+            "description: >", 1)[1].split("metadata:", 1)[0]
+        self.assertIn("category-market\n  discovery", general_description)
+        self.assertIn("amazon-market-analysis", general_description)
+        self.assertIn("discover\n  candidate niches and products", market_description)
+
     def test_market_field_and_history_names_match_current_response(self):
         owners = (
             ROOT / "zoodata" / "references" / "openapi-reference.md",

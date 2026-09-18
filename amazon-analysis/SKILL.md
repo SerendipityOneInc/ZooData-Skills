@@ -3,10 +3,11 @@ name: amazon-analysis
 description: >
   Amazon-domain general analysis and multi-endpoint research engine.
   Handles broad or composite Amazon research requests that span multiple data
-  dimensions or have no single specialized angle.
+  dimensions or have no single specialized angle. For focused category-market
+  discovery, market-entry evaluation, or category trends, use
+  amazon-market-analysis.
   Use when:
-  - user asks for multi-endpoint Amazon research, composite reports, or
-    general Amazon market/product analysis
+  - user asks for multi-endpoint Amazon research or composite reports
   - user asks "what kind of Amazon analysis can I run" or wants an overview
     of available Amazon insights
   - user wants broad Amazon data exploration with no single specific
