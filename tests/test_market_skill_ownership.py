@@ -74,6 +74,21 @@ class TestMarketSkillOwnership(unittest.TestCase):
         self.assertIn("`meta.total` counts matching rows after filters", reference)
         self.assertNotIn("Select a bounded set of those IDs", scenario)
 
+    def test_market_handoff_closes_a_stage_without_automatic_progression(self):
+        guide = (MARKET / "references" / "execution-guide.md").read_text()
+        output = (MARKET / "references" / "output-rules.md").read_text()
+        discover = (MARKET / "references" / "scenarios-discover.md").read_text()
+
+        self.assertIn("### Handoff Gate", guide)
+        self.assertIn("material remaining decision", guide)
+        self.assertIn("### Stage-End Selection List Rule", guide)
+        self.assertIn("Ask another question or end this analysis", guide)
+        self.assertIn("A bare number selects only the most recent final-list item", guide)
+        self.assertIn("Do not auto-select a route", guide)
+        self.assertIn("one final numbered selection list", output)
+        self.assertIn("material evidence gaps in `Conclusion`", discover)
+        self.assertNotIn("the specific next validation question in `Conclusion`", discover)
+
     def test_general_analysis_ownership_keeps_details_in_modules(self):
         root = ROOT / "amazon-analysis"
         skill = (root / "SKILL.md").read_text()

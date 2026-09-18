@@ -24,9 +24,9 @@ For one normally completed full stage, use this localized top-level order:
 4. `Analysis` — compatible comparisons, uncertainty, and labeled inference;
 5. `Conclusion` — only the active stage's authorized judgment;
 6. `API Usage` — calls and credits; and
-7. any supported continuation from the guide, outside the report body.
+7. one final numbered selection list rendered from the guide's handoff decisions, after the report body.
 
-Scenario files may require a table or a subsection *inside* these headings; they do not rename or reorder the skeleton. Do not repeat a previous report or present an unvisited stage as completed. A user-supplied seller figure must be labeled as user-provided.
+Scenario files may require a table or a subsection *inside* these headings; they do not rename or reorder the skeleton. A prose sentence in the conclusion does not replace the final selection list. Do not repeat a previous report or present an unvisited stage as completed. A user-supplied seller figure must be labeled as user-provided.
 
 ## Confidence and evidence labels
 

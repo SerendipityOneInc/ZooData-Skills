@@ -33,4 +33,4 @@ The second row can be entered directly when the user already names a category. A
 
 ## Section content requirements
 
-Inside the shared report template, show the observed category or product rows with exact identity, requested filters, coverage, and principal metrics in `Evidence`; explain tradeoffs and sample bias in `Analysis`; give a bounded shortlist and the specific next validation question in `Conclusion`. A chosen category may be offered as an evaluation continuation only when that question remains relevant to the user.
+Inside the shared report template, show the observed category or product rows with exact identity, requested filters, coverage, and principal metrics in `Evidence`; explain tradeoffs and sample bias in `Analysis`; give a bounded shortlist and its material evidence gaps in `Conclusion`. A chosen category can support an evaluation continuation only when the remaining question is relevant to the user; render any selectable question through the guide-owned final list.

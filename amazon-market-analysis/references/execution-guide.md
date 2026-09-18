@@ -39,7 +39,7 @@ Each full-mode scenario stage defines exactly `Stage`, `Entry input`, `Evidence`
 2. Plan only the stage's named evidence. Use `evidence-protocols.md` to acquire the smallest sufficient set; a broad composite is justified only when its full fan-out serves the active stage and its credit cost was made clear.
 3. After every tool result apply the Interface Failure Stop Gate before another call. Then apply Field Identity and the appropriate semantic owner before interpreting any value.
 4. Apply the Evidence and Conclusion Authority Gates. Render the current stage only through `output-rules.md`.
-5. Offer only supported next decisions. Do not automatically execute another story step or begin recurring monitoring.
+5. Apply the Handoff Gate and render the Stage-End Selection List after API Usage. Do not automatically execute another story step or begin recurring monitoring.
 6. Apply the Final Output Gate immediately before sending.
 
 ## Gate order
@@ -51,8 +51,9 @@ Each full-mode scenario stage defines exactly `Stage`, `Entry input`, `Evidence`
 | 3 | Field Identity Gate | Verify endpoint, subject, scope, sample, metric path, unit, denominator, and returned date. |
 | 4 | Evidence Gate | Require the right evidence type and adequate coverage for each claim. |
 | 5 | Conclusion Authority Gate | Cap the judgment at the shared level and the stricter scenario stage. |
-| 6 | Handoff Gate | Name only a supported next decision with a clear entry input. |
-| 7 | Final Output Gate | Check the whole rendered answer against the chosen output mode. |
+| 6 | Handoff Gate | Derive evidence-supported continuation questions with clear entry inputs. |
+| 7 | Stage-End Selection List Rule | Close every normally completed full stage with one selection list. |
+| 8 | Final Output Gate | Check the whole rendered answer against the chosen output mode. |
 
 ### Stage Entry Gate
 
@@ -76,11 +77,23 @@ Market observations permit a screen, not a seller-specific GO or measured profit
 
 ### Handoff Gate
 
-After a normally completed full stage, offer only continuations that answer a remaining part of the user's question and have an available acquisition path. Discovery may hand off a selected category to evaluation; evaluation may hand off a named period comparison to tracking; tracking may hand off a changed market to evaluation. Show the exact category or input needed. If no further decision is supported, stop with the current conclusion. Never create a recurring run from a suggested continuation.
+After a normally completed full stage, reread the user's still-current question and the current conclusion. Offer a continuation only when it addresses a material remaining decision, an available capability can supply the missing evidence, and a scenario stage names its exact `Entry input`. A category-market shortlist can support a deeper child-market comparison, a named market screen, or category-scoped product validation; a market screen can support a seller-fit decision when the user seeks one; a change observation can support investigation of the named changed market. Choose only the questions justified by this report, not a fixed catalog of every possible endpoint.
+
+Each continuation must state the exact category, candidate set, period, or seller input and the business question it would answer. When several finite shortlist subjects support the same continuation, make each subject separately selectable; do not point to a table rank or ask the user to choose from another list in the report body. Do not offer a causal, profit, seller-specific GO, or recurring-monitoring conclusion whose evidence path is unavailable. A suggested continuation does not authorize its API calls until the user selects or directly requests it. If no remaining decision has a supported route, offer no continuation. Stages describe evidence scopes, not mandatory progression or a hidden queue.
+
+### Stage-End Selection List Rule
+
+Every normally completed full stage ends with one concise localized numbered selection list after API Usage, or after the conclusion when no live calls were made. Use it even if no continuation passed the Handoff Gate.
+
+1. Put every supported selectable subject and action directly in this final list, using user-domain language and an exact subject label. Keep the list decision-sized; do not turn every observed market row or later capability into an option. Put an evidence-supported priority first and mark it recommended only when the evidence supports that priority.
+2. Number items `1`, `2`, `3`, … in display order. Append exactly one final item meaning **Ask another question or end this analysis**, with no explanation attached. If there is no supported continuation, that fixed item is the only item.
+3. Do not render another action menu or selection key inside Evidence, Analysis, or Conclusion. The category ranks in a comparison table are data, not menu numbers. Tell the user they may reply with a final-list number or label, directly ask a different question, or stop. Do not auto-select a route.
+
+At the next user turn, classify the actual reply through `SKILL.md`. A bare number selects only the most recent final-list item, never a market rank in the report body. A direct new question or changed scope supersedes the prior list. If the selected item already supplies its required category and period, proceed without another confirmation; otherwise ask only for the missing entry input. Reuse compatible earlier evidence, obtain only the additional evidence needed for the new decision, and keep the new conclusion within its active stage.
 
 ### Final Output Gate
 
-For quick mode, check the source, scope, returned date, requested metric, limitations, and usage. For full mode, check the canonical `Data Notes → Evidence → Analysis → Conclusion → API Usage` order and any supported continuation. Ensure every number maps to an observed field or labeled derivation, every verdict stays within authority, and internal stage/Gate terms are absent from user-facing prose. Re-render a draft that fails this check.
+For quick mode, check the source, scope, returned date, requested metric, limitations, and usage. For a normally completed full stage, check the canonical `Data Notes → Evidence → Analysis → Conclusion → API Usage → one final numbered selection list` order. A prose-only “next step”, missing final list, or missing fixed new-question/exit item fails this Gate. Ensure every number maps to an observed field or labeled derivation, every verdict stays within authority, and internal stage/Gate terms are absent from user-facing prose. Validate the entire draft and re-render a draft that fails. Interface and credential failures do not render the normal list.
 
 ## Credential and credit failures
 

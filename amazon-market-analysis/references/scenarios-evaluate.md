@@ -37,4 +37,4 @@ If cost or fee inputs are missing, do not infer margin from price or revenue; th
 
 ## Section content requirements
 
-In `Evidence`, show the resolved market identity, returned snapshot/date, sample scope, and the seller inputs actually supplied. In `Analysis`, separate observed market barriers from seller-specific assumptions and explain conflicts. In `Conclusion`, state either the market screen or the supported conditional verdict, with the next validation step only when it follows from a named evidence gap.
+In `Evidence`, show the resolved market identity, returned snapshot/date, sample scope, and the seller inputs actually supplied. In `Analysis`, separate observed market barriers from seller-specific assumptions and explain conflicts. In `Conclusion`, state either the market screen or the supported conditional verdict, including any material evidence gap. An evidence-backed next question can be selected only through the guide-owned final list.
