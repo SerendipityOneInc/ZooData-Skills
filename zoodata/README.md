@@ -4,7 +4,7 @@
 
 ## What This Skill Does
 
-The foundational data layer for all ZooData agent skills. Provides direct access to 26 Amazon commerce and keyword-intelligence endpoints covering category browsing, market discovery, snapshots, distributions and history, product search, competitor lookup, real-time ASIN detail, review analysis, price and brand intelligence, product history, keyword intelligence, and product-traffic structure and trends. Use this skill when you need raw API access or want to understand what data is available.
+The foundational data layer for all ZooData agent skills. Provides direct access to 25 Amazon commerce and keyword-intelligence endpoints covering category browsing, market discovery and snapshots, distributions and history, product search, competitor lookup, real-time ASIN detail, review analysis, price and brand intelligence, product history, keyword intelligence, and product-traffic structure and trends. Use this skill when you need raw API access or want to understand what data is available.
 
 ### What Makes This Different
 
@@ -52,7 +52,7 @@ Select **ZooData** when prompted.
 | # | Endpoint | Purpose |
 |---|----------|---------|
 | 1 | `categories` | Browse/search category tree |
-| 2 | `markets/search` | Paginated category-market discovery |
+| 2 | `markets/search` | Paginated discovery or exact category snapshot |
 | 3 | `products/search` | Product search with 20+ filter fields (13 CLI presets) |
 | 4 | `products/competitors` | Competitor discovery |
 | 5 | `realtime/product` | Live ASIN detail (rating, BSR, Buy Box, variants) |
@@ -74,9 +74,8 @@ Select **ZooData** when prompted.
 | 21 | `keywords/product-traffic-terms-trend` | Per-keyword weekly traffic trend for one ASIN |
 | 22 | `keywords/product-traffic-trend` | ASIN-level weekly traffic trend across all keywords |
 | 23 | `keywords/product-traffic-trend-profile` | Server-calculated four-week ASIN traffic trend profile |
-| 24 | `markets/overview` | One category's full and selected Top 100 snapshot |
-| 25 | `markets/structure-profile` | One Top 100 distribution |
-| 26 | `markets/history` | Available month-end category-market snapshots |
+| 24 | `markets/structure-profile` | One Top 100 distribution |
+| 25 | `markets/history` | Available month-end category-market snapshots |
 
 Keyword endpoint note: ZooData keyword data is estimated search, exposure, visibility, rank, placement, and impression evidence; it is not seller ABA-SQP or Amazon Ads performance. Analysis-stage routing, seller-artifact acquisition, and output policy are owned by [`amazon-keyword-traffic-analysis`](../amazon-keyword-traffic-analysis/).
 

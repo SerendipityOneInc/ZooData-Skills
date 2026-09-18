@@ -34,7 +34,6 @@ def test_market_entry_cli_routing_uses_only_verified_literal_subcommands():
     expected_routes = {
         "categories": "categories",
         "markets/search": "market",
-        "markets/overview": "market-overview",
         "markets/structure-profile": "market-structure-profile",
         "markets/history": "market-history",
         "products/search": "products",

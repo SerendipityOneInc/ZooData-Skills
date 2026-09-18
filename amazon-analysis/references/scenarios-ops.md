@@ -15,7 +15,7 @@
 ```bash
 # Step 1: Market overview
 python3 scripts/zoodata.py categories --category "Pet Supplies > Dogs"
-python3 scripts/zoodata.py market-overview --category-id "<categoryId from categories>"
+python3 scripts/zoodata.py market --category-id "<categoryId from categories>"
 
 # Step 2: New products in last 90 days
 python3 scripts/zoodata.py products --keyword "dog toys" --listing-age 90d --page-size 20
@@ -44,7 +44,7 @@ python3 scripts/zoodata.py products --category "Pet Supplies > Dogs > Toys" --pa
 ```bash
 # Step 1: Market indicators
 python3 scripts/zoodata.py categories --category "Pet Supplies > Dogs > Toys"
-python3 scripts/zoodata.py market-overview --category-id "<categoryId from categories>"
+python3 scripts/zoodata.py market --category-id "<categoryId from categories>"
 
 # Step 2: Current top products
 python3 scripts/zoodata.py products --category "Pet Supplies > Dogs > Toys" --page-size 20

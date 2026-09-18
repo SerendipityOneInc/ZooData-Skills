@@ -66,7 +66,7 @@ requires your explicit opt-in:
 | Endpoint | Purpose |
 |----------|---------|
 | `categories` | Category resolution |
-| `markets/overview` | Market-level metrics |
+| `markets/search` | Market-level metrics |
 | `products/search` | Product landscape |
 | `products/competitors` | Competitor discovery |
 | `realtime/product` | Live ASIN polling |

@@ -56,7 +56,7 @@ Select **Amazon Pricing Command Center** when prompted.
 |----------|---------|
 | `realtime/product` | ASIN detail + leaf category detection |
 | `categories` | Category path resolution |
-| `markets/overview` | Market-level pricing context |
+| `markets/search` | Market-level pricing context |
 | `products/search` | Category product landscape |
 | `products/competitors` | Competitor pricing |
 | `products/price-band-overview` | Opportunity band identification |

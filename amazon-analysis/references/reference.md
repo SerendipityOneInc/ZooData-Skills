@@ -11,15 +11,14 @@
 | # | Endpoint | Purpose |
 |---|----------|---------|
 | 1 | `categories` | Category path lookup |
-| 2 | `markets/search` | Paginated category-market discovery |
+| 2 | `markets/search` | Paginated discovery or exact category snapshot |
 | 3 | `products/search` | Product supply (100+ via pagination), brand/price drill |
 | 4 | `products/competitors` | Top competitor list |
 | 5 | `realtime/product` | Live product detail |
 | 6 | `reviews/analysis` | Consumer pain points, buying factors |
 | 7 | `products/history` | 30-day price/BSR/sales trend |
-| 8 | `markets/overview` | One category market snapshot |
-| 9 | `markets/structure-profile` | Selected Top 100 distribution |
-| 10 | `markets/history` | Available month-end category history |
+| 8 | `markets/structure-profile` | Selected Top 100 distribution |
+| 9 | `markets/history` | Available month-end category history |
 
 Base URL: `https://api.zoodata.ai/openapi/v2`
 Auth: `Bearer $ZOODATA_API_KEY`
@@ -50,15 +49,11 @@ All endpoints return: `{success, data, error, meta}` with `meta.creditsRemaining
 
 ## 2. Market endpoints
 
-All four endpoints support only US. Resolve a human category path through `categories` to obtain `categoryId`. `categoryScope=direct` selects the node itself; `subtree` includes descendants without duplicates. The selected sample contains at most 100 products. For new requests, use `sampleType=unitSalesTop100` or `revenueTop100`; the MCP schema still advertises `bySale100` / `byRevenue100`, and live MCP validation rejects `bySale100`. The server recognizes legacy `categoryPath`, `categoryKeyword`, and `topN` filters only in a separate compatibility mode: do not combine them with `categoryScope`. The bundled CLI uses only the new parameters; the current MCP schema requires `categoryScope` and cannot submit a pure legacy request.
+All three endpoints support only US. Resolve a human category path through `categories` to obtain `categoryId`. `categoryScope=direct` selects the node itself; `subtree` includes descendants without duplicates. The selected sample contains at most 100 products. For new requests, use `sampleType=unitSalesTop100` or `revenueTop100`; the MCP schema still advertises `bySale100` / `byRevenue100`, and live MCP validation rejects `bySale100`. The server recognizes legacy `categoryPath`, `categoryKeyword`, and `topN` filters only in a separate compatibility mode: do not combine them with `categoryScope`. The bundled CLI uses only the new parameters; the current MCP schema requires `categoryScope` and cannot submit a pure legacy request.
 
 ### markets/search — discovery
 
-Required: `categoryScope`. Optional exact `categoryId` or `categoryName`, `date`, `sampleType`, `page`, `pageSize` (1–100), `sortBy` (`totalMonthlySales`, `totalMonthlyRevenue`, `top100MonthlySales`, `top100MonthlyRevenue`), `sortOrder`. Filters include `totalMonthlySalesMin`, `totalMonthlyRevenueMin`, `top100MonthlySalesMin`, `top100MonthlyRevenueMin`, `top100FbmRateMin/Max`, `top100APlusRateMin/Max`, `top100AvgSellerCountMin/Max`, `newProductMonthlyRevenueMin/Max`, `newProductRatingCountMin/Max`, `newProductRatingMin/Max`, and `sellerCountry`. Response `data[]` holds category identity, full-category `total*` size/sales/revenue and a selected `top100*` summary; `meta.total` is the total matching market count. `categoryName` is exact match, not keyword search.
-
-### markets/overview — one snapshot
-
-Required: `categoryId`. Optional: `categoryScope`, `sampleType`, `date`. Response `data` is an object. Full category: `totalSkuCount`, `totalSpuCount`, `totalMonthlySales`, `totalMonthlyRevenue`. Selected Top 100: `top100SkuCount`, `top100MonthlySales`, `top100MonthlyRevenue`, coverage rates, `top100MedianPrice`, brand/seller counts, `top100AvgRating`, `top100AvgRatingCount`, `top100FbmRate`, `top100APlusRate`, conservative six-month new-product metrics, and Top 10 product/brand concentration rates. Keep whole-category and Top 100 denominators separate.
+Required: `categoryScope`. Optional exact `categoryId` or `categoryName`, `date`, `sampleType`, `page`, `pageSize` (1–100), `sortBy` (`totalMonthlySales`, `totalMonthlyRevenue`, `top100MonthlySales`, `top100MonthlyRevenue`), `sortOrder`. Filters include `totalMonthlySalesMin`, `totalMonthlyRevenueMin`, `top100MonthlySalesMin`, `top100MonthlyRevenueMin`, `top100FbmRateMin/Max`, `top100APlusRateMin/Max`, `top100AvgSellerCountMin/Max`, `newProductMonthlyRevenueMin/Max`, `newProductRatingCountMin/Max`, `newProductRatingMin/Max`, and `sellerCountry`. Response `data[]` holds category identity, full-category `total*` size/sales/revenue, and selected `top100*` coverage, price, brand/seller, rating, new-product, and concentration metrics. `meta.total` is the total matching market count. For one market snapshot, filter by exact `categoryId` with `pageSize=1` and use the matching row; keep full-category and Top 100 denominators separate. `categoryName` is exact match, not keyword search.
 
 ### markets/structure-profile — one distribution
 
@@ -183,5 +178,5 @@ Request params: `keyword`, `brand`, `asin`, `categoryPath`, `sortBy`, `pageSize`
 
 | Data Point | Primary Source | Validation Source |
 |-----------|---------------|-------------------|
-| Market size | markets/overview | products/search (total count) |
+| Market size | markets/search | products/search (total count) |
 | Consumer demand | reviews/analysis | products (sales + growth) |

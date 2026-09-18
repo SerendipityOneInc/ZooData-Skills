@@ -5,7 +5,7 @@ Use `totalMonthlyRevenue` for full-category revenue and `top100MonthlyRevenue` o
 ## Unique Logic
 
 ### Sub-Market Discovery
-Resolve child nodes with `categories --parent "{path}"`, then call `market-overview --category-id "{id}" --scope subtree` for each candidate. Use `market --category-id "{id}"` when a discovery row is needed. Score each sub-market (1-100) from the returned fields:
+Resolve child nodes with `categories --parent "{path}"`, then call `market --category-id "{id}" --scope subtree --page-size 1` for each candidate. Read the matching `data[0]` row and score each sub-market (1-100) from its fields:
 
 | Dimension | Weight | Field | Good→100 | Bad→0 |
 |-----------|--------|-------|----------|-------|

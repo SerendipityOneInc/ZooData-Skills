@@ -11,7 +11,7 @@
 | # | Endpoint | Purpose |
 |---|----------|---------|
 | 1 | `categories` | Category path lookup |
-| 2 | `markets/search` | Paginated category-market discovery |
+| 2 | `markets/search` | Paginated discovery or exact category snapshot |
 | 3 | `products/search` | Product supply (100+ via pagination), brand/price drill |
 | 4 | `products/competitors` | Top competitor list |
 | 5 | `realtime/product` | Live product detail |
@@ -21,9 +21,8 @@
 | 9 | `products/brand-overview` | Brand count, CR10, top-brand avg price/rating |
 | 10 | `products/brand-detail` | Per-brand SKU/sales/revenue/share ranking |
 | 11 | `products/history` | 30-day price/BSR/sales trend |
-| 12 | `markets/overview` | One category market snapshot |
-| 13 | `markets/structure-profile` | Selected Top 100 distribution |
-| 14 | `markets/history` | Available month-end category history |
+| 12 | `markets/structure-profile` | Selected Top 100 distribution |
+| 13 | `markets/history` | Available month-end category history |
 
 Base URL: `https://api.zoodata.ai/openapi/v2`
 Auth: `Bearer $ZOODATA_API_KEY`
@@ -55,7 +54,7 @@ All endpoints return: `{success, data, error, meta}` with `meta.creditsRemaining
 ## 2. Market endpoints
 
 For the exact request and response contracts of `markets/search`,
-`markets/overview`, `markets/structure-profile`, and `markets/history`,
+`markets/structure-profile` and `markets/history`,
 read [openapi-reference.md](openapi-reference.md#2-marketssearch).
 This summary reference does not redefine those schemas.
 
@@ -275,12 +274,12 @@ Request params: `keyword`, `brand`, `asin`, `categoryPath`, `sortBy`, `pageSize`
 
 | Data Point | Primary Source | Validation Source |
 |-----------|---------------|-------------------|
-| Market size | markets/overview | products/search (total count) |
-| Brand concentration | brand-overview (sampleTop10BrandSalesRate) | markets/overview (top100Top10BrandSalesRate) |
+| Market size | markets/search | products/search (total count) |
+| Brand concentration | brand-overview (sampleTop10BrandSalesRate) | markets/search (top100Top10BrandSalesRate) |
 | Price distribution | price-band-detail | products/search (price field) |
 | Competition level | markets (topSalesRate) | brand-detail (top brand shares) |
 | Consumer demand | reviews/analysis | products (sales + growth) |
-| Avg rating quality | markets/overview (top100AvgRating) | brand-overview (sampleTop10AvgRating) |
+| Avg rating quality | markets/search (top100AvgRating) | brand-overview (sampleTop10AvgRating) |
 
 ## Field Differences Across Endpoints
 

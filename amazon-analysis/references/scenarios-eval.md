@@ -101,7 +101,7 @@ python3 scripts/zoodata.py product --asin B09XXXXX
 python3 scripts/zoodata.py competitors --keyword "product keyword" --page-size 20
 # Step 2: Market context (category-level metrics)
 python3 scripts/zoodata.py categories --category "category path"
-python3 scripts/zoodata.py market-overview --category-id "<categoryId from categories>"
+python3 scripts/zoodata.py market --category-id "<categoryId from categories>"
 # Step 3 (optional): Review details for the target ASIN
 python3 scripts/zoodata.py product --asin B09XXXXX
 # Step 4 (recommended): Review sentiment for risk signal

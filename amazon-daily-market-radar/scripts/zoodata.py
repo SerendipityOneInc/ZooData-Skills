@@ -580,8 +580,8 @@ def _resolve_category(api_caller, log_fn, keyword=None, asin=None, results=None)
     return category_path, category_source
 
 
-def _market_overview_for_category(api_caller, category_path, keyword=None, results=None):
-    """Resolve a category ID before requesting the current market snapshot."""
+def _market_snapshot_for_category(api_caller, category_path, keyword=None, results=None):
+    """Resolve a category ID and select its row from markets/search."""
     rows = ((results or {}).get("categories") or {}).get("data") or []
     if category_path:
         rows = [row for row in rows if row.get("categoryPath") == category_path]
@@ -595,13 +595,21 @@ def _market_overview_for_category(api_caller, category_path, keyword=None, resul
                         if row.get("categoryId")), None)
     if not category_id:
         return {"success": False, "data": None,
-                "error": {"message": "No categoryId resolved for market overview"}}
+                "error": {"message": "No categoryId resolved for market search"}}
     if results is not None:
         results.setdefault("meta", {})["resolved_category_id"] = category_id
-    return api_caller("markets/overview", {"categoryId": str(category_id),
-                      "categoryScope": "subtree",
-                      "marketplace": "US",
-                      "sampleType": "unitSalesTop100"}, "market")
+    result = api_caller("markets/search", {"categoryId": str(category_id),
+                        "categoryScope": "subtree", "marketplace": "US",
+                        "sampleType": "unitSalesTop100", "page": 1,
+                        "pageSize": 1}, "market")
+    if not result.get("success"):
+        return result
+    rows = result.get("data") or []
+    if not isinstance(rows, list) or len(rows) != 1 or str(rows[0].get("categoryId")) != str(category_id):
+        return {**result, "success": False, "data": None,
+                "error": {"code": "MARKET_NOT_FOUND",
+                          "message": "No matching category market returned by markets/search"}}
+    return {**result, "data": rows[0]}
 
 
 def _has_scope(keyword, category_path):
@@ -1234,11 +1242,6 @@ def _market_single_params(args):
             **({"date": args.date} if getattr(args, "date", None) else {})}
 
 
-def cmd_market_overview(args):
-    result = api_call("markets/overview", _market_single_params(args))
-    output(result, args.format)
-
-
 def cmd_market_structure_profile(args):
     params = _market_single_params(args)
     params["dimension"] = args.dimension
@@ -1389,7 +1392,7 @@ def cmd_product(args):
 def cmd_report(args):
     """
     Composite workflow: Full Market Report.
-    Runs categories → markets/overview → products/search → realtime/product (top 1).
+    Runs categories → markets/search → products/search → realtime/product (top 1).
     Outputs combined JSON with all results.
     """
     keyword = args.keyword
@@ -1410,7 +1413,7 @@ def cmd_report(args):
 
     # Step 2: Market data
     print("Step 2/4: Pulling market data...", file=sys.stderr)
-    results["market"] = _market_overview_for_category(
+    results["market"] = _market_snapshot_for_category(
         _caller, category_path, keyword=keyword, results=results)
 
     # Step 3: Top products
@@ -1442,7 +1445,7 @@ def cmd_report(args):
 def cmd_opportunity(args):
     """
     Composite workflow: Product Opportunity Discovery.
-    Runs categories → markets/overview → products/search (filtered) → realtime/product (top 3).
+    Runs categories → markets/search → products/search (filtered) → realtime/product (top 3).
     """
     keyword = args.keyword
     if not keyword:
@@ -1462,7 +1465,7 @@ def cmd_opportunity(args):
 
     # Step 2: Market validation
     print("Step 2/4: Validating market...", file=sys.stderr)
-    results["market"] = _market_overview_for_category(
+    results["market"] = _market_snapshot_for_category(
         _caller, category_path, keyword=keyword, results=results)
 
     # Step 3: Product candidates (high demand, low barrier)
@@ -1556,7 +1559,7 @@ def cmd_market_entry(args):
     log("Step 1/6: Market landscape...")
     
     # 1a. Market aggregate
-    results["market"] = _market_overview_for_category(
+    results["market"] = _market_snapshot_for_category(
         safe_call, category_path, keyword=keyword, results=results)
 
     # 1b. Brand overview (keyword + category, fallback to category-only)
@@ -1816,7 +1819,7 @@ def cmd_competitor_analysis(args):
 
     # Step 2: Market Context
     log("Step 2/7: Market context...")
-    results["market"] = _market_overview_for_category(
+    results["market"] = _market_snapshot_for_category(
         safe_call, category_path, keyword=keyword, results=results)
 
     brand_params = {"pageSize": 20}
@@ -2043,7 +2046,7 @@ def cmd_pricing_analysis(args):
 
     # Step 4: Market Benchmarks
     log("Step 4/8: Market benchmarks...")
-    results["market"] = _market_overview_for_category(
+    results["market"] = _market_snapshot_for_category(
         safe_call, category_path, keyword=keyword, results=results)
 
     brand_params = {"pageSize": 20}
@@ -2220,7 +2223,7 @@ def cmd_daily_radar(args):
 
     # Step 3: Market Pulse
     log("Step 3/7: Market pulse...")
-    results["market"] = _market_overview_for_category(
+    results["market"] = _market_snapshot_for_category(
         safe_call, category_path, keyword=keyword, results=results)
 
     # Brand overview + detail
@@ -2436,7 +2439,7 @@ def cmd_listing_audit(args):
 
     # Step 4: Market Context
     log("Step 4/7: Market context...")
-    results["market"] = _market_overview_for_category(
+    results["market"] = _market_snapshot_for_category(
         safe_call, category_path, keyword=keyword, results=results)
 
     brand_params = {"pageSize": 20}
@@ -2650,7 +2653,7 @@ def cmd_opportunity_scan(args):
 
     # Step 2: Market Context
     log("Step 2/6: Market context...")
-    results["market"] = _market_overview_for_category(
+    results["market"] = _market_snapshot_for_category(
         safe_call, category_path, keyword=keyword, results=results)
 
     brand_params = {"pageSize": 20}
@@ -2859,7 +2862,7 @@ def cmd_review_deepdive(args):
 
     # Step 4: Market & Competitive Context
     log("Step 4/5: Market context...")
-    results["market"] = _market_overview_for_category(
+    results["market"] = _market_snapshot_for_category(
         safe_call, category_path, keyword=keyword, results=results)
 
     brand_params = {"pageSize": 20}
@@ -3490,11 +3493,9 @@ Examples:
     p_mkt.add_argument("--order", choices=["asc", "desc"], default="desc")
     p_mkt.set_defaults(func=cmd_market)
 
-    p_overview = sub.add_parser("market-overview", help="Read one market snapshot", allow_abbrev=False)
     p_structure = sub.add_parser("market-structure-profile", help="Read one Top 100 distribution", allow_abbrev=False)
     p_history = sub.add_parser("market-history", help="Read month-end market history", allow_abbrev=False)
-    for name, p, handler in (("market-overview", p_overview, cmd_market_overview),
-                             ("market-structure-profile", p_structure, cmd_market_structure_profile),
+    for name, p, handler in (("market-structure-profile", p_structure, cmd_market_structure_profile),
                              ("market-history", p_history, cmd_market_history)):
         p.add_argument("--category-id", required=True)
         p.add_argument("--scope", choices=["direct", "subtree"], default="subtree")

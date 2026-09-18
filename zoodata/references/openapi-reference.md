@@ -25,7 +25,7 @@ Response: `categoryId`, `categoryName`, `categoryPath`, `hasChildren`, `isRoot`,
 
 ## 2. markets/search
 
-Paginated **category-market discovery**. It does not return a complete market report.
+Paginated category-market discovery and single-category snapshot lookup. It returns market metrics, but not distribution buckets or historical points.
 
 | Parameter | Type | Note |
 |-----------|------|------|
@@ -40,19 +40,15 @@ Paginated **category-market discovery**. It does not return a complete market re
 
 Filters: `totalMonthlySalesMin`, `totalMonthlyRevenueMin`, `top100MonthlySalesMin`, `top100MonthlyRevenueMin`, `top100FbmRateMin/Max`, `top100APlusRateMin/Max`, `top100AvgSellerCountMin/Max`, `newProductMonthlyRevenueMin/Max`, `newProductRatingCountMin/Max`, `newProductRatingMin/Max`, `sellerCountry`.
 
-Response: `data[]` rows carry `categoryId`, `categoryName`, `categoryPath`, `date`, `categoryScope`, `sampleType`, full-category `totalSkuCount`, `totalSpuCount`, `totalMonthlySales`, `totalMonthlyRevenue`, plus selected `top100*` summary fields. `meta.total` counts matching markets. There is no `topN` request parameter: the selected sample is fixed at up to 100 products.
+Response: `data[]` rows carry `categoryId`, `categoryName`, `categoryPath`, `date`, `categoryScope`, `sampleType`, full-category `totalSkuCount`, `totalSpuCount`, `totalMonthlySales`, `totalMonthlyRevenue`, plus selected `top100*` coverage, price, brand/seller, rating, content, conservative six-month new-product, and Top 10 concentration metrics. `meta.total` counts matching markets. For a single snapshot, filter by exact `categoryId` with `pageSize=1` and read the matching row. Keep the full-category and Top 100 denominators separate: use `totalMonthlyRevenue` for the whole category and `top100MonthlyRevenue` for the selected sample. The selected sample is fixed at up to 100 products.
 
 The MCP tool description currently advertises `bySale100` / `byRevenue100`, but live MCP validation rejects `bySale100` and accepts `unitSalesTop100`. Use `unitSalesTop100` / `revenueTop100` for new requests until the MCP schema is corrected. The server now recognizes legacy market filters such as `categoryPath`, `categoryKeyword`, and `topN` in a separate compatibility mode; combining them with new `categoryScope` returns HTTP 422. The current MCP tool schema requires `categoryScope`, so it cannot submit a pure legacy request. The bundled CLI supports only the new parameters.
 
-## 2a. markets/overview
-
-One category's current or dated market snapshot. Required `categoryId`; optional `categoryScope` (`direct` / `subtree`), `sampleType`, `date`, `marketplace=US`. Response `data` is an object with full-category `total*` size, sales and revenue, and selected `top100*` coverage, price, brand/seller, rating, content, conservative six-month new-product, and Top 10 concentration metrics. Use `totalMonthlyRevenue` for the whole category and `top100MonthlyRevenue` only for the selected sample.
-
-## 2b. markets/structure-profile
+## 2a. markets/structure-profile
 
 Required `categoryId` and one `dimension`: `brand`, `seller`, `price`, `sellerCountry`, `fulfillment`, `ratingCount`, `rating`, `listingAge`, `listingYear`, or `productFeature`. Optional `categoryScope`, `sampleType`, `date`, `marketplace=US`. Response `data.buckets[]` describes **the selected Top 100**, not the whole category: bucket label, SKU count/share, estimated sales/revenue/share, and dimension-specific fields. `data.top100SkuCount` is the sample denominator; empty buckets indicate no available rows.
 
-## 2c. markets/history
+## 2b. markets/history
 
 Required `categoryId`, `startDate`, `endDate`; optional `categoryScope`, `sampleType`, `marketplace=US`. Response `data.points[]` is sorted ascending and contains available month-end snapshots only. Missing months are omitted, not filled. Points carry full-category and selected Top 100 size/sales/revenue, conservative six-month new-product metrics, and MoM/YoY rates when a comparable baseline exists. Compare periods using returned `date`, `actualStartDate`, and `actualEndDate`.
 

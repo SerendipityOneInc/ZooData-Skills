@@ -63,7 +63,7 @@ Select **Amazon Competitor Intelligence Monitor** when prompted.
 | Endpoint | Purpose |
 |----------|---------|
 | `categories` | Category resolution |
-| `markets/overview` | Market context |
+| `markets/search` | Market context |
 | `products/search` | Product landscape |
 | `products/competitors` | Competitor discovery |
 | `realtime/product` | Live competitor data |

@@ -5,7 +5,7 @@ Use full-category `totalMonthlySales` and `totalMonthlyRevenue` for market size.
 ## Mode 1: Full Scan
 
 1. `categories --keyword "{keyword}"` → resolve category path
-2. `categories --parent "{path}"` → child IDs; `market-overview --category-id "{id}" --scope subtree` for each child. Use `market` for size-filtered market discovery.
+2. `categories --parent "{path}"` → child IDs; `market --category-id "{id}" --scope subtree --page-size 1` for each child. Use each matching `data[0]` row for the snapshot and an unscoped `market` query for size-filtered discovery.
 3. Record the full-category size and selected Top 100 metrics listed above for each subcategory.
 4. `products --keyword "{sub}" --category "{path}" --mode emerging --page-size 20` per hot subcategory
 5. `products --keyword "{sub}" --category "{path}" --mode new-release --page-size 20` per hot subcategory
@@ -16,7 +16,7 @@ Use full-category `totalMonthlySales` and `totalMonthlyRevenue` for market size.
 ## Mode 2: Quick Check (scheduled)
 
 1. Read `{skill_base_dir}/scan-data/watchlist.json` + `{skill_base_dir}/scan-data/baseline.json`
-2. Resolve each watched category path through `categories --category "{path}"` if its watchlist entry lacks `categoryId`; then run `market-overview --category-id "{id}" --scope subtree`. Use `market-history --category-id "{id}" --start-date YYYY-MM-DD --end-date YYYY-MM-DD` when a server month-end trend is needed.
+2. Resolve each watched category path through `categories --category "{path}"` if its watchlist entry lacks `categoryId`; then run `market --category-id "{id}" --scope subtree --page-size 1` and use its matching `data[0]` row. Use `market-history --category-id "{id}" --start-date YYYY-MM-DD --end-date YYYY-MM-DD` when a server month-end trend is needed.
 3. If the saved baseline contains legacy `sample*` market fields instead of the new `total*` / `top100*` fields, initialize a new baseline from the successful current snapshot and suppress change alerts for that first migrated check. Preserve the old snapshot in history for audit, but do not compare incompatible fields.
 4. Compare vs baseline using signal rules below
 5. 🔴 alerts → notify user; else silent log

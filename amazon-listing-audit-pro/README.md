@@ -57,7 +57,7 @@ Select **Amazon Listing Audit Pro** when prompted.
 | Endpoint | Purpose |
 |----------|---------|
 | `categories` | Category resolution |
-| `markets/overview` | Market benchmarks |
+| `markets/search` | Market benchmarks |
 | `products/search` | Category product landscape |
 | `products/competitors` | Leader discovery |
 | `realtime/product` | Live listing details (yours + leaders) |

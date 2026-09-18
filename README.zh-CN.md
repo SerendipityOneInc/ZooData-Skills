@@ -119,8 +119,7 @@ python amazon-analysis/scripts/zoodata.py products --keyword "wireless earbuds" 
 | 接口 | 说明 | 使用场景 |
 |------|------|----------|
 | 🔍 `products/search` | 商品搜索，20+ 筛选条件（CLI 另提供 13 种预设模式） | *"找 80 美元以下、4 星以上的跑步鞋"* |
-| 📊 `markets/overview` | 类目市场概览——规模、集中度与 Top 100 定价 | *"瑜伽垫市场竞争激烈吗？"* |
-| 🔎 `markets/search` | 按市场规模和 Top 100 指标发现类目 | *"哪些类目的月营收超过 100 万美元？"* |
+| 📊 `markets/search` | 类目发现与指定类目的市场概览——规模、集中度与 Top 100 定价 | *"瑜伽垫市场竞争激烈吗？"* |
 | 🧩 `markets/structure-profile` | 品牌、价格等 Top 100 分布 | *"销售额集中在哪些价格带？"* |
 | 📅 `markets/history` | 类目市场的月末历史快照 | *"这个类目近几个月如何变化？"* |
 | 🏷️ `products/competitor-lookup` | 按关键词、品牌或 ASIN 发现竞品 | *"这个细分类目的头部卖家有哪些？"* |

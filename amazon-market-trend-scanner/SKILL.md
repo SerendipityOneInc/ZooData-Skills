@@ -41,7 +41,7 @@ Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zooda
 ## Capabilities & Data Flow
 
 - **Network**: only `https://api.zoodata.ai` (Bearer `ZOODATA_API_KEY`). Setting `ZOODATA_BASE_URL` to an untrusted host (anything other than `api.zoodata.ai` / `*.zoodata.ai` / localhost) makes the CLI **refuse the request and withhold the key** — the Bearer token is never sent to an untrusted host.
-- **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). This skill allows `categories`, `market`, `market-overview`, `market-structure-profile`, `market-history`, `products`, and `check`. Do not invoke unrelated subcommands for this skill's tasks — the bundled manifest `{skill_base_dir}/scripts/allowed-commands.json` enforces this: the CLI refuses out-of-scope subcommands with a structured `COMMAND_NOT_ALLOWED` error before any API request.
+- **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). This skill allows `categories`, `market`, `market`, `market-structure-profile`, `market-history`, `products`, and `check`. Do not invoke unrelated subcommands for this skill's tasks — the bundled manifest `{skill_base_dir}/scripts/allowed-commands.json` enforces this: the CLI refuses out-of-scope subcommands with a structured `COMMAND_NOT_ALLOWED` error before any API request.
 - **Local files**: scan state under `{skill_base_dir}/scan-data/` (`baseline.json`, `watchlist.json`, `alerts.json`, `history/*.json`); reads the optional credential store `~/.zoodata/config.json`. This state persists between runs solely for baseline comparison and alerting — it may be deleted at any time to reset monitoring, and old `history/` snapshots should be pruned when no longer needed.
 - **Sent to the API**: keywords, category paths, ASINs, marketplace/date and numeric filter values only. **Never sent**: budget, experience level, risk tolerance, or any other user-profile text — profile inputs map client-side to numeric filters.
 - **Credits**: every API call consumes account credits. For broad or ambiguous requests, state the estimated credit cost and confirm with the user before running multi-call scans.
@@ -112,7 +112,7 @@ Include a table at the end of every report:
 
 | Data | Endpoint | Key Params | Notes |
 |------|----------|------------|-------|
-| (e.g. Market Overview) | `markets/overview` | Copy actual `_query.params` | 📊 Full category and selected Top 100 metrics |
+| (e.g. Market Overview) | `markets/search` | Copy actual `_query.params` | 📊 Full category and selected Top 100 metrics |
 | ... | ... | ... | ... |
 
 Extract endpoint and params from `_query` in JSON output. Add notes: sampling method, T+1 delay, realtime vs DB, minimum review threshold, etc.

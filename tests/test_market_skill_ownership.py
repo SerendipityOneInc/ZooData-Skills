@@ -33,7 +33,17 @@ class TestMarketSkillOwnership(unittest.TestCase):
         self.assertIn("openapi-reference.md", summary)
         self.assertNotIn("### markets/search — discovery", summary)
         self.assertIn("## 2. markets/search", owner)
-        self.assertIn("## 2c. markets/history", owner)
+        self.assertIn("## 2b. markets/history", owner)
+
+    def test_removed_overview_is_absent_from_runtime_skills(self):
+        for skill_dir in (ROOT / "zoodata", *ROOT.glob("amazon-*")):
+            for path in skill_dir.rglob("*"):
+                if path.suffix not in {".md", ".py", ".json"}:
+                    continue
+                with self.subTest(path=path.relative_to(ROOT)):
+                    content = path.read_text()
+                    self.assertNotIn("markets/overview", content)
+                    self.assertNotIn("market-overview", content)
 
     def test_new_workflow_modules_do_not_include_repo_process(self):
         modules = (

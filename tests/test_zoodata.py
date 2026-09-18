@@ -349,11 +349,6 @@ class TestEndpointRouting(unittest.TestCase):
         self.assertEqual(r["params"]["top100FbmRateMax"], 0.5)
         self.assertEqual(r["params"]["sortBy"], "totalMonthlyRevenue")
 
-    def test_market_overview(self):
-        r = run_cli("market-overview", "--category-id", "3760901")
-        self.assertEqual(r["endpoint"], "markets/overview")
-        self.assertEqual(r["params"]["categoryId"], "3760901")
-
     def test_market_structure_profile(self):
         r = run_cli("market-structure-profile", "--category-id", "3760901",
                     "--dimension", "price")
@@ -1450,30 +1445,43 @@ class TestCategoryParamPassing(unittest.TestCase):
 # 9. cmd_market_entry: categoryPath → keyword fallback (regression for #XX)
 # ---------------------------------------------------------------------------
 class TestMarketCategoryResolution(unittest.TestCase):
-    def test_overview_resolves_id_from_exact_category_path(self):
+    def test_search_snapshot_resolves_id_from_exact_category_path(self):
         calls = []
         def caller(endpoint, params, label=None):
             calls.append((endpoint, params))
             if endpoint == "categories":
                 return {"success": True, "data": [{"categoryId": "3760901",
                     "categoryPath": ["Health & Household"]}]}
-            return {"success": True, "data": {"categoryId": "3760901"}}
+            return {"success": True, "data": [{"categoryId": "3760901",
+                    "totalSkuCount": 100}]}
         results = {}
-        response = zoodata._market_overview_for_category(
+        response = zoodata._market_snapshot_for_category(
             caller, ["Health & Household"], results=results)
         self.assertTrue(response["success"])
         self.assertEqual(calls[0], ("categories", {"categoryPath": ["Health & Household"]}))
-        self.assertEqual(calls[1][0], "markets/overview")
+        self.assertEqual(calls[1][0], "markets/search")
         self.assertEqual(calls[1][1]["categoryId"], "3760901")
         self.assertEqual(calls[1][1]["sampleType"], "unitSalesTop100")
+        self.assertEqual(calls[1][1]["pageSize"], 1)
+        self.assertEqual(response["data"]["totalSkuCount"], 100)
         self.assertEqual(results["meta"]["resolved_category_id"], "3760901")
+
+    def test_search_snapshot_rejects_wrong_category_row(self):
+        def caller(endpoint, params, label=None):
+            if endpoint == "categories":
+                return {"success": True, "data": [{"categoryId": "3760901"}]}
+            return {"success": True, "data": [{"categoryId": "other"}]}
+        response = zoodata._market_snapshot_for_category(
+            caller, ["Health & Household"])
+        self.assertFalse(response["success"])
+        self.assertEqual(response["error"]["code"], "MARKET_NOT_FOUND")
 
     def test_missing_id_does_not_issue_unscoped_market_request(self):
         calls = []
         def caller(endpoint, params, label=None):
             calls.append(endpoint)
             return {"success": True, "data": []}
-        response = zoodata._market_overview_for_category(
+        response = zoodata._market_snapshot_for_category(
             caller, ["Unknown"], results={})
         self.assertFalse(response["success"])
         self.assertEqual(calls, ["categories"])
@@ -2222,13 +2230,15 @@ class TestCompositeRobustness(unittest.TestCase):
                 # real products/search rows carry categoryPath — resolution reads it directly
                 return {"success": True, "data": [{"asin": "B0PROBE001",
                         "categoryPath": ["Sports & Outdoors", "Yoga", "Mats"]}]}
-            if endpoint == "markets/overview":
-                return {"success": True, "data": {"totalSkuCount": 100}}
+            if endpoint == "markets/search":
+                return {"success": True, "data": [{"categoryId": "3760901",
+                        "totalSkuCount": 100}]}
             return {"success": True, "data": []}
         calls, results = self._run(["report", "--keyword", "yoga mat"], router)
-        market_calls = [p for ep, p in calls if ep == "markets/overview"]
-        self.assertTrue(market_calls, "markets/overview was not called")
+        market_calls = [p for ep, p in calls if ep == "markets/search"]
+        self.assertTrue(market_calls, "markets/search was not called")
         self.assertEqual(market_calls[0].get("categoryId"), "3760901")
+        self.assertEqual(results["market"]["data"]["totalSkuCount"], 100)
 
     # --- Fix: terminal failure aborts composite fan-out ---
     def test_is_terminal_failure_helper(self):
@@ -2259,7 +2269,7 @@ class TestCompositeRobustness(unittest.TestCase):
             if endpoint == "categories":
                 return {"success": True, "data": [{"categoryId": "3760901",
                         "categoryPath": ["Sports", "Yoga"]}]}
-            if endpoint == "markets/overview":
+            if endpoint == "markets/search":
                 # non-terminal business failure mid fan-out — must be tolerated, not abort
                 return {"success": False, "error": {"code": "HTTP_422", "message": "validation"}}
             return {"success": True, "data": {} if endpoint == "reviews/analysis" else []}
@@ -2268,7 +2278,7 @@ class TestCompositeRobustness(unittest.TestCase):
                          "composite wrongly aborted on a non-terminal business failure")
         # composite must have continued past the failing market overview
         endpoints = {ep for ep, _ in calls}
-        self.assertTrue(endpoints - {"categories", "markets/overview"},
+        self.assertTrue(endpoints - {"categories", "markets/search"},
                         f"composite stopped after the non-terminal failure; only hit {endpoints}")
 
     def test_listing_audit_empty_target_null_data(self):
@@ -2331,12 +2341,13 @@ class TestCompositeRobustness(unittest.TestCase):
             if endpoint == "products/search":
                 return {"success": True, "data": [{"asin": "B01",
                         "categoryPath": ["Sports & Outdoors", "Yoga", "Mats"]}]}
-            if endpoint == "markets/overview":
-                return {"success": True, "data": {"totalSkuCount": 1}}
+            if endpoint == "markets/search":
+                return {"success": True, "data": [{"categoryId": "3760901",
+                        "totalSkuCount": 1}]}
             return {"success": True, "data": []}   # realtime (Step 4 detail) returns no category
         calls, results = self._run(["report", "--keyword", "yoga mat"], router)
         self.assertEqual(results.get("meta", {}).get("category_source"), "inferred_from_search")
-        market = [p for ep, p in calls if ep == "markets/overview"]
+        market = [p for ep, p in calls if ep == "markets/search"]
         self.assertEqual(market[0].get("categoryId"), "3760901")
 
     def test_resolve_category_never_calls_realtime(self):

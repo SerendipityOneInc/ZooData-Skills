@@ -61,7 +61,7 @@ Select **Amazon Market Trend Scanner** when prompted.
 | Endpoint | Purpose |
 |----------|---------|
 | `categories` | Category tree resolution |
-| `markets/overview` | Subcategory-level market metrics |
+| `markets/search` | Subcategory-level market metrics |
 | `products/search` | Emerging and new-release product scanning |
 
 ## Credit Cost

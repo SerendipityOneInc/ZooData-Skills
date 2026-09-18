@@ -29,7 +29,7 @@ python3 scripts/zoodata.py categories --keyword "pet toys"
 
 # Step 2: Market conditions
 python3 scripts/zoodata.py categories --category "Pet Supplies > Dogs > Toys"
-python3 scripts/zoodata.py market-overview --category-id "<categoryId from categories>"
+python3 scripts/zoodata.py market --category-id "<categoryId from categories>"
 
 # Step 3: Run 2-3 modes based on user profile
 # Beginner → beginner + high-demand-low-barrier
@@ -137,7 +137,7 @@ python3 scripts/zoodata.py categories --keyword "yoga mat"
 
 # Step 2: Market aggregate
 python3 scripts/zoodata.py categories --category "Sports & Outdoors > Exercise & Fitness > Yoga > Yoga Mats"
-python3 scripts/zoodata.py market-overview --category-id "<categoryId from categories>"
+python3 scripts/zoodata.py market --category-id "<categoryId from categories>"
 
 # Step 3: Product landscape
 python3 scripts/zoodata.py products --keyword "yoga mat" --category "Sports & Outdoors > Exercise & Fitness > Yoga > Yoga Mats" --page-size 30

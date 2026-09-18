@@ -122,8 +122,7 @@ python amazon-analysis/scripts/zoodata.py products --keyword "wireless earbuds" 
 | Endpoint | Description | Example Use Case |
 |----------|-------------|-----------------|
 | 🔍 `products/search` | Product search with 20+ filters (13 preset modes via the CLI) | *"Find running shoes under $80 with 4+ stars"* |
-| 📊 `markets/overview` | Category snapshot — size, concentration, selected Top 100 pricing | *"How competitive is the yoga mat market?"* |
-| 🔎 `markets/search` | Discover category markets by size and Top 100 filters | *"Which categories exceed $1M monthly revenue?"* |
+| 📊 `markets/search` | Category discovery and exact snapshot — size, concentration, selected Top 100 pricing | *"How competitive is the yoga mat market?"* |
 | 🧩 `markets/structure-profile` | Brand, price and other Top 100 distributions | *"Which price bands account for sales?"* |
 | 📅 `markets/history` | Available month-end category-market trends | *"How has this category changed by month?"* |
 | 🏷️ `products/competitors` | Competitor discovery by keyword, brand, or ASIN | *"Who are the top sellers in this niche?"* |

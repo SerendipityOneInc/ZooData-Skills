@@ -18,7 +18,7 @@ python3 scripts/zoodata.py categories --parent "Pet Supplies,Dogs"
 
 # Step 2: Evaluate each
 python3 scripts/zoodata.py categories --category "Pet Supplies > Dogs > Feeding & Watering"
-python3 scripts/zoodata.py market-overview --category-id "<categoryId from categories>"
+python3 scripts/zoodata.py market --category-id "<categoryId from categories>"
 ```
 
 ---
@@ -27,7 +27,7 @@ python3 scripts/zoodata.py market-overview --category-id "<categoryId from categ
 
 ```bash
 python3 scripts/zoodata.py categories --keyword "new category keyword"
-python3 scripts/zoodata.py market-overview --category-id "<categoryId from categories>"
+python3 scripts/zoodata.py market --category-id "<categoryId from categories>"
 ```
 
 ---
@@ -48,7 +48,7 @@ python3 scripts/zoodata.py competitors --asin B09XXXXX
 
 # Step 2: Category market trend
 python3 scripts/zoodata.py categories --category "category path"
-python3 scripts/zoodata.py market-overview --category-id "<categoryId from categories>"
+python3 scripts/zoodata.py market --category-id "<categoryId from categories>"
 ```
 
 **Discontinuation Signals**:

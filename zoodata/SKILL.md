@@ -27,7 +27,7 @@ metadata:
 
 # ZooData — Commerce Data Infrastructure for AI Agents
 
-200M+ Amazon products. 26 Amazon and keyword-intelligence endpoints. One API key.
+200M+ Amazon products. 25 Amazon and keyword-intelligence endpoints. One API key.
 
 ## Quick Start
 1. Get key: [zoodata.ai/api-keys](https://zoodata.ai/en/api-keys) (1,000 free credits)
@@ -113,12 +113,12 @@ When `zoodata.py` returns a structured error with `_transport.status=402`, apply
 
 For every parsed HTTP response from `zoodata.py`, treat `_transport.status` as the authoritative outer status; response-body and nested status-like fields do not override it. When the CLI returns HTTP 422 / `VALIDATION_ERROR`, read the preserved structured server error on stdout, including its message/details and `_query.params`. Do not retry the unchanged request. Correct the named fields first; the CLI exits non-zero while preserving the server error fields for the calling agent. Current keyword requests retain `granularity` for compatibility but accept only `week`; legacy `lookbackDays` remains unsupported.
 
-## 26 Amazon and Keyword Endpoints
+## 25 Amazon and Keyword Endpoints
 
 | # | Endpoint | Purpose | Key Output |
 |---|----------|---------|------------|
 | 1 | `categories` | Browse/search category tree | categoryPath, productCount |
-| 2 | `markets/search` | Paginated category-market discovery | categoryId, totalMonthlySales/Revenue, selected top100* summary |
+| 2 | `markets/search` | Paginated discovery or exact category snapshot | categoryId, total* and selected top100* metrics |
 | 3 | `products/search` | Product search (20+ filter fields) | asin, price, monthlySalesFloor, rating, ratingCount, fbaFee |
 | 4 | `products/competitors` | Competitor discovery | same fields as products/search |
 | 5 | `realtime/product` | Live ASIN detail | rating, features, bestsellersRank[], buyboxWinner.price, variants |
@@ -140,9 +140,8 @@ For every parsed HTTP response from `zoodata.py`, treat `_transport.status` as t
 | 21 | `/openapi/v2/keywords/product-traffic-terms-trend` | Per-keyword weekly traffic trend for one ASIN | `data.context + data.items[].series[]` with nested ASIN, traffic, placement, keyword, and ad groups |
 | 22 | `/openapi/v2/keywords/product-traffic-trend` | ASIN-level weekly raw traffic across all keywords | `data.context + data.items[].series[]` with total/organic/ad traffic and term coverage |
 | 23 | `/openapi/v2/keywords/product-traffic-trend-profile` | Server-calculated four-week ASIN traffic conclusions | `data.context + data.items[].rows[].trafficTrendProfile` |
-| 24 | `markets/overview` | One category's full snapshot | total* and selected top100* metrics |
-| 25 | `markets/structure-profile` | One Top 100 distribution | data.buckets[] for one dimension |
-| 26 | `markets/history` | One category's month-end series | data.points[] with available MoM/YoY rates |
+| 24 | `markets/structure-profile` | One Top 100 distribution | data.buckets[] for one dimension |
+| 25 | `markets/history` | One category's month-end series | data.points[] with available MoM/YoY rates |
 
 ## Known Quirks
 - Market request quirks, including the live `sampleType` values and retired parameters, are owned by `references/openapi-reference.md § 2`.
