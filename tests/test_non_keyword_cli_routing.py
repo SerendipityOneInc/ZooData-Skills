@@ -5,28 +5,27 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SKILL_PATH = ROOT / "amazon-market-entry-analyzer" / "SKILL.md"
+SKILL_PATH = ROOT / "amazon-market-analysis" / "SKILL.md"
 CONTRACT_PATH = ROOT / "zoodata" / "references" / "cli-contract.md"
 NON_KEYWORD_SKILLS = (
     "amazon-analysis",
     "amazon-competitor-intelligence-monitor",
     "amazon-daily-market-radar",
     "amazon-listing-audit-pro",
-    "amazon-market-entry-analyzer",
-    "amazon-market-trend-scanner",
-    "amazon-opportunity-discoverer",
+    "amazon-market-analysis",
     "amazon-pricing-command-center",
     "amazon-review-intelligence-extractor",
 )
 
 
-def test_market_entry_cli_routing_uses_only_verified_literal_subcommands():
+def test_market_cli_routing_is_owned_by_reference_and_uses_literal_subcommands():
     skill = SKILL_PATH.read_text(encoding="utf-8")
+    reference = (ROOT / "amazon-market-analysis" / "references" / "reference.md").read_text(encoding="utf-8")
     contract = CONTRACT_PATH.read_text(encoding="utf-8")
 
-    assert "### CLI Route Selection" in skill
-    assert "An API endpoint identifier or composite result key is not a CLI subcommand" not in skill
-    assert "Never derive a command from data identity or invent an alias" not in skill
+    assert "references/reference.md" in skill
+    assert "production API facts" in skill
+    assert "| Endpoint | CLI command |" in reference
     assert "Treat API endpoint identifiers and composite result keys as data identities" in contract
     assert "Never derive a subcommand from either identity or invent an alias" in contract
     assert "Inspect the bundled CLI's top-level `--help` and the selected subcommand's `--help`" in contract
@@ -34,6 +33,8 @@ def test_market_entry_cli_routing_uses_only_verified_literal_subcommands():
     expected_routes = {
         "categories": "categories",
         "markets/search": "market",
+        "markets/structure-profile": "market-structure-profile",
+        "markets/history": "market-history",
         "products/search": "products",
         "products/competitors": "competitors",
         "realtime/product": "product",
@@ -45,9 +46,9 @@ def test_market_entry_cli_routing_uses_only_verified_literal_subcommands():
         "products/history": "history",
     }
     for endpoint, command in expected_routes.items():
-        assert f"| `{endpoint}` | `{command}` |" in skill
+        assert f"| `{endpoint}` | `{command}` |" in reference
 
-    assert "| `products/price-band-detail` | `price-band` |" not in skill
+    assert "| `products/price-band-detail` | `price-band` |" not in reference
 
 
 def test_successful_composite_output_is_extracted_locally_without_refetching():
@@ -58,7 +59,7 @@ def test_successful_composite_output_is_extracted_locally_without_refetching():
     assert "Perform selection, narrowing, transformation, extraction, and formatting locally" in contract
     assert "Do not make an additional API call solely to reread, reshape, or narrow evidence" in contract
     assert "A granular call after a composite is allowed only for evidence absent from the bundle" in contract
-    assert "Apply `references/cli-contract.md` to its invocation and returned composite bundle" in skill
+    assert "`references/cli-contract.md` owns shared CLI invocation" in skill
     assert "use targeted extraction, not full read" not in skill
 
 
@@ -99,6 +100,10 @@ def test_environment_network_restrictions_request_permission_before_failure_outp
     for name in NON_KEYWORD_SKILLS:
         skill = (ROOT / name / "SKILL.md").read_text(encoding="utf-8")
         assert "The shared CLI exposes ALL ZooData endpoints as subcommands" not in skill, name
+        if name == "amazon-market-analysis":
+            assert "references/cli-contract.md" in skill
+            assert "Interface Failure Stop Gate" in skill
+            continue
         assert "## Shared CLI Contract" in skill, name
         assert "Before selecting or invoking the first command, read and apply the local `references/cli-contract.md`" in skill, name
         assert "Reapply it after every granular or composite result" in skill, name

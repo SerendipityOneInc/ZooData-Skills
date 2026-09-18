@@ -68,23 +68,22 @@ class TestMarketPageArg(unittest.TestCase):
 
     def test_page_size_not_overwritten_by_page(self):
         """Original bug: --page 1 used to silently set page_size=1."""
-        result = run_cli("market", "--category", "Sports", "--page-size", "20", "--page", "1")
+        result = run_cli("market", "--category-id", "3760901", "--page-size", "20", "--page", "1")
         self.assertEqual(result["params"]["pageSize"], 20, "pageSize must remain 20")
         self.assertEqual(result["params"]["page"], 1, "page must be 1")
 
     def test_page_default_is_1(self):
-        result = run_cli("market", "--category", "Sports")
-        # page default=1 — but cmd_market only sets page if args.page is truthy
-        # page=1 is truthy (non-zero), so it should be present
+        result = run_cli("market", "--category-id", "3760901")
+        # page default=1 is sent explicitly
         self.assertEqual(result["params"]["page"], 1)
 
     def test_custom_page(self):
-        result = run_cli("market", "--category", "Sports", "--page", "3")
+        result = run_cli("market", "--category-id", "3760901", "--page", "3")
         self.assertEqual(result["params"]["page"], 3)
         self.assertEqual(result["params"]["pageSize"], 20)  # default
 
     def test_page_and_page_size_independent(self):
-        result = run_cli("market", "--page-size", "50", "--page", "2", "--keyword", "yoga")
+        result = run_cli("market", "--page-size", "50", "--page", "2", "--category-id", "3760901")
         self.assertEqual(result["params"]["pageSize"], 50)
         self.assertEqual(result["params"]["page"], 2)
 
@@ -171,11 +170,11 @@ class TestAllowAbbrevDisabled(unittest.TestCase):
 
     def test_abbreviated_page_errors_on_market(self):
         """--pag should NOT be silently matched to --page-size or --page."""
-        self._assert_parse_error("market", "--category", "Sports", "--pag", "1")
+        self._assert_parse_error("market", "--category-id", "3760901", "--pag", "1")
 
     def test_abbreviated_page_size_errors(self):
         """--page-s should NOT silently match to --page-size."""
-        self._assert_parse_error("market", "--category", "Sports", "--page-s", "20")
+        self._assert_parse_error("market", "--category-id", "3760901", "--page-s", "20")
 
 
 class TestCompetitorsUnchanged(unittest.TestCase):

@@ -4,7 +4,7 @@
 > Load when handling market monitoring, competitor tracking, or anomaly detection.
 > For API parameters, see `reference.md`.
 >
-> ⚠️ **Always resolve categoryPath before running these queries.** Tag conclusions with 📊/🔍/💡 confidence labels.
+> ⚠️ **Resolve categoryPath for product endpoints and categoryId for market endpoints before running these queries.** Tag conclusions with 📊/🔍/💡 confidence labels.
 >
 > **Limitation**: Snapshot data only for most endpoints. Use `history` for historical trends on specific ASINs.
 
@@ -14,7 +14,8 @@
 
 ```bash
 # Step 1: Market overview
-python3 scripts/zoodata.py market --category "Pet Supplies > Dogs" --topn 10
+python3 scripts/zoodata.py categories --category "Pet Supplies > Dogs"
+python3 scripts/zoodata.py market --category-id "<categoryId from categories>"
 
 # Step 2: New products in last 90 days
 python3 scripts/zoodata.py products --keyword "dog toys" --listing-age 90d --page-size 20
@@ -42,7 +43,8 @@ python3 scripts/zoodata.py products --category "Pet Supplies > Dogs > Toys" --pa
 
 ```bash
 # Step 1: Market indicators
-python3 scripts/zoodata.py market --category "Pet Supplies > Dogs > Toys" --topn 10
+python3 scripts/zoodata.py categories --category "Pet Supplies > Dogs > Toys"
+python3 scripts/zoodata.py market --category-id "<categoryId from categories>"
 
 # Step 2: Current top products
 python3 scripts/zoodata.py products --category "Pet Supplies > Dogs > Toys" --page-size 20
@@ -59,8 +61,10 @@ python3 scripts/zoodata.py products --category "Pet Supplies > Dogs > Toys" --li
 |------------|-----------------|-------------------|
 | New blockbuster invasion | Step 3 results | New product (<90 days) already in Top 20 by sales |
 | Price war risk | Step 2 price distribution | Multiple top products clustered at same low price point |
-| High concentration | Step 1 `topSalesRate` | Currently > 60% (Warning threshold from evaluation criteria) |
-| Low new SKU rate | Step 1 `sampleNewSkuRate` | Currently < 5% (market may be frozen) or > 30% (flooding) |
+| Concentration shift | Step 1 `sampleTop10ProductSalesRate` | Investigate only against a comparable prior snapshot or peer baseline with the same category scope and Top 100 selector; no fixed 60% alert. |
+| New-product share shift | Step 1 `sampleNewProductRate6m` | Investigate only against a comparable prior snapshot or peer baseline; the former conservative-classification cutoffs do not apply. |
+
+Both rates describe the selected Top 100, not the entire category. Without a compatible baseline, report the current values as context rather than triggering an alert.
 
 **For continuous monitoring:** Run this workflow periodically (weekly/monthly) and compare results manually across snapshots. Use `history` for historical trend data on specific ASINs.
 

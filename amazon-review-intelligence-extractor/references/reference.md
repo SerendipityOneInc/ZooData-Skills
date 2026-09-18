@@ -11,7 +11,7 @@
 | # | Endpoint | Purpose |
 |---|----------|---------|
 | 1 | `categories` | Category path lookup |
-| 2 | `markets/search` | Market size, competition metrics, new-product rate |
+| 2 | `markets/search` | Paginated discovery or exact category snapshot |
 | 3 | `products/search` | Product supply (100+ via pagination), brand/price drill |
 | 4 | `products/competitors` | Top competitor list |
 | 5 | `realtime/product` | Live product detail |
@@ -21,6 +21,8 @@
 | 9 | `products/brand-overview` | Brand count, CR10, top-brand avg price/rating |
 | 10 | `products/brand-detail` | Per-brand SKU/sales/revenue/share ranking |
 | 11 | `products/history` | 30-day price/BSR/sales trend |
+| 12 | `markets/structure-profile` | Selected Top 100 distribution |
+| 13 | `markets/history` | Available month-end category history |
 
 Base URL: `https://api.zoodata.ai/openapi/v2`
 Auth: `Bearer $ZOODATA_API_KEY`
@@ -49,31 +51,21 @@ All endpoints return: `{success, data, error, meta}` with `meta.creditsRemaining
 
 ---
 
-## 2. markets/search
+## 2. Market endpoints
 
-**Key Request Params:**
-- `categoryPath`: List<String> (e.g. `["Pet Supplies", "Dogs"]`)
-- `categoryKeyword`: String
-- `topN`: **String** (`"10"` not `10`)
-- `sampleType`: `by_sale_100` / `by_bsr_100` / `avg`
-- `pageSize`: Integer (max 20)
+All three endpoints support only US. Resolve a human category path through `categories` to obtain a category ID. The selected sample contains at most 100 products. Use `sampleType=unitSalesTop100` or `revenueTop100` consistently. `markets/search` uses nested `category` row selectors and product inclusion; structure-profile and history retain their own `categoryScope` request field. The market CLI sends the current nested search request. Legacy flat market requests remain a separate compatibility surface.
 
-**Key Response Fields:**
-| Field | Type | Used For |
-|-------|------|----------|
-| `totalSkuCount` | int | Market size |
-| `sampleAvgMonthlySales` | float | Demand level |
-| `sampleAvgMonthlyRevenue` | float | Market value |
-| `sampleAvgPrice` | float | Price benchmark |
-| `sampleAvgRating` | float | Quality benchmark |
-| `sampleBrandCount` | int | Brand diversity |
-| `sampleSellerCount` | int | Seller diversity |
-| `sampleFbaRate` | float | FBA adoption (decimal) |
-| `sampleNewSkuRate` | float | New entrant rate (decimal) |
-| `topSalesRate` | float | Product concentration (CR_topN) |
-| `topBrandSalesRate` | float | Brand concentration |
-| `topSellerSalesRate` | float | Seller concentration |
-| `sampleAPlusRate` | float | Margin benchmark |
+### markets/search — discovery
+
+Optional `category.ids` selects 1–100 market row IDs; a complete `category.path` or exact `category.name` is an alternative. `category.includeDescendantCategoryProducts` defaults to true and changes each row's product population, not the selected row list. Put metric conditions inside `filters`; they apply before pagination. Top-level `date`, `sampleType`, `page`, `pageSize` (1–100), `sortBy`, and `sortOrder` control snapshots and ordering. Response `data[]` holds category identity, full-category `total*` size/sales/revenue, and selected `sample*` measures, including `sampleTop10ProductSalesRate`, `sampleNewProductRate6m`, `topNMetrics[]`, and `newProductMetrics[]`. `meta.total` counts matching market rows after the category and metric filters. For one snapshot, send `category.ids=[ID]`, `pageSize=1`, and verify the returned ID. For a child-market comparison, obtain child IDs through `categories` and submit them together. Keep whole-category and Top 100 denominators separate.
+
+### markets/structure-profile — one distribution
+
+Required: `categoryId`, `dimension` (`brand`, `seller`, `price`, `sellerCountry`, `fulfillment`, `ratingCount`, `rating`, `listingAge`, `listingYear`, `productFeature`). Optional: `categoryScope`, `sampleType`, `date`. Response `data.buckets[]` describes the selected Top 100 only, with bucket label, `skuCount`/`skuRate`, sales/revenue and their shares, plus dimension-specific fields. `data.sampleSkuCount` is the denominator.
+
+### markets/history — month-end series
+
+Required: `categoryId`, `startDate`, `endDate`. Optional: `categoryScope`, `sampleType`. Response `data.points[]` is ascending available month-end snapshots; absent months are omitted. Points include full-category and Top 100 size/sales/revenue, `sampleNewProduct*6m` measures, and MoM/YoY rates when comparable baselines exist. Check `resolvedDateFrom`/`resolvedDateTo`.
 
 ---
 
@@ -287,8 +279,8 @@ Differs from `realtime/reviews`: BigQuery snapshot (T+1 delay) but already AI-ta
 | Data Point | Primary Source | Validation Source |
 |-----------|---------------|-------------------|
 | Market size | markets/search | products/search (total count) |
-| Brand concentration | brand-overview (sampleTop10BrandSalesRate) | markets/search (topBrandSalesRate) |
+| Brand concentration | brand-overview (sampleTop10BrandSalesRate) | markets/search (sampleTop10BrandSalesRate) |
 | Price distribution | price-band-detail | products/search (price field) |
-| Competition level | markets (topSalesRate) | brand-detail (top brand shares) |
+| Competition level | markets/search (`sampleTop10ProductSalesRate`, selected Top 100 sales) | brand-detail (top brand shares) |
 | Consumer demand | reviews/analysis | products (sales + growth) |
-| Avg rating quality | markets (sampleAvgRating) | brand-overview (sampleTop10AvgRating) |
+| Avg rating quality | markets/search (sampleAvgRating) | brand-overview (sampleTop10AvgRating) |

@@ -222,4 +222,4 @@ When any endpoint returns HTTP 402:
 ## See also
 
 - [`zoodata`](../zoodata/SKILL.md) — commerce endpoints (Amazon products / markets / reviews / brands). Pair with webtools when you need to validate Amazon findings against the open web (competitor sites, news, off-Amazon reviews).
-- [`amazon-market-entry-analyzer`](../amazon-market-entry-analyzer/SKILL.md) — uses the commerce side; webtools complements it for non-Amazon channel research.
+- [`amazon-market-analysis`](../amazon-market-analysis/SKILL.md) — uses the commerce side; webtools complements it for non-Amazon channel research.
