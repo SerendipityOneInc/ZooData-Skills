@@ -112,17 +112,17 @@ python3 scripts/zoodata.py analyze --asin B09XXXXX --label-type issues,painPoint
 Step 3 (`product`) only adds review details and listing content — do NOT expect sales from it.
 Step 4 (`analyze`) provides AI-analyzed sentiment distribution and structured issues for risk assessment.
 
-**Six-Dimensional Risk Assessment Matrix**:
+**Five-Dimensional Risk Assessment Matrix**:
 
 | Risk Dimension | Data Source | 🟢 Low Risk | 🟡 Medium Risk | 🔴 High Risk |
 |---------|---------|---------|---------|---------|
-| Competition Intensity | topSalesRate | < 40% | 40-60% | > 60% |
 | Review Barrier | Top avg ratingCount | < 200 | 200-1000 | > 1000 |
-| Brand Barrier/Moat | sampleTop10BrandSalesRate | < 30% | 30-50% | > 50% |
 | Price War Risk | Top price variance | High variance | Medium | Low variance |
 | Compliance Risk | categories | Regular | Requires certification | High-risk |
 | Review Sentiment | sentimentDistribution (negative) | < 15% | 15-30% | > 30% |
 | Seasonality | AI judgment | Year-round | Seasonal fluctuation | Strong seasonality |
+
+For competition context, read `sampleTop10ProductSalesRate` and `sampleTop10BrandSalesRate`: both use the selected Top 100's monthly sales as denominator, not all category sales. Preserve `sampleType`, `categoryScope`, and date. The old fixed cutoffs do not transfer; use compatible peer evidence before assigning competition or brand-barrier risk. Product and brand concentration measure different groups; do not interchange them.
 
 **High-risk Category Compliance Alerts**:
 

@@ -17,7 +17,7 @@ The historical stage is valid without any prior discovery or entry assessment. A
 
 ## Historical trend application
 
-- Request the smallest bounded month-end range that answers the question. Check the returned `actualStartDate`, `actualEndDate`, point count, and absent months before calculating or summarizing movement.
+- Request the smallest bounded month-end range that answers the question. Check the returned `resolvedDateFrom`, `resolvedDateTo`, point count, and absent months before calculating or summarizing movement.
 - Compare the same category ID, `direct`/`subtree` scope, Top 100 selector, and metric path. Use server-provided MoM/YoY only for the point and measure that returned it; calculate a cross-point change only from compatible nonzero baselines and show dates.
 - For multiple child markets, resolve IDs through `categories --parent` and use the same range and sample selector for each. A leaderboard ranks only returned comparable child rows; it is not a scan of every Amazon category.
 - A current daily `market` row may explain current position but is not a substitute for a missing month-end point. Do not append it as another month-end observation.

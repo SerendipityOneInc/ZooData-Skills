@@ -277,7 +277,7 @@ Request params: `keyword`, `brand`, `asin`, `categoryPath`, `sortBy`, `pageSize`
 | Market size | markets/search | products/search (total count) |
 | Brand concentration | brand-overview (sampleTop10BrandSalesRate) | markets/search (sampleTop10BrandSalesRate) |
 | Price distribution | price-band-detail | products/search (price field) |
-| Competition level | markets (topSalesRate) | brand-detail (top brand shares) |
+| Competition level | markets/search (`sampleTop10ProductSalesRate`, selected Top 100 sales) | brand-detail (top brand shares) |
 | Consumer demand | reviews/analysis | products (sales + growth) |
 | Avg rating quality | markets/search (sampleAvgRating) | brand-overview (sampleTop10AvgRating) |
 

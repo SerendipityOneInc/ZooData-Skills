@@ -27,6 +27,8 @@ Response: `categoryId`, `categoryName`, `categoryPath`, `hasChildren`, `isRoot`,
 
 Paginated category-market discovery and single-category snapshot lookup. It returns market metrics, but not distribution buckets or historical points.
 
+The field descriptions in this section reflect live MCP responses checked on 2026-09-18. The public OpenAPI export still lists only `markets/search` with an older shape, and the installed MCP tool descriptions still mention removed `top100*` fields and `markets/overview`; those descriptions do not match the live responses. `markets/overview` currently returns `Unknown tool`.
+
 | Parameter | Type | Note |
 |-----------|------|------|
 | categoryScope | String | **Required**: `direct` or `subtree` (descendants deduplicated) |
@@ -40,7 +42,7 @@ Paginated category-market discovery and single-category snapshot lookup. It retu
 
 Filters: `totalMonthlySalesMin`, `totalMonthlyRevenueMin`, `sampleMonthlySalesMin`, `sampleMonthlyRevenueMin`, `sampleFbmRateMin/Max`, `sampleAPlusRateMin/Max`, `sampleAvgSellerCountMin/Max`, `newProductMonthlyRevenueMin/Max`, `newProductRatingCountMin/Max`, `newProductRatingMin/Max`, `sellerCountry`.
 
-Response: `data[]` rows carry `categoryId`, `categoryName`, `categoryPath`, `date`, `categoryScope`, `sampleType`, full-category `totalSkuCount`, `totalSpuCount`, `totalMonthlySales`, `totalMonthlyRevenue`, plus selected `sample*` size, coverage, price, estimated gross-margin rate, brand/seller, rating, content, conservative six-month new-product, and Top 10 concentration metrics. `meta.total` counts matching markets. For a single snapshot, filter by exact `categoryId` with `pageSize=1` and read the matching row. Keep the full-category and Top 100 denominators separate: use `totalMonthlyRevenue` for the whole category and `sampleMonthlyRevenue` for the selected sample. The selected sample is fixed at up to 100 products.
+Response: `data[]` rows carry `categoryId`, `categoryName`, `categoryPath`, `date`, `categoryScope`, `sampleType`, full-category `totalSkuCount`, `totalSpuCount`, `totalMonthlySales`, `totalMonthlyRevenue`, plus selected `sample*` size, coverage, price, estimated gross-margin rate, brand/seller, rating, content, six-month new-product, and Top 10 concentration metrics. The current row includes `sampleNewProductCount6m`, `sampleNewProductRate6m`, `sampleNewProductMonthlySales6m`, `sampleNewProductMonthlyRevenue6m`, `topNMetrics[]` (each `n` with product/brand/seller sales and revenue measures), and `newProductMetrics[]` (each `periodMonths` with count/rate and available price/rating/sales measures). `meta.total` counts matching markets. For a single snapshot, filter by exact `categoryId` with `pageSize=1` and read the matching row. Keep full-category and selected Top 100 denominators separate: use `totalMonthlyRevenue` for the whole category and `sampleMonthlyRevenue` for the selected sample. Concentration and new-product rates use the selected sample, which contains at most 100 products.
 
 The MCP `markets/search` route currently accepts `bySale100` / `byRevenue100` as aliases and returns the normalized `unitSalesTop100` / `revenueTop100` selector. The MCP `markets/structure-profile` and `markets/history` routes reject `bySale100` and validate only the normalized values. Use `unitSalesTop100` / `revenueTop100` consistently in new requests and the bundled CLI. The server recognizes legacy market filters such as `categoryPath`, `categoryKeyword`, and `topN` in a separate compatibility mode; combining them with new `categoryScope` returns HTTP 422. The current MCP search schema requires `categoryScope`, so it cannot submit a pure legacy request. The bundled CLI supports only the new parameters.
 
@@ -50,7 +52,7 @@ Required `categoryId` and one `dimension`: `brand`, `seller`, `price`, `sellerCo
 
 ## 2b. markets/history
 
-Required `categoryId`, `startDate`, `endDate`; optional `categoryScope`, `sampleType`, `marketplace=US`. Response `data.points[]` is sorted ascending and contains available month-end snapshots only. Missing months are omitted, not filled. Points carry full-category and selected Top 100 size/sales/revenue, conservative six-month new-product metrics, and MoM/YoY rates when a comparable baseline exists. Compare periods using returned `date`, `actualStartDate`, and `actualEndDate`.
+Required `categoryId`, `startDate`, `endDate`; optional `categoryScope`, `sampleType`, `marketplace=US`. Response `data.points[]` is sorted ascending and contains available month-end snapshots only. Missing months are omitted, not filled. Points carry full-category and selected Top 100 size/sales/revenue, `sampleNewProductCount6m`, `sampleNewProductMonthlySales6m`, `sampleNewProductMonthlyRevenue6m`, and MoM/YoY rates when a comparable baseline exists. Compare periods using returned point `date`, `resolvedDateFrom`, and `resolvedDateTo`.
 
 ---
 

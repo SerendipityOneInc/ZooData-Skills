@@ -57,7 +57,7 @@ All three endpoints support only US. Resolve a human category path through `cate
 
 ### markets/search — discovery
 
-Required: `categoryScope`. Optional exact `categoryId` or `categoryName`, `date`, `sampleType`, `page`, `pageSize` (1–100), `sortBy` (`totalMonthlySales`, `totalMonthlyRevenue`, `sampleMonthlySales`, `sampleMonthlyRevenue`), `sortOrder`. Filters include `totalMonthlySalesMin`, `totalMonthlyRevenueMin`, `sampleMonthlySalesMin`, `sampleMonthlyRevenueMin`, `sampleFbmRateMin/Max`, `sampleAPlusRateMin/Max`, `sampleAvgSellerCountMin/Max`, `newProductMonthlyRevenueMin/Max`, `newProductRatingCountMin/Max`, `newProductRatingMin/Max`, and `sellerCountry`. Response `data[]` holds category identity, full-category `total*` size/sales/revenue, and selected `sample*` coverage, price, brand/seller, rating, new-product, and concentration metrics. `meta.total` is the total matching market count. For one market snapshot, filter by exact `categoryId` with `pageSize=1` and use the matching row; keep full-category and Top 100 denominators separate. `categoryName` is exact match, not keyword search.
+Required: `categoryScope`. Optional exact `categoryId` or `categoryName`, `date`, `sampleType`, `page`, `pageSize` (1–100), `sortBy` (`totalMonthlySales`, `totalMonthlyRevenue`, `sampleMonthlySales`, `sampleMonthlyRevenue`), `sortOrder`. Filters include `totalMonthlySalesMin`, `totalMonthlyRevenueMin`, `sampleMonthlySalesMin`, `sampleMonthlyRevenueMin`, `sampleFbmRateMin/Max`, `sampleAPlusRateMin/Max`, `sampleAvgSellerCountMin/Max`, `newProductMonthlyRevenueMin/Max`, `newProductRatingCountMin/Max`, `newProductRatingMin/Max`, and `sellerCountry`. Response `data[]` holds category identity, full-category `total*` size/sales/revenue, and selected `sample*` coverage, price, brand/seller, rating, and new-product measures. The current row includes `sampleTop10ProductSalesRate` (Top 10 products / selected Top 100 monthly sales), `sampleNewProductRate6m`, `topNMetrics[]`, and `newProductMetrics[]`; none of these rates is a whole-category share. `meta.total` is the total matching market count. For one market snapshot, filter by exact `categoryId` with `pageSize=1` and use the matching row; keep full-category and Top 100 denominators separate. `categoryName` is exact match, not keyword search.
 
 ### markets/structure-profile — one distribution
 
@@ -65,7 +65,7 @@ Required: `categoryId`, `dimension` (`brand`, `seller`, `price`, `sellerCountry`
 
 ### markets/history — month-end series
 
-Required: `categoryId`, `startDate`, `endDate`. Optional: `categoryScope`, `sampleType`. Response `data.points[]` is ascending available month-end snapshots; absent months are omitted. Points include full-category and Top 100 size/sales/revenue, conservative six-month new-product measures, and MoM/YoY rates when comparable baselines exist. Check `actualStartDate`/`actualEndDate`.
+Required: `categoryId`, `startDate`, `endDate`. Optional: `categoryScope`, `sampleType`. Response `data.points[]` is ascending available month-end snapshots; absent months are omitted. Points include full-category and Top 100 size/sales/revenue, `sampleNewProduct*6m` measures, and MoM/YoY rates when comparable baselines exist. Check `resolvedDateFrom`/`resolvedDateTo`.
 
 ---
 
@@ -281,6 +281,6 @@ Differs from `realtime/reviews`: BigQuery snapshot (T+1 delay) but already AI-ta
 | Market size | markets/search | products/search (total count) |
 | Brand concentration | brand-overview (sampleTop10BrandSalesRate) | markets/search (sampleTop10BrandSalesRate) |
 | Price distribution | price-band-detail | products/search (price field) |
-| Competition level | markets (topSalesRate) | brand-detail (top brand shares) |
+| Competition level | markets/search (`sampleTop10ProductSalesRate`, selected Top 100 sales) | brand-detail (top brand shares) |
 | Consumer demand | reviews/analysis | products (sales + growth) |
 | Avg rating quality | markets/search (sampleAvgRating) | brand-overview (sampleTop10AvgRating) |

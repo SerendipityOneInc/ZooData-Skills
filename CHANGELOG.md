@@ -14,6 +14,8 @@ The shared CLI uses `market` for both `markets/search` discovery and exact `cate
 
 The market skill review moved detailed scoring, scan, category-selection, and market-health rules from `SKILL.md` into their owning reference modules. `zoodata/references/openapi-reference.md` owns the market endpoint schemas; the shorter reference links to it. Market provenance examples now direct agents to copy the actual `_query.params`.
 
+The 2026-09-18 live market response replaces the former conservative six-month new-product field names with `sampleNewProduct*6m`, adds `topNMetrics[]` and `newProductMetrics[]` to search rows, and returns `resolvedDateFrom` / `resolvedDateTo` for market history. Scenario rules now use `sampleTop10ProductSalesRate` only with its selected Top 100 sales denominator and no inherited fixed cutoff. The general-analysis API usage template reads accumulated CLI `meta.apiCalls`, `meta.creditsConsumed`, and `meta.creditsRemaining` instead of treating a composite CLI execution as one endpoint call.
+
 ### Chore — Patch-version bump across all 12 skills for ClawHub republish
 
 All 12 skills received a patch bump so the fixes in this cycle (composite category-resolution metadata, ABA out-of-window date guidance, the standardized `resolved_category_path` meta key, CLI allowlist enforcement, credential-source hardening, and the SKILL.md description trims) propagate to installed users on `openclaw skills update`. The shared `zoodata.py` change touches every `amazon-*` skill's synced copy, so the bump is repo-wide rather than per-skill.

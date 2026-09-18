@@ -28,7 +28,7 @@ Documentation is a contract, not an observed metric. Do not call a paid endpoint
 ## Comparison and reconciliation
 
 - Compare a market only with the same category ID, scope, sample type, marketplace, metric path, denominator, and compatible dates. Month-end history points and a latest daily snapshot can be shown side by side but do not form a precise same-grain period change by default.
-- Use only returned available month-end points. Report `actualStartDate` / `actualEndDate` when the requested bounds were not met; do not create missing months or extrapolate a rate. A returned MoM/YoY field is usable only for the metric and point that owns it.
+- Use only returned available month-end points. Report `resolvedDateFrom` / `resolvedDateTo` when the requested bounds were not met; do not create missing months or extrapolate a rate. A returned MoM/YoY field is usable only for the metric and point that owns it.
 - Distinguish absolute changes from percentage-point changes for rates. When calculating a derived change, state its numerator, denominator, and dates; if a baseline is zero or missing, do not calculate a growth percentage.
 - Reconcile a material conflict before a verdict: for example, all-category sales may rise while Top 100 concentration also rises. Preserve both observations and narrow the conclusion. Do not average unlike fields or hide the conflict behind a single score.
 

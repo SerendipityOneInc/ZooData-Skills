@@ -85,6 +85,36 @@ class TestMarketSkillOwnership(unittest.TestCase):
         self.assertNotIn("## Interface Data Differences", guide)
         self.assertNotIn("## Output Spec", skill)
 
+    def test_market_field_and_history_names_match_current_response(self):
+        owners = (
+            ROOT / "zoodata" / "references" / "openapi-reference.md",
+            MARKET / "references" / "reference.md",
+            MARKET / "references" / "market-metric-semantics.md",
+        )
+        for path in owners:
+            with self.subTest(module=path.name):
+                text = path.read_text()
+                self.assertIn("sampleNewProduct", text)
+                self.assertNotIn("sampleConservative", text)
+        for path in (ROOT / "zoodata" / "references").glob("*.md"):
+            self.assertNotIn("topSalesRate", path.read_text(), path.name)
+        for path in ROOT.glob("amazon-*/references/*.md"):
+            text = path.read_text()
+            self.assertNotIn("topSalesRate", text, str(path))
+            self.assertNotIn("sampleConservative", text, str(path))
+            self.assertNotIn("actualStartDate", text, str(path))
+            self.assertNotIn("actualEndDate", text, str(path))
+
+    def test_general_analysis_usage_uses_cli_accumulated_metadata(self):
+        guide = (ROOT / "amazon-analysis" / "references" /
+                 "execution-guide.md").read_text()
+        for field in ("meta.apiCalls", "meta.creditsConsumed",
+                      "meta.creditsRemaining"):
+            self.assertIn(field, guide)
+        self.assertNotIn("_credits.consumed", guide)
+        self.assertNotIn("_credits.remaining", guide)
+        self.assertNotIn("📊 **API Usage**", guide)
+
 
 if __name__ == "__main__":
     unittest.main()
