@@ -333,22 +333,45 @@ class TestEndpointRouting(unittest.TestCase):
     def test_market(self):
         r = run_cli("market", "--category-id", "3760901")
         self.assertEqual(r["endpoint"], "markets/search")
-        self.assertEqual(r["params"]["categoryScope"], "subtree")
+        self.assertEqual(r["params"]["category"], {
+            "ids": ["3760901"], "includeDescendantCategoryProducts": True})
         self.assertEqual(r["params"]["sampleType"], "unitSalesTop100")
-        self.assertEqual(r["params"]["categoryId"], "3760901")
 
     def test_market_filters_use_new_names(self):
         r = run_cli("market", "--category-name", "Health & Household",
-                    "--scope", "direct", "--sample-type", "revenueTop100",
+                    "--no-include-descendant-category-products", "--sample-type", "revenueTop100",
                     "--revenue-min", "100000", "--sample-fbm-rate-max", "0.5",
-                    "--sample-sales-min", "1000", "--sort", "sampleMonthlyRevenue")
-        self.assertEqual(r["params"]["categoryName"], "Health & Household")
-        self.assertEqual(r["params"]["categoryScope"], "direct")
+                    "--sample-sales-min", "1000",
+                    "--sample-top10-product-sales-rate-max", "0.3",
+                    "--sort", "sampleMonthlyRevenue")
+        self.assertEqual(r["params"]["category"], {
+            "name": "Health & Household", "includeDescendantCategoryProducts": False})
         self.assertEqual(r["params"]["sampleType"], "revenueTop100")
-        self.assertEqual(r["params"]["totalMonthlyRevenueMin"], 100000)
-        self.assertEqual(r["params"]["sampleFbmRateMax"], 0.5)
-        self.assertEqual(r["params"]["sampleMonthlySalesMin"], 1000)
+        self.assertEqual(r["params"]["filters"], {
+            "totalMonthlyRevenueMin": 100000,
+            "sampleFbmRateMax": 0.5,
+            "sampleMonthlySalesMin": 1000,
+            "sampleTop10ProductSalesRateMax": 0.3,
+        })
         self.assertEqual(r["params"]["sortBy"], "sampleMonthlyRevenue")
+
+    def test_market_batch_ids_and_path(self):
+        r = run_cli("market", "--category-ids", "15342811, 3760941",
+                    "--sort", "totalMonthlySales", "--page-size", "100")
+        self.assertEqual(r["params"]["category"]["ids"], ["15342811", "3760941"])
+        self.assertEqual(r["params"]["pageSize"], 100)
+        self.assertEqual(r["params"]["sortBy"], "totalMonthlySales")
+        r = run_cli("market", "--category-path", "Health & Household > Health Care")
+        self.assertEqual(r["params"]["category"]["path"],
+                         ["Health & Household", "Health Care"])
+
+    def test_market_batch_rejects_bad_ids(self):
+        with self.assertRaises(SystemExit):
+            run_cli("market", "--category-ids", "15342811,15342811")
+        with self.assertRaises(SystemExit):
+            run_cli("market", "--category-ids", "")
+        with self.assertRaises(SystemExit):
+            run_cli("market", "--category-ids", ",".join(str(i) for i in range(101)))
 
     def test_market_structure_profile(self):
         r = run_cli("market-structure-profile", "--category-id", "3760901",
@@ -1463,7 +1486,8 @@ class TestMarketCategoryResolution(unittest.TestCase):
         self.assertTrue(response["success"])
         self.assertEqual(calls[0], ("categories", {"categoryPath": ["Health & Household"]}))
         self.assertEqual(calls[1][0], "markets/search")
-        self.assertEqual(calls[1][1]["categoryId"], "3760901")
+        self.assertEqual(calls[1][1]["category"], {
+            "ids": ["3760901"], "includeDescendantCategoryProducts": True})
         self.assertEqual(calls[1][1]["sampleType"], "unitSalesTop100")
         self.assertEqual(calls[1][1]["pageSize"], 1)
         self.assertEqual(response["data"]["totalSkuCount"], 100)
@@ -2292,7 +2316,7 @@ class TestCompositeRobustness(unittest.TestCase):
         calls, results = self._run(["report", "--keyword", "yoga mat"], router)
         market_calls = [p for ep, p in calls if ep == "markets/search"]
         self.assertTrue(market_calls, "markets/search was not called")
-        self.assertEqual(market_calls[0].get("categoryId"), "3760901")
+        self.assertEqual(market_calls[0]["category"]["ids"], ["3760901"])
         self.assertEqual(results["market"]["data"]["totalSkuCount"], 100)
 
     # --- Fix: terminal failure aborts composite fan-out ---
@@ -2403,7 +2427,7 @@ class TestCompositeRobustness(unittest.TestCase):
         calls, results = self._run(["report", "--keyword", "yoga mat"], router)
         self.assertEqual(results.get("meta", {}).get("category_source"), "inferred_from_search")
         market = [p for ep, p in calls if ep == "markets/search"]
-        self.assertEqual(market[0].get("categoryId"), "3760901")
+        self.assertEqual(market[0]["category"]["ids"], ["3760901"])
 
     def test_resolve_category_never_calls_realtime(self):
         """Category resolution reads categoryPath from the products/search row and

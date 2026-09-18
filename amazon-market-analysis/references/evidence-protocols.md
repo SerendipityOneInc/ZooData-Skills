@@ -14,8 +14,8 @@ Documentation is a contract, not an observed metric. Do not call a paid endpoint
 ## Category and snapshot identity
 
 - Resolve a human path through `categories` and preserve the returned `categoryId`. For a product keyword that has no direct category match, a product-search-derived path is only an inferred category; do not silently promote it to the user's intended market.
-- For an exact market query, require one `markets/search.data[]` row whose `categoryId` equals the requested ID. A zero-row result is no market observation. Do not substitute the first unrelated discovery row.
-- Carry `categoryScope`, `sampleType`, marketplace, and the row's returned `date` with every market field. `direct` and `subtree`, or unit-sales-selected and revenue-selected Top 100, are different populations.
+- For an exact market query, require one `markets/search.data[]` row whose `categoryId` equals the requested ID. For an ID batch, compare returned IDs with the requested set before claiming complete coverage. A zero-row result is no market observation. Do not substitute the first unrelated discovery row.
+- Carry the search request's `category.includeDescendantCategoryProducts`, returned `categoryScope`, `sampleType`, marketplace, and the row's `date` with every market field. Directly assigned products and descendant-inclusive products, or unit-sales-selected and revenue-selected Top 100, are different populations.
 - A composite's `market.data` is already a selected market object; a granular `market.data` is an array. Do not index either shape by assumption. Reuse compatible successful composite sections locally.
 
 ## Bounded discovery and candidate validation

@@ -27,24 +27,26 @@ Response: `categoryId`, `categoryName`, `categoryPath`, `hasChildren`, `isRoot`,
 
 Paginated category-market discovery and single-category snapshot lookup. It returns market metrics, but not distribution buckets or historical points.
 
-The field descriptions in this section reflect live MCP responses checked on 2026-09-18. The public OpenAPI export still lists only `markets/search` with an older shape, and the installed MCP tool descriptions still mention removed `top100*` fields and `markets/overview`; those descriptions do not match the live responses. `markets/overview` currently returns `Unknown tool`.
+The request contract below comes from the live ZooData MCP `tools/list` on 2026-09-18 and was checked against successful ID-batch and nested-filter calls. The public OpenAPI export still shows an older market request shape. `markets/overview` currently returns `Unknown tool`.
 
 | Parameter | Type | Note |
 |-----------|------|------|
-| categoryScope | String | **Required**: `direct` or `subtree` (descendants deduplicated) |
-| categoryId / categoryName | String | Optional exact match; `categoryName` is not keyword search |
+| category.ids | String[] | 1–100 exact market-row IDs; alternative to `category.path` or `category.name` |
+| category.path / category.name | String[] / String | Complete path to one ID, or exact node name; alternatives to `category.ids` |
+| category.includeDescendantCategoryProducts | Boolean | Defaults to true; includes descendant-category products **within each returned row**, not descendant market rows |
 | sampleType | String | Runtime accepts `unitSalesTop100` / `revenueTop100` |
 | date | Date | Optional; omitted means latest available snapshot |
 | marketplace | String | `US` only |
 | page / pageSize | Integer | 1-based page; pageSize 1–100 |
-| sortBy | String | `totalMonthlySales`, `totalMonthlyRevenue`, `sampleMonthlySales`, `sampleMonthlyRevenue` |
+| sortBy | String | Includes `totalMonthlySales`, `totalMonthlyRevenue`, `sampleMonthlySales`, `sampleMonthlyRevenue`; see current MCP schema for additional fields |
 | sortOrder | String | `asc` / `desc` |
+| filters | Object | Market metric filters applied after row selection and before pagination |
 
-Filters: `totalMonthlySalesMin`, `totalMonthlyRevenueMin`, `sampleMonthlySalesMin`, `sampleMonthlyRevenueMin`, `sampleFbmRateMin/Max`, `sampleAPlusRateMin/Max`, `sampleAvgSellerCountMin/Max`, `newProductMonthlyRevenueMin/Max`, `newProductRatingCountMin/Max`, `newProductRatingMin/Max`, `sellerCountry`.
+Examples of keys inside `filters`: `totalMonthlySalesMin`, `totalMonthlyRevenueMin`, `sampleMonthlySalesMin`, `sampleMonthlyRevenueMin`, `sampleTop10ProductSalesRateMin/Max`, `sampleFbmRateMin/Max`, `sampleAPlusRateMin/Max`, `sampleAvgSellerCountMin/Max`, `newProductMonthlyRevenueMin/Max`, `newProductRatingCountMin/Max`, `newProductRatingMin/Max`, `sellerCountry`. The current MCP schema lists additional `sampleAvg*`, `top*`, and selected-sample concentration filters.
 
-Response: `data[]` rows carry `categoryId`, `categoryName`, `categoryPath`, `date`, `categoryScope`, `sampleType`, full-category `totalSkuCount`, `totalSpuCount`, `totalMonthlySales`, `totalMonthlyRevenue`, plus selected `sample*` size, coverage, price, estimated gross-margin rate, brand/seller, rating, content, six-month new-product, and Top 10 concentration metrics. The current row includes `sampleNewProductCount6m`, `sampleNewProductRate6m`, `sampleNewProductMonthlySales6m`, `sampleNewProductMonthlyRevenue6m`, `topNMetrics[]` (each `n` with product/brand/seller sales and revenue measures), and `newProductMetrics[]` (each `periodMonths` with count/rate and available price/rating/sales measures). `meta.total` counts matching markets. For a single snapshot, filter by exact `categoryId` with `pageSize=1` and read the matching row. Keep full-category and selected Top 100 denominators separate: use `totalMonthlyRevenue` for the whole category and `sampleMonthlyRevenue` for the selected sample. Concentration and new-product rates use the selected sample, which contains at most 100 products.
+Response: `data[]` rows carry `categoryId`, `categoryName`, `categoryPath`, `date`, returned `categoryScope`, `sampleType`, full-category `totalSkuCount`, `totalSpuCount`, `totalMonthlySales`, `totalMonthlyRevenue`, plus selected `sample*` size, coverage, price, estimated gross-margin rate, brand/seller, rating, content, six-month new-product, and Top 10 concentration metrics. The current row includes `sampleNewProductCount6m`, `sampleNewProductRate6m`, `sampleNewProductMonthlySales6m`, `sampleNewProductMonthlyRevenue6m`, `topNMetrics[]` (each `n` with product/brand/seller sales and revenue measures), and `newProductMetrics[]` (each `periodMonths` with count/rate and available price/rating/sales measures). `meta.total` counts matching markets after category and metric filters; in a batch it is scoped to the submitted IDs. For one snapshot, send `category.ids=[ID]` with `pageSize=1` and verify the returned ID. Keep full-category and selected Top 100 denominators separate: use `totalMonthlyRevenue` for the whole category and `sampleMonthlyRevenue` for the selected sample. Concentration and new-product rates use the selected sample, which contains at most 100 products.
 
-The MCP `markets/search` route currently accepts `bySale100` / `byRevenue100` as aliases and returns the normalized `unitSalesTop100` / `revenueTop100` selector. The MCP `markets/structure-profile` and `markets/history` routes reject `bySale100` and validate only the normalized values. Use `unitSalesTop100` / `revenueTop100` consistently in new requests and the bundled CLI. The server recognizes legacy market filters such as `categoryPath`, `categoryKeyword`, and `topN` in a separate compatibility mode; combining them with new `categoryScope` returns HTTP 422. The current MCP search schema requires `categoryScope`, so it cannot submit a pure legacy request. The bundled CLI supports only the new parameters.
+The MCP `markets/search` schema also lists `bySale100` / `byRevenue100` aliases. The MCP `markets/structure-profile` and `markets/history` routes use the normalized values. Use `unitSalesTop100` / `revenueTop100` consistently in new requests and the bundled CLI. Legacy flat requests remain separate from the published nested search request; the CLI sends the nested form only. `categoryScope` remains in returned rows and in the other two market endpoints; it is not a current search request field.
 
 ## 2a. markets/structure-profile
 

@@ -13,7 +13,7 @@ This module owns returned market-field meaning, denominator, time grain, and inf
 | `sampleMedianPrice` and `sampleAvgPrice` | Price measures of the selected sample with different aggregation | Describe observed price positioning | Infer margin, profit, or the price of every product |
 | `sampleAvgGrossMarginRate` | Service-estimated average gross-margin rate for the selected sample | Describe this sample estimate with its source and date | Treat it as the seller's actual unit margin or contribution margin |
 
-The sample is chosen by `sampleType`; `unitSalesTop100` and `revenueTop100` can contain different products. Every Top 100 claim carries the sample selector and returned date. A `subtree` total includes descendants; a `direct` total does not.
+The sample is chosen by `sampleType`; `unitSalesTop100` and `revenueTop100` can contain different products. Every Top 100 claim carries the sample selector and returned date. A descendant-inclusive market row counts products in that category and its descendants; a direct-only row counts products assigned to that category itself. A parent row and one of its descendant rows can overlap.
 
 ## Structure, entry, and concentration
 

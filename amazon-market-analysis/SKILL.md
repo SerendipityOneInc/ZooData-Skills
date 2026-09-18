@@ -44,7 +44,7 @@ Respond in the user's language.
 - Require `ZOODATA_API_KEY`; use the credential-only `check` path before evidence calls. Do not substitute guessed numbers or unrelated public data when the API cannot be used.
 - Use the bundled `{skill_base_dir}/scripts/zoodata.py` and its local `scripts/allowed-commands.json`. Query market snapshots through `markets/search`; the removed market overview endpoint is unavailable.
 - Resolve and preserve a category ID for a named market. A broad product keyword is not itself a category. If category resolution relies on a top product, label it inferred and confirm before making an entry verdict.
-- Preserve `categoryScope`, `sampleType`, marketplace, returned date, and the distinction between all-category `total*` and selected Top 100 `sample*` measures. Do not infer margin from market revenue, price, or content rate.
+- Preserve each market row's product inclusion scope, `sampleType`, marketplace, returned date, and the distinction between all-category `total*` and selected Top 100 `sample*` measures. Do not infer margin from market revenue, price, or content rate.
 - A market ranking is limited to the categories and pages actually observed. A daily snapshot and available month-end history are different grains; compare only compatible observations.
 - Do not create a watchlist, baseline, schedule, notification, or recurring run without the user's explicit monitoring request. A one-time trend question does not activate monitoring.
 - State credit cost before a broad multi-call scan; use the smallest evidence set needed for the active stage. Seller budget, experience, costs, and risk tolerance remain local interpretation inputs and are not sent as free text to ZooData.

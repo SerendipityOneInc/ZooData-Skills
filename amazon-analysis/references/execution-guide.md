@@ -101,7 +101,7 @@ When `products` or `competitors` returns ASINs in Full-mode analysis, call `prod
 3. If still no match, use realtime/product on a known ASIN to extract categoryPath
 4. Validate categoryPath matches the user's intended product type
 
-**Data-driven category selection:** When the user provides a broad interest (e.g. "home products") instead of a specific niche, resolve its category ID with `categories`, browse children with `categories --parent`, and call `market --category-id` for candidates. Compare returned `sampleNewProductRate6m`, `sampleTop10BrandSalesRate`, `sampleFbmRate`, and `sampleMedianPrice` as separate selected Top 100 observations; keep them separate from full-category totals and avoid an uncalibrated composite score. Select Top 3-5 for deeper analysis.
+**Data-driven category selection:** When the user provides a broad interest (e.g. "home products") instead of a specific niche, resolve its category ID with `categories`, browse all direct children with `categories --parent`, and compare them through `market --category-ids` in batches of at most 100 IDs. Do not choose candidate children from category-tree order. Compare returned `sampleNewProductRate6m`, `sampleTop10BrandSalesRate`, `sampleFbmRate`, and `sampleMedianPrice` as separate selected Top 100 observations; keep them separate from full-category totals and avoid an uncalibrated composite score. Select Top 3-5 for deeper analysis only after the relevant children have comparable market rows.
 
 ---
 

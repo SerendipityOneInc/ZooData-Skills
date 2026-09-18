@@ -67,10 +67,12 @@ class TestMarketSkillOwnership(unittest.TestCase):
     def test_parent_scoped_discovery_uses_child_ids(self):
         scenario = (MARKET / "references" / "scenarios-discover.md").read_text()
         reference = (MARKET / "references" / "reference.md").read_text()
-        self.assertIn("`categories --parent` to enumerate child category IDs", scenario)
-        self.assertIn("`market --category-id ID --scope subtree --page-size 1`", scenario)
-        self.assertIn("does not restrict which category rows", reference)
-        self.assertNotIn("`market --scope subtree` with explicit filters/pages discovers market rows", scenario)
+        self.assertIn("`categories --parent` to enumerate **all direct child IDs**", scenario)
+        self.assertIn("`market --category-ids ID1,ID2,... --page-size 100`", scenario)
+        self.assertIn("**every** enumerated child", scenario)
+        self.assertIn("`category.ids` in one `markets/search` request", reference)
+        self.assertIn("`meta.total` counts matching rows after filters", reference)
+        self.assertNotIn("Select a bounded set of those IDs", scenario)
 
     def test_general_analysis_ownership_keeps_details_in_modules(self):
         root = ROOT / "amazon-analysis"

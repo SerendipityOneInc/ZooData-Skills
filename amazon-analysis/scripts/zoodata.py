@@ -12,7 +12,7 @@ Handles authentication, retries, rate limits, parameter quirks, and output forma
 
 Usage:
     python zoodata.py categories --keyword "pet supplies"
-    python zoodata.py market --category-id 3760901 --scope subtree
+    python zoodata.py market --category-id 3760901
     python zoodata.py products --keyword "yoga mat" --mode emerging
     python zoodata.py competitors --keyword "wireless earbuds"
     python zoodata.py product --asin B09V3KXJPB
@@ -607,8 +607,10 @@ def _market_snapshot_for_category(api_caller, category_path, keyword=None, resul
                 "error": {"message": "No categoryId resolved for market search"}}
     if results is not None:
         results.setdefault("meta", {})["resolved_category_id"] = category_id
-    result = api_caller("markets/search", {"categoryId": str(category_id),
-                        "categoryScope": "subtree", "marketplace": "US",
+    result = api_caller("markets/search", {"category": {
+                            "ids": [str(category_id)],
+                            "includeDescendantCategoryProducts": True},
+                        "marketplace": "US",
                         "sampleType": "unitSalesTop100", "page": 1,
                         "pageSize": 1}, "market")
     if not result.get("success"):
@@ -1214,13 +1216,25 @@ def cmd_categories(args):
 
 def cmd_market(args):
     """Discover category markets (one row per category)."""
-    params = {"categoryScope": args.scope, "sampleType": args.sample_type,
-              "marketplace": args.marketplace,
+    params = {"sampleType": args.sample_type, "marketplace": args.marketplace,
               "page": args.page, "pageSize": args.page_size}
-    for attr, field in (("category_id", "categoryId"),
-                        ("category_name", "categoryName"), ("date", "date"),
-                        ("sort", "sortBy"), ("order", "sortOrder"),
-                        ("sales_min", "totalMonthlySalesMin"),
+    category = {"includeDescendantCategoryProducts": args.include_descendant_category_products}
+    if args.category_id is not None:
+        category["ids"] = [args.category_id]
+    elif args.category_ids is not None:
+        ids = [value.strip() for value in args.category_ids.split(",")]
+        if not 1 <= len(ids) <= 100 or any(not value for value in ids):
+            raise SystemExit("--category-ids requires 1–100 nonempty comma-separated IDs")
+        if len(set(ids)) != len(ids):
+            raise SystemExit("--category-ids contains duplicate IDs")
+        category["ids"] = ids
+    elif args.category_name is not None:
+        category["name"] = args.category_name
+    elif args.category_path is not None:
+        category["path"] = parse_category(args.category_path)
+    params["category"] = category
+    filters = {}
+    for attr, field in (("sales_min", "totalMonthlySalesMin"),
                         ("revenue_min", "totalMonthlyRevenueMin"),
                         ("sample_sales_min", "sampleMonthlySalesMin"),
                         ("sample_revenue_min", "sampleMonthlyRevenueMin"),
@@ -1230,6 +1244,8 @@ def cmd_market(args):
                         ("sample_aplus_rate_max", "sampleAPlusRateMax"),
                         ("sample_avg_seller_count_min", "sampleAvgSellerCountMin"),
                         ("sample_avg_seller_count_max", "sampleAvgSellerCountMax"),
+                        ("sample_top10_product_sales_rate_min", "sampleTop10ProductSalesRateMin"),
+                        ("sample_top10_product_sales_rate_max", "sampleTop10ProductSalesRateMax"),
                         ("new_product_revenue_min", "newProductMonthlyRevenueMin"),
                         ("new_product_revenue_max", "newProductMonthlyRevenueMax"),
                         ("new_product_rating_count_min", "newProductRatingCountMin"),
@@ -1239,7 +1255,14 @@ def cmd_market(args):
                         ("seller_country", "sellerCountry")):
         value = getattr(args, attr)
         if value is not None:
-            params[field] = value
+            filters[field] = value
+    if filters:
+        params["filters"] = filters
+    if args.date:
+        params["date"] = args.date
+    if args.sort:
+        params["sortBy"] = args.sort
+    params["sortOrder"] = args.order
     result = api_call("markets/search", params)
     output(result, args.format)
 
@@ -2952,7 +2975,8 @@ def cmd_check(args):
     if args.endpoints:
         endpoints.extend([
             ("categories", {}, "Category tree"),
-            ("markets/search", {"categoryScope": "subtree", "sampleType": "unitSalesTop100",
+            ("markets/search", {"category": {"includeDescendantCategoryProducts": True},
+                                "sampleType": "unitSalesTop100",
                                 "pageSize": 1}, "Market search"),
             ("products/search", {"keyword": "test", "pageSize": 1}, "Product search"),
             ("products/competitors", {"keyword": "test", "pageSize": 1}, "Competitor lookup"),
@@ -3450,7 +3474,7 @@ def main():
         epilog="""
 Examples:
   %(prog)s categories --keyword "pet supplies"
-  %(prog)s market --category-id 3760901 --scope subtree
+  %(prog)s market --category-id 3760901
   %(prog)s products --keyword "yoga mat" --mode emerging
   %(prog)s products --keyword "yoga mat" --sales-min 300 --ratings-max 50
   %(prog)s competitors --keyword "wireless earbuds" --brand Anker
@@ -3478,9 +3502,13 @@ Examples:
 
     # ── market ──
     p_mkt = sub.add_parser("market", help="Discover category markets", allow_abbrev=False)
-    p_mkt.add_argument("--category-id", help="Exact category ID")
-    p_mkt.add_argument("--category-name", help="Exact category name")
-    p_mkt.add_argument("--scope", choices=["direct", "subtree"], default="subtree")
+    market_locator = p_mkt.add_mutually_exclusive_group()
+    market_locator.add_argument("--category-id", help="One exact category ID")
+    market_locator.add_argument("--category-ids", help="1–100 comma-separated category IDs")
+    market_locator.add_argument("--category-name", help="Exact category node name")
+    market_locator.add_argument("--category-path", help="Full category path, '>' separated")
+    p_mkt.add_argument("--include-descendant-category-products", action=argparse.BooleanOptionalAction,
+                       default=True, help="Include descendant-category products in each market row (default: true)")
     p_mkt.add_argument("--marketplace", choices=["US"], default="US")
     p_mkt.add_argument("--sample-type", choices=["unitSalesTop100", "revenueTop100"], default="unitSalesTop100")
     p_mkt.add_argument("--date", help="Snapshot date (YYYY-MM-DD)")
@@ -3491,6 +3519,7 @@ Examples:
     for name in ("sample-fbm-rate-min", "sample-fbm-rate-max",
                  "sample-aplus-rate-min", "sample-aplus-rate-max",
                  "sample-avg-seller-count-min", "sample-avg-seller-count-max",
+                 "sample-top10-product-sales-rate-min", "sample-top10-product-sales-rate-max",
                  "new-product-revenue-min", "new-product-revenue-max",
                  "new-product-rating-count-min", "new-product-rating-count-max",
                  "new-product-rating-min", "new-product-rating-max"):
