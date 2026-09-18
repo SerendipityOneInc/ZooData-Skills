@@ -69,6 +69,8 @@ sync_managed_file() {
 }
 
 for skill_dir in "$REPO_ROOT"/amazon-*/; do
+  # Ignore retired package directories that retain only local runtime data.
+  [[ -f "$skill_dir/SKILL.md" ]] || continue
   skill_name=$(basename "$skill_dir")
 
   if [[ ${#SKIP_SKILLS[@]} -gt 0 && " ${SKIP_SKILLS[*]} " == *" $skill_name "* ]]; then

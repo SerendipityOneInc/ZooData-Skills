@@ -29,16 +29,19 @@ metadata:
 |------|---------|
 | `{skill_base_dir}/scripts/zoodata.py` | **Execute** for all API calls (run `--help` for params) |
 | `{skill_base_dir}/references/reference.md` | Load when you need exact field names or filter details |
+| `{skill_base_dir}/references/execution-guide.md` | Load for market health thresholds and shared analysis workflow |
+
+For market analysis, this file routes the request and sets runtime boundaries; `references/reference.md` owns endpoint parameters and fields, `references/execution-guide.md` owns shared market-health interpretation, scenario modules own scenario-specific conclusions, `references/cli-contract.md` owns shared invocation/result handling, and `{skill_base_dir}/scripts/zoodata.py` owns request construction.
 
 
 ## Credential
 
-Required: `ZOODATA_API_KEY`. Get free key at [zoodata.ai/api-keys](https://zoodata.ai/en/api-keys). Stored in `{skill_base_dir}/config.json` in skill root.
+Required: `ZOODATA_API_KEY`. Get a key at [zoodata.ai/api-keys](https://zoodata.ai/en/api-keys). Configure it in the environment or `~/.zoodata/config.json`.
 
 ## Capabilities & Data Flow
 
 - **Network**: only `https://api.zoodata.ai` (Bearer `ZOODATA_API_KEY`). Setting `ZOODATA_BASE_URL` to an untrusted host (anything other than `api.zoodata.ai` / `*.zoodata.ai` / localhost) makes the CLI **refuse the request and withhold the key** — the Bearer token is never sent to an untrusted host.
-- **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). This skill allows `categories`, `market`, `products`, `competitors`, `product`, `analyze`, `report`, `opportunity`, `history`, `check`, plus the review fallback toolkit (`reviews-raw` / `review-tag-prompt` / `review-reduce-prompt` / `review-aggregate`). Do not invoke unrelated subcommands for this skill's tasks — the bundled manifest `{skill_base_dir}/scripts/allowed-commands.json` enforces this: the CLI refuses out-of-scope subcommands with a structured `COMMAND_NOT_ALLOWED` error before any API request.
+- **Execution**: bundled shared ZooData CLI `{skill_base_dir}/scripts/zoodata.py` (Python 3, stdlib-only). This skill allows `categories`, `market`, `market`, `market-structure-profile`, `market-history`, `products`, `competitors`, `product`, `analyze`, `report`, `opportunity`, `history`, `check`, plus the review fallback toolkit (`reviews-raw` / `review-tag-prompt` / `review-reduce-prompt` / `review-aggregate`). Do not invoke unrelated subcommands for this skill's tasks — the bundled manifest `{skill_base_dir}/scripts/allowed-commands.json` enforces this: the CLI refuses out-of-scope subcommands with a structured `COMMAND_NOT_ALLOWED` error before any API request.
 - **Local files**: a private temporary working dir (created with `mktemp -d`, removed when the fallback completes) during the review fallback; reads the optional credential store `~/.zoodata/config.json`.
 - **Sent to the API**: keywords, category paths, ASINs, marketplace/date and numeric filter values only. **Never sent**: budget, experience level, risk tolerance, or any other user-profile text — profile inputs map client-side to numeric filters.
 - **Credits**: every API call consumes account credits. For broad or ambiguous requests, state the estimated credit cost and confirm with the user before running multi-call scans.
@@ -59,7 +62,7 @@ User provides: keyword, category, ASIN, or brand — depending on intent. Use in
 
 1. **Category first**: keyword search is broad → MUST lock `categoryPath` via `categories` endpoint before other calls
 2. **Brand + category**: Brand queries MUST include `--category` to avoid cross-category contamination
-3. **Use API fields directly**: revenue=`sampleAvgMonthlyRevenue` (NEVER calculate price×sales), sales=`monthlySalesFloor` (lower bound), opportunity=`sampleOpportunityIndex`
+3. **Use API fields directly**: read `references/reference.md` for field identity and `references/execution-guide.md` for market revenue and denominator interpretation.
 4. **reviews/analysis**: needs 50+ reviews per ASIN; try category mode first (single call returns all dimensions), ASIN mode only if category call fails. Filter by `labelType` client-side from the `consumerInsights` array. Fallback chain when sample is insufficient:
    1. **Lightweight**: `realtime/product` ratingBreakdown — only star distribution, no themes
    2. **Full 11-dim insights** — bypass `/reviews/analysis` entirely:
@@ -120,13 +123,8 @@ Modes can combine with explicit filters (`--price-max`, `--sales-min`, etc). Ove
 Every analysis should address these dimensions where data is available:
 
 ### Market Health Assessment
-| Indicator | Good | Caution | Warning |
-|-----------|------|---------|---------|
-| Monthly demand (sampleAvgMonthlySales) | >1,500 units 📊 | 500-1,500 📊 | <500 📊 |
-| Brand concentration (CR10) | <40% 📊 | 40-60% 📊 | >60% 📊 |
-| New entrant rate (sampleNewSkuRate) | >15% 📊 | 5-15% 📊 | <5% 📊 |
-| Avg review count (sampleAvgRatingCount) | <500 📊 | 500-5,000 📊 | >5,000 📊 |
-| FBA rate (sampleFbaRate) | >60% 📊 | 40-60% 📊 | <40% 📊 |
+
+Load `references/execution-guide.md § Market Health Assessment` for the metric thresholds and interpretation.
 
 ### Competitive Position Assessment
 - **Price vs category avg**: >20% above = premium positioning, >20% below = value play 🔍
@@ -143,11 +141,11 @@ When user asks "should I sell X" or "is this a good niche":
 ### Sales Estimation Notes
 - `monthlySalesFloor` is a **lower-bound** estimate 📊
 - Null sales fallback: Monthly sales ≈ 300,000 / BSR^0.65 🔍
-- Revenue = `sampleAvgMonthlyRevenue` directly — NEVER calculate price × sales 📊
+- For market revenue interpretation, load `references/execution-guide.md § Market Health Assessment`.
 
 ## Output Spec
 
-Sections: Analysis findings → Data Source & Conditions table (interfaces, category, dateRange, sampleType, topN, filters) → Data Notes (estimated values, T+1 delay, sampling basis).
+Sections: Analysis findings → Data Source & Conditions table (interfaces, categoryId, date, categoryScope, sampleType, filters) → Data Notes (estimated values, T+1 delay, sampling basis).
 
 ### Language (required)
 
@@ -187,7 +185,7 @@ Include a table at the end of every report:
 
 | Data | Endpoint | Key Params | Notes |
 |------|----------|------------|-------|
-| (e.g. Market Overview) | `markets/search` | categoryPath, topN=10 | 📊 Top N sampling, sales are lower-bound |
+| (e.g. Market Overview) | `markets/search` | Copy actual `_query.params` | 📊 Full category and selected Top 100 metrics |
 | ... | ... | ... | ... |
 
 Extract endpoint and params from `_query` in JSON output. Add notes: sampling method, T+1 delay, realtime vs DB, minimum review threshold, etc.

@@ -77,7 +77,7 @@ When `products` or `competitors` returns ASINs in Full-mode analysis, call `prod
 3. If still no match, use realtime/product on a known ASIN to extract categoryPath
 4. Validate categoryPath matches the user's intended product type
 
-**Data-driven category selection:** When the user provides a broad interest (e.g. "home products") instead of a specific niche, do NOT pick categories from general knowledge. Use `market` endpoint to scan subcategories, then rank by composite score: newSkuRate > 10%, topBrandSalesRate < 60%, sampleFbaRate > 50%, sampleAvgPrice $10-$50. Select Top 3-5 subcategories for deeper analysis.
+**Data-driven category selection:** When the user provides a broad interest (e.g. "home products") instead of a specific niche, resolve its category ID with `categories`, browse children with `categories --parent`, and call `market --category-id` for candidates. Rank using returned `sampleConservativeNewProductRate6m`, `sampleTop10BrandSalesRate`, `sampleFbmRate`, and `sampleMedianPrice`; keep these Top 100 measures separate from full-category totals. Select Top 3-5 for deeper analysis.
 
 ---
 
@@ -179,18 +179,30 @@ Use this rendered template at the end of every report:
 
 ---
 
+## Market Health Assessment
+
+Use `totalMonthlyRevenue` from `markets/search` for full-category revenue and `sampleMonthlyRevenue` for its selected sample. Do not calculate revenue from price × sales; the field definitions are in `reference.md § 2`.
+
+| Indicator | Good | Caution | Warning |
+|-----------|------|---------|---------|
+| Monthly demand (sampleMonthlySales) | >1,500 units 📊 | 500-1,500 📊 | <500 📊 |
+| Brand concentration (CR10) | <40% 📊 | 40-60% 📊 | >60% 📊 |
+| Conservative six-month new-product rate (sampleConservativeNewProductRate6m) | >15% 📊 | 5-15% 📊 | <5% 📊 |
+| Avg review count (sampleAvgRatingCount) | <500 📊 | 500-5,000 📊 | >5,000 📊 |
+| FBM rate (sampleFbmRate) | <40% 📊 | 40-60% 📊 | >60% 📊 |
+
 ## Interface Data Differences
 
 The interfaces return **different fields**. Do NOT assume they share the same structure.
 
 | Data | `market` | `products`/`competitors` | `realtime/product` | `reviews/analysis` | `price-band` | `brand` | `history` |
 |------|----------|--------------------------|--------------------|--------------------|-------------|---------|-------------------|
-| Monthly Sales | `sampleAvgMonthlySales` | `monthlySalesFloor` | ❌ | ❌ | per-band avg | per-brand | historical |
-| Revenue | `sampleAvgMonthlyRevenue` | `monthlyRevenueFloor` | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Price | `sampleAvgPrice` | `price` | `buyboxWinner.price` | ❌ | band range | ❌ | historical |
-| BSR | `sampleAvgBsr` | `bsr` (integer) | `bestsellersRank` (array) | ❌ | ❌ | ❌ | historical |
+| Monthly Sales | `totalMonthlySales` / `sampleMonthlySales` | `monthlySalesFloor` | ❌ | ❌ | per-band avg | per-brand | historical |
+| Revenue | `totalMonthlyRevenue` / `sampleMonthlyRevenue` | `monthlyRevenueFloor` | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Price | `sampleMedianPrice` | `price` | `buyboxWinner.price` | ❌ | band range | ❌ | historical |
+| BSR | ❌ | `bsr` (integer) | `bestsellersRank` (array) | ❌ | ❌ | ❌ | historical |
 | Rating | `sampleAvgRating` | `rating` | `rating` | `avgRating` | ❌ | ❌ | historical |
-| Review Count | `sampleAvgReviewCount` | `ratingCount` | `ratingCount` | `reviewCount` | ❌ | ❌ | ❌ |
+| Review Count | `sampleAvgRatingCount` | `ratingCount` | `ratingCount` | `reviewCount` | ❌ | ❌ | ❌ |
 | Sentiment | ❌ | ❌ | ❌ | `sentimentDistribution` | ❌ | ❌ | ❌ |
 | Consumer Insights | ❌ | ❌ | ❌ | `consumerInsights` (11 dims) | ❌ | ❌ | ❌ |
 | Brand Share | ❌ | ❌ | ❌ | ❌ | ❌ | `sampleTop10BrandSalesRate` | ❌ |

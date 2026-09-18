@@ -12,7 +12,7 @@ Handles authentication, retries, rate limits, parameter quirks, and output forma
 
 Usage:
     python zoodata.py categories --keyword "pet supplies"
-    python zoodata.py market --category "Pet Supplies" --topn 10
+    python zoodata.py market --category-id 3760901 --scope subtree
     python zoodata.py products --keyword "yoga mat" --mode emerging
     python zoodata.py competitors --keyword "wireless earbuds"
     python zoodata.py product --asin B09V3KXJPB
@@ -340,11 +340,6 @@ def api_call(endpoint: str, params: dict) -> dict:
     # Clean params: remove None values
     params = {k: v for k, v in params.items() if v is not None}
 
-    # Quirk: topN and newProductPeriod must be strings
-    for str_field in ("topN", "newProductPeriod"):
-        if str_field in params and not isinstance(params[str_field], str):
-            params[str_field] = str(params[str_field])
-
     # Save the actual params sent to API (for _query metadata)
     actual_params = dict(params)
 
@@ -585,9 +580,40 @@ def _resolve_category(api_caller, log_fn, keyword=None, asin=None, results=None)
     return category_path, category_source
 
 
+def _market_snapshot_for_category(api_caller, category_path, keyword=None, results=None):
+    """Resolve a category ID and select its row from markets/search."""
+    rows = ((results or {}).get("categories") or {}).get("data") or []
+    if category_path:
+        rows = [row for row in rows if row.get("categoryPath") == category_path]
+        if not rows:
+            rows = (api_caller("categories", {"categoryPath": category_path},
+                               "categories (market ID)").get("data") or [])
+    elif keyword and not rows:
+        rows = (api_caller("categories", {"categoryKeyword": keyword},
+                           "categories (market ID)").get("data") or [])
+    category_id = next((row.get("categoryId") for row in rows
+                        if row.get("categoryId")), None)
+    if not category_id:
+        return {"success": False, "data": None,
+                "error": {"message": "No categoryId resolved for market search"}}
+    if results is not None:
+        results.setdefault("meta", {})["resolved_category_id"] = category_id
+    result = api_caller("markets/search", {"categoryId": str(category_id),
+                        "categoryScope": "subtree", "marketplace": "US",
+                        "sampleType": "unitSalesTop100", "page": 1,
+                        "pageSize": 1}, "market")
+    if not result.get("success"):
+        return result
+    rows = result.get("data") or []
+    if not isinstance(rows, list) or len(rows) != 1 or str(rows[0].get("categoryId")) != str(category_id):
+        return {**result, "success": False, "data": None,
+                "error": {"code": "MARKET_NOT_FOUND",
+                          "message": "No matching category market returned by markets/search"}}
+    return {**result, "data": rows[0]}
+
+
 def _has_scope(keyword, category_path):
-    """A category-scoped discovery call (products/search, products/competitors,
-    markets/search for leaders) needs at least one filter. With neither keyword
+    """A category-scoped product discovery call needs at least one filter. With neither keyword
     nor categoryPath the API returns unfiltered global top-sellers — a real bug
     that benchmarks a listing against random products. Callers MUST gate such
     calls on this."""
@@ -1178,24 +1204,55 @@ def cmd_categories(args):
 
 
 def cmd_market(args):
-    """Search market-level aggregate data for a category."""
-    params = {}
-    if args.category:
-        params["categoryPath"] = parse_category(args.category)
-    if args.keyword:
-        params["categoryKeyword"] = args.keyword
-    if args.topn:
-        params["topN"] = str(args.topn)
-    if args.page_size:
-        params["pageSize"] = args.page_size
-    if args.page:
-        params["page"] = args.page
-    if args.sort:
-        params["sortBy"] = args.sort
-    if args.order:
-        params["sortOrder"] = args.order
-
+    """Discover category markets (one row per category)."""
+    params = {"categoryScope": args.scope, "sampleType": args.sample_type,
+              "marketplace": args.marketplace,
+              "page": args.page, "pageSize": args.page_size}
+    for attr, field in (("category_id", "categoryId"),
+                        ("category_name", "categoryName"), ("date", "date"),
+                        ("sort", "sortBy"), ("order", "sortOrder"),
+                        ("sales_min", "totalMonthlySalesMin"),
+                        ("revenue_min", "totalMonthlyRevenueMin"),
+                        ("sample_sales_min", "sampleMonthlySalesMin"),
+                        ("sample_revenue_min", "sampleMonthlyRevenueMin"),
+                        ("sample_fbm_rate_min", "sampleFbmRateMin"),
+                        ("sample_fbm_rate_max", "sampleFbmRateMax"),
+                        ("sample_aplus_rate_min", "sampleAPlusRateMin"),
+                        ("sample_aplus_rate_max", "sampleAPlusRateMax"),
+                        ("sample_avg_seller_count_min", "sampleAvgSellerCountMin"),
+                        ("sample_avg_seller_count_max", "sampleAvgSellerCountMax"),
+                        ("new_product_revenue_min", "newProductMonthlyRevenueMin"),
+                        ("new_product_revenue_max", "newProductMonthlyRevenueMax"),
+                        ("new_product_rating_count_min", "newProductRatingCountMin"),
+                        ("new_product_rating_count_max", "newProductRatingCountMax"),
+                        ("new_product_rating_min", "newProductRatingMin"),
+                        ("new_product_rating_max", "newProductRatingMax"),
+                        ("seller_country", "sellerCountry")):
+        value = getattr(args, attr)
+        if value is not None:
+            params[field] = value
     result = api_call("markets/search", params)
+    output(result, args.format)
+
+
+def _market_single_params(args):
+    return {"categoryId": args.category_id, "categoryScope": args.scope,
+            "marketplace": args.marketplace,
+            "sampleType": args.sample_type,
+            **({"date": args.date} if getattr(args, "date", None) else {})}
+
+
+def cmd_market_structure_profile(args):
+    params = _market_single_params(args)
+    params["dimension"] = args.dimension
+    result = api_call("markets/structure-profile", params)
+    output(result, args.format)
+
+
+def cmd_market_history(args):
+    params = _market_single_params(args)
+    params.update({"startDate": args.start_date, "endDate": args.end_date})
+    result = api_call("markets/history", params)
     output(result, args.format)
 
 
@@ -1343,7 +1400,6 @@ def cmd_report(args):
         print("ERROR: --keyword is required for report command.", file=sys.stderr)
         sys.exit(1)
 
-    topn = str(args.topn or 10)
     results = {}
 
     # Step 1: Confirm category (self-healing: categories -> products/search row's
@@ -1357,13 +1413,8 @@ def cmd_report(args):
 
     # Step 2: Market data
     print("Step 2/4: Pulling market data...", file=sys.stderr)
-    market_params = {"topN": topn}
-    if category_path:
-        market_params["categoryPath"] = category_path
-    else:
-        market_params["categoryKeyword"] = keyword
-    market_result = api_call("markets/search", market_params)
-    results["market"] = market_result
+    results["market"] = _market_snapshot_for_category(
+        _caller, category_path, keyword=keyword, results=results)
 
     # Step 3: Top products
     print("Step 3/4: Searching top products...", file=sys.stderr)
@@ -1414,12 +1465,8 @@ def cmd_opportunity(args):
 
     # Step 2: Market validation
     print("Step 2/4: Validating market...", file=sys.stderr)
-    market_params = {"topN": "10"}
-    if category_path:
-        market_params["categoryPath"] = category_path
-    else:
-        market_params["categoryKeyword"] = keyword
-    results["market"] = api_call("markets/search", market_params)
+    results["market"] = _market_snapshot_for_category(
+        _caller, category_path, keyword=keyword, results=results)
 
     # Step 3: Product candidates (high demand, low barrier)
     print("Step 3/4: Discovering product candidates...", file=sys.stderr)
@@ -1512,32 +1559,8 @@ def cmd_market_entry(args):
     log("Step 1/6: Market landscape...")
     
     # 1a. Market aggregate
-    market_params = {"topN": "10", "pageSize": 20}
-    if category_path:
-        market_params["categoryPath"] = category_path
-    elif keyword:
-        market_params["categoryKeyword"] = keyword
-    results["market"] = safe_call("markets/search", market_params, "market")
-
-    # 1a-fallback: deep-leaf categoryPath has no aggregation data on the
-    # backend → downgrade to keyword-only mode so all subsequent steps use
-    # categoryKeyword instead of categoryPath. Only applies when both keyword
-    # and categoryPath were provided (otherwise we have nothing to fall back to).
-    if category_path and keyword:
-        m = results["market"] or {}
-        m_data = m.get("data") or []
-        m_total = (m.get("meta") or {}).get("total", 0)
-        if m.get("success") is False or not m_data or m_total == 0:
-            log(f"  → categoryPath {' > '.join(category_path)} returned empty; "
-                f"downgrading to keyword-only mode for subsequent steps")
-            results["meta"]["category_downgrade"] = {
-                "from": category_path,
-                "reason": "empty_aggregation",
-            }
-            category_path = None
-            market_params = {"topN": "10", "pageSize": 20, "categoryKeyword": keyword}
-            results["market"] = safe_call("markets/search", market_params,
-                                          "market (keyword fallback)")
+    results["market"] = _market_snapshot_for_category(
+        safe_call, category_path, keyword=keyword, results=results)
 
     # 1b. Brand overview (keyword + category, fallback to category-only)
     brand_ov_params = {"pageSize": 20}
@@ -1796,12 +1819,8 @@ def cmd_competitor_analysis(args):
 
     # Step 2: Market Context
     log("Step 2/7: Market context...")
-    market_params = {"topN": "10", "pageSize": 20}
-    if category_path:
-        market_params["categoryPath"] = category_path
-    elif keyword:
-        market_params["categoryKeyword"] = keyword
-    results["market"] = safe_call("markets/search", market_params, "market")
+    results["market"] = _market_snapshot_for_category(
+        safe_call, category_path, keyword=keyword, results=results)
 
     brand_params = {"pageSize": 20}
     if category_path:
@@ -2027,12 +2046,8 @@ def cmd_pricing_analysis(args):
 
     # Step 4: Market Benchmarks
     log("Step 4/8: Market benchmarks...")
-    market_params = {"topN": "10", "pageSize": 20}
-    if category_path:
-        market_params["categoryPath"] = category_path
-    elif keyword:
-        market_params["categoryKeyword"] = keyword
-    results["market"] = safe_call("markets/search", market_params, "market")
+    results["market"] = _market_snapshot_for_category(
+        safe_call, category_path, keyword=keyword, results=results)
 
     brand_params = {"pageSize": 20}
     if category_path:
@@ -2208,12 +2223,8 @@ def cmd_daily_radar(args):
 
     # Step 3: Market Pulse
     log("Step 3/7: Market pulse...")
-    market_params = {"topN": "10", "pageSize": 20}
-    if category_path:
-        market_params["categoryPath"] = category_path
-    elif keyword:
-        market_params["categoryKeyword"] = keyword
-    results["market"] = safe_call("markets/search", market_params, "market")
+    results["market"] = _market_snapshot_for_category(
+        safe_call, category_path, keyword=keyword, results=results)
 
     # Brand overview + detail
     brand_params = {"pageSize": 20}
@@ -2428,12 +2439,8 @@ def cmd_listing_audit(args):
 
     # Step 4: Market Context
     log("Step 4/7: Market context...")
-    market_params = {"topN": "10", "pageSize": 20}
-    if category_path:
-        market_params["categoryPath"] = category_path
-    elif keyword:
-        market_params["categoryKeyword"] = keyword
-    results["market"] = safe_call("markets/search", market_params, "market")
+    results["market"] = _market_snapshot_for_category(
+        safe_call, category_path, keyword=keyword, results=results)
 
     brand_params = {"pageSize": 20}
     if category_path:
@@ -2646,12 +2653,8 @@ def cmd_opportunity_scan(args):
 
     # Step 2: Market Context
     log("Step 2/6: Market context...")
-    market_params = {"topN": "10", "pageSize": 20}
-    if category_path:
-        market_params["categoryPath"] = category_path
-    elif keyword:
-        market_params["categoryKeyword"] = keyword
-    results["market"] = safe_call("markets/search", market_params, "market")
+    results["market"] = _market_snapshot_for_category(
+        safe_call, category_path, keyword=keyword, results=results)
 
     brand_params = {"pageSize": 20}
     if category_path:
@@ -2859,12 +2862,8 @@ def cmd_review_deepdive(args):
 
     # Step 4: Market & Competitive Context
     log("Step 4/5: Market context...")
-    market_params = {"topN": "10", "pageSize": 20}
-    if category_path:
-        market_params["categoryPath"] = category_path
-    elif keyword:
-        market_params["categoryKeyword"] = keyword
-    results["market"] = safe_call("markets/search", market_params, "market")
+    results["market"] = _market_snapshot_for_category(
+        safe_call, category_path, keyword=keyword, results=results)
 
     brand_params = {"pageSize": 20}
     if category_path:
@@ -2944,7 +2943,8 @@ def cmd_check(args):
     if args.endpoints:
         endpoints.extend([
             ("categories", {}, "Category tree"),
-            ("markets/search", {"categoryKeyword": "pet", "pageSize": 1}, "Market search"),
+            ("markets/search", {"categoryScope": "subtree", "sampleType": "unitSalesTop100",
+                                "pageSize": 1}, "Market search"),
             ("products/search", {"keyword": "test", "pageSize": 1}, "Product search"),
             ("products/competitors", {"keyword": "test", "pageSize": 1}, "Competitor lookup"),
         ])
@@ -3441,7 +3441,7 @@ def main():
         epilog="""
 Examples:
   %(prog)s categories --keyword "pet supplies"
-  %(prog)s market --category "Pet Supplies > Dogs" --topn 10
+  %(prog)s market --category-id 3760901 --scope subtree
   %(prog)s products --keyword "yoga mat" --mode emerging
   %(prog)s products --keyword "yoga mat" --sales-min 300 --ratings-max 50
   %(prog)s competitors --keyword "wireless earbuds" --brand Anker
@@ -3468,15 +3468,47 @@ Examples:
     p_cat.set_defaults(func=cmd_categories)
 
     # ── market ──
-    p_mkt = sub.add_parser("market", help="Search market-level data for a category", allow_abbrev=False)
-    p_mkt.add_argument("--category", help="Category path, '>' separated (names may contain commas, e.g. \"Electronics > Headphones, Earbuds & Accessories\"); JSON array also accepted")
-    p_mkt.add_argument("--keyword", help="Category keyword")
-    p_mkt.add_argument("--topn", type=int, default=10, help="Top N for concentration analysis (default: 10)")
+    p_mkt = sub.add_parser("market", help="Discover category markets", allow_abbrev=False)
+    p_mkt.add_argument("--category-id", help="Exact category ID")
+    p_mkt.add_argument("--category-name", help="Exact category name")
+    p_mkt.add_argument("--scope", choices=["direct", "subtree"], default="subtree")
+    p_mkt.add_argument("--marketplace", choices=["US"], default="US")
+    p_mkt.add_argument("--sample-type", choices=["unitSalesTop100", "revenueTop100"], default="unitSalesTop100")
+    p_mkt.add_argument("--date", help="Snapshot date (YYYY-MM-DD)")
+    p_mkt.add_argument("--sales-min", type=float)
+    p_mkt.add_argument("--revenue-min", type=float)
+    p_mkt.add_argument("--sample-sales-min", type=float)
+    p_mkt.add_argument("--sample-revenue-min", type=float)
+    for name in ("sample-fbm-rate-min", "sample-fbm-rate-max",
+                 "sample-aplus-rate-min", "sample-aplus-rate-max",
+                 "sample-avg-seller-count-min", "sample-avg-seller-count-max",
+                 "new-product-revenue-min", "new-product-revenue-max",
+                 "new-product-rating-count-min", "new-product-rating-count-max",
+                 "new-product-rating-min", "new-product-rating-max"):
+        p_mkt.add_argument("--" + name, type=float)
+    p_mkt.add_argument("--seller-country")
     p_mkt.add_argument("--page-size", type=int, default=20)
     p_mkt.add_argument("--page", type=int, default=1, help="Page number (default: 1)")
-    p_mkt.add_argument("--sort", choices=['totalSkuCount', 'sampleSkuCount', 'sampleAvgPrice', 'sampleAvgMonthlySales', 'sampleAvgMonthlyRevenue', 'sampleTotalMonthlySales', 'sampleAvgBsr', 'sampleAvgRating', 'sampleAvgRatingCount', 'sampleBrandCount', 'sampleSellerCount', 'sampleFbaRate', 'sampleNewSkuRate', 'topAvgMonthlySales', 'topAvgMonthlyRevenue', 'topSalesRate', 'topBrandSalesRate', 'topSellerSalesRate'], metavar="FIELD", help="Sort field (markets enum), e.g. sampleAvgMonthlySales, topBrandSalesRate")
+    p_mkt.add_argument("--sort", choices=["totalMonthlySales", "totalMonthlyRevenue", "sampleMonthlySales", "sampleMonthlyRevenue"])
     p_mkt.add_argument("--order", choices=["asc", "desc"], default="desc")
     p_mkt.set_defaults(func=cmd_market)
+
+    p_structure = sub.add_parser("market-structure-profile", help="Read one Top 100 distribution", allow_abbrev=False)
+    p_history = sub.add_parser("market-history", help="Read month-end market history", allow_abbrev=False)
+    for name, p, handler in (("market-structure-profile", p_structure, cmd_market_structure_profile),
+                             ("market-history", p_history, cmd_market_history)):
+        p.add_argument("--category-id", required=True)
+        p.add_argument("--scope", choices=["direct", "subtree"], default="subtree")
+        p.add_argument("--marketplace", choices=["US"], default="US")
+        p.add_argument("--sample-type", choices=["unitSalesTop100", "revenueTop100"], default="unitSalesTop100")
+        if name == "market-history":
+            p.add_argument("--start-date", required=True)
+            p.add_argument("--end-date", required=True)
+        else:
+            p.add_argument("--date", help="Snapshot date (YYYY-MM-DD)")
+        if name == "market-structure-profile":
+            p.add_argument("--dimension", required=True, choices=["brand", "seller", "price", "sellerCountry", "fulfillment", "ratingCount", "rating", "listingAge", "listingYear", "productFeature"])
+        p.set_defaults(func=handler)
 
     # ── products ──
     p_prod = sub.add_parser("products", help="Search products with filters (product selection)", allow_abbrev=False)
@@ -3527,7 +3559,6 @@ Examples:
     # ── report (composite) ──
     p_report = sub.add_parser("report", help="Full market analysis report (composite workflow)", allow_abbrev=False)
     p_report.add_argument("--keyword", required=True, help="Category/niche keyword")
-    p_report.add_argument("--topn", type=int, default=10, help="Top N (default: 10)")
     p_report.set_defaults(func=cmd_report)
 
     # ── opportunity (composite) ──

@@ -57,7 +57,7 @@ Required: my_asin. Optional: keyword, category. Category is auto-detected from A
 
 1. **Category auto-detection**: categoryPath is auto-detected from ASIN. If `category_source` in output is `inferred_from_search`, confirm with user
 2. **All keyword-based endpoints MUST include `--category`**; ASIN-specific endpoints do NOT
-3. **Use API fields directly**: revenue=`sampleAvgMonthlyRevenue` (NEVER price×sales), sales=`monthlySalesFloor`, opportunity=`sampleOpportunityIndex`
+3. **Use API fields directly**: read `references/reference.md § 2` for market revenue fields and the remaining sections of that reference for product sales and price-band opportunity
 4. **reviews/analysis**: needs 50+ reviews; ASIN mode first, category fallback. Fallback chain when both fail:
    1. **Lightweight**: `realtime/product` ratingBreakdown — only star distribution, no themes
    2. **Full 11-dim insights** — bypass `/reviews/analysis` entirely:
@@ -159,7 +159,7 @@ Include a table at the end of every report:
 
 | Data | Endpoint | Key Params | Notes |
 |------|----------|------------|-------|
-| (e.g. Market Overview) | `markets/search` | categoryPath, topN=10 | 📊 Top N sampling, sales are lower-bound |
+| (e.g. Market Overview) | `markets/search` | Copy actual `_query.params` | 📊 Full category and selected Top 100 metrics |
 | ... | ... | ... | ... |
 
 Extract endpoint and params from `_query` in JSON output. Add notes: sampling method, T+1 delay, realtime vs DB, minimum review threshold, etc.

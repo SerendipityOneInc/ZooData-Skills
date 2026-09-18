@@ -1,6 +1,6 @@
 """Execution smoke tests for every skill's bundled CLI.
 
-Goal: verify each of the 12 skills actually *executes* — the CLI imports and
+Goal: verify each of the 10 skills actually *executes* — the CLI imports and
 builds its argparse tree, every subcommand the skill's SKILL.md declares it
 uses really exists and its parser is well-formed, and `check` runs without a
 Python traceback. All of this is **credit-free** (no API calls).
@@ -78,9 +78,9 @@ def _run(cli: Path, *args, timeout=30):
 
 
 class TestSkillCliExecutes(unittest.TestCase):
-    def test_at_least_all_twelve_skills_discovered(self):
+    def test_all_ten_skills_discovered(self):
         # Guard: the suite must actually cover every skill, not silently skip.
-        self.assertEqual(len(SKILLS), 12, f"discovered {len(SKILLS)}: {[s for s,_ in SKILLS]}")
+        self.assertEqual(len(SKILLS), 10, f"discovered {len(SKILLS)}: {[s for s,_ in SKILLS]}")
 
     def test_cli_help_runs(self):
         """`<cli> --help` exits 0 with no Python traceback (CLI imports + builds)."""
@@ -116,13 +116,14 @@ class TestSkillCliExecutes(unittest.TestCase):
 
     def test_check_runs_without_crash(self):
         """`<cli> check` must not crash with a traceback (exit code is env-dependent:
-        0 when a key is configured, non-zero when not — both are 'normal')."""
+        0 when a key is configured, non-zero when missing or rejected)."""
         for name, cli in SKILLS:
             with self.subTest(skill=name):
                 r = _run(cli, "check")
                 self.assertNotIn("Traceback (most recent call last)", r.stderr,
                                  f"{name} check crashed:\n{r.stderr}")
-                self.assertIn(r.returncode, (0, 1, 2), f"{name} check exit {r.returncode}")
+                expected = (0, 1, 2, 3) if name == "web-extract" else (0, 1, 2)
+                self.assertIn(r.returncode, expected, f"{name} check exit {r.returncode}")
 
     def test_shared_cli_contract_has_one_canonical_owner(self):
         contract = (
@@ -162,9 +163,7 @@ class TestSkillCliExecutes(unittest.TestCase):
             "amazon-competitor-intelligence-monitor",
             "amazon-daily-market-radar",
             "amazon-listing-audit-pro",
-            "amazon-market-entry-analyzer",
-            "amazon-market-trend-scanner",
-            "amazon-opportunity-discoverer",
+            "amazon-market-analysis",
             "amazon-pricing-command-center",
             "amazon-review-intelligence-extractor",
         }
@@ -173,13 +172,17 @@ class TestSkillCliExecutes(unittest.TestCase):
         for name in sorted(NON_KEYWORD_ZOODATA_SKILLS):
             with self.subTest(skill=name):
                 skill = (REPO / name / "SKILL.md").read_text()
-                self.assertIn("## Shared CLI Contract", skill)
-                self.assertIn(contract_ref, skill)
-                self.assertIn("Reapply it after every granular or composite result", skill)
+                if name == "amazon-market-analysis":
+                    self.assertIn("references/cli-contract.md", skill)
+                    self.assertIn("Interface Failure Stop Gate", skill)
+                else:
+                    self.assertIn("## Shared CLI Contract", skill)
+                    self.assertIn(contract_ref, skill)
+                    self.assertIn("Reapply it after every granular or composite result", skill)
+                    self.assertIn("### Local Interface Failure Output", skill)
+                    self.assertIn("https://zoodata.ai/en/pricing", skill)
                 self.assertNotIn("Always parse valid structured stdout even when the process exits non-zero", skill)
-                self.assertIn("### Local Interface Failure Output", skill)
                 self.assertNotIn("zoodata/SKILL.md", skill)
-                self.assertIn("https://zoodata.ai/en/pricing", skill)
 
         zoodata_skill = (REPO / "zoodata" / "SKILL.md").read_text()
         self.assertIn("## Shared CLI contract", zoodata_skill)
@@ -192,7 +195,7 @@ class TestSkillCliExecutes(unittest.TestCase):
         zoodata_skills = {
             name for name, cli in SKILLS if cli.name == "zoodata.py" and name != "zoodata"
         }
-        self.assertEqual(len(zoodata_skills), 10)
+        self.assertEqual(len(zoodata_skills), 8)
         for name in sorted(zoodata_skills):
             with self.subTest(skill=name):
                 copy = REPO / name / "references" / "cli-contract.md"
@@ -247,7 +250,7 @@ class TestSkillCliLive(unittest.TestCase):
         execute end-to-end AND surface an aggregated credit total in its meta —
         the regression the _CreditTracker fix targets (was reported as 1)."""
         import json
-        cli = REPO / "amazon-market-entry-analyzer" / "scripts" / "zoodata.py"
+        cli = REPO / "amazon-market-analysis" / "scripts" / "zoodata.py"
         r = _run(cli, "market-entry", "--keyword", "yoga mat", timeout=300)
         self.assertEqual(r.returncode, 0, f"market-entry failed:\n{r.stderr[:400]}")
         meta = json.loads(r.stdout).get("meta", {})

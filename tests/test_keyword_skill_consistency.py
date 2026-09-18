@@ -1281,8 +1281,8 @@ def test_public_keyword_endpoint_inventory_and_sqp_routing_are_consistent():
         ROOT.parent / "zoodata" / "references" / "openapi-reference.md"
     ).read_text(encoding="utf-8")
 
-    assert "Direct access to 23 Amazon commerce and keyword-intelligence endpoints" in root_readme
-    assert "200M+ Amazon products. 23 Amazon and keyword-intelligence endpoints. One API key." in zoodata_readme
+    assert "Direct access to 25 Amazon commerce and keyword-intelligence endpoints" in root_readme
+    assert "200M+ Amazon products. 25 Amazon and keyword-intelligence endpoints. One API key." in zoodata_readme
     assert "| 14 | `keywords/market-profile`" in zoodata_readme
     assert "| 20 | `keywords/product-traffic-structure-profile`" in zoodata_readme
     assert "| 21 | `keywords/product-traffic-terms-trend`" in zoodata_readme

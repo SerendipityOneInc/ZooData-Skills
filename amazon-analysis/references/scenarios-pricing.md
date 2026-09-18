@@ -4,7 +4,7 @@
 > Load when handling pricing strategy, profit estimation, or listing reference tasks.
 > For API parameters, see `reference.md`.
 >
-> ⚠️ **Always resolve categoryPath before running these queries.** Tag conclusions with 📊/🔍/💡 confidence labels.
+> ⚠️ **Resolve categoryPath for product endpoints and categoryId for market endpoints before running these queries.** Tag conclusions with 📊/🔍/💡 confidence labels.
 
 ---
 
@@ -12,7 +12,8 @@
 
 ```bash
 # Step 1: Category pricing
-python3 scripts/zoodata.py market --category "Electronics > Headphones" --topn 10
+python3 scripts/zoodata.py categories --category "Electronics > Headphones"
+python3 scripts/zoodata.py market --category-id "<categoryId from categories>"
 
 # Step 2: Top 50 price distribution
 python3 scripts/zoodata.py products --keyword "wireless earbuds" --page-size 50

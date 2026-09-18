@@ -25,19 +25,32 @@ Response: `categoryId`, `categoryName`, `categoryPath`, `hasChildren`, `isRoot`,
 
 ## 2. markets/search
 
+Paginated category-market discovery and single-category snapshot lookup. It returns market metrics, but not distribution buckets or historical points.
+
 | Parameter | Type | Note |
 |-----------|------|------|
-| categoryPath | List\<String\> | e.g. `["Pet Supplies", "Dogs"]` |
-| categoryKeyword | String | Keyword match across levels |
-| topN | **String** | `"3"` / `"5"` / `"10"` / `"20"` ⚠️ must be string |
-| newProductPeriod | **String** | `"1"` / `"3"` / `"6"` / `"12"` ⚠️ must be string |
-| sampleType | String | `bySale100` / `byBsr100` / `avg` |
-| dateRange | String | default `30d` |
-| pageSize | Integer | default 20 |
-| sortBy | String | default `sampleAvgMonthlySales` |
+| categoryScope | String | **Required**: `direct` or `subtree` (descendants deduplicated) |
+| categoryId / categoryName | String | Optional exact match; `categoryName` is not keyword search |
+| sampleType | String | Runtime accepts `unitSalesTop100` / `revenueTop100` |
+| date | Date | Optional; omitted means latest available snapshot |
+| marketplace | String | `US` only |
+| page / pageSize | Integer | 1-based page; pageSize 1–100 |
+| sortBy | String | `totalMonthlySales`, `totalMonthlyRevenue`, `sampleMonthlySales`, `sampleMonthlyRevenue` |
 | sortOrder | String | `asc` / `desc` |
 
-Key response fields: `sampleAvgMonthlySales`, `sampleAvgPrice`, `sampleAvgMonthlyRevenue`, `sampleBrandCount`, `sampleSellerCount`, `sampleFbaRate`, `sampleNewSkuRate`, `topSalesRate`, `topBrandSalesRate`, `topSellerSalesRate`, `totalSkuCount`
+Filters: `totalMonthlySalesMin`, `totalMonthlyRevenueMin`, `sampleMonthlySalesMin`, `sampleMonthlyRevenueMin`, `sampleFbmRateMin/Max`, `sampleAPlusRateMin/Max`, `sampleAvgSellerCountMin/Max`, `newProductMonthlyRevenueMin/Max`, `newProductRatingCountMin/Max`, `newProductRatingMin/Max`, `sellerCountry`.
+
+Response: `data[]` rows carry `categoryId`, `categoryName`, `categoryPath`, `date`, `categoryScope`, `sampleType`, full-category `totalSkuCount`, `totalSpuCount`, `totalMonthlySales`, `totalMonthlyRevenue`, plus selected `sample*` size, coverage, price, estimated gross-margin rate, brand/seller, rating, content, conservative six-month new-product, and Top 10 concentration metrics. `meta.total` counts matching markets. For a single snapshot, filter by exact `categoryId` with `pageSize=1` and read the matching row. Keep the full-category and Top 100 denominators separate: use `totalMonthlyRevenue` for the whole category and `sampleMonthlyRevenue` for the selected sample. The selected sample is fixed at up to 100 products.
+
+The MCP `markets/search` route currently accepts `bySale100` / `byRevenue100` as aliases and returns the normalized `unitSalesTop100` / `revenueTop100` selector. The MCP `markets/structure-profile` and `markets/history` routes reject `bySale100` and validate only the normalized values. Use `unitSalesTop100` / `revenueTop100` consistently in new requests and the bundled CLI. The server recognizes legacy market filters such as `categoryPath`, `categoryKeyword`, and `topN` in a separate compatibility mode; combining them with new `categoryScope` returns HTTP 422. The current MCP search schema requires `categoryScope`, so it cannot submit a pure legacy request. The bundled CLI supports only the new parameters.
+
+## 2a. markets/structure-profile
+
+Required `categoryId` and one `dimension`: `brand`, `seller`, `price`, `sellerCountry`, `fulfillment`, `ratingCount`, `rating`, `listingAge`, `listingYear`, or `productFeature`. Optional `categoryScope`, `sampleType`, `date`, `marketplace=US`. Response `data.buckets[]` describes **the selected Top 100**, not the whole category: bucket label, SKU count/share, estimated sales/revenue/share, and dimension-specific fields. `data.sampleSkuCount` is the sample denominator; empty buckets indicate no available rows.
+
+## 2b. markets/history
+
+Required `categoryId`, `startDate`, `endDate`; optional `categoryScope`, `sampleType`, `marketplace=US`. Response `data.points[]` is sorted ascending and contains available month-end snapshots only. Missing months are omitted, not filled. Points carry full-category and selected Top 100 size/sales/revenue, conservative six-month new-product metrics, and MoM/YoY rates when a comparable baseline exists. Compare periods using returned `date`, `actualStartDate`, and `actualEndDate`.
 
 ---
 

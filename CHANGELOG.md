@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added — Unified Amazon market analysis skill
+
+`amazon-market-analysis` connects market and product discovery, named-market entry assessment, and category-change tracking in one independently routed skill. Its concise `SKILL.md` declares module ownership; scenario, evidence, metric, seller-input, output, and production API contracts live in separate references. It uses `markets/search` for exact category snapshots and the new structure-profile and history endpoints. The three previous market-entry, trend-scanner, and opportunity-discoverer skill packages are retired to avoid overlapping routing. Current market responses use the selected `sample*` field family; the skill and supporting references distinguish it from full-category `total*` measures.
+
+### Changed — Markets API v2 upgrade
+
+The shared CLI uses `market` for both `markets/search` discovery and exact `categoryId` snapshots, plus `market-structure-profile` and `market-history` for the remaining market endpoints. The removed `markets/overview` endpoint and `market-overview` CLI command are no longer called. Composite market context resolves `categoryId`, queries `markets/search` with `pageSize=1`, and reads the matching row; skill references, examples, and routing tests use the `total*` and selected `sample*` field families. Retired market CLI flags (`--category`, `--keyword`, `--topn`, `--top100-*`) were removed. The CLI exposes current `--sample-*` filters and `sampleMonthlySales` / `sampleMonthlyRevenue` sorting. The server recognizes legacy market filters in a separate compatibility mode, but the bundled CLI supports only the new parameters. Current MCP `markets/search` accepts the advertised `bySale100` / `byRevenue100` aliases and returns normalized selector values, while structure-profile and history still require `unitSalesTop100` / `revenueTop100`. The MCP search schema requires `categoryScope` and cannot submit a pure legacy request.
+
+The market skill review moved detailed scoring, scan, category-selection, and market-health rules from `SKILL.md` into their owning reference modules. `zoodata/references/openapi-reference.md` owns the market endpoint schemas; the shorter reference links to it. Market provenance examples now direct agents to copy the actual `_query.params`.
+
 ### Chore — Patch-version bump across all 12 skills for ClawHub republish
 
 All 12 skills received a patch bump so the fixes in this cycle (composite category-resolution metadata, ABA out-of-window date guidance, the standardized `resolved_category_path` meta key, CLI allowlist enforcement, credential-source hardening, and the SKILL.md description trims) propagate to installed users on `openclaw skills update`. The shared `zoodata.py` change touches every `amazon-*` skill's synced copy, so the bump is repo-wide rather than per-skill.

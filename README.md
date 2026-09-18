@@ -40,15 +40,16 @@ https://github.com/user-attachments/assets/305a161b-7a53-49b8-afdc-4469a4fbf361
 
 ## Skills Overview
 
-This repo contains **11 agent skills** organized in two tiers:
+This repo contains **10 agent skills** organized in two tiers:
 
 **🏗️ Foundation** — data access and full-spectrum analysis:
 
 | Skill | What It Does | Input | Output | Key Advantage |
 |-------|-------------|-------|--------|---------------|
-| 📦 [`zoodata/`](zoodata/) | Direct access to 23 Amazon commerce and keyword-intelligence endpoints — 12 commerce and 11 keyword | Keyword, category, ASIN, or brand | Raw API data with field mapping and quirk documentation | Complete API reference — every other skill builds on this |
+| 📦 [`zoodata/`](zoodata/) | Direct access to 25 Amazon commerce and keyword-intelligence endpoints | Keyword, category, ASIN, or brand | Raw API data with field mapping and quirk documentation | Complete API reference — every other skill builds on this |
 | 🎯 [`amazon-analysis/`](amazon-analysis/) | 13 built-in selection modes + market research, competitor analysis, ASIN evaluation, pricing, category research | Keyword/category/ASIN + intent | Analysis findings, top products, ASIN deep dives, confidence-tagged insights | Composite commands (`report`, `opportunity`) run multi-endpoint pipelines in one shot |
 | 🔎 [`amazon-keyword-traffic-analysis/`](amazon-keyword-traffic-analysis/) | Keyword value and product traffic-health workflows built on 11 keyword intelligence endpoints | Seed keyword, target keyword, ASIN, or ASIN + keyword | Expansion tiers, keyword-value analysis, product traffic structure, trends, and health diagnosis | Dedicated flows for keyword expansion, keyword analysis, and product traffic analysis |
+| 📊 [`amazon-market-analysis/`](amazon-market-analysis/) | Discover market and product candidates, evaluate entry conditions, and track category changes | Market question, category, or product opportunity brief | Observed shortlist, conditional entry assessment, or bounded trend analysis | One connected story with separate evidence and seller-decision boundaries |
 
 **⚡ Specialized** — purpose-built for specific workflows:
 
@@ -57,11 +58,9 @@ This repo contains **11 agent skills** organized in two tiers:
 | ⚔️ [`amazon-competitor-intelligence-monitor/`](amazon-competitor-intelligence-monitor/) | Deep competitor intelligence — Full Scan or Quick Check with tiered alerts | Keyword or ASIN(s), optionally your ASIN + competitor ASINs | Competitor matrix, brand ranking, price map, 30-day trends, scores (1-100), tiered alerts | Dual-mode (Full ~28-35 credits, Quick ~5-10) with three-tier alert system |
 | 📡 [`amazon-daily-market-radar/`](amazon-daily-market-radar/) | Automated daily monitoring — price changes, new competitors, BSR movements, review spikes | Your ASINs (1-10) + keyword | RED/YELLOW/GREEN alerts, KPI dashboard, competitor movement, action items | Set-and-forget with signal validation (7+ day trends vs single-day spikes) |
 | ✅ [`amazon-listing-audit-pro/`](amazon-listing-audit-pro/) | 8-dimension listing health check with optimization recommendations | Your ASIN + keyword | Score (X/100, A-F), 8-dimension scorecard, keyword gaps, priority fix list | Actionable rewrites using high-frequency review language; bulk audit support |
-| 🚪 [`amazon-market-entry-analyzer/`](amazon-market-entry-analyzer/) | One-click market viability — discovers sub-markets, scores (1-100), delivers GO/CAUTION/AVOID | Keyword or category path | Sub-market landscape, verdict, market overview, brand landscape, entry strategy | Auto sub-market discovery with dual-level CR10 check |
-| 📈 [`amazon-market-trend-scanner/`](amazon-market-trend-scanner/) | Category landscape scanning — trending subcategories, emerging niches, market shifts | 1+ category paths or keywords | Trend dashboard, Hot Categories TOP 5, new entrant scan, risk alerts | Category-level trend analysis across ALL subcategories |
-| 💎 [`amazon-opportunity-discoverer/`](amazon-opportunity-discoverer/) | Profile-driven opportunity scanner — auto-selects strategies, validates with real-time data, 7-dimension scoring | Budget + experience level + keyword/category | Top 10 opportunities (S/A/B/C), detailed top 3 analysis, risk alerts | Profile-driven strategy auto-selection + Quick-Scan (~10 credits) |
 | 💰 [`amazon-pricing-command-center/`](amazon-pricing-command-center/) | Data-driven pricing signals — auto-detects leaf category, analyzes pricing landscape | One or more ASINs | RAISE/HOLD/LOWER signal, price band heatmap, competitor price map, BuyBox analysis | ASIN-only input (no keyword needed), Sales/Competition Ratio |
 | 💬 [`amazon-review-intelligence-extractor/`](amazon-review-intelligence-extractor/) | Deep consumer insights from 1B+ pre-analyzed reviews across 11 dimensions | Single ASIN, multiple ASINs, or category keyword | Pain points, buying factors, user profiles, usage patterns, differentiation roadmap | 1B+ pre-analyzed reviews (95% token savings), 11 dimensions |
+| 🌐 [`web-extract/`](web-extract/) | Structured data extraction from public web pages and search results | URL, search query, or site | Structured JSON or page content | Handles rendered pages and bounded site crawls |
 
 ## Quick Start
 
@@ -77,16 +76,15 @@ You'll be prompted to select which skills to install:
 - **ZooData — Amazon Commerce Data, 11 Endpoints**
 - **Amazon Analysis — Full-Spectrum Research & Seller Intelligence**
 - **Amazon Keyword Intelligence — Expansion, Reverse ASIN & Monitoring**
+- **Amazon Market Analysis — Discovery, Entry & Change**
 
 **⚡ Specialized:**
 - **Amazon Competitor Intelligence Monitor** — Dual-mode competitive intelligence with tiered alerts
 - **Amazon Daily Market Radar — Automated Monitoring & Alerts**
 - **Amazon Listing Audit Pro — 8-Dimension Health Check**
-- **Amazon Market Entry Analyzer — GO/CAUTION/AVOID Verdicts**
-- **Amazon Market Trend Scanner — Daily Category Radar**
-- **Amazon Opportunity Discoverer — Niche Scanner & Scoring**
 - **Amazon Pricing Command Center — RAISE/HOLD/LOWER Signals**
 - **Amazon Review Intelligence Extractor — Consumer Insights from 1B+ Reviews**
+- **Web Extract — Structured public web data extraction**
 
 Or clone manually:
 ```bash
@@ -122,7 +120,9 @@ python amazon-analysis/scripts/zoodata.py products --keyword "wireless earbuds" 
 | Endpoint | Description | Example Use Case |
 |----------|-------------|-----------------|
 | 🔍 `products/search` | Product search with 20+ filters (13 preset modes via the CLI) | *"Find running shoes under $80 with 4+ stars"* |
-| 📊 `markets/search` | Market-level metrics — concentration, brand share, pricing | *"How competitive is the yoga mat market?"* |
+| 📊 `markets/search` | Category discovery and exact snapshot — size, concentration, selected Top 100 pricing | *"How competitive is the yoga mat market?"* |
+| 🧩 `markets/structure-profile` | Brand, price and other Top 100 distributions | *"Which price bands account for sales?"* |
+| 📅 `markets/history` | Available month-end category-market trends | *"How has this category changed by month?"* |
 | 🏷️ `products/competitors` | Competitor discovery by keyword, brand, or ASIN | *"Who are the top sellers in this niche?"* |
 | ⚡ `realtime/product` | Real-time product details — reviews, features, variants | *"Get current details for ASIN B0D5CRV4KL"* |
 | 💬 `reviews/analysis` | AI-powered review insights — sentiment, pain points | *"What do customers love/hate about this product?"* |
@@ -157,7 +157,7 @@ The skill CLI (`zoodata.py --mode`) provides 13 preset modes for different resea
 
 ```
 ├── zoodata/                              # Data layer skill (lightweight)
-│   ├── SKILL.md                            # 23 Amazon and keyword endpoints, quick start
+│   ├── SKILL.md                            # 25 Amazon and keyword endpoints, quick start
 │   └── references/
 │       └── openapi-reference.md            # API field reference
 │
@@ -206,21 +206,7 @@ The skill CLI (`zoodata.py --mode`) provides 13 preset modes for different resea
 │   └── scripts/
 │       └── zoodata.py
 │
-├── amazon-market-entry-analyzer/         # Market viability assessment
-│   ├── SKILL.md
-│   ├── references/
-│   │   └── reference.md
-│   └── scripts/
-│       └── zoodata.py
-│
-├── amazon-opportunity-discoverer/        # Niche & opportunity identification
-│   ├── SKILL.md
-│   ├── references/
-│   │   └── reference.md
-│   └── scripts/
-│       └── zoodata.py
-│
-├── amazon-market-trend-scanner/           # Category landscape scanning & trend discovery
+├── amazon-market-analysis/               # Market discovery, entry assessment & change
 │   ├── SKILL.md
 │   ├── references/
 │   │   └── reference.md
@@ -240,6 +226,11 @@ The skill CLI (`zoodata.py --mode`) provides 13 preset modes for different resea
 │   │   └── reference.md
 │   └── scripts/
 │       └── zoodata.py
+│
+├── web-extract/                          # Structured public web extraction
+│   ├── SKILL.md
+│   └── scripts/
+│       └── webtools.py
 │
 ├── scoring-methodology.md                # Unified quality scoring framework
 ├── CHANGELOG.md
