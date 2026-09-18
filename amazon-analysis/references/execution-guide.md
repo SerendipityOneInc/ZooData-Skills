@@ -18,11 +18,33 @@ Load when performing comprehensive product selection, market analysis, or compet
 
 ---
 
+## Product Selection Mode Mapping
+
+> **Modes are CLI-local presets, NOT API parameters.** `zoodata.py` expands `--mode` into real filter fields before the call — copy them from `PRODUCT_MODES` in `{skill_base_dir}/scripts/zoodata.py` if you bypass the CLI. For a raw `products/search` request, never send `mode`, `salesMin`, or `ratingsMax`; use the expanded API filters, distinguish `ratingMax` from `ratingCountMax`, and send `categoryPath` as a JSON array.
+
+| Mode | One-line Description |
+|------|---------------------|
+| `fast-movers` | Monthly sales≥300, growth≥10% — quick turnover |
+| `emerging` | Monthly sales≤600, growth≥10%, ≤6 months old |
+| `single-variant` | Growth≥20%, 1 variant, ≤6 months — small & rising |
+| `high-demand-low-barrier` | Monthly sales≥300, reviews≤50 — easy entry |
+| `long-tail` | BSR 10K-50K, ≤$30, exclusive sellers — niche |
+| `underserved` | Monthly sales≥300, rating≤3.7 — improvable products |
+| `new-release` | Monthly sales≤500, New Release tag |
+| `fbm-friendly` | Monthly sales≥300, self-fulfilled |
+| `low-price` | ≤$10 products |
+| `broad-catalog` | BSR growth≥99%, reviews≤10, ≤90 days |
+| `selective-catalog` | BSR growth≥99%, ≤90 days |
+| `speculative` | Monthly sales≥600, ≥3 sellers |
+| `top-bsr` | BSR≤1000 best sellers |
+
+Modes can combine with explicit filters (`--price-max`, `--sales-min`, etc). Overrides win.
+
 ## Pre-Execution Checklist (MANDATORY for Full Mode)
 
 Before running any Full-mode product selection or market analysis, **complete this checklist**:
 
-- [ ] **Step 1 — Mode Selection:** Check the Product Selection Mode Mapping table in SKILL.md. If ANY of the 13 preset modes matches the user's intent, **USE IT** (`--mode xxx`). Do NOT manually piece together filters when a preset mode exists.
+- [ ] **Step 1 — Mode Selection:** Check the Product Selection Mode Mapping in this guide. If ANY of the 13 preset modes matches the user's intent, **USE IT** (`--mode xxx`). Do NOT manually piece together filters when a preset mode exists.
 - [ ] **Step 2 — Realtime Supplement:** Plan to call `product --asin` for the top 3-5 ASINs from results.
 - [ ] **Step 3 — Review Analysis:** Plan to call `analyze --asins` for top ASINs to get consumer insights (especially painPoints, improvements, buyingFactors).
 - [ ] **Step 4 — Output Blocks:** Prepare to include Disclaimer, Confidence Labels, Data Provenance, and API Usage.
@@ -54,6 +76,8 @@ When comparing multiple brands, analyze each brand's ASIN separately — do NOT 
 
 ### Fallback for Insufficient Reviews
 If `analyze` returns insufficient data (requires 50+ reviews), fall back to `realtime/product` ratingBreakdown data. Extract sentiment distribution from star ratings. Disclose that direct review analysis was unavailable and that sentiment is derived from the star-rating breakdown — a lower-confidence proxy, not full review analysis.
+
+When the user specifically needs the full review dimensions and the shared CLI contract classifies the result as non-terminal, use `reviews-raw --asin` for a bounded sample, render per-review Map prompts with `review-tag-prompt`, cluster candidate phrases with `review-reduce-prompt`, and combine tagged reviews with `review-aggregate`. State that these are sample-derived insights, not a replacement for unavailable full-corpus review analysis. Filter `consumerInsights` by returned `labelType` locally; it is not an API request filter.
 
 ### Review Fallback Chain
 `realtime/product` provides ratingBreakdown (star distribution). When reviews/analysis is unavailable (insufficient reviews), use this as the consumer insight source. Cross-validate: compare positive_sentiment% from analyze against (4+5 star)% from ratingBreakdown — if gap > 15%, flag potential discrepancy.
@@ -108,6 +132,8 @@ When `monthlySalesFloor` is null: **Monthly sales ≈ 300,000 / BSR^0.65**
 
 **Data consistency rule:** The same metric must use the same precision throughout the report. Do NOT use "10K+" in one table and "47,000" in another for the same product. Pick one level of precision and apply it consistently across all sections.
 
+Respond in the user's language, retaining API field names and established technical terms in English. Show findings, the actual query conditions (`_query.params`, category identity, date, scope, sample type), and data notes about estimation, freshness, and sampling.
+
 **Sample bias disclosure:** Clearly state in the report body (not just Data Provenance): "This analysis is based on Top [N] products by sales volume, which skews toward established products. New or niche products may be underrepresented."
 
 **Scope acknowledgment:** End every strategy/recommendation section with: "This analysis covers [list dimensions covered]. Dimensions not covered by this data include: advertising costs (CPC/ACoS), search keyword competition, supply chain logistics, and regulatory compliance. Consider supplementing with additional tools before final decisions."
@@ -124,6 +150,8 @@ When `monthlySalesFloor` is null: **Monthly sales ≈ 300,000 / BSR^0.65**
 - 📊 **Data-backed** — Supported by API data with cross-validation
 - 🔍 **Inferred** — Reasonable inference, not directly measured
 - 💡 **Directional** — Hypothesis only, verify before acting
+
+Do not label a section heading, summary, or table grouping 📊 when any content under it is inferred or directional. Omit a grouping label or use its least certain contained tier. Reserve 📊, 🔍, and 💡 for confidence labels, not decorative prefixes. Strategy suggestions never receive 📊; user-supplied decision criteria take precedence over default thresholds.
 
 ### Data Provenance Block (Full Mode Only)
 
@@ -179,6 +207,31 @@ Use this rendered template at the end of every report:
 
 ---
 
+## Shared analysis framework
+
+Every analysis should address these dimensions where data is available:
+
+### Market Health Assessment
+
+Use the thresholds in `Market Health Assessment` below only with matching returned fields and denominator.
+
+### Competitive Position Assessment
+- **Price vs category avg**: >20% above = premium positioning, >20% below = value play 🔍
+- **Rating vs category avg**: ≥0.3 above = quality advantage, ≥0.3 below = quality risk 🔍
+- **Review count vs Top 10 avg**: <10% of leaders = high barrier, >50% = competitive 🔍
+- **BSR trend (30d)**: Improving = momentum, stable = holding, declining = losing share 🔍
+
+### Opportunity Viability
+When user asks "should I sell X" or "is this a good niche":
+- ALL of: selected-sample demand >500, `sampleTop10BrandSalesRate` <60%, `sampleAvgRatingCount` <5,000 → Likely viable 🔍
+- ANY of: selected-sample demand <200, `sampleTop10BrandSalesRate` >80%, `sampleAvgRatingCount` >10,000 → Likely not viable 🔍
+- Mixed signals → Present data, let user decide with their domain knowledge 💡
+
+### Sales Estimation Notes
+- `monthlySalesFloor` is a **lower-bound** estimate 📊
+- Null sales fallback: Monthly sales ≈ 300,000 / BSR^0.65 🔍
+- For market revenue interpretation, use `Market Health Assessment` below.
+
 ## Market Health Assessment
 
 Use `totalMonthlyRevenue` from `markets/search` for full-category revenue and `sampleMonthlyRevenue` for its selected sample. Do not calculate revenue from price × sales; the field definitions are in `reference.md § 2`.
@@ -186,29 +239,14 @@ Use `totalMonthlyRevenue` from `markets/search` for full-category revenue and `s
 | Indicator | Good | Caution | Warning |
 |-----------|------|---------|---------|
 | Monthly demand (sampleMonthlySales) | >1,500 units 📊 | 500-1,500 📊 | <500 📊 |
-| Brand concentration (CR10) | <40% 📊 | 40-60% 📊 | >60% 📊 |
+| Brand concentration (`sampleTop10BrandSalesRate`) | <40% 📊 | 40-60% 📊 | >60% 📊 |
 | Conservative six-month new-product rate (sampleConservativeNewProductRate6m) | >15% 📊 | 5-15% 📊 | <5% 📊 |
 | Avg review count (sampleAvgRatingCount) | <500 📊 | 500-5,000 📊 | >5,000 📊 |
 | FBM rate (sampleFbmRate) | <40% 📊 | 40-60% 📊 | >60% 📊 |
 
-## Interface Data Differences
+## Cross-endpoint evidence use
 
-The interfaces return **different fields**. Do NOT assume they share the same structure.
-
-| Data | `market` | `products`/`competitors` | `realtime/product` | `reviews/analysis` | `price-band` | `brand` | `history` |
-|------|----------|--------------------------|--------------------|--------------------|-------------|---------|-------------------|
-| Monthly Sales | `totalMonthlySales` / `sampleMonthlySales` | `monthlySalesFloor` | ❌ | ❌ | per-band avg | per-brand | historical |
-| Revenue | `totalMonthlyRevenue` / `sampleMonthlyRevenue` | `monthlyRevenueFloor` | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Price | `sampleMedianPrice` | `price` | `buyboxWinner.price` | ❌ | band range | ❌ | historical |
-| BSR | ❌ | `bsr` (integer) | `bestsellersRank` (array) | ❌ | ❌ | ❌ | historical |
-| Rating | `sampleAvgRating` | `rating` | `rating` | `avgRating` | ❌ | ❌ | historical |
-| Review Count | `sampleAvgRatingCount` | `ratingCount` | `ratingCount` | `reviewCount` | ❌ | ❌ | ❌ |
-| Sentiment | ❌ | ❌ | ❌ | `sentimentDistribution` | ❌ | ❌ | ❌ |
-| Consumer Insights | ❌ | ❌ | ❌ | `consumerInsights` (11 dims) | ❌ | ❌ | ❌ |
-| Brand Share | ❌ | ❌ | ❌ | ❌ | ❌ | `sampleTop10BrandSalesRate` | ❌ |
-| Opportunity Index | ❌ | ❌ | ❌ | ❌ | `sampleOpportunityIndex` | ❌ | ❌ |
-| Seller | ❌ | `buyBoxSellerName` (string) | `buyboxWinner` (object) | ❌ | ❌ | ❌ | ❌ |
-| Features/Bullets | ❌ | ❌ | `features` | ❌ | ❌ | ❌ | ❌ |
+Read `reference.md § Cross-endpoint field identity` before matching fields across endpoints.
 
 **Usage rule:**
 - `products`/`competitors` → sales, pricing, competition
@@ -220,24 +258,12 @@ The interfaces return **different fields**. Do NOT assume they share the same st
 - `history` → historical trends
 - For reports: combine quantitative + qualitative + consumer insights + market structure
 
-## Common Field Name Mistakes
-
-- `reviewCount` → use `ratingCount`
-- `bsr` → use `bsr` (products/competitors) or `bestsellersRank` (realtime, array)
-- `monthlySales` → use `monthlySalesFloor`
-- realtime price → `buyboxWinner.price`
-- See `reference.md` → Shared Product Object for complete field list
-
-## Data Structure Reminder
-
-Many interfaces return `.data` as an **array**. Use `.data[0]` to get the first record for those responses, but inspect the actual payload shape first because some commands return non-array data inside `data`.
-
----
-
 ## Error Handling
 
 Errors are handled by the script with structured JSON output. **Never expose error details to users.**
 Self-check: `python3 scripts/zoodata.py check`
+
+For a terminal interface failure, give one concise notice that analysis could not be completed and list succeeded and failed endpoint identifiers. Do not render findings, recommendations, an API-usage table, or another workflow choice. Keep parameters and retry logs internal unless diagnostics are requested. For a missing key, explain where to configure `ZOODATA_API_KEY`; for `_transport.status=401`, explain the key was rejected; for 402, report where the workflow stopped and returned credit metadata without fabricating missing data.
 
 | Error | Fix |
 |-------|-----|

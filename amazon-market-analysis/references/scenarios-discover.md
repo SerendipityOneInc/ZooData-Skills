@@ -17,8 +17,8 @@ The second row can be entered directly when the user already names a category. A
 
 ## Market landscape application
 
-- Choose a bounded search from the user's stated parent category, marketplace, filters, and credit limit. `categories --parent` enumerates children when a parent is known; `market --scope subtree` with explicit filters/pages discovers market rows. Do not paginate the global catalog by default.
-- Preserve `meta.total`, page range, sort direction, and exact observed category set. Use returned `categoryId` to avoid merging same-name categories from different paths.
+- When a parent category is named, resolve its path and use `categories --parent` to enumerate child category IDs. Select a bounded set of those IDs within the stated credit limit, then call `market --category-id ID --scope subtree --page-size 1` for each. Here `subtree` includes descendants in each selected market's metrics; it does not restrict search rows to children of a parent. Do not use unscoped `market` pages as a substitute for parent filtering.
+- When no parent is named, a bounded `market` filter/page search can discover category rows across the catalog. Preserve `meta.total`, page range, sort direction, and exact observed category set. For parent-scoped discovery, report enumerated child count, selected IDs, and skipped children instead of claiming global pagination coverage. Use returned `categoryId` to avoid merging same-name categories from different paths.
 - Rank observed categories by the user's declared priorities. Without priorities, present demand (`totalMonthlySales` or `totalMonthlyRevenue`), selected Top 100 concentration, conservative new-product share, and price distribution as separate axes; do not collapse them into an unexplained 1–100 score.
 - A high market size and low selected-sample concentration may support a category for closer evaluation. It does not establish capital fit, differentiated demand, or product profitability.
 

@@ -30,6 +30,8 @@ This module owns production acquisition facts for `amazon-market-analysis`. All 
 
 `markets/search` requires `categoryScope=direct|subtree` for new requests. It accepts exact `categoryId` or `categoryName`, optional `date`, `sampleType`, `page` (1-based), `pageSize` (1–100), `sortBy`, `sortOrder`, and documented market filters. `categoryName` is exact matching, not keyword expansion. `direct` covers the named node; `subtree` includes descendant nodes without duplicates. US is the documented marketplace.
 
+There is no parent-category filter for market rows. `categoryScope=subtree` changes the product population counted within a returned category row; it does not restrict which category rows an unscoped search returns. Use `categories --parent` to obtain child IDs, then query each selected child with exact `market --category-id` for parent-scoped discovery.
+
 The bundled `market` CLI exposes `--category-id`, `--category-name`, `--scope`, `--sample-type`, `--date`, `--page`, `--page-size`, `--sort`, `--order`, and filter flags. Its supported sample values are `unitSalesTop100` and `revenueTop100`. For one market, use `market --category-id ID --scope subtree --page-size 1`; verify the returned row's `categoryId` before interpreting it. Omitted `date` requests the latest available snapshot; the returned row's `date` is authoritative.
 
 Each row contains category identity, all-category `totalSkuCount`, `totalSpuCount`, `totalMonthlySales`, `totalMonthlyRevenue`, and selected Top 100 `sample*` size, coverage, price, estimated gross-margin rate, brand/seller, rating, content, conservative new-product, and Top 10 concentration fields. The selected sample has at most 100 products. `meta.total` counts matching markets, not products.

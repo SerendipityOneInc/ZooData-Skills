@@ -64,6 +64,27 @@ class TestMarketSkillOwnership(unittest.TestCase):
                                   "ci check", "repository maintenance"):
                     self.assertNotIn(forbidden, text)
 
+    def test_parent_scoped_discovery_uses_child_ids(self):
+        scenario = (MARKET / "references" / "scenarios-discover.md").read_text()
+        reference = (MARKET / "references" / "reference.md").read_text()
+        self.assertIn("`categories --parent` to enumerate child category IDs", scenario)
+        self.assertIn("`market --category-id ID --scope subtree --page-size 1`", scenario)
+        self.assertIn("does not restrict which category rows", reference)
+        self.assertNotIn("`market --scope subtree` with explicit filters/pages discovers market rows", scenario)
+
+    def test_general_analysis_ownership_keeps_details_in_modules(self):
+        root = ROOT / "amazon-analysis"
+        skill = (root / "SKILL.md").read_text()
+        guide = (root / "references" / "execution-guide.md").read_text()
+        reference = (root / "references" / "reference.md").read_text()
+        for heading in ("## Product Selection Mode Mapping", "## Market Health Assessment",
+                        "## Output Standards — Full Specification"):
+            self.assertIn(heading, guide)
+            self.assertNotIn(heading, skill)
+        self.assertIn("## Cross-endpoint field identity", reference)
+        self.assertNotIn("## Interface Data Differences", guide)
+        self.assertNotIn("## Output Spec", skill)
+
 
 if __name__ == "__main__":
     unittest.main()

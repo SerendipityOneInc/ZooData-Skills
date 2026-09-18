@@ -1491,6 +1491,52 @@ class TestMarketCategoryResolution(unittest.TestCase):
         self.assertFalse(response["success"])
         self.assertEqual(calls, ["categories"])
 
+    def test_category_lookup_failure_is_preserved(self):
+        for status in (401, 402, 500):
+            with self.subTest(status=status):
+                calls = []
+                failure = {"success": False, "data": None,
+                           "error": {"code": "CATEGORY_FAILURE", "message": "original"},
+                           "_transport": {"status": status},
+                           "_query": {"endpoint": "categories"}}
+
+                def caller(endpoint, params, label=None):
+                    calls.append(endpoint)
+                    return failure
+
+                response = zoodata._market_snapshot_for_category(
+                    caller, ["Health & Household"])
+                self.assertIs(response, failure)
+                self.assertEqual(calls, ["categories"])
+
+    def test_keyword_category_lookup_failure_is_preserved(self):
+        failure = {"success": False, "data": [],
+                   "error": {"code": "CREDITS_EXHAUSTED"},
+                   "_transport": {"status": 402}}
+        calls = []
+
+        def caller(endpoint, params, label=None):
+            calls.append((endpoint, params))
+            return failure
+
+        response = zoodata._market_snapshot_for_category(
+            caller, None, keyword="pet supplies")
+        self.assertIs(response, failure)
+        self.assertEqual(calls, [("categories", {"categoryKeyword": "pet supplies"})])
+
+    def test_cached_category_failure_is_preserved_without_another_call(self):
+        failure = {"success": False, "data": [{"categoryId": "3760901",
+                                            "categoryPath": ["Health & Household"]}],
+                   "error": {"code": "INVALID_KEY"},
+                   "_transport": {"status": 401}}
+
+        def caller(endpoint, params, label=None):
+            self.fail("failed cached category lookup must not trigger another call")
+
+        response = zoodata._market_snapshot_for_category(
+            caller, ["Health & Household"], results={"categories": failure})
+        self.assertIs(response, failure)
+
 
 class TestCommandAllowlist(unittest.TestCase):
     """Per-skill command-allowlist enforcement. The shared CLI ships
@@ -1679,6 +1725,11 @@ class TestCommandAllowlist(unittest.TestCase):
                 declared = {t for t in
                             re.findall(r"`([a-z0-9-]+)`", declaration_lines[0])
                             if t in real}
+                declaration_tokens = [t for t in
+                                      re.findall(r"`([a-z0-9-]+)`", declaration_lines[0])
+                                      if t in real]
+                self.assertEqual(len(declaration_tokens), len(set(declaration_tokens)),
+                                 f"{name}: duplicate command in declaration")
                 self.assertEqual(declared, manifest,
                                  f"{name}: declared-only={sorted(declared - manifest)} "
                                  f"manifest-only={sorted(manifest - declared)}")

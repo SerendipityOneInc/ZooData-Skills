@@ -582,15 +582,24 @@ def _resolve_category(api_caller, log_fn, keyword=None, asin=None, results=None)
 
 def _market_snapshot_for_category(api_caller, category_path, keyword=None, results=None):
     """Resolve a category ID and select its row from markets/search."""
-    rows = ((results or {}).get("categories") or {}).get("data") or []
+    category_result = (results or {}).get("categories")
+    if category_result and category_result.get("success") is False:
+        return category_result
+    rows = (category_result or {}).get("data") or []
     if category_path:
         rows = [row for row in rows if row.get("categoryPath") == category_path]
         if not rows:
-            rows = (api_caller("categories", {"categoryPath": category_path},
-                               "categories (market ID)").get("data") or [])
+            category_result = api_caller("categories", {"categoryPath": category_path},
+                                         "categories (market ID)")
+            if category_result.get("success") is False:
+                return category_result
+            rows = category_result.get("data") or []
     elif keyword and not rows:
-        rows = (api_caller("categories", {"categoryKeyword": keyword},
-                           "categories (market ID)").get("data") or [])
+        category_result = api_caller("categories", {"categoryKeyword": keyword},
+                                     "categories (market ID)")
+        if category_result.get("success") is False:
+            return category_result
+        rows = category_result.get("data") or []
     category_id = next((row.get("categoryId") for row in rows
                         if row.get("categoryId")), None)
     if not category_id:

@@ -180,3 +180,42 @@ Request params: `keyword`, `brand`, `asin`, `categoryPath`, `sortBy`, `pageSize`
 |-----------|---------------|-------------------|
 | Market size | markets/search | products/search (total count) |
 | Consumer demand | reviews/analysis | products (sales + growth) |
+
+---
+
+## Cross-endpoint field identity
+
+The interfaces return **different fields**. Do NOT assume they share the same structure.
+
+| Data | `market` | `products`/`competitors` | `realtime/product` | `reviews/analysis` | `price-band` | `brand` | `history` |
+|------|----------|--------------------------|--------------------|--------------------|-------------|---------|-------------------|
+| Monthly Sales | `totalMonthlySales` / `sampleMonthlySales` | `monthlySalesFloor` | ❌ | ❌ | per-band avg | per-brand | historical |
+| Revenue | `totalMonthlyRevenue` / `sampleMonthlyRevenue` | `monthlyRevenueFloor` | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Price | `sampleMedianPrice` | `price` | `buyboxWinner.price` | ❌ | band range | ❌ | historical |
+| BSR | ❌ | `bsr` (integer) | `bestsellersRank` (array) | ❌ | ❌ | ❌ | historical |
+| Rating | `sampleAvgRating` | `rating` | `rating` | `avgRating` | ❌ | ❌ | historical |
+| Review Count | `sampleAvgRatingCount` | `ratingCount` | `ratingCount` | `reviewCount` | ❌ | ❌ | ❌ |
+| Sentiment | ❌ | ❌ | ❌ | `sentimentDistribution` | ❌ | ❌ | ❌ |
+| Consumer Insights | ❌ | ❌ | ❌ | `consumerInsights` (11 dims) | ❌ | ❌ | ❌ |
+| Top 10 brand sales share | `sampleTop10BrandSalesRate` | ❌ | ❌ | ❌ | ❌ | per-brand share | ❌ |
+| Seller | ❌ | `buyBoxSellerName` (string) | `buyboxWinner` (object) | ❌ | ❌ | ❌ | ❌ |
+| Features/Bullets | ❌ | ❌ | `features` | ❌ | ❌ | ❌ | ❌ |
+
+## Common Field Name Mistakes
+
+- `reviewCount` → use `ratingCount`
+- `bsr` → use `bsr` (products/competitors) or `bestsellersRank` (realtime, array)
+- `monthlySales` → use `monthlySalesFloor`
+- realtime price → `buyboxWinner.price`
+- See `reference.md` → Shared Product Object for complete field list
+
+## Data Structure Reminder
+
+Many interfaces return `.data` as an **array**. Use `.data[0]` to get the first record for those responses, but inspect the actual payload shape first because some commands return non-array data inside `data`.
+
+---
+
+## Composite CLI commands
+
+- `report --keyword X` → categories + market + products(top50) + realtime(top1)
+- `opportunity --keyword X [--mode Y]` → categories + market + products(filtered) + realtime(top3)
