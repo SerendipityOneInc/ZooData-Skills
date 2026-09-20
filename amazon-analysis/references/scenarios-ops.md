@@ -6,7 +6,7 @@
 >
 > ⚠️ **Resolve categoryPath for product endpoints and categoryId for market endpoints before running these queries.** Tag conclusions with 📊/🔍/💡 confidence labels.
 >
-> **Limitation**: Snapshot data only for most endpoints. Use `history` for historical trends on specific ASINs.
+> **History coverage**: Use `history` for product-level ASIN history and `market-history` for category-market history. For a requested dimension without a corresponding history endpoint, compare only compatible saved snapshots or a clearly labeled same-scope peer baseline.
 
 ---
 
@@ -55,7 +55,7 @@ python3 scripts/zoodata.py products --category "Pet Supplies > Dogs > Toys" --li
 
 **Alert Signal Detection**:
 
-⚠️ API provides snapshot data only (no historical comparison). Detect anomalies by comparing **current values against standard thresholds**, not by tracking changes over time.
+Choose comparison evidence by subject: use `market-history` for category-market movement and `history` for ASIN price/BSR/sales movement. A current snapshot can be compared with a compatible saved snapshot or same-scope peer baseline only when the requested dimension has no corresponding history data. Do not infer a change from one current snapshot.
 
 | Alert Type | Detection Method | Trigger Condition |
 |------------|-----------------|-------------------|
@@ -66,13 +66,16 @@ python3 scripts/zoodata.py products --category "Pet Supplies > Dogs > Toys" --li
 
 Both rates describe the selected Top 100, not the entire category. Without a compatible baseline, report the current values as context rather than triggering an alert.
 
-**For continuous monitoring:** Run this workflow periodically (weekly/monthly) and compare results manually across snapshots. Use `history` for historical trend data on specific ASINs.
+**For continuous monitoring:** Use `market-history` for available category month-end comparisons and `history` for product-level daily comparisons. Persist compatible snapshots only for dimensions those history routes do not provide.
 
 ## 6.5 Historical Trend Analysis (New Endpoints)
 
 ```bash
 # Track ASIN price/BSR/sales history
-python3 scripts/zoodata.py history --asin B09XXXXX --period 90d
+python3 scripts/zoodata.py history --asins B09XXXXX --start-date <YYYY-MM-DD> --end-date <YYYY-MM-DD>
+
+# Track category-market month-end history
+python3 scripts/zoodata.py market-history --category-id <categoryId> --date-from <YYYY-MM-DD> --date-to <YYYY-MM-DD>
 
 # Brand-level competitor deep dive
 python3 scripts/zoodata.py brand-detail --keyword "dog toys" --brand "CompetitorBrand" --page-size 20

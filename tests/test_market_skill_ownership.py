@@ -307,6 +307,24 @@ class TestMarketSkillOwnership(unittest.TestCase):
         self.assertNotIn("_credits.remaining", guide)
         self.assertNotIn("📊 **API Usage**", guide)
 
+    def test_general_operations_routes_history_by_subject(self):
+        ops = (ROOT / "amazon-analysis" / "references" /
+               "scenarios-ops.md").read_text()
+        self.assertIn("`history` for product-level ASIN history", ops)
+        self.assertIn("`market-history` for category-market history", ops)
+        self.assertIn("market-history --category-id", ops)
+        self.assertIn("history --asins", ops)
+        self.assertNotIn("snapshot data only (no historical comparison)", ops.lower())
+        self.assertNotIn("compare results manually across snapshots", ops)
+
+    def test_specialized_skill_descriptions_do_not_claim_total_endpoint_count(self):
+        for skill_name in ("amazon-listing-audit-pro",
+                           "amazon-review-intelligence-extractor"):
+            skill = (ROOT / skill_name / "SKILL.md").read_text()
+            description = skill.split("description: >", 1)[1].split("metadata:", 1)[0]
+            self.assertIn("Uses up to 11 relevant ZooData endpoints", description)
+            self.assertNotIn("Uses all 11 ZooData API endpoints", description)
+
 
 if __name__ == "__main__":
     unittest.main()

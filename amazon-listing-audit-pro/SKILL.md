@@ -5,7 +5,7 @@ description: >
   Scores listings across 8 dimensions, benchmarks against category leaders,
   identifies keyword gaps, and generates data-backed improvement recommendations.
   Supports single ASIN or bulk audit (10-100+ ASINs for agencies).
-  Uses all 11 ZooData API endpoints with cross-validation.
+  Uses up to 11 relevant ZooData endpoints with cross-validation.
   Use when user asks about: listing audit, listing optimization, listing score,
   listing quality, improve my listing, listing review, listing diagnosis,
   title optimization, bullet point optimization, keyword gaps, listing benchmark,
