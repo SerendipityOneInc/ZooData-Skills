@@ -212,14 +212,12 @@ This list is an interaction contract, not a workflow status. The user is never r
 
 ### Final Output Gate
 
-Apply this gate immediately before every user-facing send, including clarification, Quick Mode, normally completed Full Mode, interface failure, credential failure, credit failure, and validation failure.
+Apply `analysis-constitution.md § 7. Final Response Gate` immediately before every user-facing send. This keyword law adds only the following rendering checks:
 
-1. Select exactly one output route, then obtain that route's complete permitted rendering shape from `output-rules.md` and, for a normally completed Full-Mode stage, the Stage-End Selection List Rule above.
-2. Validate the entire draft from its first emitted character through its last emitted character. Text that happens to contain a valid template is not compliant when any prefix, suffix, heading, explanation, separator, or unrelated block falls outside that route's permitted shape.
-3. If validation fails, discard the entire draft and render the selected route again from its owner contract. Do not patch the invalid draft, retain its wrapper, or append a correction.
-4. For a hard interface failure, validate the complete draft exclusively against `output-rules.md § Interface Failure Output`; any deviation from that owner-defined rendering contract fails this Gate.
-5. Apply `output-rules.md § Internal Identifier Rewrite` as an explicit whole-draft rejection check. Keep all identifier definitions, examples, and rewrite requirements authoritative in that output owner.
-6. Do not send until the complete assistant draft passes the selected route and the internal-identifier check. If an invalid draft cannot be repaired confidently, discard it and emit only that route's minimal owner-defined rendering. Client-generated task notifications are outside this assistant-output validation boundary.
+1. Select exactly one keyword output route from `output-rules.md`; a normally completed Full-Mode stage also uses the Stage-End Selection List Rule above.
+2. For a hard interface failure, validate the complete draft exclusively against `output-rules.md § Interface Failure Output`.
+3. Apply `output-rules.md § Internal Identifier Rewrite` as a keyword-specific whole-draft rejection check. Keep all identifier definitions and rewrite examples authoritative in that output owner.
+4. Do not send until the draft passes its selected keyword route and the internal-identifier check.
 
 ### Pending Handoff Reclassification Rule
 

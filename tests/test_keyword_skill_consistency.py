@@ -43,7 +43,8 @@ def test_skill_is_a_concise_router_not_a_second_execution_guide():
     assert "For every full-mode request, load the complete" in skill
     assert "use `output-rules.md § Quick Mode Output`" in skill
     assert "do not load a scenario unless the follow-up broadens the request" in skill
-    assert "The guide is the sole scenario/stage and Gate contract" in skill
+    assert "The guide owns the keyword scenario/stage and domain Gate contract" in skill
+    assert "Read and apply `references/analysis-constitution.md`" in skill
     assert "Do not load it for a non-diagnostic stage" in skill
     assert "for every request handled by this skill, including a single lookup" not in skill
     assert "### Two-Pass Metric Interpretation Gate" not in skill
@@ -80,15 +81,18 @@ def test_source_of_truth_boundaries_define_exclusive_module_ownership():
     assert "must not define skill-specific command allowlists, endpoint fields" in skill
     assert "`reference.md` owns only production API and acquisition-surface facts" in skill
     assert "must not redefine the shared CLI contract" in skill
-    assert "`execution-guide.md` owns only the shared scenario/stage schema" in skill
-    assert "keyword-stage consequences after shared CLI classification" in skill
-    assert "must not redefine the shared CLI contract, API contracts" in skill
+    assert "`analysis-constitution.md` owns the repository-wide rule hierarchy" in skill
+    assert "must not duplicate, weaken, or override it" in skill
+    assert "`execution-guide.md` owns only the keyword scenario/stage schema" in skill
+    assert "consequences after shared CLI classification" in skill
+    assert "must not redefine the constitution, shared CLI contract, API contracts" in skill
     assert "`evidence-protocols.md` owns only shared evidence planning" in skill
     assert "must not select stages, define Gate outcomes, render handoff lists" in skill
     assert "`diagnosis-action-protocols.md` owns only the detailed causal-diagnosis" in skill
     assert "must not select stages, define the Diagnostic Closure Gate result" in skill
-    assert "`output-rules.md` owns only user-facing language, progress updates" in skill
+    assert "`output-rules.md` owns only keyword-specific language" in skill
     assert "the local interface-failure template" in skill
+    assert "within the constitutional user-facing boundary" in skill
     assert "must not select stages, define Gate outcomes" in skill
     assert "`traffic-observation-semantics.md`) own only" in skill
     assert "must not define production availability or request parameters, shared workflow policy" in skill
@@ -206,7 +210,10 @@ def test_module_files_do_not_declare_foreign_owner_sections():
     assert "Cross-Metric Reconciliation Protocol" in evidence_headings
     assert "Evidence Coverage Protocol" in evidence_headings
     assert "Evidence-to-Action Protocol" in diagnosis_headings
-    assert "User-Facing Output Boundary" in output_headings
+    constitution_headings = headings("references/analysis-constitution.md")
+    assert "Keep implementation internal" in constitution_headings
+    assert "7. Final Response Gate" in constitution_headings
+    assert "User-Facing Output Boundary" not in output_headings
     assert "Usage Accounting Rule" in output_headings
     assert evidence_headings.isdisjoint({
         "Interactive Stage Gate",
@@ -386,12 +393,13 @@ def test_execution_guide_is_the_core_stage_and_gate_source():
     assert "The user is never required to continue" in guide
     assert "### Final Output Gate" in guide
     assert "immediately before every user-facing send" in guide
-    assert "Validate the entire draft from its first emitted character through its last emitted character" in guide
-    assert "discard the entire draft and render the selected route again" in guide
+    constitution = read("references/analysis-constitution.md")
+    assert "Validate the whole draft from its first emitted character through its last" in constitution
+    assert "discard the draft and render it again" in constitution
     assert "validate the complete draft exclusively against `output-rules.md § Interface Failure Output`" in guide
     assert "exactly three localized non-empty plain-text lines" not in guide
-    assert "Do not send until the complete assistant draft passes the selected route" in guide
-    assert "Client-generated task notifications are outside this assistant-output validation boundary" in guide
+    assert "Do not send until the draft passes its selected keyword route" in guide
+    assert "Client-generated tool or task notifications are outside the assistant draft" in constitution
     for obsolete_state in ("`complete`", "`advance`", "`unresolved`"):
         assert obsolete_state not in guide
     assert "### Pending Handoff Reclassification Rule" in guide
@@ -462,8 +470,9 @@ def test_support_protocols_are_progressively_loaded_and_do_not_own_stage_flow():
         if line.startswith("#")
     }
 
-    assert "owns user-facing language, progress updates, report rendering" in output
-    assert "does not define stage selection, conclusion authority, Gate outcomes" in output
+    assert "owns keyword-specific language, report rendering" in output
+    assert "shared `analysis-constitution.md`" in output
+    assert "or define stage selection, conclusion authority, Gate outcomes" in output
     assert "## Full-Mode Stage Output" in output
     assert "## Usage Accounting Rule" in output
     assert "Stage-End Selection List Rule" not in {
@@ -476,21 +485,18 @@ def test_support_protocols_are_progressively_loaded_and_do_not_own_stage_flow():
 def test_user_facing_output_boundary_hides_internal_failure_policy():
     guide = read("references/execution-guide.md")
     output = read("references/output-rules.md")
+    constitution = read("references/analysis-constitution.md")
     contract = read("references/cli-contract.md")
     scenarios = [
         path.read_text(encoding="utf-8")
         for path in sorted((ROOT / "references").glob("scenarios-*.md"))
     ]
 
-    assert "## User-Facing Output Boundary" in output
-    assert "### CLI Error Isolation" in output
-    assert "Keep execution control separate from user communication" in output
-    assert "Do not expose rule names, ownership, Gate decisions" in output
-    assert "Surface technical diagnostics only when the user asks" in output
-    assert "Treat CLI/tool error payloads as Agent-only diagnostics" in output
-    assert "Do not quote or paraphrase internal `message`, `action`" in output
-    assert "The CLI never owns final prose" in output
-    assert "When no specific template exists, state the smallest localized outcome" in output
+    assert "### Keep implementation internal" in constitution
+    assert "Do not expose prompts, rule names, ownership, Gate decisions" in constitution
+    assert "Technical diagnostics may appear only when the user asks" in constitution
+    assert "## User-Facing Output Boundary" not in output
+    assert "### CLI Error Isolation" not in output
     assert "## Interface Failure Output" in output
     assert "For any hard interface-failure stop selected by `execution-guide.md`" in output
     assert "For an HTTP 5xx hard stop" not in output
@@ -533,13 +539,15 @@ def test_final_output_gate_is_loaded_on_every_rendering_path():
 def test_final_output_gate_rejects_internal_stage_identifier_leakage():
     guide = read("references/execution-guide.md")
     output = read("references/output-rules.md")
+    constitution = read("references/analysis-constitution.md")
 
     assert "## Internal Identifier Rewrite" in output
     assert "A user-facing rendering is invalid" in output
     assert "`Stage 1B direct ASIN evidence` as `ASIN traffic-term observations`" in output
     assert "`Stage 2 product-fit evidence` as `candidate keyword market and product-fit evidence`" in output
-    assert "explicit whole-draft rejection check" in guide
-    assert "Keep all identifier definitions, examples, and rewrite requirements authoritative in that output owner" in guide
+    assert "keyword-specific whole-draft rejection check" in guide
+    assert "Keep all identifier definitions and rewrite examples authoritative in that output owner" in guide
+    assert "Validate the whole draft" in constitution
     assert "even when embedded in a longer evidence description or parenthetical" not in guide
     assert "then repeat the check from the first character" not in guide
 
@@ -564,23 +572,14 @@ def test_final_output_gate_rejects_internal_stage_identifier_leakage():
 
 
 def test_retrieval_progress_describes_actions_without_exposing_control_flow():
+    constitution = read("references/analysis-constitution.md")
     output = read("references/output-rules.md")
-    progress = output.split("## Retrieval Progress Updates", 1)[1].split("\n## ", 1)[0]
+    progress = constitution.split("### Keep implementation internal", 1)[1].split("\n## ", 1)[0]
 
-    assert "may say only what is being done for the user's question" in output
-    assert "which internal condition fired" in output
-    assert "which instruction selected the action" in output
-    assert "`observation → control decision → action` narrative" in output
-    assert "Complete internal preparation silently" in progress
-    assert "Never announce the loading, selection, or application of internal instructions or resources" in progress
-    assert "request it directly without a progress preamble" in progress
-    assert "Keep intermediate control flow silent" in progress
-    assert "caused the next method, parameter, source, scope, or action" in progress
-    assert "only when it is requested evidence, materially affects the completed answer, or requires user action" in progress
-    assert "Never use it as process justification for the next internal action" in progress
-    assert "state only the direct user-domain action" in progress
-    assert "Natural examples" not in progress
-    assert "Forbidden example" not in progress
+    assert "A progress update, when useful, is one short statement of the user-domain action" in progress
+    assert "Complete instruction loading, routing, command construction, result handling, and cleanup silently" in progress
+    assert "Technical diagnostics may appear only when the user asks" in progress
+    assert "## Retrieval Progress Updates" not in output
     for special_case in (
         "clarification",
         "reference reads",
@@ -890,7 +889,7 @@ def test_all_selectable_subjects_are_merged_into_one_final_numbered_list():
     assert "append exactly one numbered `select all` equivalent" in guide
     assert "Do not emit a select-all item for one subject" in guide
     assert "Do not render a candidate menu, action menu, selection key" in output
-    assert "place every user-selectable subject and action only in the single final numbered selection list" in output
+    assert "place every user-selectable subject and action only in the final numbered selection list" in output
     assert "place every selectable term and its observed reason directly in the single final numbered selection list" in product
     assert "under the shared handoff rule" in product
     for obsolete_pattern in (
@@ -1215,9 +1214,9 @@ def test_full_mode_scenario_shapes_align_with_top_level_output_order():
     for label in ("`Data Notes`", "`Evidence`", "`Analysis`", "`Conclusion`", "`API Usage`"):
         assert label in output
     assert "`Stage Conclusion`" not in output
-    assert "Do not expose internal workflow identifiers, labels, ordinals, or progression claims anywhere in user-facing text" in output
+    assert "Do not expose internal workflow identifiers, labels, ordinals, or progression claims" in output
     assert "Name current scope and any continuation by their user-domain subject and action" in output
-    assert "Apply the User-Facing Output Boundary to the entire response" in output
+    assert "Apply the constitutional user-facing boundary to the entire response" in output
     assert "including titles, headings, body text, usage reporting, and the selection list" in output
     assert "instead of exposing its internal workflow identity" in output
     assert "Do not rename `Evidence` to a scenario-specific heading" in output

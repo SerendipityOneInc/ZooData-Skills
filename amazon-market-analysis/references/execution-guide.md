@@ -93,7 +93,12 @@ At the next user turn, classify the actual reply through `SKILL.md`. A bare numb
 
 ### Final Output Gate
 
-For quick mode, check the source, scope, returned date, requested metric, limitations, and usage. For a normally completed full stage, check the canonical `Data Notes → Evidence → Analysis → Conclusion → API Usage → one final numbered selection list` order. A prose-only “next step”, missing final list, or missing fixed new-question/exit item fails this Gate. Ensure every number maps to an observed field or labeled derivation, every verdict stays within authority, and internal stage/Gate terms are absent from user-facing prose. Validate the entire draft and re-render a draft that fails. Interface and credential failures do not render the normal list.
+Apply `analysis-constitution.md § 7. Final Response Gate` immediately before every user-facing send. This market law adds only the following rendering checks:
+
+1. Select one market output route and its complete permitted shape from `output-rules.md`; a normally completed full stage also uses the Stage-End Selection List Rule above.
+2. For quick mode, require source, scope, returned date, requested metric, limitations, and usage. For a normally completed full stage, require the canonical `Data Notes → Evidence → Analysis → Conclusion → API Usage → one final numbered selection list` order. A prose-only “next step”, missing final list, or missing fixed new-question/exit item fails.
+3. Ensure every number maps to an observed field or labeled derivation, every verdict stays within market authority, and internal stage/Gate terms are absent from user-facing prose.
+4. Interface and credential failures use only their market failure rendering and do not render the normal report or list.
 
 ## Credential and credit failures
 

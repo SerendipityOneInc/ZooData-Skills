@@ -67,7 +67,8 @@ class TestMarketSkillOwnership(unittest.TestCase):
     def test_parent_scoped_discovery_uses_child_ids(self):
         scenario = (MARKET / "references" / "scenarios-discover.md").read_text()
         reference = (MARKET / "references" / "reference.md").read_text()
-        output = (MARKET / "references" / "output-rules.md").read_text()
+        constitution = (MARKET / "references" /
+                        "analysis-constitution.md").read_text()
         self.assertIn("one `categories --parent", scenario)
         self.assertIn("to enumerate **all direct child IDs**", scenario)
         self.assertIn("one `categories` call plus one `markets/search` call", scenario)
@@ -76,7 +77,7 @@ class TestMarketSkillOwnership(unittest.TestCase):
         self.assertIn("`category.ids` in one `markets/search` request", reference)
         self.assertIn("`--parent` requires a nonempty JSON string array", reference)
         self.assertIn("`meta.total` counts matching rows after filters", reference)
-        self.assertIn("Keep transcript folding", output)
+        self.assertIn("transcript folding or truncation", constitution)
         self.assertNotIn("Select a bounded set of those IDs", scenario)
 
     def test_market_handoff_closes_a_stage_without_automatic_progression(self):
@@ -110,6 +111,30 @@ class TestMarketSkillOwnership(unittest.TestCase):
         self.assertIn("validate the requested ID set", evidence)
         self.assertIn("`success=true` and `meta.total=N`", evidence)
         self.assertIn("shared temporary-result procedure", guide)
+
+    def test_market_output_gate_rejects_implementation_detail_leakage(self):
+        canonical = (ROOT / "zoodata" / "references" /
+                     "analysis-constitution.md").read_bytes()
+        constitution_path = MARKET / "references" / "analysis-constitution.md"
+        constitution = constitution_path.read_text()
+        output = (MARKET / "references" / "output-rules.md").read_text()
+        guide = (MARKET / "references" / "execution-guide.md").read_text()
+        skill = (MARKET / "SKILL.md").read_text()
+
+        self.assertEqual(constitution_path.read_bytes(), canonical)
+        self.assertIn("## Rule hierarchy", constitution)
+        self.assertIn("### Keep implementation internal", constitution)
+        self.assertIn("raw payload capture", constitution)
+        self.assertIn("temporary paths", constitution)
+        self.assertIn("projection, parsing, cleanup", constitution)
+        self.assertIn("### 7. Final Response Gate", constitution)
+        self.assertIn("discard the draft and render it again", constitution)
+        self.assertIn("Do not patch a leaked sentence", constitution)
+        self.assertIn("Read and apply `references/analysis-constitution.md`", skill)
+        self.assertIn("Apply `analysis-constitution.md § 7. Final Response Gate`", guide)
+        self.assertIn("owns market-specific language", output)
+        self.assertNotIn("## User-Facing Output Boundary", output)
+        self.assertNotIn("## Retrieval Progress Updates", output)
 
     def test_general_analysis_ownership_keeps_details_in_modules(self):
         root = ROOT / "amazon-analysis"

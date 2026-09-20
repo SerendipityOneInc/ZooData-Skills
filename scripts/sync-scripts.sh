@@ -1,11 +1,16 @@
 #!/bin/bash
 # scripts/sync-scripts.sh
-# Sync canonical ZooData shared runtime files to all amazon-* skill directories.
+# Sync canonical ZooData shared runtime files to their enrolled skill directories.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SCRIPT_SOURCE="$REPO_ROOT/zoodata/scripts/zoodata.py"
 CONTRACT_SOURCE="$REPO_ROOT/zoodata/references/cli-contract.md"
+CONSTITUTION_SOURCE="$REPO_ROOT/zoodata/references/analysis-constitution.md"
+CONSTITUTION_SKILLS=(
+  "amazon-keyword-traffic-analysis"
+  "amazon-market-analysis"
+)
 CHECK_ONLY=0
 
 if [[ ${1:-} == "--check" ]]; then
@@ -18,7 +23,7 @@ fi
 # Doc-only skills that do not embed the ZooData CLI/runtime contract.
 SKIP_SKILLS=()
 
-for source in "$SCRIPT_SOURCE" "$CONTRACT_SOURCE"; do
+for source in "$SCRIPT_SOURCE" "$CONTRACT_SOURCE" "$CONSTITUTION_SOURCE"; do
   if [[ ! -f "$source" ]]; then
     echo "ERROR: Canonical source file does not exist: $source"
     exit 1
@@ -90,6 +95,13 @@ for skill_dir in "$REPO_ROOT"/amazon-*/; do
     "$skill_dir/references/cli-contract.md" \
     "$skill_name" \
     "references/cli-contract.md"
+  if [[ " ${CONSTITUTION_SKILLS[*]} " == *" $skill_name "* ]]; then
+    sync_managed_file \
+      "$CONSTITUTION_SOURCE" \
+      "$skill_dir/references/analysis-constitution.md" \
+      "$skill_name" \
+      "references/analysis-constitution.md"
+  fi
 done
 
 echo ""

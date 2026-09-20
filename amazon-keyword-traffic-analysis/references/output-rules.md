@@ -1,15 +1,12 @@
 # Output Rules — Amazon Keyword Intelligence
 
-This file owns user-facing language, progress updates, report rendering, Data Notes, and API-usage presentation. It does not define stage selection, conclusion authority, Gate outcomes, or the contents of the stage-end selection list.
+This file owns keyword-specific language, report rendering, Data Notes, and API-usage presentation within the shared `analysis-constitution.md`. It does not redefine the constitutional user-facing boundary or define stage selection, conclusion authority, Gate outcomes, or the contents of the stage-end selection list.
 
 ## Contents
 
 - [User-Facing Language Rule](#user-facing-language-rule)
-- [User-Facing Output Boundary](#user-facing-output-boundary)
 - [Internal Identifier Rewrite](#internal-identifier-rewrite)
-- [CLI Error Isolation](#cli-error-isolation)
 - [Interface Failure Output](#interface-failure-output)
-- [Retrieval Progress Updates](#retrieval-progress-updates)
 - [Quick Mode Output](#quick-mode-output)
 - [Full-Mode Stage Output](#full-mode-stage-output)
 - [Data Notes Rule](#data-notes-rule)
@@ -19,19 +16,6 @@ This file owns user-facing language, progress updates, report rendering, Data No
 
 Localize headings, labels, human-readable statuses, table headers, disclaimers, and fixed phrases to the user's language. Preserve source spelling for exact endpoint paths, fields, enums, ASINs, queries, brands, product names, placement codes, and established abbreviations. Retain an enum such as `status=empty` exactly and add a localized explanation when needed. Remove template-language leakage before sending.
 
-## User-Facing Output Boundary
-
-Keep execution control separate from user communication.
-
-- Include only evidence, analysis, conclusion, limitation, usage, and the stage-end choices needed by the user.
-- Do not expose rule names, ownership, Gate decisions, internal checklists, retries, parameter-mutation policy, commands, or maintainer rationale.
-- Do not expose internal workflow identifiers, labels, ordinals, or progression claims anywhere in user-facing text. Name current scope and any continuation by their user-domain subject and action, using neutral next-step wording when a transition must be described.
-- A user-visible action statement may say only what is being done for the user's question. It must not say which internal condition fired, which instruction selected the action, or how the action complies with policy.
-- Rewrite every internal `observation → control decision → action` narrative as a direct user-domain action statement before sending. If the rewritten sentence has no user value, omit it.
-- Do not render a candidate menu, action menu, selection key, or selectable-subject list inside Evidence, Analysis, or Conclusion. Discuss evidence and named subjects naturally there, then place every user-selectable subject and action only in the single final numbered selection list defined by `execution-guide.md`.
-- Surface technical diagnostics only when the user asks or when one exact identifier is necessary to correct user-controlled input.
-- Scenario section-content requirements may narrow what appears inside a canonical section but cannot rename, add, remove, or reorder top-level report sections, expose internal execution state, or weaken this boundary.
-
 ## Internal Identifier Rewrite
 
 A user-facing rendering is invalid when any title, heading, note, table, parenthetical, evidence qualifier, conclusion, usage text, or final selection item exposes an internal workflow identifier.
@@ -40,13 +24,6 @@ A user-facing rendering is invalid when any title, heading, note, table, parenth
 - Treat Gate names, scenario/module names, reference filenames, stage-entry language, and active-stage narration as internal control terminology. Exact endpoint identifiers, documented fields, enums such as `status=empty`, and user-supplied business subjects remain permitted.
 - Rewrite the complete semantic phrase in user-domain language; never merely delete the identifier and leave an unexplained fragment. For example, rewrite `Stage 1B direct ASIN evidence` as `ASIN traffic-term observations`, and rewrite `Stage 2 product-fit evidence` as `candidate keyword market and product-fit evidence`.
 - Omit internal control narration that has no user-domain meaning. Never explain that a Gate, scenario, module, or stage caused the rendered conclusion.
-
-### CLI Error Isolation
-
-- Treat CLI/tool error payloads as Agent-only diagnostics. Do not quote or paraphrase internal `message`, `action`, server detail, parameters, retry logs, or control tokens by default.
-- Use structured error facts only to select the applicable guide-owned Gate and output template. The CLI never owns final prose.
-- When no specific template exists, state the smallest localized outcome and user action.
-- Disclose only requested diagnostic detail.
 
 ## Interface Failure Output
 
@@ -62,17 +39,6 @@ For any hard interface-failure stop selected by `execution-guide.md`, render exa
 - Emit the three lines as plain text. Do not add Markdown headings, emphasis, code formatting, block quotes, bullets, or separators.
 - Do not add a heading, HTTP status, retry count, cause label, parameters, workflow rationale, successful-interface data, partial analysis, API-usage section, parameter warning, next-step section, suggestion to ask another question, action guidance, or stage-end list.
 - Provide technical diagnostics only when explicitly requested.
-
-## Retrieval Progress Updates
-
-- Complete internal preparation silently. Never announce the loading, selection, or application of internal instructions or resources.
-- When user input is required before work can continue, request it directly without a progress preamble.
-- When an update is useful, use one short natural sentence naming only the subject and user-domain question.
-- Do not expose execution mechanics, internal state, control vocabulary, or planned downstream routing.
-- Keep intermediate control flow silent. Do not narrate how an observation, tool result, contract, rule, or internal classification caused the next method, parameter, source, scope, or action to be selected or changed.
-- An intermediate result may appear user-facing only when it is requested evidence, materially affects the completed answer, or requires user action. Never use it as process justification for the next internal action.
-- When work continues, either omit the update or state only the direct user-domain action. Do not explain why that action was internally selected.
-- Do not expose partial judgments or narrate every retrieval call.
 
 ## Quick Mode Output
 
@@ -98,13 +64,15 @@ Render every normally completed full-mode scenario stage with exactly this canon
 6. `API Usage` when live API data was used; and
 7. the non-report coded Stage-End Selection List from `execution-guide.md`.
 
-Localize all five semantic section labels consistently into the user's language. Apply the User-Facing Output Boundary to the entire response, including titles, headings, body text, usage reporting, and the selection list. Put the active semantic scope in the report title and Data Notes instead of exposing its internal workflow identity.
+Localize all five semantic section labels consistently into the user's language. Apply the constitutional user-facing boundary to the entire response, including titles, headings, body text, usage reporting, and the selection list. Put the active semantic scope in the report title and Data Notes instead of exposing its internal workflow identity.
+
+Do not expose internal workflow identifiers, labels, ordinals, or progression claims. Name current scope and any continuation by their user-domain subject and action. Do not render a candidate menu, action menu, selection key, or selectable-subject list inside Evidence, Analysis, or Conclusion; place every user-selectable subject and action only in the final numbered selection list defined by `execution-guide.md`.
 
 Do not rename `Evidence` to a scenario-specific heading such as observed change, traffic evidence, or market evidence. Put that material inside `Evidence`. Likewise, put explanation status inside `Analysis` and discovery, posture, or calibration results inside `Conclusion`. Scenario files may require tables, subsections, or content within these sections but cannot change the canonical skeleton.
 
 Keep direct observations out of Conclusion and recommendations out of Evidence. Render only the evidence, analysis, and conclusion supplied for the active stage; do not repeat a prior report in full, expose methodology sections, or preview later-stage material.
 
-A hard interface failure follows `Interface Failure Output` above. Credential and credit failures follow the guide-owned stop decision and the smallest applicable rendering under the User-Facing Output Boundary. Each failure route bypasses normal stage rendering and the stage-end list.
+A hard interface failure follows `Interface Failure Output` above. Credential and credit failures follow the guide-owned stop decision and the smallest applicable rendering under the constitutional user-facing boundary. Each failure route bypasses normal stage rendering and the stage-end list.
 
 ## Data Notes Rule
 

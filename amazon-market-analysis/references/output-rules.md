@@ -1,14 +1,12 @@
 # Output Rules — Amazon Market Analysis
 
-This module owns user-facing language, progress, confidence labels, report shape, provenance, and credit accounting. The execution guide and scenario determine which conclusion is allowed; this module only renders it.
+This module owns market-specific language, confidence labels, report shape, provenance, and credit accounting. The shared `analysis-constitution.md` owns the universal user-facing boundary and progress discipline. The execution guide and scenario determine which conclusion is allowed; this module only renders it.
 
 ## Language and interface failure
 
 Use the user's language for the entire report. Keep API field names, endpoint identifiers, ASINs, and standard units unchanged when translation would obscure identity. Do not show internal stage names, Gate labels, module names, tool retries, raw error payloads, or analysis-control instructions in the report.
 
 On a terminal interface failure selected by `execution-guide.md`, return one concise localized notice that the market analysis could not be completed, followed by succeeded and failed endpoint identifiers from the current turn. Do not attach a market verdict, ranking, trend claim, API-usage table, or next-stage prompt. Give technical error details only if the user requests diagnostics.
-
-Progress updates, when useful, name only the user's market question and the business scope under comparison. Keep transcript folding, raw-result capture, temporary paths, projection, parsing, parameter-construction correction, cleanup, and other result-handling mechanics silent. Do not narrate every call, describe a local display condition as missing API data, ask the user to resolve an internal formatting issue, or preview a verdict before the evidence is interpreted.
 
 ## Quick lookup
 
@@ -26,7 +24,7 @@ For one normally completed full stage, use this localized top-level order:
 6. `API Usage` — calls and credits; and
 7. one final numbered selection list rendered from the guide's handoff decisions, after the report body.
 
-Scenario files may require a table or a subsection *inside* these headings; they do not rename or reorder the skeleton. A prose sentence in the conclusion does not replace the final selection list. Do not repeat a previous report or present an unvisited stage as completed. A user-supplied seller figure must be labeled as user-provided.
+Scenario files may require a table or a subsection *inside* these headings; they do not rename or reorder the skeleton. Apply the constitutional user-facing boundary to the whole rendering. A prose sentence in the conclusion does not replace the final selection list. Do not repeat a previous report or present an unvisited stage as completed. A user-supplied seller figure must be labeled as user-provided.
 
 ## Confidence and evidence labels
 
