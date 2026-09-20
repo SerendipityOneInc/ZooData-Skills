@@ -29,7 +29,7 @@ CLI `categories --parent` requires a nonempty JSON string array. Other category-
 
 Paginated category-market discovery and single-category snapshot lookup. It returns market metrics, but not distribution buckets or historical points.
 
-The request contract below comes from the live ZooData MCP `tools/list` on 2026-09-18 and was checked against successful ID-batch and nested-filter calls. The public OpenAPI export still shows an older market request shape. `markets/overview` currently returns `Unknown tool`.
+The request contract below comes from the live ZooData MCP `tools/list` on 2026-09-18 and was checked against successful ID-batch and nested-filter calls. The public OpenAPI export still shows an older market request shape. The experimental `markets/overview` artifact was never published and is not part of the production tool surface.
 
 | Parameter | Type | Note |
 |-----------|------|------|

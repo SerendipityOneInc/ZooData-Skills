@@ -1,0 +1,21 @@
+{
+  "allowedCommands": [
+    "analyze",
+    "brand-detail",
+    "brand-overview",
+    "categories",
+    "check",
+    "competitors",
+    "history",
+    "market",
+    "market-entry",
+    "price-band-detail",
+    "price-band-overview",
+    "product",
+    "products",
+    "review-aggregate",
+    "review-reduce-prompt",
+    "review-tag-prompt",
+    "reviews-raw"
+  ]
+}

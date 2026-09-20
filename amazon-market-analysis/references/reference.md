@@ -36,7 +36,7 @@ The bundled `market` CLI exposes mutually exclusive `--category-id`, `--category
 
 Each row contains category identity, all-category `totalSkuCount`, `totalSpuCount`, `totalMonthlySales`, `totalMonthlyRevenue`, and selected Top 100 `sample*` size, coverage, price, estimated gross-margin rate, brand/seller, rating, content, six-month new-product, and Top 10 concentration fields. Current rows also include `topNMetrics[]` (`n` plus product/brand/seller sales and revenue measures) and `newProductMetrics[]` (`periodMonths` plus count/rate and available price/rating/sales measures). The selected sample has at most 100 products. `meta.total` counts matching markets, not products; a nested concentration rate is still sample-scoped.
 
-The MCP `markets/search` route also lists `sampleType=bySale100|byRevenue100` as aliases; use normalized `unitSalesTop100|revenueTop100` values consistently in the bundled CLI and other market routes. The removed overview tool still returns `Unknown tool`. Legacy flat market requests are separate from the published nested request; the bundled CLI sends the nested form only.
+The MCP `markets/search` route also lists `sampleType=bySale100|byRevenue100` as aliases; use normalized `unitSalesTop100|revenueTop100` values consistently in the bundled CLI and other market routes. The experimental overview artifact was never published and is absent from the production tool surface. Legacy flat market requests are separate from the published nested request; the bundled CLI sends the nested form only.
 
 ## Market structure and history
 

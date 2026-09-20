@@ -1,6 +1,6 @@
 """Execution smoke tests for every skill's bundled CLI.
 
-Goal: verify each of the 10 skills actually *executes* — the CLI imports and
+Goal: verify each of the 10 active skills actually *executes* — the CLI imports and
 builds its argparse tree, every subcommand the skill's SKILL.md declares it
 uses really exists and its parser is well-formed, and `check` runs without a
 Python traceback. All of this is **credit-free** (no API calls).
@@ -20,6 +20,11 @@ import unittest
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
+RETAINED_SOURCE_SKILLS = {
+    "amazon-market-entry-analyzer",
+    "amazon-market-trend-scanner",
+    "amazon-opportunity-discoverer",
+}
 
 
 def _discover_skills():
@@ -27,6 +32,8 @@ def _discover_skills():
     out = []
     for skill_md in sorted(REPO.glob("*/SKILL.md")):
         d = skill_md.parent
+        if d.name in RETAINED_SOURCE_SKILLS:
+            continue
         for cli_name in ("zoodata.py", "webtools.py"):
             cli = d / "scripts" / cli_name
             if cli.exists():
@@ -78,7 +85,7 @@ def _run(cli: Path, *args, timeout=30):
 
 
 class TestSkillCliExecutes(unittest.TestCase):
-    def test_all_ten_skills_discovered(self):
+    def test_all_ten_active_skills_discovered(self):
         # Guard: the suite must actually cover every skill, not silently skip.
         self.assertEqual(len(SKILLS), 10, f"discovered {len(SKILLS)}: {[s for s,_ in SKILLS]}")
 

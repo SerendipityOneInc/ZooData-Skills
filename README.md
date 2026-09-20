@@ -62,6 +62,8 @@ This repo contains **10 agent skills** organized in two tiers:
 | 💬 [`amazon-review-intelligence-extractor/`](amazon-review-intelligence-extractor/) | Deep consumer insights from 1B+ pre-analyzed reviews across 11 dimensions | Single ASIN, multiple ASINs, or category keyword | Pain points, buying factors, user profiles, usage patterns, differentiation roadmap | 1B+ pre-analyzed reviews (95% token savings), 11 dimensions |
 | 🌐 [`web-extract/`](web-extract/) | Structured data extraction from public web pages and search results | URL, search query, or site | Structured JSON or page content | Handles rendered pages and bounded site crawls |
 
+The repository retains the source directories for `amazon-market-entry-analyzer`, `amazon-market-trend-scanner`, and `amazon-opportunity-discoverer` for history and migration reference. They are no longer part of the active local installation; `amazon-market-analysis` is the installed market workflow.
+
 ## Quick Start
 
 ### 1. Install the Skills

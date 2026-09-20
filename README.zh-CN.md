@@ -59,6 +59,8 @@
 | 💬 [`amazon-review-intelligence-extractor/`](amazon-review-intelligence-extractor/) | 从 10 亿+评论中提取消费者洞察，11 个分析维度 | 单个/多个 ASIN 或品类关键词 | 痛点、购买因素、用户画像、差异化路线图 | 省 95% token + 11 维度 |
 | 🌐 [`web-extract/`](web-extract/) | 从公开网页和搜索结果提取结构化数据 | URL、搜索词或网站 | 结构化 JSON 或网页内容 | 支持渲染网页和限定范围的网站爬取 |
 
+仓库继续保留 `amazon-market-entry-analyzer`、`amazon-market-trend-scanner` 和 `amazon-opportunity-discoverer` 的源目录，用于历史记录和迁移参考。它们不再属于当前本地安装；市场分析统一使用 `amazon-market-analysis`。
+
 ## 快速开始
 
 ### 1. 安装技能包

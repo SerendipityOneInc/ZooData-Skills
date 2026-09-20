@@ -20,8 +20,12 @@ elif [[ $# -gt 0 ]]; then
   exit 2
 fi
 
-# Doc-only skills that do not embed the ZooData CLI/runtime contract.
-SKIP_SKILLS=()
+# Retained source packages that are no longer part of the active installation.
+SKIP_SKILLS=(
+  "amazon-market-entry-analyzer"
+  "amazon-market-trend-scanner"
+  "amazon-opportunity-discoverer"
+)
 
 for source in "$SCRIPT_SOURCE" "$CONTRACT_SOURCE" "$ANALYSIS_CONTRACT_SOURCE"; do
   if [[ ! -f "$source" ]]; then
@@ -79,7 +83,7 @@ for skill_dir in "$REPO_ROOT"/amazon-*/; do
   skill_name=$(basename "$skill_dir")
 
   if [[ ${#SKIP_SKILLS[@]} -gt 0 && " ${SKIP_SKILLS[*]} " == *" $skill_name "* ]]; then
-    echo "  SKIP $skill_name (doc-only)"
+    echo "  SKIP $skill_name (retained source package)"
     skipped=$((skipped + 1))
     continue
   fi

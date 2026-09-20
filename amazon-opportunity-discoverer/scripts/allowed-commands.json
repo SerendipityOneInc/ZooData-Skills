@@ -1,0 +1,14 @@
+{
+  "allowedCommands": [
+    "categories",
+    "check",
+    "market",
+    "opportunity-scan",
+    "product",
+    "products",
+    "review-aggregate",
+    "review-reduce-prompt",
+    "review-tag-prompt",
+    "reviews-raw"
+  ]
+}

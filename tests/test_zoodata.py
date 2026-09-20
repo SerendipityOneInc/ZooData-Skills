@@ -2451,7 +2451,7 @@ class TestCompositeRobustness(unittest.TestCase):
         calls, results = self._run(["market-entry", "--keyword", "yoga mat"], router)
         self.assertFalse(results.get("meta", {}).get("aborted"),
                          "composite wrongly aborted on a non-terminal business failure")
-        # composite must have continued past the failing market overview
+        # composite must have continued past the failing market search step
         endpoints = {ep for ep, _ in calls}
         self.assertTrue(endpoints - {"categories", "markets/search"},
                         f"composite stopped after the non-terminal failure; only hit {endpoints}")

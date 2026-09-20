@@ -6,6 +6,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MARKET = ROOT / "amazon-market-analysis"
+RETAINED_MARKET_SOURCE_SKILLS = {
+    "amazon-market-entry-analyzer",
+    "amazon-market-trend-scanner",
+    "amazon-opportunity-discoverer",
+}
 
 
 class TestMarketSkillOwnership(unittest.TestCase):
@@ -29,11 +34,11 @@ class TestMarketSkillOwnership(unittest.TestCase):
                 self.assertIn("| Stage | Entry input | Evidence | Conclusion authority |", text)
                 self.assertIn("## Section content requirements", text)
 
-        for retired in (
-            "amazon-market-entry-analyzer", "amazon-market-trend-scanner",
-            "amazon-opportunity-discoverer",
-        ):
-            self.assertFalse((ROOT / retired / "SKILL.md").exists())
+        for retained_source in RETAINED_MARKET_SOURCE_SKILLS:
+            self.assertTrue((ROOT / retained_source / "SKILL.md").is_file())
+
+        sync_script = (ROOT / "scripts" / "sync-scripts.sh").read_text()
+        self.assertIn("retained source package", sync_script)
 
     def test_zoodata_market_schema_has_one_owner(self):
         skill = (ROOT / "zoodata" / "SKILL.md").read_text()
@@ -47,10 +52,11 @@ class TestMarketSkillOwnership(unittest.TestCase):
         self.assertIn("## 2. markets/search", owner)
         self.assertIn("## 2b. markets/history", owner)
 
-    def test_removed_overview_is_not_a_runnable_command(self):
+    def test_unpublished_experimental_overview_is_not_a_runnable_command(self):
         skill = (MARKET / "SKILL.md").read_text()
         manifest = (MARKET / "scripts" / "allowed-commands.json").read_text()
-        self.assertIn("removed market overview endpoint", skill)
+        self.assertIn("were never published", skill)
+        self.assertIn("outside the supported interface", skill)
         self.assertNotIn('"market-overview"', manifest)
         self.assertNotIn("market-overview --", skill)
 
@@ -172,6 +178,8 @@ class TestMarketSkillOwnership(unittest.TestCase):
         for path in (ROOT / "zoodata" / "references").glob("*.md"):
             self.assertNotIn("topSalesRate", path.read_text(), path.name)
         for path in ROOT.glob("amazon-*/references/*.md"):
+            if path.parent.parent.name in RETAINED_MARKET_SOURCE_SKILLS:
+                continue
             text = path.read_text()
             self.assertNotIn("topSalesRate", text, str(path))
             self.assertNotIn("sampleConservative", text, str(path))
