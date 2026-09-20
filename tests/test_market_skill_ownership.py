@@ -204,17 +204,28 @@ class TestMarketSkillOwnership(unittest.TestCase):
             with self.subTest(module=path.name):
                 text = path.read_text()
                 self.assertIn("sampleNewProduct", text)
+                self.assertIn("newProductPeriod", text)
+                self.assertNotIn("sampleNewProductCount6m", text)
+                self.assertNotIn("`newProductMetrics[]` returns", text)
                 self.assertNotIn("sampleConservative", text)
-        for path in (ROOT / "zoodata" / "references").glob("*.md"):
-            self.assertNotIn("topSalesRate", path.read_text(), path.name)
         for path in ROOT.glob("amazon-*/references/*.md"):
             if path.parent.parent.name in RETAINED_MARKET_SOURCE_SKILLS:
                 continue
             text = path.read_text()
-            self.assertNotIn("topSalesRate", text, str(path))
             self.assertNotIn("sampleConservative", text, str(path))
             self.assertNotIn("actualStartDate", text, str(path))
             self.assertNotIn("actualEndDate", text, str(path))
+
+        owner = owners[0].read_text()
+        reference = owners[1].read_text()
+        semantics = owners[2].read_text()
+        self.assertIn("`topSalesRateMin/Max`", owner)
+        self.assertIn("`sampleTop10ProductSalesRateMin/Max`", owner)
+        self.assertIn("`dateFrom`, and `dateTo`", owner)
+        self.assertIn("`includeDescendantCategoryProducts`", reference)
+        self.assertIn("Fixed `sampleTop10*` fields", semantics)
+        self.assertNotIn("`startDate`, and `endDate`", reference)
+        self.assertNotIn("Optional `categoryScope`", owner)
 
     def test_general_analysis_usage_uses_cli_accumulated_metadata(self):
         guide = (ROOT / "amazon-analysis" / "references" /

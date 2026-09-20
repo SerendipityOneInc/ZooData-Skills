@@ -44,7 +44,7 @@ A section, score, table header, or group label that contains mixed confidence mu
 
 ## Provenance and usage
 
-Within `Data Notes` or `Evidence`, identify the relevant endpoint and actual returned `_query.params` when available. For `markets/search`, distinguish a broad discovery page, a batch of `category.ids`, and an exact one-ID snapshot. State the page range, filter/sort, requested `category.includeDescendantCategoryProducts`, `sampleType`, and returned date that materially constrain the claim. For history, state requested and actual period bounds when different.
+Within `Data Notes` or `Evidence`, identify the relevant endpoint and actual returned `_query.params` when available. For `markets/search`, distinguish a broad discovery page, a batch of `category.ids`, and an exact one-ID snapshot. State the page range, filter/sort, requested `category.includeDescendantCategoryProducts`, `sampleType`, `topN` or `newProductPeriod` when used, and returned date that materially constrain the claim. For structure/history, preserve their top-level `includeDescendantCategoryProducts` and `newProductPeriod`; for history, state requested and actual period bounds when different.
 
 Use a localized API-usage table when live calls were made:
 

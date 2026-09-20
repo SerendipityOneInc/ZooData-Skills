@@ -355,24 +355,33 @@ class TestEndpointRouting(unittest.TestCase):
         self.assertEqual(r["params"]["category"], {
             "ids": ["3760901"], "includeDescendantCategoryProducts": True})
         self.assertEqual(r["params"]["sampleType"], "unitSalesTop100")
+        self.assertEqual(r["params"]["topN"], "10")
+        self.assertEqual(r["params"]["newProductPeriod"], "3")
 
     def test_market_filters_use_new_names(self):
         r = run_cli("market", "--category-name", "Health & Household",
                     "--no-include-descendant-category-products", "--sample-type", "revenueTop100",
-                    "--revenue-min", "100000", "--sample-fbm-rate-max", "0.5",
-                    "--sample-sales-min", "1000",
+                    "--new-product-period", "12", "--top-n", "5",
+                    "--total-monthly-revenue-min", "100000", "--sample-fbm-rate-max", "0.5",
+                    "--sample-monthly-sales-min", "1000",
+                    "--sample-avg-package-volume-max", "5000",
+                    "--top-brand-sales-rate-max", "0.6",
                     "--sample-top10-product-sales-rate-max", "0.3",
-                    "--sort", "sampleMonthlyRevenue")
+                    "--sort", "topBrandSalesRate")
         self.assertEqual(r["params"]["category"], {
             "name": "Health & Household", "includeDescendantCategoryProducts": False})
         self.assertEqual(r["params"]["sampleType"], "revenueTop100")
+        self.assertEqual(r["params"]["newProductPeriod"], "12")
+        self.assertEqual(r["params"]["topN"], "5")
         self.assertEqual(r["params"]["filters"], {
             "totalMonthlyRevenueMin": 100000,
             "sampleFbmRateMax": 0.5,
             "sampleMonthlySalesMin": 1000,
+            "sampleAvgPackageVolumeMax": 5000,
+            "topBrandSalesRateMax": 0.6,
             "sampleTop10ProductSalesRateMax": 0.3,
         })
-        self.assertEqual(r["params"]["sortBy"], "sampleMonthlyRevenue")
+        self.assertEqual(r["params"]["sortBy"], "topBrandSalesRate")
 
     def test_market_batch_ids_and_path(self):
         r = run_cli("market", "--category-ids", "15342811, 3760941",
@@ -394,24 +403,46 @@ class TestEndpointRouting(unittest.TestCase):
 
     def test_market_structure_profile(self):
         r = run_cli("market-structure-profile", "--category-id", "3760901",
-                    "--dimension", "price")
+                    "--dimension", "price", "--new-product-period", "6",
+                    "--no-include-descendant-category-products")
         self.assertEqual(r["endpoint"], "markets/structure-profile")
         self.assertEqual(r["params"]["dimension"], "price")
+        self.assertEqual(r["params"]["newProductPeriod"], "6")
+        self.assertFalse(r["params"]["includeDescendantCategoryProducts"])
+        self.assertNotIn("categoryScope", r["params"])
 
     def test_market_history(self):
         r = run_cli("market-history", "--category-id", "3760901",
-                    "--start-date", "2026-01-01", "--end-date", "2026-08-31")
+                    "--date-from", "2026-01-01", "--date-to", "2026-08-31",
+                    "--new-product-period", "12")
         self.assertEqual(r["endpoint"], "markets/history")
-        self.assertEqual(r["params"]["startDate"], "2026-01-01")
-        self.assertEqual(r["params"]["endDate"], "2026-08-31")
+        self.assertEqual(r["params"]["dateFrom"], "2026-01-01")
+        self.assertEqual(r["params"]["dateTo"], "2026-08-31")
+        self.assertEqual(r["params"]["newProductPeriod"], "12")
+        self.assertTrue(r["params"]["includeDescendantCategoryProducts"])
+        self.assertNotIn("categoryScope", r["params"])
         self.assertNotIn("date", r["params"])
 
     def test_market_rejects_retired_cli_parameters(self):
         for option, value in (("--category", "Pet Supplies"),
                               ("--keyword", "yoga"), ("--topn", "10"),
-                              ("--top100-fbm-rate-max", "0.5")):
+                              ("--top100-fbm-rate-max", "0.5"),
+                              ("--sales-min", "1000")):
             with self.subTest(option=option), self.assertRaises(SystemExit):
                 run_cli("market", option, value)
+        retired_commands = (
+            ("market-structure-profile",
+             ("--category-id", "3760901", "--dimension", "price", "--scope", "subtree")),
+            ("market-history",
+             ("--category-id", "3760901", "--date-from", "2026-01-01",
+              "--date-to", "2026-08-31", "--start-date", "2026-01-01")),
+            ("market-history",
+             ("--category-id", "3760901", "--date-from", "2026-01-01",
+              "--date-to", "2026-08-31", "--end-date", "2026-08-31")),
+        )
+        for command, argv in retired_commands:
+            with self.subTest(command=command, option=argv[-2]), self.assertRaises(SystemExit):
+                run_cli(command, *argv)
 
     def test_products(self):
         r = run_cli("products", "--keyword", "yoga")

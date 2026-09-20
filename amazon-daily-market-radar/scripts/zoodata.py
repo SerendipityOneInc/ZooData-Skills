@@ -1340,9 +1340,79 @@ def cmd_categories(args):
     output(result, args.format)
 
 
+MARKET_FILTER_FIELDS = (
+    "sampleAvgMonthlySalesMin", "sampleAvgMonthlySalesMax",
+    "sampleAvgMonthlyRevenueMin", "sampleAvgMonthlyRevenueMax",
+    "sampleAvgPriceMin", "sampleAvgPriceMax",
+    "sampleAvgBsrMin", "sampleAvgBsrMax",
+    "sampleAvgRatingMin", "sampleAvgRatingMax",
+    "sampleAvgRatingCountMin", "sampleAvgRatingCountMax",
+    "totalSkuCountMin", "totalSkuCountMax",
+    "sampleSkuCountMin", "sampleSkuCountMax",
+    "topAvgMonthlySalesMin", "topAvgMonthlySalesMax",
+    "topAvgMonthlyRevenueMin", "topAvgMonthlyRevenueMax",
+    "topSalesRateMin", "topSalesRateMax",
+    "topBrandSalesRateMin", "topBrandSalesRateMax",
+    "topSellerSalesRateMin", "topSellerSalesRateMax",
+    "sampleBrandCountMin", "sampleBrandCountMax",
+    "sampleSellerCountMin", "sampleSellerCountMax",
+    "sampleFbaRateMin", "sampleFbaRateMax",
+    "sampleAmzRateMin", "sampleAmzRateMax",
+    "sampleNewSkuCountMin", "sampleNewSkuCountMax",
+    "sampleNewSkuRateMin", "sampleNewSkuRateMax",
+    "sampleNewSkuAvgMonthlySalesMin", "sampleNewSkuAvgMonthlySalesMax",
+    "sampleNewSkuAvgPriceMin", "sampleNewSkuAvgPriceMax",
+    "sampleAvgPackageWeightMin", "sampleAvgPackageWeightMax",
+    "sampleAvgPackageVolumeMin", "sampleAvgPackageVolumeMax",
+    "topAvgBsrMin", "topAvgBsrMax",
+    "sellerCountry",
+    "totalMonthlySalesMin", "totalMonthlyRevenueMin",
+    "sampleMonthlySalesMin", "sampleMonthlyRevenueMin",
+    "sampleAvgGrossMarginRateMin", "sampleAvgGrossMarginRateMax",
+    "sampleNewSkuAvgMonthlyRevenueMin", "sampleNewSkuAvgMonthlyRevenueMax",
+    "sampleNewSkuAvgRatingMin", "sampleNewSkuAvgRatingMax",
+    "sampleNewSkuAvgRatingCountMin", "sampleNewSkuAvgRatingCountMax",
+    "sampleTop10ProductSalesRateMin", "sampleTop10ProductSalesRateMax",
+    "sampleTop10ProductRevenueRateMin", "sampleTop10ProductRevenueRateMax",
+    "sampleTop10BrandSalesRateMin", "sampleTop10BrandSalesRateMax",
+    "sampleTop10BrandRevenueRateMin", "sampleTop10BrandRevenueRateMax",
+    "sampleAvgSellerCountMin", "sampleAvgSellerCountMax",
+    "sampleFbmRateMin", "sampleFbmRateMax",
+    "sampleAPlusRateMin", "sampleAPlusRateMax",
+    "newProductRatingCountMin", "newProductRatingCountMax",
+    "newProductRatingMin", "newProductRatingMax",
+    "newProductMonthlyRevenueMin", "newProductMonthlyRevenueMax",
+)
+
+MARKET_INTEGER_FILTER_FIELDS = {
+    "totalSkuCountMin", "totalSkuCountMax",
+    "sampleSkuCountMin", "sampleSkuCountMax",
+    "sampleBrandCountMin", "sampleBrandCountMax",
+    "sampleSellerCountMin", "sampleSellerCountMax",
+    "sampleNewSkuCountMin", "sampleNewSkuCountMax",
+}
+
+MARKET_SORT_FIELDS = (
+    "totalMonthlySales", "totalMonthlyRevenue",
+    "sampleMonthlySales", "sampleMonthlyRevenue",
+    "sampleAvgMonthlySales", "sampleAvgMonthlyRevenue",
+    "totalSkuCount", "sampleSkuCount", "sampleAvgPrice",
+    "sampleTotalMonthlySales", "sampleAvgBsr", "sampleAvgRating",
+    "sampleAvgRatingCount", "sampleBrandCount", "sampleSellerCount",
+    "sampleFbaRate", "sampleNewSkuRate", "topAvgMonthlySales",
+    "topAvgMonthlyRevenue", "topSalesRate", "topBrandSalesRate",
+    "topSellerSalesRate",
+)
+
+
+def _camel_to_cli_flag(field):
+    return "--" + re.sub(r"(?<!^)(?=[A-Z])", "-", field).lower()
+
+
 def cmd_market(args):
     """Discover category markets (one row per category)."""
     params = {"sampleType": args.sample_type, "marketplace": args.marketplace,
+              "topN": args.top_n, "newProductPeriod": args.new_product_period,
               "page": args.page, "pageSize": args.page_size}
     category = {"includeDescendantCategoryProducts": args.include_descendant_category_products}
     if args.category_id is not None:
@@ -1360,26 +1430,8 @@ def cmd_market(args):
         category["path"] = parse_category(args.category_path)
     params["category"] = category
     filters = {}
-    for attr, field in (("sales_min", "totalMonthlySalesMin"),
-                        ("revenue_min", "totalMonthlyRevenueMin"),
-                        ("sample_sales_min", "sampleMonthlySalesMin"),
-                        ("sample_revenue_min", "sampleMonthlyRevenueMin"),
-                        ("sample_fbm_rate_min", "sampleFbmRateMin"),
-                        ("sample_fbm_rate_max", "sampleFbmRateMax"),
-                        ("sample_aplus_rate_min", "sampleAPlusRateMin"),
-                        ("sample_aplus_rate_max", "sampleAPlusRateMax"),
-                        ("sample_avg_seller_count_min", "sampleAvgSellerCountMin"),
-                        ("sample_avg_seller_count_max", "sampleAvgSellerCountMax"),
-                        ("sample_top10_product_sales_rate_min", "sampleTop10ProductSalesRateMin"),
-                        ("sample_top10_product_sales_rate_max", "sampleTop10ProductSalesRateMax"),
-                        ("new_product_revenue_min", "newProductMonthlyRevenueMin"),
-                        ("new_product_revenue_max", "newProductMonthlyRevenueMax"),
-                        ("new_product_rating_count_min", "newProductRatingCountMin"),
-                        ("new_product_rating_count_max", "newProductRatingCountMax"),
-                        ("new_product_rating_min", "newProductRatingMin"),
-                        ("new_product_rating_max", "newProductRatingMax"),
-                        ("seller_country", "sellerCountry")):
-        value = getattr(args, attr)
+    for field in MARKET_FILTER_FIELDS:
+        value = getattr(args, field)
         if value is not None:
             filters[field] = value
     if filters:
@@ -1394,9 +1446,11 @@ def cmd_market(args):
 
 
 def _market_single_params(args):
-    return {"categoryId": args.category_id, "categoryScope": args.scope,
+    return {"categoryId": args.category_id,
+            "includeDescendantCategoryProducts": args.include_descendant_category_products,
             "marketplace": args.marketplace,
             "sampleType": args.sample_type,
+            "newProductPeriod": args.new_product_period,
             **({"date": args.date} if getattr(args, "date", None) else {})}
 
 
@@ -1409,7 +1463,7 @@ def cmd_market_structure_profile(args):
 
 def cmd_market_history(args):
     params = _market_single_params(args)
-    params.update({"startDate": args.start_date, "endDate": args.end_date})
+    params.update({"dateFrom": args.date_from, "dateTo": args.date_to})
     result = api_call("markets/history", params)
     output(result, args.format)
 
@@ -3642,23 +3696,18 @@ Examples:
                        default=True, help="Include descendant-category products in each market row (default: true)")
     p_mkt.add_argument("--marketplace", choices=["US"], default="US")
     p_mkt.add_argument("--sample-type", choices=["unitSalesTop100", "revenueTop100"], default="unitSalesTop100")
+    p_mkt.add_argument("--top-n", choices=["3", "5", "10", "20"], default="10",
+                       help="Top N window used by dynamic filters and sorting (default: 10)")
+    p_mkt.add_argument("--new-product-period", choices=["1", "3", "6", "12"], default="3",
+                       help="New-product window in calendar months (default: 3)")
     p_mkt.add_argument("--date", help="Snapshot date (YYYY-MM-DD)")
-    p_mkt.add_argument("--sales-min", type=float)
-    p_mkt.add_argument("--revenue-min", type=float)
-    p_mkt.add_argument("--sample-sales-min", type=float)
-    p_mkt.add_argument("--sample-revenue-min", type=float)
-    for name in ("sample-fbm-rate-min", "sample-fbm-rate-max",
-                 "sample-aplus-rate-min", "sample-aplus-rate-max",
-                 "sample-avg-seller-count-min", "sample-avg-seller-count-max",
-                 "sample-top10-product-sales-rate-min", "sample-top10-product-sales-rate-max",
-                 "new-product-revenue-min", "new-product-revenue-max",
-                 "new-product-rating-count-min", "new-product-rating-count-max",
-                 "new-product-rating-min", "new-product-rating-max"):
-        p_mkt.add_argument("--" + name, type=float)
-    p_mkt.add_argument("--seller-country")
+    for field in MARKET_FILTER_FIELDS:
+        value_type = str if field == "sellerCountry" else (
+            int if field in MARKET_INTEGER_FILTER_FIELDS else float)
+        p_mkt.add_argument(_camel_to_cli_flag(field), dest=field, type=value_type)
     p_mkt.add_argument("--page-size", type=int, default=20)
     p_mkt.add_argument("--page", type=int, default=1, help="Page number (default: 1)")
-    p_mkt.add_argument("--sort", choices=["totalMonthlySales", "totalMonthlyRevenue", "sampleMonthlySales", "sampleMonthlyRevenue"])
+    p_mkt.add_argument("--sort", choices=MARKET_SORT_FIELDS)
     p_mkt.add_argument("--order", choices=["asc", "desc"], default="desc")
     p_mkt.set_defaults(func=cmd_market)
 
@@ -3667,12 +3716,15 @@ Examples:
     for name, p, handler in (("market-structure-profile", p_structure, cmd_market_structure_profile),
                              ("market-history", p_history, cmd_market_history)):
         p.add_argument("--category-id", required=True)
-        p.add_argument("--scope", choices=["direct", "subtree"], default="subtree")
+        p.add_argument("--include-descendant-category-products", action=argparse.BooleanOptionalAction,
+                       default=True, help="Include descendant-category products (default: true)")
         p.add_argument("--marketplace", choices=["US"], default="US")
         p.add_argument("--sample-type", choices=["unitSalesTop100", "revenueTop100"], default="unitSalesTop100")
+        p.add_argument("--new-product-period", choices=["1", "3", "6", "12"], default="3",
+                       help="New-product window in calendar months (default: 3)")
         if name == "market-history":
-            p.add_argument("--start-date", required=True)
-            p.add_argument("--end-date", required=True)
+            p.add_argument("--date-from", required=True)
+            p.add_argument("--date-to", required=True)
         else:
             p.add_argument("--date", help="Snapshot date (YYYY-MM-DD)")
         if name == "market-structure-profile":
