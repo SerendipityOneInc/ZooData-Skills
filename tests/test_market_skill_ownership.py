@@ -89,6 +89,23 @@ class TestMarketSkillOwnership(unittest.TestCase):
         self.assertIn("material evidence gaps in `Conclusion`", discover)
         self.assertNotIn("the specific next validation question in `Conclusion`", discover)
 
+    def test_market_results_are_projected_from_cleaned_up_raw_files(self):
+        contract = (ROOT / "zoodata" / "references" / "cli-contract.md").read_text()
+        evidence = (MARKET / "references" / "evidence-protocols.md").read_text()
+        guide = (MARKET / "references" / "execution-guide.md").read_text()
+
+        self.assertIn("<YYYY-MM-DD>/run-<secure-random>/", contract)
+        self.assertIn("`EXIT`, `HUP`, `INT`, and `TERM`", contract)
+        self.assertIn("without waiting for it", contract)
+        self.assertIn("whole date buckets older than 30 days", contract)
+        self.assertIn("Delete the raw result as soon as classification", contract)
+        self.assertIn("display truncation marker", contract)
+        self.assertIn("Projection is a local, zero-credit transformation", contract)
+        self.assertIn("## Market result projection", evidence)
+        self.assertIn("validate the requested ID set", evidence)
+        self.assertIn("`success=true` and `meta.total=N`", evidence)
+        self.assertIn("shared temporary-result procedure", guide)
+
     def test_general_analysis_ownership_keeps_details_in_modules(self):
         root = ROOT / "amazon-analysis"
         skill = (root / "SKILL.md").read_text()

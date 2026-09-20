@@ -11,6 +11,14 @@ This module owns shared evidence acquisition, identity matching, comparison, cov
 
 Documentation is a contract, not an observed metric. Do not call a paid endpoint again merely to reformat a valid response.
 
+## Market result projection
+
+Apply the default result-isolation and cleanup procedure in `cli-contract.md` to every live market evidence command. Select projection fields from the claims planned for the active stage; the user does not need to choose fields or manage the temporary file. Always retain response success/failure identity, `_query.params`, credit metadata, coverage counts, category ID/name/path, marketplace, category scope, sample type, and returned date alongside every projected metric.
+
+For a multi-category comparison, validate the requested ID set, returned row IDs, row count, and every ranking field against the complete raw payload before emitting the projection. Include the compatible `total*` demand measures and only the `sample*` concentration, new-product, price, rating, or content measures used by the current comparison. From `topNMetrics[]` and `newProductMetrics[]`, retain only the named `n` or `periodMonths` entries required by the question; retain the whole nested array only when the array itself is the requested evidence. Projection must preserve explicit `null` and absent-field distinctions.
+
+The conversation-visible projection is not proof of raw-response completeness by itself. A tool transcript containing a truncation marker, an omitted middle, fewer visible category rows than the raw payload, or a missing required field cannot support a ranking. `success=true` and `meta.total=N` establish neither row visibility nor field availability. Re-project the already acquired raw result locally, without another paid call; if it is unavailable, suppress the affected comparison. Delete both raw and intermediate projection files through the shared cleanup path after the bounded projection has been consumed.
+
 ## Category and snapshot identity
 
 - Resolve a human path through `categories` and preserve the returned `categoryId`. For a product keyword that has no direct category match, a product-search-derived path is only an inferred category; do not silently promote it to the user's intended market.
@@ -35,6 +43,7 @@ Documentation is a contract, not an observed metric. Do not call a paid endpoint
 ## Coverage and no-data handling
 
 - Report how many category rows, Top 100 products, distribution buckets, product candidates, reviews, and history points were actually observed when those counts materially limit a claim.
+- For a category comparison, report rows validated from the complete isolated result, not rows that happened to remain visible in a tool transcript.
 - `status=empty`, an empty `data[]`, empty buckets, and missing months are valid coverage boundaries. They do not prove zero demand, no competition, or a flat trend.
 - Suppress a ranking or comparative verdict when the selected population, period, or required field is missing. State the exact gap and, only when the active stage allows it, acquire the documented missing evidence.
 - Tag raw API facts separately from inference. A user-provided seller claim is an input, not an API-verified fact.

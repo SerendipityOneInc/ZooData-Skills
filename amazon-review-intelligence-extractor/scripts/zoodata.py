@@ -38,12 +38,15 @@ import contextlib
 import io
 import json
 import os
+import shutil
+import subprocess
 import sys
+import tempfile
 import time
 import urllib.request
 import urllib.error
 import re
-from datetime import date
+from datetime import date, timedelta
 
 # ─── Configuration ───────────────────────────────────────────────────────────
 
@@ -88,6 +91,119 @@ BASE_URL_TRUSTED = _is_trusted_host(BASE_URL)  # gates Bearer-token transmission
 API_DOCS = "https://api.zoodata.ai/api-docs"   # API documentation URL
 MAX_RETRIES = 3       # Fixed attempt budget for HTTP and network failures
 RETRY_DELAY = 2       # Initial retry delay in seconds; doubles on each retry
+RESULT_TEMP_ROOT_PREFIX = "zoodata-results-"
+RESULT_TEMP_RUN_PREFIX = "run-"
+RESULT_TEMP_RETENTION_DAYS = 30
+RESULT_CLEANUP_INTERVAL_SECONDS = 24 * 60 * 60
+RESULT_CLEANUP_WORKER_FLAG = "--cleanup-stale-results"
+_startup_temp_cleanup_scheduled = False
+
+
+def _result_temp_namespace(temp_root=None, create=False):
+    """Return the validated private namespace for this user's result files."""
+    system_root = temp_root or tempfile.gettempdir()
+    current_uid = os.getuid() if hasattr(os, "getuid") else None
+    uid = str(current_uid) if current_uid is not None else "current"
+    root = os.path.join(system_root, f"{RESULT_TEMP_ROOT_PREFIX}{uid}")
+    if create:
+        try:
+            os.mkdir(root, 0o700)
+        except FileExistsError:
+            pass
+        except OSError:
+            return None
+    try:
+        info = os.lstat(root)
+        if os.path.islink(root) or not os.path.isdir(root):
+            return None
+        if current_uid is not None and info.st_uid != current_uid:
+            return None
+        if info.st_mode & 0o077:
+            return None
+    except OSError:
+        return None
+    return root
+
+
+def cleanup_stale_result_dirs(temp_root=None, today=None):
+    """Remove date buckets older than 30 days from this user's namespace."""
+    root = _result_temp_namespace(temp_root=temp_root, create=False)
+    if root is None:
+        return
+    cutoff = (today or date.today()) - timedelta(days=RESULT_TEMP_RETENTION_DAYS)
+    current_uid = os.getuid() if hasattr(os, "getuid") else None
+    try:
+        entries = os.scandir(root)
+    except OSError:
+        return
+    with entries:
+        for entry in entries:
+            if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", entry.name):
+                continue
+            try:
+                bucket_date = date.fromisoformat(entry.name)
+            except ValueError:
+                continue
+            try:
+                if not entry.is_dir(follow_symlinks=False):
+                    continue
+                info = entry.stat(follow_symlinks=False)
+                if current_uid is not None and info.st_uid != current_uid:
+                    continue
+                if bucket_date >= cutoff:
+                    continue
+                shutil.rmtree(entry.path)
+            except OSError:
+                # Garbage collection is best-effort and never blocks a command.
+                continue
+
+
+def _schedule_stale_result_cleanup():
+    """Start at most one detached cleanup worker per process and day."""
+    global _startup_temp_cleanup_scheduled
+    if _startup_temp_cleanup_scheduled:
+        return
+    _startup_temp_cleanup_scheduled = True
+
+    root = _result_temp_namespace(create=True)
+    if root is None:
+        return
+    marker = os.path.join(root, ".gc.stamp")
+    now = time.time()
+    try:
+        info = os.lstat(marker)
+        if not os.path.islink(marker) and now - info.st_mtime < RESULT_CLEANUP_INTERVAL_SECONDS:
+            return
+        if os.path.islink(marker):
+            return
+    except FileNotFoundError:
+        pass
+    except OSError:
+        return
+
+    flags = os.O_WRONLY | os.O_CREAT
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    try:
+        fd = os.open(marker, flags, 0o600)
+        os.close(fd)
+        os.utime(marker, (now, now), follow_symlinks=False)
+        subprocess.Popen(
+            [sys.executable, os.path.abspath(__file__), RESULT_CLEANUP_WORKER_FLAG],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            close_fds=True,
+            start_new_session=True,
+        )
+    except (OSError, ValueError):
+        # Startup collection is optional; the requested CLI command continues.
+        try:
+            if not os.path.islink(marker):
+                os.unlink(marker)
+        except OSError:
+            pass
+        return
 REALTIME_EMPTY_RETRIES = 3  # Total attempts when realtime/product returns a transient 200-empty (scrape miss)
 MIN_REQUEST_INTERVAL = 0.6  # Minimum seconds between requests (100 req/min = 0.6s)
 REQUEST_TIMEOUT = 60  # Request timeout in seconds; realtime/product can be slow (up to 30s)
@@ -3456,6 +3572,11 @@ def main():
     global _cli_had_error, _cli_emitted_output
     _cli_had_error = False
     _cli_emitted_output = False
+
+    if sys.argv[1:] == [RESULT_CLEANUP_WORKER_FLAG]:
+        cleanup_stale_result_dirs()
+        return
+    _schedule_stale_result_cleanup()
 
     # Enforce the per-skill allowlist BEFORE argparse touches the command:
     # a disallowed subcommand must yield the structured refusal, not a

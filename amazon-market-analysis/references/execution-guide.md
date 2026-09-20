@@ -69,7 +69,7 @@ Resolve `(source, categoryId, categoryScope, sampleType, marketplace, metric pat
 
 ### Evidence Gate
 
-Use the stage's named endpoint or compatible carried evidence for each claim. A current snapshot cannot by itself establish a trend or cause. An empty distribution cannot prove zero share; a missing month cannot be filled by interpolation. Do not replace missing market evidence with generic industry knowledge, price × sales arithmetic, or a different subject's product observation. Reconcile material conflicts under `evidence-protocols.md`.
+Use the stage's named endpoint or compatible carried evidence for each claim. Acquire and project live results through the shared temporary-result procedure; displayed truncation, `success=true`, or `meta.total` alone never establishes that every compared row and required field was inspected. A current snapshot cannot by itself establish a trend or cause. An empty distribution cannot prove zero share; a missing month cannot be filled by interpolation. Do not replace missing market evidence with generic industry knowledge, price × sales arithmetic, or a different subject's product observation. Reconcile material conflicts under `evidence-protocols.md`.
 
 ### Conclusion Authority Gate
 

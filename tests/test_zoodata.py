@@ -20,6 +20,7 @@ import io
 import json
 import os
 import sys
+import tempfile
 import unittest
 import urllib.error
 from unittest.mock import mock_open, patch
@@ -743,6 +744,74 @@ class TestOutputFormat(unittest.TestCase):
     def test_json_is_indented(self):
         out = run_cli_stdout("json", "market", "--category-id", "3760901")
         self.assertGreater(out.count("\n"), 1)
+
+
+class TestResultTempCleanup(unittest.TestCase):
+
+    def test_cleanup_removes_only_owned_stale_zoodata_directories(self):
+        today = zoodata.date(2026, 9, 20)
+        with tempfile.TemporaryDirectory() as root:
+            namespace = zoodata._result_temp_namespace(temp_root=root, create=True)
+            self.assertEqual(os.stat(namespace).st_mode & 0o777, 0o700)
+            stale = os.path.join(namespace, "2026-08-20")
+            boundary = os.path.join(namespace, "2026-08-21")
+            fresh = os.path.join(namespace, "2026-09-20")
+            unrelated = os.path.join(namespace, "not-a-date")
+            os.mkdir(stale)
+            os.mkdir(boundary)
+            os.mkdir(fresh)
+            os.mkdir(unrelated)
+
+            zoodata.cleanup_stale_result_dirs(temp_root=root, today=today)
+
+            self.assertFalse(os.path.exists(stale))
+            self.assertTrue(os.path.isdir(boundary))
+            self.assertTrue(os.path.isdir(fresh))
+            self.assertTrue(os.path.isdir(unrelated))
+
+    def test_cleanup_does_not_follow_prefixed_symlink(self):
+        today = zoodata.date(2026, 9, 20)
+        with tempfile.TemporaryDirectory() as root:
+            target = os.path.join(root, "preserve-target")
+            os.mkdir(target)
+            namespace = zoodata._result_temp_namespace(temp_root=root, create=True)
+            link = os.path.join(namespace, "2026-08-20")
+            os.symlink(target, link)
+
+            zoodata.cleanup_stale_result_dirs(temp_root=root, today=today)
+
+            self.assertTrue(os.path.isdir(target))
+            self.assertTrue(os.path.islink(link))
+
+    def test_scheduler_starts_detached_worker_and_returns(self):
+        now = 2_000_000_000
+        with tempfile.TemporaryDirectory() as root, \
+             patch.object(zoodata.tempfile, "gettempdir", return_value=root), \
+             patch.object(zoodata.time, "time", return_value=now), \
+             patch.object(zoodata.subprocess, "Popen") as popen:
+            zoodata._startup_temp_cleanup_scheduled = False
+
+            zoodata._schedule_stale_result_cleanup()
+
+            popen.assert_called_once()
+            self.assertTrue(popen.call_args.kwargs["start_new_session"])
+            self.assertIs(popen.call_args.kwargs["stdout"], zoodata.subprocess.DEVNULL)
+            self.assertIs(popen.call_args.kwargs["stderr"], zoodata.subprocess.DEVNULL)
+
+            zoodata._startup_temp_cleanup_scheduled = False
+            zoodata._schedule_stale_result_cleanup()
+            popen.assert_called_once()
+
+    def test_scheduler_failure_removes_daily_marker_for_later_retry(self):
+        with tempfile.TemporaryDirectory() as root, \
+             patch.object(zoodata.tempfile, "gettempdir", return_value=root), \
+             patch.object(zoodata.subprocess, "Popen", side_effect=OSError):
+            zoodata._startup_temp_cleanup_scheduled = False
+
+            zoodata._schedule_stale_result_cleanup()
+
+            namespace = zoodata._result_temp_namespace(temp_root=root)
+            self.assertFalse(os.path.exists(os.path.join(namespace, ".gc.stamp")))
 
 
 class TestSingleChannelCliOutput(unittest.TestCase):
