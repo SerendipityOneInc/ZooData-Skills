@@ -39,6 +39,7 @@ Keep ownership singular. Put a rule in its highest applicable owner, and let dow
 - Treat a successful, contract-conforming returned value as an authoritative observation under its documented business definition. Base the analysis and judgment on that evidence without independently auditing upstream collection, disputing whether the defined metric represents a broader everyday concept, or adding speculative data-quality caveats.
 - Question returned data only when the acquired evidence contains a concrete contradiction or contract violation, such as incompatible values for the same identity and period, an aggregate that cannot reconcile with its documented components, conflicting scope metadata, or an invalid documented type or invariant. Name the exact conflict and limit its consequence to the affected claim; do not generalize it into an unsupported judgment about the dataset.
 - External validation is additional evidence only when the user requests it or a domain rule requires it. Its absence does not weaken an otherwise sufficient documented observation.
+- Report a data gap, contradiction, or limitation only when it exists and materially affects the requested answer. Do not add defensive narration that says expected data is complete, valid values are not missing, excluded subjects or periods are not gaps, or no contradiction was found. Present ordinary values directly and keep routine validation internal.
 
 ### Preserve structured evidence states
 
@@ -101,7 +102,7 @@ Apply this Gate immediately before every user-facing send, including progress, c
 
 1. Select one rendering route owned by the active domain's output rules.
 2. Validate the whole draft from its first emitted character through its last against this contract and that route.
-3. Verify that every displayed value and table cell maps to a classified source state or labeled derivation. Reject local unread states, synthetic time rows, vague missingness placeholders, implementation details, internal identifiers, unsupported claims, incompatible evidence, or text outside the selected route.
+3. Verify that every displayed value and table cell maps to a classified source state or labeled derivation. Reject local unread states, synthetic time rows, vague missingness placeholders, defensive explanations of valid data, declarations that expected gaps or conflicts do not exist, implementation details, internal identifiers, unsupported claims, incompatible evidence, or text outside the selected route.
 4. If validation fails, discard the draft and render it again from the owner rules. Do not patch a leaked sentence while retaining an invalid wrapper.
 
 Client-generated tool or task notifications are outside the assistant draft, but assistant-authored commentary is inside it.

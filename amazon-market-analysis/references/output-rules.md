@@ -31,6 +31,7 @@ Scenario files may require a table or a subsection *inside* these headings; they
 - A market-history table contains only actual returned month-end points whose displayed fields were validated against the complete isolated result. Use the exact returned month-end date or an unambiguous year-month label.
 - For a relative recent-month request, omit the current incomplete calendar month from the table, Evidence, and Conclusion. Do not create a no-data row for a snapshot that is not yet expected to exist. If the requested range needs clarification, state in `Data Notes` that the comparison covers the most recent completed month-end periods.
 - Do not create placeholder rows for unreturned completed months or locally omitted values. Put a confirmed source coverage gap in `Data Notes` and name the exact missing completed date and field, for example: `The API did not return {field} for {YYYY-MM-DD}.`
+- If every expected completed period and required field was returned, omit missingness commentary entirely. Render valid zero values directly in the table; do not append prose explaining that they are not missing. Do not mention an excluded incomplete period unless the requested range itself needs clarification.
 - Vague placeholders such as `details unconfirmed`, `incomplete response`, `same as left`, `unable to verify`, or localized equivalents are invalid. A local projection or display omission fails the report before rendering; it is never a data label or a reason to invite the user to pay for the same query again.
 
 ## Confidence and evidence labels

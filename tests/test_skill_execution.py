@@ -269,6 +269,9 @@ class TestSkillCliExecutes(unittest.TestCase):
         self.assertIn("do not generalize it", contract)
         self.assertIn("Its absence does not weaken", contract)
         self.assertIn("Make the strongest judgment those inputs support", contract)
+        self.assertIn("only when it exists and materially affects", contract)
+        self.assertIn("keep routine validation internal", contract)
+        self.assertIn("declarations that expected gaps or conflicts do not exist", contract)
 
     def test_release_workflow_blocks_unsynced_shared_files(self):
         workflow = (REPO / ".github" / "workflows" / "shared-files-distribution.yml").read_text()
