@@ -1662,7 +1662,7 @@ def cmd_market_entry(args):
     Composite workflow: Full Market Entry Analysis.
     Runs ALL 11 endpoints in the correct order with fallback logic.
     Outputs a single structured JSON with all data needed for the report.
-    
+
     Steps:
       1. Market landscape: market + brand-overview + brand-detail
       2. Price structure: price-band-overview + price-band-detail
@@ -1715,7 +1715,7 @@ def cmd_market_entry(args):
 
     # ── Step 1: Market Landscape (3 calls) ──
     log("Step 1/6: Market landscape...")
-    
+
     # 1a. Market aggregate
     results["market"] = _market_snapshot_for_category(
         safe_call, category_path, keyword=keyword, results=results)
@@ -1797,7 +1797,7 @@ def cmd_market_entry(args):
 
     # ── Step 4: Top Competitor Deep-Dive ──
     log("Step 4/6: Competitor deep-dive...")
-    
+
     # 4a. Competitor lookup
     comp_params = {"pageSize": 20, "dateRange": "30d", "marketplace": "US", "page": 1,
                    "sortBy": "monthlySalesFloor", "sortOrder": "desc"}
@@ -1835,7 +1835,7 @@ def cmd_market_entry(args):
     # Try history with Top 3, fallback to older ASINs
     history_data = []
     tried_asins = set()
-    
+
     # Sort products by listingDate (oldest first) for fallback
     products_by_age = sorted(
         [p for p in all_products if p.get("listingDate")],
@@ -1904,7 +1904,7 @@ def cmd_market_entry(args):
     log(f"   Steps: {', '.join(results['meta']['steps_completed'])}")
     log(f"   Products: {len(all_products)} | Realtime: {len(realtime_details)} | History: {len(history_data)}")
     log(f"   Reviews mode: {results['meta']['review_mode']}")
-    
+
     output(results, args.format)
 
 
@@ -2228,7 +2228,7 @@ def cmd_pricing_analysis(args):
     log("Step 5/8: Historical price trends...")
     today = time.strftime("%Y-%m-%d")
     thirty_ago = time.strftime("%Y-%m-%d", time.localtime(time.time() - 30 * 86400))
-    
+
     comp_data = results["products"].get("data", [])
     comp_asins = []
     seen = set()
@@ -2299,7 +2299,7 @@ def cmd_pricing_analysis(args):
 def cmd_daily_radar(args):
     """
     Composite workflow: Daily Market Radar.
-    Runs realtime snapshots → historical comparison → market pulse → 
+    Runs realtime snapshots → historical comparison → market pulse →
     new competitor detection → price landscape → review pulse.
     Designed for unattended daily monitoring.
     """
@@ -2366,10 +2366,10 @@ def cmd_daily_radar(args):
     log("Step 2/7: Historical comparison (7 days)...")
     today = time.strftime("%Y-%m-%d")
     seven_days_ago = time.strftime("%Y-%m-%d", time.localtime(time.time() - 7 * 86400))
-    
+
     history_data = []
     tried_asins = set()
-    
+
     # Round 1: All tracked ASINs
     r = _fetch_all_history(safe_call, tracked_asins, seven_days_ago, today, log_fn=log)
     history_data = r.get("data", [])
@@ -2390,7 +2390,7 @@ def cmd_daily_radar(args):
         brand_params["categoryPath"] = category_path
     if keyword:
         brand_params["keyword"] = keyword
-    
+
     r = safe_call("products/brand-overview", dict(brand_params), "brand-overview")
     if not r.get("data") or r.get("data", {}).get("sampleBrandCount", 0) == 0:
         if keyword and category_path:
@@ -2455,7 +2455,7 @@ def cmd_daily_radar(args):
             }, f"reviews {review_asin}")
             review_results["painPoints"] = _filter_review_insights(r, "painPoints")
             break
-    
+
     if not review_results:
         log("  ⚠️ No tracked ASIN with ≥50 reviews, using ratingBreakdown from realtime")
     results["reviews"] = review_results
@@ -2688,7 +2688,7 @@ def cmd_opportunity_scan(args):
     keyword = args.keyword
     category = args.category
     modes_str = getattr(args, 'modes', None)
-    
+
     # Custom filter params
     sales_min = getattr(args, 'sales_min', None)
     sales_max = getattr(args, 'sales_max', None)
@@ -2704,16 +2704,16 @@ def cmd_opportunity_scan(args):
 
     # Determine scan strategy
     has_custom_filters = any(v is not None for v in [sales_min, sales_max, ratings_max, price_min, price_max, rating_max, rating_min])
-    
+
     if modes_str:
         modes = [m.strip() for m in modes_str.split(",")]
     elif has_custom_filters:
         modes = ["custom"]  # Custom-only scan
     else:
         modes = ["emerging", "underserved", "high-demand-low-barrier"]  # Default modes
-    
+
     category_path = parse_category(category) if category else None
-    results = {"meta": {"keyword": keyword, "category": category, "modes": modes, 
+    results = {"meta": {"keyword": keyword, "category": category, "modes": modes,
                         "custom_filters": {k: v for k, v in {"sales_min": sales_min, "sales_max": sales_max,
                             "ratings_max": ratings_max, "price_min": price_min, "price_max": price_max,
                             "rating_max": rating_max, "rating_min": rating_min}.items() if v is not None},
@@ -2756,7 +2756,7 @@ def cmd_opportunity_scan(args):
     log(f"Step 1/6: Product scan ({scan_label})...")
     all_candidates = {}  # asin → product data (deduplicated)
     mode_results = {}
-    
+
     # Build custom filter params (applied to ALL scans)
     custom_params = {}
     if sales_min is not None:
@@ -2773,7 +2773,7 @@ def cmd_opportunity_scan(args):
         custom_params["ratingMax"] = rating_max
     if rating_min is not None:
         custom_params["ratingMin"] = rating_min
-    
+
     for mode in modes:
         log(f"  → {'Custom filters' if mode == 'custom' else f'Mode: {mode}'}")
         mode_products = []
@@ -2800,11 +2800,11 @@ def cmd_opportunity_scan(args):
             if asin and asin not in all_candidates:
                 all_candidates[asin] = p
         log(f"    → {len(mode_products)} products, {len(all_candidates)} unique total")
-    
+
     # Log actual search parameters for transparency
     if custom_params:
         log(f"  → Custom filters applied: {custom_params}")
-    
+
     results["scan_results"] = {m: len(ps) for m, ps in mode_results.items()}
     results["meta"]["total_candidates"] = len(all_candidates)
     results["meta"]["steps_completed"].append("product_scan")
@@ -3003,7 +3003,7 @@ def cmd_review_deepdive(args):
         }, f"reviews comp {comp_asin}")
         review_results[f"comp_{comp_asin}_painPoints"] = _filter_review_insights(r, "painPoints")
         review_results[f"comp_{comp_asin}_positives"] = _filter_review_insights(r, "positives")
-    
+
     results["reviews"] = review_results
     results["meta"]["steps_completed"].append("review_analysis")
 
