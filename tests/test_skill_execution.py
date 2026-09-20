@@ -239,6 +239,37 @@ class TestSkillCliExecutes(unittest.TestCase):
                     f"non-adopting skill changed early: {name}",
                 )
 
+    def test_shared_analysis_contract_preserves_typed_evidence_states(self):
+        contract = (
+            REPO / "zoodata" / "references" / "analysis-contract.md"
+        ).read_text()
+
+        for state in (
+            "**Present**", "**Explicit null**", "**Absent field**",
+            "**Unreturned subject or period**", "**Local unread state**",
+        ):
+            self.assertIn(state, contract)
+        self.assertIn("including `0`, `false`, an empty string", contract)
+        self.assertIn("do not use truthiness", contract)
+        self.assertIn("This is not a source-data state", contract)
+        self.assertIn("documented business definition as the semantic identity", contract)
+        self.assertIn("treat that as a different claim", contract)
+        self.assertIn("the current incomplete period is outside", contract)
+        self.assertIn("every displayed value and table cell maps", contract)
+
+    def test_shared_analysis_contract_trusts_documented_evidence(self):
+        contract = (
+            REPO / "zoodata" / "references" / "analysis-contract.md"
+        ).read_text()
+
+        self.assertIn("### Trust documented evidence", contract)
+        self.assertIn("authoritative observation", contract)
+        self.assertIn("without independently auditing upstream collection", contract)
+        self.assertIn("only when the acquired evidence contains a concrete contradiction", contract)
+        self.assertIn("do not generalize it", contract)
+        self.assertIn("Its absence does not weaken", contract)
+        self.assertIn("Make the strongest judgment those inputs support", contract)
+
     def test_release_workflow_blocks_unsynced_shared_files(self):
         workflow = (REPO / ".github" / "workflows" / "shared-files-distribution.yml").read_text()
         sync_script = (REPO / "scripts" / "sync-scripts.sh").read_text()

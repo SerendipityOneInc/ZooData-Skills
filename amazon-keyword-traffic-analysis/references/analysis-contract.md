@@ -32,6 +32,27 @@ Keep ownership singular. Put a rule in its highest applicable owner, and let dow
 - Keep direct observations, derived calculations, and recommendations distinguishable. A derivation must name its inputs; a recommendation must stay within the evidence and user-provided constraints.
 - Do not silently replace missing, failed, incompatible, or out-of-scope evidence with another field, endpoint, date, population, public source, or assumption.
 - Preserve material uncertainty, missing coverage, and denominator limits. Successful transport does not prove sufficient evidence.
+- When the user asks for a documented metric or classification, use its documented business definition as the semantic identity of that metric. Do not independently redefine it, test it against a broader everyday concept, or volunteer a construct-validity caveat. If the user asks for the broader concept, treat that as a different claim and require evidence that supports it.
+
+### Trust documented evidence
+
+- Treat a successful, contract-conforming returned value as an authoritative observation under its documented business definition. Base the analysis and judgment on that evidence without independently auditing upstream collection, disputing whether the defined metric represents a broader everyday concept, or adding speculative data-quality caveats.
+- Question returned data only when the acquired evidence contains a concrete contradiction or contract violation, such as incompatible values for the same identity and period, an aggregate that cannot reconcile with its documented components, conflicting scope metadata, or an invalid documented type or invariant. Name the exact conflict and limit its consequence to the affected claim; do not generalize it into an unsupported judgment about the dataset.
+- External validation is additional evidence only when the user requests it or a domain rule requires it. Its absence does not weaken an otherwise sufficient documented observation.
+
+### Preserve structured evidence states
+
+Classify every required field, row, and time point from the complete structured result before interpretation or rendering:
+
+- **Present**: the documented key or path exists. Preserve its exact value, including `0`, `false`, an empty string, or an empty collection; do not use truthiness to convert it into another state.
+- **Explicit null**: the key exists with `null`. Keep it distinct from zero, false, empty, and absent.
+- **Absent field**: the containing object exists but the documented key does not. Name the exact source field when this state materially limits the answer.
+- **Unreturned subject or period**: the requested row, item, or completed time point is absent from the complete returned collection. Keep this distinct from an absent field inside a returned row.
+- **Local unread state**: projection, parsing, transcript display, token truncation, or other local handling did not preserve the value. This is not a source-data state and must never be rendered as unavailable, incomplete, unconfirmed, zero, null, or absent.
+
+Use key/path membership and typed values rather than truthiness, fallback chaining, or display visibility to determine these states. Recover a local unread state from the already acquired complete result before continuing. If recovery is impossible, fail the affected evidence path; do not produce a partially populated table, claim a source coverage gap, or request another paid call as the normal remedy for the same acquired evidence.
+
+For a time series, only returned observations are data rows. A requested boundary does not create an observation. When the source grain is completed periods, the current incomplete period is outside the expected population; omit it rather than rendering a synthetic no-data row. Identify a missing completed period only after comparing the expected completed-period set with the complete returned series.
 
 ### Limit conclusion authority
 
@@ -60,15 +81,15 @@ Before an evidence call, confirm that the capability is documented, allowed by t
 
 ### 3. Field Identity Gate
 
-Before using a returned value, verify its documented field identity and the subject, time, population, sample, filters, unit, and denominator needed for the intended interpretation. An unknown, renamed, absent, or semantically incompatible field fails this Gate.
+Before using a returned value, verify its documented field identity, structured evidence state, and the subject, time, population, sample, filters, unit, and denominator needed for the intended interpretation. An unknown, renamed, locally unread, or semantically incompatible field fails this Gate. An explicit zero, false, empty value, null, absent field, and unreturned row remain distinct inputs to the next Gate.
 
 ### 4. Evidence Sufficiency Gate
 
-Pass only when the evidence required by the active domain rule is present, compatible, and sufficiently complete for the requested decision. Keep partial evidence usable only within its supported scope. Do not convert lack of evidence into a positive or negative finding.
+Pass only when the evidence required by the active domain rule is present, compatible, and sufficiently complete for the requested decision. Keep partial evidence usable only within its supported scope. Do not convert lack of evidence into a positive or negative finding. Do not reduce evidence authority for a speculative data-quality concern; a challenge requires a concrete contradiction or contract violation in the acquired evidence.
 
 ### 5. Interpretation Authority Gate
 
-Apply only domain-owned semantics, calculations, thresholds, and conclusion levels. Every material claim must map to an observed field, a transparent derivation, or a clearly labeled user input. Reduce or withhold the conclusion when its support is weaker than the requested authority.
+Apply only domain-owned semantics, calculations, thresholds, and conclusion levels. Every material claim must map to an observed field, a transparent derivation, or a clearly labeled user input. Make the strongest judgment those inputs support. Reduce or withhold the conclusion only when its support is weaker than the requested authority or a concrete evidence conflict affects it.
 
 ### 6. Continuation Gate
 
@@ -80,7 +101,7 @@ Apply this Gate immediately before every user-facing send, including progress, c
 
 1. Select one rendering route owned by the active domain's output rules.
 2. Validate the whole draft from its first emitted character through its last against this contract and that route.
-3. Reject any draft that leaks implementation details, internal identifiers, unsupported claims, incompatible evidence, or text outside the selected route.
+3. Verify that every displayed value and table cell maps to a classified source state or labeled derivation. Reject local unread states, synthetic time rows, vague missingness placeholders, implementation details, internal identifiers, unsupported claims, incompatible evidence, or text outside the selected route.
 4. If validation fails, discard the draft and render it again from the owner rules. Do not patch a leaked sentence while retaining an invalid wrapper.
 
 Client-generated tool or task notifications are outside the assistant draft, but assistant-authored commentary is inside it.

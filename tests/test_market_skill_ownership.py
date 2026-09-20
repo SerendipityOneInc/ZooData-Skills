@@ -102,6 +102,7 @@ class TestMarketSkillOwnership(unittest.TestCase):
         self.assertNotIn("the specific next validation question in `Conclusion`", discover)
 
     def test_market_history_renders_only_verified_completed_months(self):
+        contract = (MARKET / "references" / "analysis-contract.md").read_text()
         scenario = (MARKET / "references" / "scenarios-track.md").read_text()
         evidence = (MARKET / "references" / "evidence-protocols.md").read_text()
         output = (MARKET / "references" / "output-rules.md").read_text()
@@ -121,6 +122,11 @@ class TestMarketSkillOwnership(unittest.TestCase):
         self.assertIn("Vague placeholders", output)
         self.assertIn("localized equivalents are invalid", output)
         self.assertIn("current incomplete calendar month is outside", semantics)
+        self.assertIn("**Local unread state**", contract)
+        self.assertIn("do not use truthiness", contract)
+        self.assertIn("documented business definition as the semantic identity", contract)
+        self.assertIn("### Trust documented evidence", contract)
+        self.assertIn("a concrete contradiction or contract violation", contract)
 
     def test_market_results_are_projected_from_cleaned_up_raw_files(self):
         contract = (ROOT / "zoodata" / "references" / "cli-contract.md").read_text()
