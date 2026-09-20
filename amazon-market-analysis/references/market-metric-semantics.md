@@ -27,6 +27,7 @@ The sample is chosen by `sampleType`; `unitSalesTop100` and `revenueTop100` can 
 ## Time and product observations
 
 - `markets/search` gives a current or requested daily market snapshot. `markets/history.points[]` gives available month-end snapshots. A daily row and a month-end point may differ because of date, coverage, or data refresh; do not label their raw difference MoM.
+- Before its month-end snapshot exists, the current incomplete calendar month is outside a completed-month trend population. Its absence is expected timing, not a missing history point, zero value, or table row.
 - History `*MomRate` and `*YoyRate` values belong to the exact metric and available point returned by the service. A missing rate means the comparable baseline is unavailable, not zero growth. `sampleSkuMomTurnoverRate` describes turnover of selected products, not a causal entry/exit explanation.
 - `products/search.monthlySalesFloor` and `monthlyRevenueFloor` are product-level lower-bound estimates. They cannot be added to replace `totalMonthlySales` or `totalMonthlyRevenue` without a documented complete population.
 - Market movement, a new-product share, or a price shift may guide an investigation. None identifies its cause, actual seller conversion, profitability, or a recommended launch date by itself.

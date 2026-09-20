@@ -101,6 +101,27 @@ class TestMarketSkillOwnership(unittest.TestCase):
         self.assertIn("material evidence gaps in `Conclusion`", discover)
         self.assertNotIn("the specific next validation question in `Conclusion`", discover)
 
+    def test_market_history_renders_only_verified_completed_months(self):
+        scenario = (MARKET / "references" / "scenarios-track.md").read_text()
+        evidence = (MARKET / "references" / "evidence-protocols.md").read_text()
+        output = (MARKET / "references" / "output-rules.md").read_text()
+        semantics = (MARKET / "references" /
+                     "market-metric-semantics.md").read_text()
+
+        self.assertIn("N most recent **completed month-end periods**", scenario)
+        self.assertIn("current incomplete month is outside that comparison", scenario)
+        self.assertIn("Never add a placeholder row", scenario)
+        self.assertIn("project every returned `data.points[]` entry", evidence)
+        self.assertIn("projected point count and dates equal", evidence)
+        self.assertIn("is not an API coverage gap", evidence)
+        self.assertIn("do not offer another paid query", evidence)
+        self.assertIn("### Historical table rendering", output)
+        self.assertIn("omit the current incomplete calendar month", output)
+        self.assertIn("The API did not return {field} for {YYYY-MM-DD}", output)
+        self.assertIn("Vague placeholders", output)
+        self.assertIn("localized equivalents are invalid", output)
+        self.assertIn("current incomplete calendar month is outside", semantics)
+
     def test_market_results_are_projected_from_cleaned_up_raw_files(self):
         contract = (ROOT / "zoodata" / "references" / "cli-contract.md").read_text()
         evidence = (MARKET / "references" / "evidence-protocols.md").read_text()

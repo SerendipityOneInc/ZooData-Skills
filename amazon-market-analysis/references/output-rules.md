@@ -26,6 +26,13 @@ For one normally completed full stage, use this localized top-level order:
 
 Scenario files may require a table or a subsection *inside* these headings; they do not rename or reorder the skeleton. Apply the shared user-facing boundary to the whole rendering. A prose sentence in the conclusion does not replace the final selection list. Do not repeat a previous report or present an unvisited stage as completed. A user-supplied seller figure must be labeled as user-provided.
 
+### Historical table rendering
+
+- A market-history table contains only actual returned month-end points whose displayed fields were validated against the complete isolated result. Use the exact returned month-end date or an unambiguous year-month label.
+- For a relative recent-month request, omit the current incomplete calendar month from the table, Evidence, and Conclusion. Do not create a no-data row for a snapshot that is not yet expected to exist. If the requested range needs clarification, state in `Data Notes` that the comparison covers the most recent completed month-end periods.
+- Do not create placeholder rows for unreturned completed months or locally omitted values. Put a confirmed source coverage gap in `Data Notes` and name the exact missing completed date and field, for example: `The API did not return {field} for {YYYY-MM-DD}.`
+- Vague placeholders such as `details unconfirmed`, `incomplete response`, `same as left`, `unable to verify`, or localized equivalents are invalid. A local projection or display omission fails the report before rendering; it is never a data label or a reason to invite the user to pay for the same query again.
+
 ## Confidence and evidence labels
 
 - 📊 Direct returned API observation, with endpoint, subject, and period.
@@ -45,4 +52,4 @@ Use a localized API-usage table when live calls were made:
 | Actual endpoint identifier | N | Returned amount or unavailable |
 | **Total** | **N** | **Sum of returned amounts, or unavailable** |
 
-Count every executed call, including a call whose data was discarded. Use `meta.creditsConsumed` or composite accumulated metadata; do not add the composite total to its internal calls again. If a returned credit figure is absent, say it is unavailable rather than estimating it. Report remaining credits only when returned.
+Count every executed call, including a call whose data was discarded. Use `meta.creditsConsumed` or composite accumulated metadata; do not add the composite total to its internal calls again. If a returned credit figure is absent, use a localized equivalent of `not returned by the API` rather than `unconfirmed`, `incomplete`, or an estimate. Report remaining credits only when returned.

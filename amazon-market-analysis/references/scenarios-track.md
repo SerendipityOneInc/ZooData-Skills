@@ -17,10 +17,11 @@ The historical stage is valid without any prior discovery or entry assessment. A
 
 ## Historical trend application
 
-- Request the smallest bounded month-end range that answers the question. Check the returned `resolvedDateFrom`, `resolvedDateTo`, point count, and absent months before calculating or summarizing movement.
+- Request the smallest bounded month-end range that answers the question. Interpret a relative request such as "recent N months" as the N most recent **completed month-end periods**, ending at the previous calendar month-end; the current incomplete month is outside that comparison. Check the returned `resolvedDateFrom`, `resolvedDateTo`, point count, and absent completed months before calculating or summarizing movement.
 - Compare the same category ID, `direct`/`subtree` scope, Top 100 selector, and metric path. Use server-provided MoM/YoY only for the point and measure that returned it; calculate a cross-point change only from compatible nonzero baselines and show dates.
 - For multiple child markets, resolve IDs through `categories --parent` and use the same range and sample selector for each. A leaderboard ranks only returned comparable child rows; it is not a scan of every Amazon category.
 - A current daily `market` row may explain current position but is not a substitute for a missing month-end point. Do not append it as another month-end observation.
+- Render one trend-table row only for an actual returned month-end point whose required comparison fields passed projection validation. Never add a placeholder row for the current incomplete month, a future month, an unreturned completed month, or a point whose required fields were lost during local handling. Describe a genuinely unreturned completed month as a source coverage gap in `Data Notes`, outside the table.
 
 ## Explicit watch comparison
 
@@ -32,4 +33,4 @@ The historical stage is valid without any prior discovery or entry assessment. A
 
 ## Section content requirements
 
-In `Evidence`, show the actual dates, available points or baseline identity, and comparable metrics. In `Analysis`, separate measured changes from hypotheses and note missing months or incompatible fields. In `Conclusion`, state the bounded trend or watch signal and any investigation priority; do not announce a cause, future opportunity, or operating decision without separate evidence.
+In `Evidence`, show the actual returned dates, available points or baseline identity, and comparable metrics. A history table contains only validated returned month-end rows and omits the current incomplete month entirely. In `Analysis`, separate measured changes from hypotheses and note genuinely missing **completed** month-end points or incompatible fields. In `Conclusion`, state the bounded trend or watch signal and any investigation priority; do not announce a cause, future opportunity, or operating decision without separate evidence.
