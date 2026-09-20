@@ -59,7 +59,7 @@
 | 💬 [`amazon-review-intelligence-extractor/`](amazon-review-intelligence-extractor/) | 从 10 亿+评论中提取消费者洞察，11 个分析维度 | 单个/多个 ASIN 或品类关键词 | 痛点、购买因素、用户画像、差异化路线图 | 省 95% token + 11 维度 |
 | 🌐 [`web-extract/`](web-extract/) | 从公开网页和搜索结果提取结构化数据 | URL、搜索词或网站 | 结构化 JSON 或网页内容 | 支持渲染网页和限定范围的网站爬取 |
 
-`amazon-market-analysis` 是当前统一市场 Skill。仓库同时保留 `amazon-market-entry-analyzer`、`amazon-market-trend-scanner` 和 `amazon-opportunity-discoverer` 三个非活跃源包；它们不参与共享运行文件分发。
+`amazon-market-analysis` 是统一市场 Skill。原 `amazon-market-entry-analyzer`、`amazon-market-trend-scanner` 和 `amazon-opportunity-discoverer` 目录仅保留为下线源码；其入口文件已改名为 `RETIRED.md`，不会被 Skill 安装器或发布器发现。
 
 ## 快速开始
 
@@ -72,7 +72,7 @@ npx skills add SerendipityOneInc/ZooData-Skills
 安装时会提示选择技能：
 
 **🏗️ 基础层：**
-- **ZooData** — 数据层概览，11 个 API 接口，快速集成
+- **ZooData** — 25 个 Amazon 商品与关键词 Intelligence API 接口
 - **Amazon Analysis** — 13 种选品模式，市场验证，竞品情报
 - **Amazon Keyword Intelligence** — 关键词拓展、关键词价值分析、商品流量健康诊断
 - **Amazon Market Analysis** — 市场发现、进入评估与趋势追踪

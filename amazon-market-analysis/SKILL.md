@@ -44,10 +44,9 @@ Respond in the user's language.
 ## Non-negotiable boundaries
 
 - Require `ZOODATA_API_KEY`; use the credential-only `check` path before evidence calls. Do not substitute guessed numbers or unrelated public data when the API cannot be used.
-- Use the bundled `{skill_base_dir}/scripts/zoodata.py` and its local `scripts/allowed-commands.json`. Query market snapshots through `markets/search`; the experimental `markets/overview` path and `market-overview` command were never published and are outside the supported interface.
-- Resolve and preserve a category ID for a named market. A broad product keyword is not itself a category. If category resolution relies on a top product, label it inferred and confirm before making an entry verdict.
-- Preserve each market row's product inclusion scope, `sampleType`, marketplace, returned date, and the distinction between all-category `total*` and selected Top 100 `sample*` measures. Do not infer margin from market revenue, price, or content rate.
-- A market ranking is limited to the categories and pages actually observed. A daily snapshot and available month-end history are different grains; compare only compatible observations.
+- Use only the bundled `{skill_base_dir}/scripts/zoodata.py` commands permitted by `scripts/allowed-commands.json` and documented by `references/reference.md`.
+- Apply `references/evidence-protocols.md` before treating a category lookup, market row, candidate set, or comparison as identified and covered.
+- Apply `references/market-metric-semantics.md` before interpreting a market field or comparing observations, and keep conclusions within the selected scenario's authority.
 - Do not create a watchlist, baseline, schedule, notification, or recurring run without the user's explicit monitoring request. A one-time trend question does not activate monitoring.
 - State credit cost before a broad multi-call scan; use the smallest evidence set needed for the active stage. Seller budget, experience, costs, and risk tolerance remain local interpretation inputs and are not sent as free text to ZooData.
 

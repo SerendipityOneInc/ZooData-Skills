@@ -178,6 +178,10 @@ Request params: `keyword`, `brand`, `asin`, `categoryPath`, `sortBy`, `pageSize`
 
 ## 6c. reviews/search
 
+This route is documented for direct API reference only in this release. The bundled CLI has no
+`reviews/search` subcommand, and this route is not counted in the 25 CLI-backed Amazon commerce and
+keyword-intelligence endpoints described by the package index.
+
 **Request:**
 - `asin`: String (required)
 - Optional filters: `ratingMin`/`ratingMax` (1-5), `verifiedOnly`, `vineOnly`, `helpfulVoteCountMin`, `dateStart`/`dateEnd` (YYYY-MM-DD)

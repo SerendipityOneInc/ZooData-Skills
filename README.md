@@ -62,7 +62,7 @@ This repo contains **10 agent skills** organized in two tiers:
 | 💬 [`amazon-review-intelligence-extractor/`](amazon-review-intelligence-extractor/) | Deep consumer insights from 1B+ pre-analyzed reviews across 11 dimensions | Single ASIN, multiple ASINs, or category keyword | Pain points, buying factors, user profiles, usage patterns, differentiation roadmap | 1B+ pre-analyzed reviews (95% token savings), 11 dimensions |
 | 🌐 [`web-extract/`](web-extract/) | Structured data extraction from public web pages and search results | URL, search query, or site | Structured JSON or page content | Handles rendered pages and bounded site crawls |
 
-`amazon-market-analysis` is the active unified market skill. The repository also contains `amazon-market-entry-analyzer`, `amazon-market-trend-scanner`, and `amazon-opportunity-discoverer` as inactive source packages; they are excluded from shared runtime distribution.
+`amazon-market-analysis` is the unified market skill. The former `amazon-market-entry-analyzer`, `amazon-market-trend-scanner`, and `amazon-opportunity-discoverer` directories are retained as retired source only; their entrypoints are named `RETIRED.md`, so skill installers and publishers do not discover them.
 
 ## Quick Start
 
@@ -75,7 +75,7 @@ npx skills add SerendipityOneInc/ZooData-Skills
 You'll be prompted to select which skills to install:
 
 **🏗️ Foundation:**
-- **ZooData — Amazon Commerce Data, 11 Endpoints**
+- **ZooData — 25 Amazon Commerce and Keyword Intelligence Endpoints**
 - **Amazon Analysis — Full-Spectrum Research & Seller Intelligence**
 - **Amazon Keyword Intelligence — Expansion, Reverse ASIN & Monitoring**
 - **Amazon Market Analysis — Discovery, Entry & Change**

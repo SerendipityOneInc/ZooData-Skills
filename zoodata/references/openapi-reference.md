@@ -57,19 +57,19 @@ Current `filters` keys, grouped by measure:
 
 Current `sortBy` values are `totalMonthlySales`, `totalMonthlyRevenue`, `sampleMonthlySales`, `sampleMonthlyRevenue`, `sampleAvgMonthlySales`, `sampleAvgMonthlyRevenue`, `totalSkuCount`, `sampleSkuCount`, `sampleAvgPrice`, `sampleTotalMonthlySales`, `sampleAvgBsr`, `sampleAvgRating`, `sampleAvgRatingCount`, `sampleBrandCount`, `sampleSellerCount`, `sampleFbaRate`, `sampleNewSkuRate`, `topAvgMonthlySales`, `topAvgMonthlyRevenue`, `topSalesRate`, `topBrandSalesRate`, and `topSellerSalesRate`.
 
-Response: `data[]` rows carry `categoryId`, `categoryName`, `categoryPath`, `date`, returned `categoryScope`, normalized `sampleType`, full-category `totalSkuCount`, `totalSpuCount`, `totalMonthlySales`, `totalMonthlyRevenue`, and selected Top 100 `sample*` size, coverage, price, estimated gross-margin, BSR, package, brand/seller, rating, fulfillment, and content measures. The selected new-product window is echoed as `newProductPeriod`; its fields are `totalNewProductCount`, `totalNewProductRate`, `sampleNewProductCount`, `sampleNewProductRate`, `sampleNewProductMonthlySales`, and `sampleNewProductMonthlyRevenue`. Fixed Top 10 fields remain available. `topNMetrics[]` returns the `3`, `5`, `10`, and `20` product/brand/seller groups with sales and revenue measures. The former `sampleNewProduct*6m` and `newProductMetrics[]` response shapes are no longer current.
+Response: `data[]` rows carry `categoryId`, `categoryName`, `categoryPath`, `date`, returned `categoryScope`, normalized `sampleType`, full-category `totalSkuCount`, `totalSpuCount`, `totalMonthlySales`, `totalMonthlyRevenue`, and selected Top 100 `sample*` size, coverage, price, estimated gross-margin, BSR, package, brand/seller, rating, fulfillment, and content measures. The selected new-product window is echoed as `newProductPeriod`; its fields are `totalNewProductCount`, `totalNewProductRate`, `sampleNewProductCount`, `sampleNewProductRate`, `sampleNewProductMonthlySales`, and `sampleNewProductMonthlyRevenue`. Fixed Top 10 fields remain available. `topNMetrics[]` returns the `3`, `5`, `10`, and `20` product/brand/seller groups with sales and revenue measures. Fixed-period legacy new-product fields and the legacy period array are not part of the current response.
 
 `meta.total` counts matching markets after category and metric filters; in an ID batch it is scoped to the submitted IDs. For one snapshot, send `category.ids=[ID]` with `pageSize=1` and verify the returned ID. Keep full-category and selected Top 100 denominators separate. A product is new for `newProductPeriod=N` when its business launch date is later than the snapshot date minus N calendar months and no later than the snapshot date. Products without a business launch date are not counted as new but remain in the relevant product-count denominator.
 
 ## 2a. markets/structure-profile
 
-Required `categoryId` and one `dimension`: `brand`, `seller`, `price`, `sellerCountry`, `fulfillment`, `ratingCount`, `rating`, `listingAge`, `listingYear`, or `productFeature`. Optional `includeDescendantCategoryProducts` defaults to true; optional `sampleType`, `newProductPeriod`, `date`, and `marketplace=US` use the same meanings as search. The old request field `categoryScope` is no longer current.
+Required `categoryId` and one `dimension`: `brand`, `seller`, `price`, `sellerCountry`, `fulfillment`, `ratingCount`, `rating`, `listingAge`, `listingYear`, or `productFeature`. Optional `includeDescendantCategoryProducts` defaults to true; optional `sampleType`, `newProductPeriod`, `date`, and `marketplace=US` use the same meanings as search. Retired scope selectors are not accepted.
 
 Response `data.buckets[]` describes **the selected Top 100**, not the whole category. In addition to the bucket label, SKU count/share, estimated sales/revenue/share, and dimension-specific fields, buckets now return Amazon self-operated SKU, sales, and revenue measures; selected-period `newProductCount`, `newProductRate`, `newProductMonthlySales`, and `newProductMonthlyRevenue`; and `exampleAsins[]`. `data.sampleSkuCount` is the product-share denominator. Product, sales, and revenue shares use their own valid denominators.
 
 ## 2b. markets/history
 
-Required `categoryId`, `dateFrom`, and `dateTo`; optional `includeDescendantCategoryProducts` defaults to true; optional `sampleType`, `newProductPeriod`, and `marketplace=US` use the same meanings as search. The old request fields `categoryScope`, `startDate`, and `endDate` are no longer current.
+Required `categoryId`, `dateFrom`, and `dateTo`; optional `includeDescendantCategoryProducts` defaults to true; optional `sampleType`, `newProductPeriod`, and `marketplace=US` use the same meanings as search. Retired scope and history-date parameter names are not accepted.
 
 Response `data.points[]` is sorted ascending and contains available month-end snapshots only. Missing months are omitted, not filled. The response echoes `newProductPeriod` and returns full-category and selected Top 100 size/sales/revenue plus `totalNewProductCount`, `totalNewProductRate`, `sampleNewProductCount`, `sampleNewProductRate`, `sampleNewProductMonthlySales`, and `sampleNewProductMonthlyRevenue`. MoM and YoY fields are present only when their comparable baseline exists. Compare periods using each point's `date` and response `resolvedDateFrom` / `resolvedDateTo`.
 
@@ -163,6 +163,10 @@ See `zoodata.py reviews-raw / review-tag-prompt / review-reduce-prompt / review-
 ---
 
 ## 6c. reviews/search
+
+This route is documented for direct API reference only in this release. The bundled CLI has no
+`reviews/search` subcommand, and this route is not counted in the 25 CLI-backed Amazon commerce and
+keyword-intelligence endpoints described by the package index.
 
 | Parameter | Type | Required | Note |
 |-----------|------|----------|------|

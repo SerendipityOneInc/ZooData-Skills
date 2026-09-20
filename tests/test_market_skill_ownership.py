@@ -1,12 +1,13 @@
 """Ownership and scenario routing for the unified market skill."""
 
+import re
 import unittest
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
 MARKET = ROOT / "amazon-market-analysis"
-RETAINED_MARKET_SOURCE_SKILLS = {
+RETIRED_MARKET_SOURCE_SKILLS = {
     "amazon-market-entry-analyzer",
     "amazon-market-trend-scanner",
     "amazon-opportunity-discoverer",
@@ -34,11 +35,29 @@ class TestMarketSkillOwnership(unittest.TestCase):
                 self.assertIn("| Stage | Entry input | Evidence | Conclusion authority |", text)
                 self.assertIn("## Section content requirements", text)
 
-        for retained_source in RETAINED_MARKET_SOURCE_SKILLS:
-            self.assertTrue((ROOT / retained_source / "SKILL.md").is_file())
+        for retired_source in RETIRED_MARKET_SOURCE_SKILLS:
+            self.assertFalse((ROOT / retired_source / "SKILL.md").exists())
+            retired = ROOT / retired_source / "RETIRED.md"
+            self.assertTrue(retired.is_file())
+            self.assertIn("**Retired:**", retired.read_text())
 
         sync_script = (ROOT / "scripts" / "sync-scripts.sh").read_text()
-        self.assertIn("retained source package", sync_script)
+        self.assertNotIn("SKIP_SKILLS", sync_script)
+        self.assertIn("without SKILL.md is retained source", sync_script)
+
+    def test_only_active_skill_entrypoints_are_discoverable(self):
+        expected = {
+            "amazon-analysis", "amazon-competitor-intelligence-monitor",
+            "amazon-daily-market-radar", "amazon-keyword-traffic-analysis",
+            "amazon-listing-audit-pro", "amazon-market-analysis",
+            "amazon-pricing-command-center",
+            "amazon-review-intelligence-extractor", "web-extract", "zoodata",
+        }
+        discovered = {
+            path.parent.name for path in ROOT.glob("*/SKILL.md")
+        }
+        self.assertEqual(discovered, expected)
+        self.assertEqual(len(discovered), 10)
 
     def test_zoodata_market_schema_has_one_owner(self):
         skill = (ROOT / "zoodata" / "SKILL.md").read_text()
@@ -52,11 +71,12 @@ class TestMarketSkillOwnership(unittest.TestCase):
         self.assertIn("## 2. markets/search", owner)
         self.assertIn("## 2b. markets/history", owner)
 
-    def test_unpublished_experimental_overview_is_not_a_runnable_command(self):
+    def test_unavailable_overview_is_owned_by_reference_not_skill_router(self):
         skill = (MARKET / "SKILL.md").read_text()
+        reference = (MARKET / "references" / "reference.md").read_text()
         manifest = (MARKET / "scripts" / "allowed-commands.json").read_text()
-        self.assertIn("were never published", skill)
-        self.assertIn("outside the supported interface", skill)
+        self.assertNotIn("markets/overview", skill)
+        self.assertIn("`markets/overview` is absent", reference)
         self.assertNotIn('"market-overview"', manifest)
         self.assertNotIn("market-overview --", skill)
 
@@ -73,18 +93,19 @@ class TestMarketSkillOwnership(unittest.TestCase):
     def test_parent_scoped_discovery_uses_child_ids(self):
         scenario = (MARKET / "references" / "scenarios-discover.md").read_text()
         reference = (MARKET / "references" / "reference.md").read_text()
+        evidence = (MARKET / "references" / "evidence-protocols.md").read_text()
         shared_contract = (MARKET / "references" /
                            "analysis-contract.md").read_text()
-        self.assertIn("one `categories --parent", scenario)
-        self.assertIn("to enumerate **all direct child IDs**", scenario)
-        self.assertIn("one `categories` call plus one `markets/search` call", scenario)
-        self.assertIn("`market --category-ids ID1,ID2,... --page-size 100`", scenario)
-        self.assertIn("**every** enumerated child", scenario)
+        self.assertIn("every direct child", scenario)
+        self.assertIn("A parent-wide top K requires complete", scenario)
         self.assertIn("`category.ids` in one `markets/search` request", reference)
         self.assertIn("`--parent` requires a nonempty JSON string array", reference)
         self.assertIn("`meta.total` counts matching rows after filters", reference)
+        self.assertIn("compare returned IDs with the requested set", evidence)
         self.assertIn("transcript folding or truncation", shared_contract)
-        self.assertNotIn("Select a bounded set of those IDs", scenario)
+        for foreign_contract in ("--parent", "--category-ids", "page-size",
+                                 "`meta.total`", "JSON string array"):
+            self.assertNotIn(foreign_contract, scenario)
 
     def test_market_handoff_closes_a_stage_without_automatic_progression(self):
         guide = (MARKET / "references" / "execution-guide.md").read_text()
@@ -109,9 +130,12 @@ class TestMarketSkillOwnership(unittest.TestCase):
         semantics = (MARKET / "references" /
                      "market-metric-semantics.md").read_text()
 
-        self.assertIn("N most recent **completed month-end periods**", scenario)
-        self.assertIn("current incomplete month is outside that comparison", scenario)
-        self.assertIn("Never add a placeholder row", scenario)
+        self.assertIn("two supplied compatible snapshots", scenario)
+        self.assertIn("Persistent watch", scenario)
+        self.assertIn("one-time comparison of supplied snapshots remains a historical trend", scenario)
+        self.assertIn("Render history rows and missing-period treatment only through `output-rules.md`", scenario)
+        self.assertNotIn("placeholder row", scenario)
+        self.assertNotIn("current incomplete month", scenario)
         self.assertIn("project every returned `data.points[]` entry", evidence)
         self.assertIn("projected point count and dates equal", evidence)
         self.assertIn("is not an API coverage gap", evidence)
@@ -205,16 +229,33 @@ class TestMarketSkillOwnership(unittest.TestCase):
                 text = path.read_text()
                 self.assertIn("sampleNewProduct", text)
                 self.assertIn("newProductPeriod", text)
-                self.assertNotIn("sampleNewProductCount6m", text)
-                self.assertNotIn("`newProductMetrics[]` returns", text)
+                self.assertIsNone(re.search(r"sampleNewProduct\w*6m", text))
+                self.assertNotIn("newProductMetrics", text)
                 self.assertNotIn("sampleConservative", text)
         for path in ROOT.glob("amazon-*/references/*.md"):
-            if path.parent.parent.name in RETAINED_MARKET_SOURCE_SKILLS:
+            if path.parent.parent.name in RETIRED_MARKET_SOURCE_SKILLS:
                 continue
             text = path.read_text()
+            self.assertIsNone(re.search(r"sampleNewProduct\w*6m", text), str(path))
+            self.assertNotIn("newProductMetrics", text, str(path))
             self.assertNotIn("sampleConservative", text, str(path))
             self.assertNotIn("actualStartDate", text, str(path))
             self.assertNotIn("actualEndDate", text, str(path))
+
+        for skill_name in (
+            "amazon-analysis", "amazon-competitor-intelligence-monitor",
+            "amazon-daily-market-radar", "amazon-listing-audit-pro",
+            "amazon-pricing-command-center",
+            "amazon-review-intelligence-extractor",
+        ):
+            reference_text = (ROOT / skill_name / "references" / "reference.md").read_text()
+            market_section = reference_text.split("## 2. Market endpoints", 1)[1].split("## 3.", 1)[0]
+            self.assertNotIn("categoryScope", market_section, skill_name)
+            self.assertNotIn("startDate", market_section, skill_name)
+            self.assertNotIn("endDate", market_section, skill_name)
+            self.assertIn("includeDescendantCategoryProducts", market_section)
+            self.assertIn("dateFrom", market_section)
+            self.assertIn("dateTo", market_section)
 
         owner = owners[0].read_text()
         reference = owners[1].read_text()
@@ -226,6 +267,35 @@ class TestMarketSkillOwnership(unittest.TestCase):
         self.assertIn("Fixed `sampleTop10*` fields", semantics)
         self.assertNotIn("`startDate`, and `endDate`", reference)
         self.assertNotIn("Optional `categoryScope`", owner)
+
+    def test_market_router_and_scenarios_respect_declared_ownership(self):
+        skill = (MARKET / "SKILL.md").read_text()
+        discover = (MARKET / "references" / "scenarios-discover.md").read_text()
+        evaluate = (MARKET / "references" / "scenarios-evaluate.md").read_text()
+        track = (MARKET / "references" / "scenarios-track.md").read_text()
+        for foreign_definition in ("markets/overview", "`total*`", "`sample*`"):
+            self.assertNotIn(foreign_definition, skill)
+        for api_syntax in ("--parent", "--category-ids", "page-size", "`meta.total`"):
+            self.assertNotIn(api_syntax, discover)
+        for foreign_definition in ("page-size", "--dimension", "`total*`", "`sample*`"):
+            self.assertNotIn(foreign_definition, evaluate)
+        for rendering_rule in ("placeholder row", "current incomplete month"):
+            self.assertNotIn(rendering_rule, track)
+
+    def test_readme_endpoint_counts_and_reference_only_reviews_route_are_explicit(self):
+        readme = (ROOT / "README.md").read_text()
+        readme_zh = (ROOT / "README.zh-CN.md").read_text()
+        self.assertNotIn("Amazon Commerce Data, 11 Endpoints", readme)
+        self.assertNotIn("数据层概览，11 个 API 接口", readme_zh)
+        for path in (
+            ROOT / "zoodata" / "references" / "reference.md",
+            ROOT / "zoodata" / "references" / "openapi-reference.md",
+        ):
+            text = path.read_text()
+            section = text.split("## 6c. reviews/search", 1)[1].split("\n---", 1)[0]
+            self.assertIn("direct API reference only", section)
+            self.assertIn("has no\n`reviews/search` subcommand", section)
+            self.assertIn("not counted in the 25 CLI-backed", section)
 
     def test_general_analysis_usage_uses_cli_accumulated_metadata(self):
         guide = (ROOT / "amazon-analysis" / "references" /

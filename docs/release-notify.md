@@ -26,21 +26,24 @@ Moving parts:
 ## Release flow
 
 ```bash
-# 1. Publish to ClawHub (manual, as today; the ClawHub key stays local)
+# 1. Verify that repository discovery exposes exactly the 10 active SKILL.md entrypoints
+npx skills add . --list
+
+# 2. Publish those discoverable skills to ClawHub (manual; the ClawHub key stays local)
 clawhub --dir . sync --all --owner apiclaw
 
-# 2. Cut a GitHub Release whose tag ends in -release
+# 3. Cut a GitHub Release whose tag ends in -release
 gh release create v1.3.0-release --title "v1.3.0 — <headline>" --notes "..."
 ```
 
 Then, to send the Lark notification:
 
 ```
-# 3. In hermes-workspace: Actions → "ZooData-Skills release notify" → Run workflow
+# 4. In hermes-workspace: Actions → "ZooData-Skills release notify" → Run workflow
 #    tag = v1.3.0-release,  dry_run = true (preview) → then dry_run = false (send)
 ```
 
-Step 3 is a **manual** action in hermes-workspace (no polling). Do a `dry_run: true` run
+Step 4 is a **manual** action in hermes-workspace (no polling). Do a `dry_run: true` run
 first to preview the rendered notes, then `dry_run: false` to send.
 
 ### Tag convention: the tag must end in `-release`

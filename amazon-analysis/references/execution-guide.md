@@ -101,7 +101,7 @@ When `products` or `competitors` returns ASINs in Full-mode analysis, call `prod
 3. If still no match, use realtime/product on a known ASIN to extract categoryPath
 4. Validate categoryPath matches the user's intended product type
 
-**Data-driven category selection:** When the user provides a broad interest (e.g. "home products") instead of a specific niche, resolve its category ID with `categories`, browse all direct children with `categories --parent`, and compare them through `market --category-ids` in batches of at most 100 IDs. Do not choose candidate children from category-tree order. Compare returned `sampleNewProductRate6m`, `sampleTop10BrandSalesRate`, `sampleFbmRate`, and `sampleMedianPrice` as separate selected Top 100 observations; keep them separate from full-category totals and avoid an uncalibrated composite score. Select Top 3-5 for deeper analysis only after the relevant children have comparable market rows.
+**Data-driven category selection:** When the user provides a broad interest (e.g. "home products") instead of a specific niche, resolve its category ID with `categories`, browse all direct children with `categories --parent`, and compare them through `market --category-ids` in batches of at most 100 IDs. Do not choose candidate children from category-tree order. Compare returned `sampleNewProductRate` together with its `newProductPeriod`, `sampleTop10BrandSalesRate`, `sampleFbmRate`, and `sampleMedianPrice` as separate selected Top 100 observations; keep them separate from full-category totals and avoid an uncalibrated composite score. Select Top 3-5 for deeper analysis only after the relevant children have comparable market rows.
 
 ---
 
@@ -239,7 +239,7 @@ Use `totalMonthlyRevenue` from `markets/search` for full-category revenue and `s
 | Avg review count (`sampleAvgRatingCount`) | <500 🔍 | 500-5,000 🔍 | >5,000 🔍 |
 | FBM rate (`sampleFbmRate`) | <40% 🔍 | 40-60% 🔍 | >60% 🔍 |
 
-These remaining bands are exploratory heuristics, not calibrated entry verdicts. Read `sampleTop10ProductSalesRate` and `sampleTop10BrandSalesRate` as separate selected Top 100 monthly-sales concentration measures. Read `sampleNewProductRate6m` as a six-month new-product share within that sample. Do not classify these three rates from former fixed cutoffs; compare compatible peers or prior snapshots and state the observed denominator.
+These remaining bands are exploratory heuristics, not calibrated entry verdicts. Read `sampleTop10ProductSalesRate` and `sampleTop10BrandSalesRate` as separate selected Top 100 monthly-sales concentration measures. Read `sampleNewProductRate` as the new-product share for the returned `newProductPeriod` within that sample. Do not classify these three rates from former fixed cutoffs; compare compatible peers or prior snapshots and state the observed denominator and window.
 
 ## Cross-endpoint evidence use
 

@@ -20,13 +20,6 @@ elif [[ $# -gt 0 ]]; then
   exit 2
 fi
 
-# Retained source packages that are no longer part of the active installation.
-SKIP_SKILLS=(
-  "amazon-market-entry-analyzer"
-  "amazon-market-trend-scanner"
-  "amazon-opportunity-discoverer"
-)
-
 for source in "$SCRIPT_SOURCE" "$CONTRACT_SOURCE" "$ANALYSIS_CONTRACT_SOURCE"; do
   if [[ ! -f "$source" ]]; then
     echo "ERROR: Canonical source file does not exist: $source"
@@ -37,7 +30,6 @@ done
 changed=0
 total=0
 conflict=0
-skipped=0
 
 sync_managed_file() {
   local source=$1
@@ -78,15 +70,9 @@ sync_managed_file() {
 }
 
 for skill_dir in "$REPO_ROOT"/amazon-*/; do
-  # Ignore retired package directories that retain only local runtime data.
+  # A directory without SKILL.md is retained source, not a discoverable skill.
   [[ -f "$skill_dir/SKILL.md" ]] || continue
   skill_name=$(basename "$skill_dir")
-
-  if [[ ${#SKIP_SKILLS[@]} -gt 0 && " ${SKIP_SKILLS[*]} " == *" $skill_name "* ]]; then
-    echo "  SKIP $skill_name (retained source package)"
-    skipped=$((skipped + 1))
-    continue
-  fi
 
   total=$((total + 1))
   sync_managed_file \
@@ -116,7 +102,7 @@ if [[ $conflict -gt 0 ]]; then
 fi
 
 if [[ $CHECK_ONLY -eq 1 ]]; then
-  echo "Shared-file check passed: $total skills, 0 mismatches, $skipped skipped."
+  echo "Shared-file check passed: $total skills, 0 mismatches."
 else
-  echo "Done: $total skills processed, $changed files updated, $skipped skipped."
+  echo "Done: $total skills processed, $changed files updated."
 fi

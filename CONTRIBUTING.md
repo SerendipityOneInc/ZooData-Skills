@@ -45,9 +45,9 @@ Each active `amazon-*` skill has synced local copies of the shared CLI files at 
 matching `scripts/` and `references/` paths so the skill remains independently
 publishable. The shared analysis contract is currently adopted by
 `amazon-keyword-traffic-analysis` and `amazon-market-analysis`; its copies are
-synced into those two skills by the same mechanism. Retained source packages
-that are no longer part of the active installation are listed in
-`SKIP_SKILLS` and are not rewritten by this distribution step. **Never edit copies
+synced into those two skills by the same mechanism. Retired source directories
+do not contain a `SKILL.md` entrypoint, so skill installers, publishers, and
+this distribution step do not discover them. **Never edit copies
 directly** — sync is enforced at three layers:
 
 1. **Local pre-commit hook** — auto-syncs copies when canonical is staged.

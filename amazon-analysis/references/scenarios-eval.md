@@ -122,7 +122,7 @@ Step 4 (`analyze`) provides AI-analyzed sentiment distribution and structured is
 | Review Sentiment | sentimentDistribution (negative) | < 15% | 15-30% | > 30% |
 | Seasonality | AI judgment | Year-round | Seasonal fluctuation | Strong seasonality |
 
-For competition context, read `sampleTop10ProductSalesRate` and `sampleTop10BrandSalesRate`: both use the selected Top 100's monthly sales as denominator, not all category sales. Preserve `sampleType`, `categoryScope`, and date. The old fixed cutoffs do not transfer; use compatible peer evidence before assigning competition or brand-barrier risk. Product and brand concentration measure different groups; do not interchange them.
+For competition context, read `sampleTop10ProductSalesRate` and `sampleTop10BrandSalesRate`: both use the selected Top 100's monthly sales as denominator, not all category sales. Preserve `sampleType`, the descendant-product inclusion setting, and date. The old fixed cutoffs do not transfer; use compatible peer evidence before assigning competition or brand-barrier risk. Product and brand concentration measure different groups; do not interchange them.
 
 **High-risk Category Compliance Alerts**:
 
