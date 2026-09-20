@@ -14,7 +14,7 @@
 
 ```bash
 # Step 1: Sibling categories
-python3 scripts/zoodata.py categories --parent "Pet Supplies,Dogs"
+python3 scripts/zoodata.py categories --parent '["Pet Supplies", "Dogs"]'
 
 # Step 2: Evaluate each
 python3 scripts/zoodata.py categories --category "Pet Supplies > Dogs > Feeding & Watering"

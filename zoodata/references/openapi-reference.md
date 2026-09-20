@@ -16,10 +16,12 @@ Method: All POST with JSON body
 |-----------|------|------|
 | categoryKeyword | String | Search by keyword |
 | categoryPath | List\<String\> | Exact path lookup, e.g. `["Electronics", "Computers"]` |
-| parentCategoryPath | List\<String\> | Browse children |
+| parentCategoryPath | List\<String\> | Return all direct children of the exact parent path |
 | _(no params)_ | — | Returns root categories |
 
-Response: `categoryId`, `categoryName`, `categoryPath`, `hasChildren`, `isRoot`, `level`, `productCount`, `link`
+Response: `data: list[Category]`; every row includes `categoryId`, `categoryName`, `categoryPath`, `hasChildren`, `isRoot`, `level`, `productCount`, and `link`. A `parentCategoryPath` request returns the complete direct-child list in one response.
+
+CLI `categories --parent` requires a nonempty JSON string array. Other category-path flags accept a JSON array or `>`-separated names, but reject a comma-bearing string without an explicit separator as ambiguous. The CLI fails before the API call instead of guessing path boundaries.
 
 ---
 

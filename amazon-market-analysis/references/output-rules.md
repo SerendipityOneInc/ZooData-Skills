@@ -8,7 +8,7 @@ Use the user's language for the entire report. Keep API field names, endpoint id
 
 On a terminal interface failure selected by `execution-guide.md`, return one concise localized notice that the market analysis could not be completed, followed by succeeded and failed endpoint identifiers from the current turn. Do not attach a market verdict, ranking, trend claim, API-usage table, or next-stage prompt. Give technical error details only if the user requests diagnostics.
 
-Progress updates, when useful, name only the user's market question and the work under way. Do not narrate every call or preview a verdict before the evidence is interpreted.
+Progress updates, when useful, name only the user's market question and the business scope under comparison. Keep transcript folding, raw-result capture, temporary paths, projection, parsing, parameter-construction correction, cleanup, and other result-handling mechanics silent. Do not narrate every call, describe a local display condition as missing API data, ask the user to resolve an internal formatting issue, or preview a verdict before the evidence is interpreted.
 
 ## Quick lookup
 

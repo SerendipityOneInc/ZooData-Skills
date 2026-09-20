@@ -24,7 +24,7 @@ This module owns production acquisition facts for `amazon-market-analysis`. All 
 
 ## Category identity
 
-`categories --keyword` sends `categoryKeyword`; `categories --category` sends a parsed `categoryPath`; `categories --parent` sends `parentCategoryPath`. The response exposes `categoryId`, `categoryPath`, and child information. A category name match is not a product-keyword match. The CLI's keyword-to-category fallback may infer `categoryPath` from a top `products/search` result; composite metadata reports `category_source` and `resolved_category_path` so the inference can be distinguished from a direct category match. Use a returned `categoryId` for the market endpoints.
+`categories --keyword` sends `categoryKeyword`; `categories --category` sends a parsed `categoryPath`; `categories --parent` sends `parentCategoryPath`. `--parent` requires a nonempty JSON string array. Other category-path flags accept JSON arrays or `>`-separated names, but reject comma-bearing strings without an explicit separator instead of guessing boundaries. A parent request returns the complete direct-child `data[]` list in one response, with a full `categoryId` on every row. The response also exposes `categoryPath` and child information. A category name match is not a product-keyword match. The CLI's keyword-to-category fallback may infer `categoryPath` from a top `products/search` result; composite metadata reports `category_source` and `resolved_category_path` so the inference can be distinguished from a direct category match. Use a returned `categoryId` for the market endpoints.
 
 ## Market search and single-category snapshot
 

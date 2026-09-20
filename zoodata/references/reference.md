@@ -37,9 +37,13 @@ All endpoints return: `{success, data, error, meta}` with `meta.creditsRemaining
 - No params → root categories
 - `categoryKeyword`: String → search by keyword
 - `categoryPath`: List<String> → exact path
-- `parentCategoryPath`: List<String> → child categories
+- `parentCategoryPath`: List<String> → all direct child categories in one response
+
+CLI `categories --parent` requires a nonempty JSON string array. Other category-path flags accept a JSON array or `>`-separated names, but reject a comma-bearing string without an explicit separator as ambiguous. The CLI fails before the API call instead of guessing path boundaries.
 
 **Response:**
+`data` is the complete `list[Category]` for the selected mode; a parent lookup returns every direct child in that single list.
+
 | Field | Type | Used For |
 |-------|------|----------|
 | `categoryId` | string | Category ID |

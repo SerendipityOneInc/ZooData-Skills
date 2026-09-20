@@ -118,9 +118,9 @@ def run_cli_stdout(fmt, subcmd, *args):
 # ---------------------------------------------------------------------------
 class TestParseCategory(unittest.TestCase):
 
-    def test_comma_separated(self):
-        self.assertEqual(zoodata.parse_category("Pet Supplies,Dogs,Toys"),
-                         ["Pet Supplies", "Dogs", "Toys"])
+    def test_ambiguous_comma_path_is_rejected(self):
+        with self.assertRaisesRegex(SystemExit, "Ambiguous category path"):
+            zoodata.parse_category("Vitamins, Minerals & Supplements")
 
     def test_spaced_arrow(self):
         self.assertEqual(zoodata.parse_category("Pet Supplies > Dogs > Toys"),
@@ -146,7 +146,7 @@ class TestParseCategory(unittest.TestCase):
         self.assertEqual(result, ["A", "B>C"])
 
     def test_strips_whitespace(self):
-        self.assertEqual(zoodata.parse_category("  Pet Supplies , Dogs "),
+        self.assertEqual(zoodata.parse_category("  Pet Supplies > Dogs "),
                          ["Pet Supplies", "Dogs"])
 
     def test_arrow_protects_comma_in_category_name(self):
@@ -165,8 +165,13 @@ class TestParseCategory(unittest.TestCase):
             zoodata.parse_category('["Health & Household", "Vitamins, Minerals & Supplements", "Collagen"]'),
             ["Health & Household", "Vitamins, Minerals & Supplements", "Collagen"])
 
-    def test_malformed_json_falls_through_to_separator_parsing(self):
-        self.assertEqual(zoodata.parse_category("[not json"), ["[not json"])
+    def test_parent_json_parser_rejects_non_array_path(self):
+        with self.assertRaisesRegex(SystemExit, "valid JSON array"):
+            zoodata.parse_category_json("Health & Household > Vitamins")
+
+    def test_malformed_json_is_rejected(self):
+        with self.assertRaisesRegex(SystemExit, "valid JSON array"):
+            zoodata.parse_category("[not json")
 
 
 # ---------------------------------------------------------------------------
@@ -330,6 +335,19 @@ class TestEndpointRouting(unittest.TestCase):
     def test_categories(self):
         r = run_cli("categories", "--keyword", "yoga")
         self.assertEqual(r["endpoint"], "categories")
+
+    def test_categories_parent_preserves_commas_in_json_path(self):
+        r = run_cli(
+            "categories",
+            "--parent", '["Health & Household", "Vitamins, Minerals & Supplements"]',
+        )
+        self.assertEqual(r["params"]["parentCategoryPath"], [
+            "Health & Household", "Vitamins, Minerals & Supplements",
+        ])
+
+    def test_categories_parent_rejects_non_json_before_api_call(self):
+        with self.assertRaisesRegex(SystemExit, "valid JSON array"):
+            run_cli("categories", "--parent", "Health & Household > Vitamins")
 
     def test_market(self):
         r = run_cli("market", "--category-id", "3760901")
@@ -1521,9 +1539,18 @@ class TestApiErrorPropagation(unittest.TestCase):
 # ---------------------------------------------------------------------------
 class TestCategoryParamPassing(unittest.TestCase):
 
-    def test_comma_format_parsed_to_list(self):
-        r = run_cli("categories", "--category", "Pet Supplies,Dogs")
-        self.assertEqual(r["params"]["categoryPath"], ["Pet Supplies", "Dogs"])
+    def test_comma_in_category_name_requires_json_array(self):
+        r = run_cli(
+            "categories", "--category", '["Vitamins, Minerals & Supplements"]',
+        )
+        self.assertEqual(
+            r["params"]["categoryPath"],
+            ["Vitamins, Minerals & Supplements"],
+        )
+
+    def test_ambiguous_comma_category_is_rejected_before_api_call(self):
+        with self.assertRaisesRegex(SystemExit, "Ambiguous category path"):
+            run_cli("categories", "--category", "Vitamins, Minerals & Supplements")
 
     def test_arrow_format_parsed_to_list(self):
         r = run_cli("categories", "--category", "Pet Supplies > Dogs > Toys")

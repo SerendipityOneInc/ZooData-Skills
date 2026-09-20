@@ -67,11 +67,16 @@ class TestMarketSkillOwnership(unittest.TestCase):
     def test_parent_scoped_discovery_uses_child_ids(self):
         scenario = (MARKET / "references" / "scenarios-discover.md").read_text()
         reference = (MARKET / "references" / "reference.md").read_text()
-        self.assertIn("`categories --parent` to enumerate **all direct child IDs**", scenario)
+        output = (MARKET / "references" / "output-rules.md").read_text()
+        self.assertIn("one `categories --parent", scenario)
+        self.assertIn("to enumerate **all direct child IDs**", scenario)
+        self.assertIn("one `categories` call plus one `markets/search` call", scenario)
         self.assertIn("`market --category-ids ID1,ID2,... --page-size 100`", scenario)
         self.assertIn("**every** enumerated child", scenario)
         self.assertIn("`category.ids` in one `markets/search` request", reference)
+        self.assertIn("`--parent` requires a nonempty JSON string array", reference)
         self.assertIn("`meta.total` counts matching rows after filters", reference)
+        self.assertIn("Keep transcript folding", output)
         self.assertNotIn("Select a bounded set of those IDs", scenario)
 
     def test_market_handoff_closes_a_stage_without_automatic_progression(self):
@@ -99,7 +104,7 @@ class TestMarketSkillOwnership(unittest.TestCase):
         self.assertIn("without waiting for it", contract)
         self.assertIn("whole date buckets older than 30 days", contract)
         self.assertIn("Delete the raw result as soon as classification", contract)
-        self.assertIn("display truncation marker", contract)
+        self.assertIn("token-truncation marker", contract)
         self.assertIn("Projection is a local, zero-credit transformation", contract)
         self.assertIn("## Market result projection", evidence)
         self.assertIn("validate the requested ID set", evidence)

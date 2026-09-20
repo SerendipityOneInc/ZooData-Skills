@@ -954,6 +954,18 @@ def output(data, fmt="json"):
 
 # ─── Helper: parse category string ──────────────────────────────────────────
 
+def parse_category_json(cat_str: str) -> list:
+    """Parse an unambiguous JSON-array category path or fail before API use."""
+    try:
+        parsed = json.loads((cat_str or "").strip())
+    except (json.JSONDecodeError, ValueError) as exc:
+        raise SystemExit("Category path must be a valid JSON array of nonempty strings") from exc
+    if (not isinstance(parsed, list) or not parsed
+            or any(not isinstance(c, str) or not c.strip() for c in parsed)):
+        raise SystemExit("Category path must be a valid JSON array of nonempty strings")
+    return [c.strip() for c in parsed]
+
+
 def parse_category(cat_str: str) -> list:
     """Parse category path string into a list.
 
@@ -961,28 +973,26 @@ def parse_category(cat_str: str) -> list:
       - '["Pet Supplies", "Dogs"]'         (JSON array — unambiguous, safest)
       - 'Pet Supplies > Dogs > Toys'       (spaced arrow — recommended)
       - 'Pet Supplies>Dogs>Toys'           (bare arrow, no spaces)
-      - 'Pet Supplies,Dogs,Toys'           (comma-separated — AVOID for names
-        that contain commas, e.g. "Headphones, Earbuds & Accessories";
-        use '>' or JSON array for those)
+      - Category names containing commas must use the JSON-array form.
     """
     if not cat_str:
         return []
     # JSON array input — exact segments, no separator ambiguity
     stripped = cat_str.strip()
-    if stripped.startswith("[") and stripped.endswith("]"):
-        try:
-            parsed = json.loads(stripped)
-            if isinstance(parsed, list):
-                return [str(c).strip() for c in parsed if str(c).strip()]
-        except (json.JSONDecodeError, ValueError):
-            pass  # not valid JSON — fall through to separator parsing
+    if stripped.startswith("[") or stripped.endswith("]"):
+        return parse_category_json(stripped)
     # Arrow separators take priority: category names never contain '>',
     # but they DO contain commas (e.g. "Headphones, Earbuds & Accessories")
     if " > " in cat_str:
         return [c.strip() for c in cat_str.split(" > ")]
     if ">" in cat_str:
         return [c.strip() for c in cat_str.split(">")]
-    return [c.strip() for c in cat_str.split(",")]
+    if "," in stripped:
+        raise SystemExit(
+            "Ambiguous category path containing a comma; pass a JSON array "
+            "so category boundaries are explicit"
+        )
+    return [stripped]
 
 
 # ─── Review Analysis: Prompt-as-Data Toolkit ───────────────────────────────
@@ -1321,7 +1331,7 @@ def cmd_categories(args):
     elif args.category:
         params["categoryPath"] = parse_category(args.category)
     elif args.parent:
-        params["parentCategoryPath"] = parse_category(args.parent)
+        params["parentCategoryPath"] = parse_category_json(args.parent)
     # else: no params → root categories
     if args.marketplace:
         params["marketplace"] = args.marketplace
@@ -3616,8 +3626,8 @@ Examples:
     # ── categories ──
     p_cat = sub.add_parser("categories", help="Query Amazon category tree", allow_abbrev=False)
     p_cat.add_argument("--keyword", help="Search categories by keyword")
-    p_cat.add_argument("--category", help="Category path, '>' separated (names may contain commas, e.g. \"Electronics > Headphones, Earbuds & Accessories\"); JSON array also accepted")
-    p_cat.add_argument("--parent", help="Get child categories (comma-separated parent path)")
+    p_cat.add_argument("--category", help="Category path as a JSON array (required for names containing commas) or '>'-separated names")
+    p_cat.add_argument("--parent", help="Parent category path as a required JSON array of nonempty strings")
     p_cat.add_argument("--marketplace", default="US", help="Marketplace (default: US)")
     p_cat.set_defaults(func=cmd_categories)
 
