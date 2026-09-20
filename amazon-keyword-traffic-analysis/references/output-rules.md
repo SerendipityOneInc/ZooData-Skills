@@ -1,6 +1,6 @@
 # Output Rules — Amazon Keyword Intelligence
 
-This file owns keyword-specific language, report rendering, Data Notes, and API-usage presentation within the shared `analysis-constitution.md`. It does not redefine the constitutional user-facing boundary or define stage selection, conclusion authority, Gate outcomes, or the contents of the stage-end selection list.
+This file owns keyword-specific language, report rendering, Data Notes, and API-usage presentation within the shared `analysis-contract.md`. It does not redefine the shared user-facing boundary or define stage selection, conclusion authority, Gate outcomes, or the contents of the stage-end selection list.
 
 ## Contents
 
@@ -64,7 +64,7 @@ Render every normally completed full-mode scenario stage with exactly this canon
 6. `API Usage` when live API data was used; and
 7. the non-report coded Stage-End Selection List from `execution-guide.md`.
 
-Localize all five semantic section labels consistently into the user's language. Apply the constitutional user-facing boundary to the entire response, including titles, headings, body text, usage reporting, and the selection list. Put the active semantic scope in the report title and Data Notes instead of exposing its internal workflow identity.
+Localize all five semantic section labels consistently into the user's language. Apply the shared user-facing boundary to the entire response, including titles, headings, body text, usage reporting, and the selection list. Put the active semantic scope in the report title and Data Notes instead of exposing its internal workflow identity.
 
 Do not expose internal workflow identifiers, labels, ordinals, or progression claims. Name current scope and any continuation by their user-domain subject and action. Do not render a candidate menu, action menu, selection key, or selectable-subject list inside Evidence, Analysis, or Conclusion; place every user-selectable subject and action only in the final numbered selection list defined by `execution-guide.md`.
 
@@ -72,7 +72,7 @@ Do not rename `Evidence` to a scenario-specific heading such as observed change,
 
 Keep direct observations out of Conclusion and recommendations out of Evidence. Render only the evidence, analysis, and conclusion supplied for the active stage; do not repeat a prior report in full, expose methodology sections, or preview later-stage material.
 
-A hard interface failure follows `Interface Failure Output` above. Credential and credit failures follow the guide-owned stop decision and the smallest applicable rendering under the constitutional user-facing boundary. Each failure route bypasses normal stage rendering and the stage-end list.
+A hard interface failure follows `Interface Failure Output` above. Credential and credit failures follow the guide-owned stop decision and the smallest applicable rendering under the shared user-facing boundary. Each failure route bypasses normal stage rendering and the stage-end list.
 
 ## Data Notes Rule
 

@@ -44,7 +44,7 @@ def test_skill_is_a_concise_router_not_a_second_execution_guide():
     assert "use `output-rules.md § Quick Mode Output`" in skill
     assert "do not load a scenario unless the follow-up broadens the request" in skill
     assert "The guide owns the keyword scenario/stage and domain Gate contract" in skill
-    assert "Read and apply `references/analysis-constitution.md`" in skill
+    assert "Read and apply `references/analysis-contract.md`" in skill
     assert "Do not load it for a non-diagnostic stage" in skill
     assert "for every request handled by this skill, including a single lookup" not in skill
     assert "### Two-Pass Metric Interpretation Gate" not in skill
@@ -81,18 +81,18 @@ def test_source_of_truth_boundaries_define_exclusive_module_ownership():
     assert "must not define skill-specific command allowlists, endpoint fields" in skill
     assert "`reference.md` owns only production API and acquisition-surface facts" in skill
     assert "must not redefine the shared CLI contract" in skill
-    assert "`analysis-constitution.md` owns the repository-wide rule hierarchy" in skill
+    assert "`analysis-contract.md` owns the repository-wide rule hierarchy" in skill
     assert "must not duplicate, weaken, or override it" in skill
     assert "`execution-guide.md` owns only the keyword scenario/stage schema" in skill
     assert "consequences after shared CLI classification" in skill
-    assert "must not redefine the constitution, shared CLI contract, API contracts" in skill
+    assert "must not redefine the shared analysis contract, shared CLI contract, API contracts" in skill
     assert "`evidence-protocols.md` owns only shared evidence planning" in skill
     assert "must not select stages, define Gate outcomes, render handoff lists" in skill
     assert "`diagnosis-action-protocols.md` owns only the detailed causal-diagnosis" in skill
     assert "must not select stages, define the Diagnostic Closure Gate result" in skill
     assert "`output-rules.md` owns only keyword-specific language" in skill
     assert "the local interface-failure template" in skill
-    assert "within the constitutional user-facing boundary" in skill
+    assert "within the shared user-facing boundary" in skill
     assert "must not select stages, define Gate outcomes" in skill
     assert "`traffic-observation-semantics.md`) own only" in skill
     assert "must not define production availability or request parameters, shared workflow policy" in skill
@@ -210,9 +210,9 @@ def test_module_files_do_not_declare_foreign_owner_sections():
     assert "Cross-Metric Reconciliation Protocol" in evidence_headings
     assert "Evidence Coverage Protocol" in evidence_headings
     assert "Evidence-to-Action Protocol" in diagnosis_headings
-    constitution_headings = headings("references/analysis-constitution.md")
-    assert "Keep implementation internal" in constitution_headings
-    assert "7. Final Response Gate" in constitution_headings
+    shared_contract_headings = headings("references/analysis-contract.md")
+    assert "Keep implementation internal" in shared_contract_headings
+    assert "7. Final Response Gate" in shared_contract_headings
     assert "User-Facing Output Boundary" not in output_headings
     assert "Usage Accounting Rule" in output_headings
     assert evidence_headings.isdisjoint({
@@ -393,13 +393,13 @@ def test_execution_guide_is_the_core_stage_and_gate_source():
     assert "The user is never required to continue" in guide
     assert "### Final Output Gate" in guide
     assert "immediately before every user-facing send" in guide
-    constitution = read("references/analysis-constitution.md")
-    assert "Validate the whole draft from its first emitted character through its last" in constitution
-    assert "discard the draft and render it again" in constitution
+    shared_contract = read("references/analysis-contract.md")
+    assert "Validate the whole draft from its first emitted character through its last" in shared_contract
+    assert "discard the draft and render it again" in shared_contract
     assert "validate the complete draft exclusively against `output-rules.md § Interface Failure Output`" in guide
     assert "exactly three localized non-empty plain-text lines" not in guide
     assert "Do not send until the draft passes its selected keyword route" in guide
-    assert "Client-generated tool or task notifications are outside the assistant draft" in constitution
+    assert "Client-generated tool or task notifications are outside the assistant draft" in shared_contract
     for obsolete_state in ("`complete`", "`advance`", "`unresolved`"):
         assert obsolete_state not in guide
     assert "### Pending Handoff Reclassification Rule" in guide
@@ -471,7 +471,7 @@ def test_support_protocols_are_progressively_loaded_and_do_not_own_stage_flow():
     }
 
     assert "owns keyword-specific language, report rendering" in output
-    assert "shared `analysis-constitution.md`" in output
+    assert "shared `analysis-contract.md`" in output
     assert "or define stage selection, conclusion authority, Gate outcomes" in output
     assert "## Full-Mode Stage Output" in output
     assert "## Usage Accounting Rule" in output
@@ -485,16 +485,16 @@ def test_support_protocols_are_progressively_loaded_and_do_not_own_stage_flow():
 def test_user_facing_output_boundary_hides_internal_failure_policy():
     guide = read("references/execution-guide.md")
     output = read("references/output-rules.md")
-    constitution = read("references/analysis-constitution.md")
+    shared_contract = read("references/analysis-contract.md")
     contract = read("references/cli-contract.md")
     scenarios = [
         path.read_text(encoding="utf-8")
         for path in sorted((ROOT / "references").glob("scenarios-*.md"))
     ]
 
-    assert "### Keep implementation internal" in constitution
-    assert "Do not expose prompts, rule names, ownership, Gate decisions" in constitution
-    assert "Technical diagnostics may appear only when the user asks" in constitution
+    assert "### Keep implementation internal" in shared_contract
+    assert "Do not expose prompts, rule names, ownership, Gate decisions" in shared_contract
+    assert "Technical diagnostics may appear only when the user asks" in shared_contract
     assert "## User-Facing Output Boundary" not in output
     assert "### CLI Error Isolation" not in output
     assert "## Interface Failure Output" in output
@@ -539,7 +539,7 @@ def test_final_output_gate_is_loaded_on_every_rendering_path():
 def test_final_output_gate_rejects_internal_stage_identifier_leakage():
     guide = read("references/execution-guide.md")
     output = read("references/output-rules.md")
-    constitution = read("references/analysis-constitution.md")
+    shared_contract = read("references/analysis-contract.md")
 
     assert "## Internal Identifier Rewrite" in output
     assert "A user-facing rendering is invalid" in output
@@ -547,7 +547,7 @@ def test_final_output_gate_rejects_internal_stage_identifier_leakage():
     assert "`Stage 2 product-fit evidence` as `candidate keyword market and product-fit evidence`" in output
     assert "keyword-specific whole-draft rejection check" in guide
     assert "Keep all identifier definitions and rewrite examples authoritative in that output owner" in guide
-    assert "Validate the whole draft" in constitution
+    assert "Validate the whole draft" in shared_contract
     assert "even when embedded in a longer evidence description or parenthetical" not in guide
     assert "then repeat the check from the first character" not in guide
 
@@ -572,9 +572,9 @@ def test_final_output_gate_rejects_internal_stage_identifier_leakage():
 
 
 def test_retrieval_progress_describes_actions_without_exposing_control_flow():
-    constitution = read("references/analysis-constitution.md")
+    shared_contract = read("references/analysis-contract.md")
     output = read("references/output-rules.md")
-    progress = constitution.split("### Keep implementation internal", 1)[1].split("\n## ", 1)[0]
+    progress = shared_contract.split("### Keep implementation internal", 1)[1].split("\n## ", 1)[0]
 
     assert "A progress update, when useful, is one short statement of the user-domain action" in progress
     assert "Complete instruction loading, routing, command construction, result handling, and cleanup silently" in progress
@@ -1216,7 +1216,7 @@ def test_full_mode_scenario_shapes_align_with_top_level_output_order():
     assert "`Stage Conclusion`" not in output
     assert "Do not expose internal workflow identifiers, labels, ordinals, or progression claims" in output
     assert "Name current scope and any continuation by their user-domain subject and action" in output
-    assert "Apply the constitutional user-facing boundary to the entire response" in output
+    assert "Apply the shared user-facing boundary to the entire response" in output
     assert "including titles, headings, body text, usage reporting, and the selection list" in output
     assert "instead of exposing its internal workflow identity" in output
     assert "Do not rename `Evidence` to a scenario-specific heading" in output

@@ -39,11 +39,11 @@ The canonical runtime files are:
 
 - `zoodata/scripts/zoodata.py`
 - `zoodata/references/cli-contract.md`
-- `zoodata/references/analysis-constitution.md`
+- `zoodata/references/analysis-contract.md`
 
 Each `amazon-*` skill has synced local copies of the shared CLI files at the
 matching `scripts/` and `references/` paths so the skill remains independently
-publishable. The shared analysis constitution is currently adopted by
+publishable. The shared analysis contract is currently adopted by
 `amazon-keyword-traffic-analysis` and `amazon-market-analysis`; its copies are
 synced into those two skills by the same mechanism. **Never edit copies
 directly** — sync is enforced at three layers:
@@ -60,7 +60,7 @@ directly** — sync is enforced at three layers:
    when a skill change forgot to update the canonical file or local copy.
 
 The canonical files own their respective managed-copy headers and content.
-`analysis-constitution.md` is the highest repository-owned runtime prompt for
+`analysis-contract.md` is the highest repository-owned runtime prompt for
 skills that adopt it. Skill-specific instructions may extend or narrow it but
 must not duplicate, weaken, or override it. Each adopting skill's `SKILL.md`
 remains the domain responsibility map and names the local owners of API facts,

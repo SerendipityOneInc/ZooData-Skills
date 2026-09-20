@@ -14,7 +14,7 @@ Live evidence commands now default to a private, per-run temporary raw-result fi
 
 Category paths no longer split on commas. `categories --parent` requires a nonempty JSON string array; other category-path flags reject an ambiguous comma-bearing string unless boundaries are explicit through JSON or `>`. Invalid construction fails locally before any API request instead of being silently reinterpreted. Parent discovery treats a folded transcript as a display detail, reuses the complete single-call child list, and completes an up-to-100-child comparison with one category call plus one batch market call. Result-capture, parameter correction, and projection mechanics stay out of user-facing progress.
 
-Added a canonical Shared Analysis Constitution and synced it into the keyword and market analysis skills as the first adopters. It owns the repository rule hierarchy, universal evidence and authority Gates, continuation discipline, user-facing implementation boundary, and whole-draft Final Response Gate. Keyword and market modules now keep only their domain routing, evidence, semantics, scenario, and rendering rules; they may narrow the constitution but cannot duplicate, weaken, or override it.
+Added a canonical Shared Analysis Contract and synced it into the keyword and market analysis skills as the first adopters. It owns the repository rule hierarchy, universal evidence and authority Gates, continuation discipline, user-facing implementation boundary, and whole-draft Final Response Gate. Keyword and market modules now keep only their domain routing, evidence, semantics, scenario, and rendering rules; they may narrow the shared contract but cannot duplicate, weaken, or override it.
 
 ### Changed — Markets API v2 upgrade
 

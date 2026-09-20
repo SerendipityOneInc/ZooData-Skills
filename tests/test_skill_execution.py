@@ -206,9 +206,9 @@ class TestSkillCliExecutes(unittest.TestCase):
                     f"out-of-sync shared contract copy: {copy}",
                 )
 
-    def test_adopting_skills_have_the_canonical_analysis_constitution(self):
+    def test_adopting_skills_have_the_canonical_analysis_contract(self):
         canonical = (
-            REPO / "zoodata" / "references" / "analysis-constitution.md"
+            REPO / "zoodata" / "references" / "analysis-contract.md"
         ).read_bytes()
         adopters = {
             "amazon-keyword-traffic-analysis",
@@ -216,11 +216,11 @@ class TestSkillCliExecutes(unittest.TestCase):
         }
         for name in adopters:
             with self.subTest(skill=name):
-                copy = REPO / name / "references" / "analysis-constitution.md"
+                copy = REPO / name / "references" / "analysis-contract.md"
                 self.assertEqual(copy.read_bytes(), canonical)
                 skill = (REPO / name / "SKILL.md").read_text()
                 self.assertIn(
-                    "Read and apply `references/analysis-constitution.md`",
+                    "Read and apply `references/analysis-contract.md`",
                     skill,
                 )
 
@@ -228,7 +228,7 @@ class TestSkillCliExecutes(unittest.TestCase):
             if cli.name == "zoodata.py" and name not in adopters | {"zoodata"}:
                 self.assertFalse(
                     (REPO / name / "references" /
-                     "analysis-constitution.md").exists(),
+                     "analysis-contract.md").exists(),
                     f"non-adopting skill changed early: {name}",
                 )
 
@@ -244,8 +244,8 @@ class TestSkillCliExecutes(unittest.TestCase):
         self.assertIn("CHECK_ONLY=1", sync_script)
         self.assertIn("OUT-OF-SYNC", sync_script)
         self.assertIn("references/cli-contract.md", pre_commit)
-        self.assertIn("references/analysis-constitution.md", pre_commit)
-        self.assertIn("CONSTITUTION_SKILLS", sync_script)
+        self.assertIn("references/analysis-contract.md", pre_commit)
+        self.assertIn("ANALYSIS_CONTRACT_SKILLS", sync_script)
 
     def test_keyword_skill_keeps_its_specialized_failure_gate(self):
         skill = (REPO / "amazon-keyword-traffic-analysis" / "SKILL.md").read_text()

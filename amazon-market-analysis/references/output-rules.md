@@ -1,6 +1,6 @@
 # Output Rules — Amazon Market Analysis
 
-This module owns market-specific language, confidence labels, report shape, provenance, and credit accounting. The shared `analysis-constitution.md` owns the universal user-facing boundary and progress discipline. The execution guide and scenario determine which conclusion is allowed; this module only renders it.
+This module owns market-specific language, confidence labels, report shape, provenance, and credit accounting. The shared `analysis-contract.md` owns the universal user-facing boundary and progress discipline. The execution guide and scenario determine which conclusion is allowed; this module only renders it.
 
 ## Language and interface failure
 
@@ -24,7 +24,7 @@ For one normally completed full stage, use this localized top-level order:
 6. `API Usage` — calls and credits; and
 7. one final numbered selection list rendered from the guide's handoff decisions, after the report body.
 
-Scenario files may require a table or a subsection *inside* these headings; they do not rename or reorder the skeleton. Apply the constitutional user-facing boundary to the whole rendering. A prose sentence in the conclusion does not replace the final selection list. Do not repeat a previous report or present an unvisited stage as completed. A user-supplied seller figure must be labeled as user-provided.
+Scenario files may require a table or a subsection *inside* these headings; they do not rename or reorder the skeleton. Apply the shared user-facing boundary to the whole rendering. A prose sentence in the conclusion does not replace the final selection list. Do not repeat a previous report or present an unvisited stage as completed. A user-supplied seller figure must be labeled as user-provided.
 
 ## Confidence and evidence labels
 

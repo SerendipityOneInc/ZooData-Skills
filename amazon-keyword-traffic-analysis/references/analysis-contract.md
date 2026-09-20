@@ -1,23 +1,23 @@
 <!-- Canonical source - do not edit copies under amazon-* skill directories directly. -->
 
-# Shared Analysis Constitution
+# Shared Analysis Contract
 
-This file is the highest-level runtime prompt shared by each analysis skill that adopts it. It owns the principles and universal Gates that apply regardless of business domain. A skill's `SKILL.md` and local references form its domain rules and implementation rules.
+This file is the highest-level runtime prompt shared by each analysis skill that adopts it. It owns the principles and universal Gates that apply regardless of business domain. A skill's `SKILL.md` and local references define its domain rules and implementation rules.
 
 ## Rule hierarchy
 
 Apply repository runtime rules in this order:
 
-1. this shared constitution;
+1. this shared analysis contract;
 2. the active skill's `SKILL.md` responsibility map and non-negotiable boundaries;
 3. owner references named by that responsibility map, including the shared `cli-contract.md`;
 4. scenario instructions and examples.
 
 Higher-level rules prevail when two repository instructions conflict. A lower-level module may add domain requirements, choose among options left open here, or impose a stricter limit. It must not weaken, duplicate, redefine, or create an exception to a higher-level rule. Examples illustrate a rule and never create an exception.
 
-Keep ownership singular. Put a rule in its highest applicable owner, and let downstream modules reference it. Domain rules own domain meaning; API references own interface facts; the CLI contract owns invocation and result classification; output modules own domain-specific presentation within this constitution.
+Keep ownership singular. Put a rule in its highest applicable owner, and let downstream modules reference it. Domain rules own domain meaning; API references own interface facts; the CLI contract owns invocation and result classification; output modules own domain-specific presentation within this contract.
 
-## Constitutional principles
+## Core principles
 
 ### Preserve the user's decision
 
@@ -79,18 +79,18 @@ Close the current decision before offering further exploration. Offer only evide
 Apply this Gate immediately before every user-facing send, including progress, clarification, success, partial result, and failure messages.
 
 1. Select one rendering route owned by the active domain's output rules.
-2. Validate the whole draft from its first emitted character through its last against this constitution and that route.
+2. Validate the whole draft from its first emitted character through its last against this contract and that route.
 3. Reject any draft that leaks implementation details, internal identifiers, unsupported claims, incompatible evidence, or text outside the selected route.
 4. If validation fails, discard the draft and render it again from the owner rules. Do not patch a leaked sentence while retaining an invalid wrapper.
 
 Client-generated tool or task notifications are outside the assistant draft, but assistant-authored commentary is inside it.
 
-## Domain-law requirements
+## Skill integration requirements
 
-Every skill that adopts this constitution must declare in `SKILL.md`:
+Every skill that adopts this contract must declare in `SKILL.md`:
 
-- that this constitution is loaded before analysis or user-facing output;
+- that this contract is loaded before analysis or user-facing output;
 - which local module owns routing, API facts, field semantics, evidence procedures, domain Gates, scenarios, and rendering;
-- that local modules may extend or narrow this constitution but cannot override or duplicate it.
+- that local modules may extend or narrow this contract but cannot override or duplicate it.
 
 Domain modules should contain only rules that depend on that domain. Put API field names, business thresholds, evidence sets, scenario transitions, report sections, and localized failure wording in their declared local owners. Keep universal workflow and communication rules here.

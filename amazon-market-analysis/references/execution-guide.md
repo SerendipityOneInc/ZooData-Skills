@@ -93,7 +93,7 @@ At the next user turn, classify the actual reply through `SKILL.md`. A bare numb
 
 ### Final Output Gate
 
-Apply `analysis-constitution.md § 7. Final Response Gate` immediately before every user-facing send. This market law adds only the following rendering checks:
+Apply `analysis-contract.md § 7. Final Response Gate` immediately before every user-facing send. This market module adds only the following rendering checks:
 
 1. Select one market output route and its complete permitted shape from `output-rules.md`; a normally completed full stage also uses the Stage-End Selection List Rule above.
 2. For quick mode, require source, scope, returned date, requested metric, limitations, and usage. For a normally completed full stage, require the canonical `Data Notes → Evidence → Analysis → Conclusion → API Usage → one final numbered selection list` order. A prose-only “next step”, missing final list, or missing fixed new-question/exit item fails.

@@ -212,7 +212,7 @@ This list is an interaction contract, not a workflow status. The user is never r
 
 ### Final Output Gate
 
-Apply `analysis-constitution.md § 7. Final Response Gate` immediately before every user-facing send. This keyword law adds only the following rendering checks:
+Apply `analysis-contract.md § 7. Final Response Gate` immediately before every user-facing send. This keyword module adds only the following rendering checks:
 
 1. Select exactly one keyword output route from `output-rules.md`; a normally completed Full-Mode stage also uses the Stage-End Selection List Rule above.
 2. For a hard interface failure, validate the complete draft exclusively against `output-rules.md § Interface Failure Output`.
