@@ -101,7 +101,7 @@ When `products` or `competitors` returns ASINs in Full-mode analysis, call `prod
 3. If still no match, use realtime/product on a known ASIN to extract categoryPath
 4. Validate categoryPath matches the user's intended product type
 
-**Data-driven category selection:** When the user provides a broad interest (e.g. "home products") instead of a specific niche, resolve its category ID with `categories`, browse all direct children with `categories --parent`, and compare them through `market --category-ids` in batches of at most 100 IDs. Do not choose candidate children from category-tree order. Compare returned `sampleNewProductRate` together with its `newProductPeriod`, `sampleTop10BrandSalesRate`, `sampleFbmRate`, and `sampleMedianPrice` as separate selected Top 100 observations; keep them separate from full-category totals and avoid an uncalibrated composite score. Select Top 3-5 for deeper analysis only after the relevant children have comparable market rows.
+**Data-driven category selection:** When the user provides a broad interest (e.g. "home products") instead of a specific niche, resolve its category ID with `categories`, browse all direct children with `categories --parent`, and compare them through `market --category-ids` in batches of at most 100 IDs. Do not choose candidate children from category-tree order. Compare returned `marketSample.newProductMetrics[]` at the same `periodMonths`, the Top 10 row of `marketSample.brandTopNMetrics[]`, `marketSample.fbmRate`, and `marketSample.medianPrice` as separate selected Top 100 observations; keep them separate from full-category totals and avoid an uncalibrated composite score. Select Top 3-5 for deeper analysis only after the relevant children have comparable market rows.
 
 ---
 
@@ -198,8 +198,8 @@ Use this rendered template at the end of every report:
 
 **Tracking rules:**
 1. Count endpoint calls, not CLI executions. A composite invocation can make several calls. The CLI's top-level `meta.apiCalls` counts calls that returned credit metadata. Inspect nested `_query.endpoint` values to attribute visible calls, and show any difference as unattributed internal calls. List visible failed calls without credit metadata separately; they may be absent from `meta.apiCalls`. Do not invent endpoint identities for calls omitted from the composite payload.
-2. For each CLI invocation, take the top-level `meta.creditsConsumed` as its accumulated credit total. Sum those top-level totals across separate invocations; do not add a composite's nested credit values to its top-level total again.
-3. Use the latest returned top-level `meta.creditsRemaining` across invocations. If `meta.apiCalls` or a credit field is absent, report the unavailable value instead of deriving credits from call counts.
+2. For each CLI invocation, take top-level `meta.creditsConsumedExact` when returned, otherwise `meta.creditsConsumed`, as its accumulated credit total. Sum those top-level totals across separate invocations; do not add a composite's nested credit values to its top-level total again.
+3. Use the latest returned top-level `meta.creditsRemainingExact` when returned, otherwise `meta.creditsRemaining`. If `meta.apiCalls` or a credit field is absent, report the unavailable value instead of deriving credits from call counts.
 4. Check that the final report contains an `API Usage` block with actual call and credit evidence.
 
 ---
@@ -220,7 +220,7 @@ Use the thresholds in `Market Health Assessment` below only with matching return
 
 ### Opportunity Viability
 When user asks "should I sell X" or "is this a good niche":
-- Compare selected-sample demand, review burden, and `sampleTop10BrandSalesRate` separately against markets with compatible category scope, sample selector, and date. A selected Top 100 rate alone does not establish entry viability.
+- Compare selected-sample demand, review burden, and `marketSample.brandTopNMetrics[brandTopN=10].monthlySalesRate` separately against markets with compatible category scope, sample selector, and date. A selected Top 100 rate alone does not establish entry viability.
 - Treat seller costs, product differentiation, and compliance evidence as separate inputs before an entry verdict.
 - Mixed signals → Present data, let user decide with their domain knowledge 💡
 
@@ -231,15 +231,15 @@ When user asks "should I sell X" or "is this a good niche":
 
 ## Market Health Assessment
 
-Use `totalMonthlyRevenue` from `markets/search` for full-category revenue and `sampleMonthlyRevenue` for its selected sample. Do not calculate revenue from price × sales; the field definitions are in `reference.md § 2`.
+Use `marketTotal.monthlyRevenue` from `markets/search` for full-category revenue and `marketSample.monthlyRevenue` for its selected sample. Do not calculate revenue from price × sales; the field definitions are in `reference.md § 2`.
 
 | Indicator | Good | Caution | Warning |
 |-----------|------|---------|---------|
-| Monthly demand (`sampleMonthlySales`) | >1,500 units 🔍 | 500-1,500 🔍 | <500 🔍 |
-| Avg review count (`sampleAvgRatingCount`) | <500 🔍 | 500-5,000 🔍 | >5,000 🔍 |
-| FBM rate (`sampleFbmRate`) | <40% 🔍 | 40-60% 🔍 | >60% 🔍 |
+| Monthly demand per sampled product (`marketSample.avgMonthlySales`) | >1,500 units 🔍 | 500-1,500 🔍 | <500 🔍 |
+| Avg review count (`marketSample.avgRatingCount`) | <500 🔍 | 500-5,000 🔍 | >5,000 🔍 |
+| FBM rate (`marketSample.fbmRate`) | <40% 🔍 | 40-60% 🔍 | >60% 🔍 |
 
-These remaining bands are exploratory heuristics, not calibrated entry verdicts. Read `sampleTop10ProductSalesRate` and `sampleTop10BrandSalesRate` as separate selected Top 100 monthly-sales concentration measures. Read `sampleNewProductRate` as the new-product share for the returned `newProductPeriod` within that sample. Do not classify these three rates from former fixed cutoffs; compare compatible peers or prior snapshots and state the observed denominator and window.
+These remaining bands are exploratory heuristics, not calibrated entry verdicts. Read `marketSample.productTopNMetrics[productTopN=10].monthlySalesRate` and `marketSample.brandTopNMetrics[brandTopN=10].monthlySalesRate` as separate selected Top 100 monthly-sales concentration measures. Read `marketSample.newProductMetrics[].newSkuRate` from an explicitly identified `periodMonths` row as the new-product share within that sample. Do not classify these three rates from former fixed cutoffs; compare compatible peers or prior snapshots and state the observed denominator and window.
 
 ## Cross-endpoint evidence use
 

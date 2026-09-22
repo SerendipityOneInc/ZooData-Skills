@@ -1,6 +1,7 @@
 """Ownership and scenario routing for the unified market skill."""
 
 import re
+import runpy
 import unittest
 from pathlib import Path
 
@@ -15,6 +16,25 @@ RETIRED_MARKET_SOURCE_SKILLS = {
 
 
 class TestMarketSkillOwnership(unittest.TestCase):
+    def test_upgraded_market_request_metadata_matches_shared_cli(self):
+        owner = (ROOT / "zoodata" / "references" /
+                 "openapi-reference.md").read_text()
+        filters_block = owner.split("Current `filters` keys", 1)[1].split(
+            "Current `sortBy` values", 1)[0]
+        documented_filters = set()
+        for name in re.findall(r"`([^`]+)`", filters_block):
+            if name.endswith("Min/Max"):
+                documented_filters.update((name[:-7] + "Min", name[:-7] + "Max"))
+            elif name.endswith(("Min", "Max")) or name == "sellerCountry":
+                documented_filters.add(name)
+        sort_block = owner.split("Current `sortBy` values are", 1)[1].split(
+            ".\n", 1)[0]
+        documented_sorts = set(re.findall(r"`([^`]+)`", sort_block))
+        cli = runpy.run_path(str(ROOT / "zoodata" / "scripts" / "zoodata.py"))
+        self.assertEqual(documented_filters, set(cli["MARKET_FILTER_FIELDS"]))
+        self.assertEqual(documented_sorts, set(cli["MARKET_SORT_FIELDS"]))
+        self.assertEqual((len(documented_filters), len(documented_sorts)), (61, 17))
+
     def test_one_market_skill_dispatches_three_independent_scenarios(self):
         skill = (MARKET / "SKILL.md").read_text()
         self.assertIn("## Source-of-truth boundaries", skill)
@@ -227,17 +247,16 @@ class TestMarketSkillOwnership(unittest.TestCase):
         for path in owners:
             with self.subTest(module=path.name):
                 text = path.read_text()
-                self.assertIn("sampleNewProduct", text)
-                self.assertIn("newProductPeriod", text)
+                self.assertIn("marketTotal", text)
+                self.assertIn("marketSample", text)
+                self.assertIn("newProductMetrics", text)
                 self.assertIsNone(re.search(r"sampleNewProduct\w*6m", text))
-                self.assertNotIn("newProductMetrics", text)
                 self.assertNotIn("sampleConservative", text)
         for path in ROOT.glob("amazon-*/references/*.md"):
             if path.parent.parent.name in RETIRED_MARKET_SOURCE_SKILLS:
                 continue
             text = path.read_text()
             self.assertIsNone(re.search(r"sampleNewProduct\w*6m", text), str(path))
-            self.assertNotIn("newProductMetrics", text, str(path))
             self.assertNotIn("sampleConservative", text, str(path))
             self.assertNotIn("actualStartDate", text, str(path))
             self.assertNotIn("actualEndDate", text, str(path))
@@ -256,15 +275,20 @@ class TestMarketSkillOwnership(unittest.TestCase):
             self.assertIn("includeDescendantCategoryProducts", market_section)
             self.assertIn("dateFrom", market_section)
             self.assertIn("dateTo", market_section)
+            self.assertIn("marketTotal", market_section)
+            self.assertIn("marketSample", market_section)
+            self.assertIn("newProductMetrics[]", market_section)
 
         owner = owners[0].read_text()
         reference = owners[1].read_text()
         semantics = owners[2].read_text()
-        self.assertIn("`topSalesRateMin/Max`", owner)
-        self.assertIn("`sampleTop10ProductSalesRateMin/Max`", owner)
+        self.assertIn("`topNProductMonthlySalesRateMin/Max`", owner)
+        self.assertNotIn("`topSalesRateMin/Max`", owner)
+        self.assertNotIn("`sampleTop10ProductSalesRateMin/Max`", owner)
         self.assertIn("`dateFrom`, and `dateTo`", owner)
         self.assertIn("`includeDescendantCategoryProducts`", reference)
-        self.assertIn("Fixed `sampleTop10*` fields", semantics)
+        self.assertIn("`marketSample.productTopNMetrics[]`", semantics)
+        self.assertIn("`periodMonths`", semantics)
         self.assertNotIn("`startDate`, and `endDate`", reference)
         self.assertNotIn("Optional `categoryScope`", owner)
 

@@ -27,7 +27,7 @@
 Base URL: `https://api.zoodata.ai/openapi/v2`
 Auth: `Bearer $ZOODATA_API_KEY`
 Method: All POST with JSON body
-All endpoints return: `{success, data, error, meta}` with `meta.creditsRemaining`
+All endpoints return: `{success, data, error, meta}`. When provided, `meta.creditsConsumedExact` and `meta.creditsRemainingExact` carry precise credit amounts; the parallel `meta.creditsConsumed` and `meta.creditsRemaining` fields are rounded.
 
 ---
 
@@ -283,21 +283,21 @@ keyword-intelligence endpoints described by the package index.
 | Data Point | Primary Source | Validation Source |
 |-----------|---------------|-------------------|
 | Market size | markets/search | products/search (total count) |
-| Brand concentration | brand-overview (sampleTop10BrandSalesRate) | markets/search (sampleTop10BrandSalesRate) |
+| Brand concentration | brand-overview (sampleTop10BrandSalesRate) | markets/search (marketSample.brandTopNMetrics[brandTopN=10].monthlySalesRate) |
 | Price distribution | price-band-detail | products/search (price field) |
-| Competition level | markets/search (`sampleTop10ProductSalesRate`, selected Top 100 sales) | brand-detail (top brand shares) |
+| Competition level | markets/search (`marketSample.productTopNMetrics[productTopN=10].monthlySalesRate`, selected Top 100 sales) | brand-detail (top brand shares) |
 | Consumer demand | reviews/analysis | products (sales + growth) |
-| Avg rating quality | markets/search (sampleAvgRating) | brand-overview (sampleTop10AvgRating) |
+| Avg rating quality | markets/search (marketSample.avgRating) | brand-overview (sampleTop10AvgRating) |
 
 ## Field Differences Across Endpoints
 
 | Data | markets | products/competitors | realtime/product | reviews/analysis | realtime/reviews | price-band | brand | history |
 |------|---------|---------------------|----------|---------|---------|------------|-------|---------|
-| Sales | totalMonthlySales / sampleMonthlySales | monthlySalesFloor | ❌ | ❌ | ❌ | sampleSalesRate | sampleGroupMonthlySales | monthlySalesFloor[] |
-| Price | sampleMedianPrice | price | buyboxWinner.price | ❌ | ❌ | bandMin/MaxPrice | sampleAvgPrice | price[] |
+| Sales | marketTotal.monthlySales / marketSample.monthlySales | monthlySalesFloor | ❌ | ❌ | ❌ | sampleSalesRate | sampleGroupMonthlySales | monthlySalesFloor[] |
+| Price | marketSample.medianPrice | price | buyboxWinner.price | ❌ | ❌ | bandMin/MaxPrice | sampleAvgPrice | price[] |
 | BSR | ❌ | bsr (int) | bestsellersRank[] | ❌ | ❌ | ❌ | ❌ | bsr[] |
-| Rating | sampleAvgRating | rating | rating | avgRating | rating (per review) | sampleAvgRating | sampleAvgRating | rating[] |
-| Reviews | sampleAvgRatingCount | ratingCount | ratingCount | reviewCount | reviews[] (raw text, max 100) | ❌ | sampleAvgRatingCount | ratingCount[] |
+| Rating | marketSample.avgRating | rating | rating | avgRating | rating (per review) | sampleAvgRating | sampleAvgRating | rating[] |
+| Reviews | marketSample.avgRatingCount | ratingCount | ratingCount | reviewCount | reviews[] (raw text, max 100) | ❌ | sampleAvgRatingCount | ratingCount[] |
 | Insights | ❌ | ❌ | ❌ | ✅ consumerInsights | ❌ (raw only — feeds Local Review Toolkit) | ❌ | ❌ | ❌ |
-| Concentration | sampleTop10BrandSalesRate | ❌ | ❌ | ❌ | ❌ | sampleTop3BrandSalesRate | CR10 | ❌ |
+| Concentration | marketSample.brandTopNMetrics[brandTopN=10].monthlySalesRate | ❌ | ❌ | ❌ | ❌ | sampleTop3BrandSalesRate | CR10 | ❌ |
 | Opportunity | ❌ | ❌ | ❌ | ❌ | ❌ | sampleOpportunityIndex | ❌ | ❌ |

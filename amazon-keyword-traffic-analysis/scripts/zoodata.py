@@ -1349,11 +1349,10 @@ MARKET_FILTER_FIELDS = (
     "sampleAvgRatingCountMin", "sampleAvgRatingCountMax",
     "totalSkuCountMin", "totalSkuCountMax",
     "sampleSkuCountMin", "sampleSkuCountMax",
-    "topAvgMonthlySalesMin", "topAvgMonthlySalesMax",
-    "topAvgMonthlyRevenueMin", "topAvgMonthlyRevenueMax",
-    "topSalesRateMin", "topSalesRateMax",
-    "topBrandSalesRateMin", "topBrandSalesRateMax",
-    "topSellerSalesRateMin", "topSellerSalesRateMax",
+    "topNProductMonthlySalesRateMin", "topNProductMonthlySalesRateMax",
+    "topNProductMonthlyRevenueRateMin", "topNProductMonthlyRevenueRateMax",
+    "topNBrandMonthlySalesRateMin", "topNBrandMonthlySalesRateMax",
+    "topNBrandMonthlyRevenueRateMin", "topNBrandMonthlyRevenueRateMax",
     "sampleBrandCountMin", "sampleBrandCountMax",
     "sampleSellerCountMin", "sampleSellerCountMax",
     "sampleFbaRateMin", "sampleFbaRateMax",
@@ -1364,24 +1363,15 @@ MARKET_FILTER_FIELDS = (
     "sampleNewSkuAvgPriceMin", "sampleNewSkuAvgPriceMax",
     "sampleAvgPackageWeightMin", "sampleAvgPackageWeightMax",
     "sampleAvgPackageVolumeMin", "sampleAvgPackageVolumeMax",
-    "topAvgBsrMin", "topAvgBsrMax",
     "sellerCountry",
     "totalMonthlySalesMin", "totalMonthlyRevenueMin",
-    "sampleMonthlySalesMin", "sampleMonthlyRevenueMin",
     "sampleAvgGrossMarginRateMin", "sampleAvgGrossMarginRateMax",
     "sampleNewSkuAvgMonthlyRevenueMin", "sampleNewSkuAvgMonthlyRevenueMax",
     "sampleNewSkuAvgRatingMin", "sampleNewSkuAvgRatingMax",
     "sampleNewSkuAvgRatingCountMin", "sampleNewSkuAvgRatingCountMax",
-    "sampleTop10ProductSalesRateMin", "sampleTop10ProductSalesRateMax",
-    "sampleTop10ProductRevenueRateMin", "sampleTop10ProductRevenueRateMax",
-    "sampleTop10BrandSalesRateMin", "sampleTop10BrandSalesRateMax",
-    "sampleTop10BrandRevenueRateMin", "sampleTop10BrandRevenueRateMax",
     "sampleAvgSellerCountMin", "sampleAvgSellerCountMax",
     "sampleFbmRateMin", "sampleFbmRateMax",
     "sampleAPlusRateMin", "sampleAPlusRateMax",
-    "newProductRatingCountMin", "newProductRatingCountMax",
-    "newProductRatingMin", "newProductRatingMax",
-    "newProductMonthlyRevenueMin", "newProductMonthlyRevenueMax",
 )
 
 MARKET_INTEGER_FILTER_FIELDS = {
@@ -1399,9 +1389,7 @@ MARKET_SORT_FIELDS = (
     "totalSkuCount", "sampleSkuCount", "sampleAvgPrice",
     "sampleTotalMonthlySales", "sampleAvgBsr", "sampleAvgRating",
     "sampleAvgRatingCount", "sampleBrandCount", "sampleSellerCount",
-    "sampleFbaRate", "sampleNewSkuRate", "topAvgMonthlySales",
-    "topAvgMonthlyRevenue", "topSalesRate", "topBrandSalesRate",
-    "topSellerSalesRate",
+    "sampleFbaRate", "sampleNewSkuRate",
 )
 
 
@@ -1450,7 +1438,6 @@ def _market_single_params(args):
             "includeDescendantCategoryProducts": args.include_descendant_category_products,
             "marketplace": args.marketplace,
             "sampleType": args.sample_type,
-            "newProductPeriod": args.new_product_period,
             **({"date": args.date} if getattr(args, "date", None) else {})}
 
 
@@ -3697,9 +3684,9 @@ Examples:
     p_mkt.add_argument("--marketplace", choices=["US"], default="US")
     p_mkt.add_argument("--sample-type", choices=["unitSalesTop100", "revenueTop100"], default="unitSalesTop100")
     p_mkt.add_argument("--top-n", choices=["3", "5", "10", "20"], default="10",
-                       help="Top N window used by dynamic filters and sorting (default: 10)")
+                       help="Top N group used by Top N filters (default: 10); response includes all four groups")
     p_mkt.add_argument("--new-product-period", choices=["1", "3", "6", "12"], default="3",
-                       help="New-product window in calendar months (default: 3)")
+                       help="New-product window used by filters and sorting (default: 3); response includes all four windows")
     p_mkt.add_argument("--date", help="Snapshot date (YYYY-MM-DD)")
     for field in MARKET_FILTER_FIELDS:
         value_type = str if field == "sellerCountry" else (
@@ -3720,8 +3707,6 @@ Examples:
                        default=True, help="Include descendant-category products (default: true)")
         p.add_argument("--marketplace", choices=["US"], default="US")
         p.add_argument("--sample-type", choices=["unitSalesTop100", "revenueTop100"], default="unitSalesTop100")
-        p.add_argument("--new-product-period", choices=["1", "3", "6", "12"], default="3",
-                       help="New-product window in calendar months (default: 3)")
         if name == "market-history":
             p.add_argument("--date-from", required=True)
             p.add_argument("--date-to", required=True)

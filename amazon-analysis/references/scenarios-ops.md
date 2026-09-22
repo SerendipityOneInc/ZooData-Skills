@@ -61,8 +61,8 @@ Choose comparison evidence by subject: use `market-history` for category-market 
 |------------|-----------------|-------------------|
 | New blockbuster invasion | Step 3 results | New product (<90 days) already in Top 20 by sales |
 | Price war risk | Step 2 price distribution | Multiple top products clustered at same low price point |
-| Concentration shift | Step 1 `sampleTop10ProductSalesRate` | Investigate only against a comparable prior snapshot or peer baseline with the same category scope and Top 100 selector; no fixed 60% alert. |
-| New-product share shift | Step 1 `sampleNewProductRate` with matching `newProductPeriod` | Investigate only against a comparable prior snapshot or peer baseline; the former conservative-classification cutoffs do not apply. |
+| Concentration shift | Step 1 Top 10 product sales concentration | Investigate only against a comparable prior snapshot or peer baseline with the same category scope and Top 100 selector; no fixed 60% alert. |
+| New-product share shift | Step 1 sample new-product share for a matching launch window | Investigate only against a comparable prior snapshot or peer baseline; the former conservative-classification cutoffs do not apply. |
 
 Both rates describe the selected Top 100, not the entire category. Without a compatible baseline, report the current values as context rather than triggering an alert.
 

@@ -118,7 +118,7 @@ For every parsed HTTP response from `zoodata.py`, treat `_transport.status` as t
 | # | Endpoint | Purpose | Key Output |
 |---|----------|---------|------------|
 | 1 | `categories` | Browse/search category tree | categoryPath, productCount |
-| 2 | `markets/search` | Paginated discovery or exact category snapshot | categoryId, total* and selected sample* metrics |
+| 2 | `markets/search` | Paginated discovery or exact category snapshot | categoryId, `marketTotal` and selected `marketSample` metrics |
 | 3 | `products/search` | Product search (20+ filter fields) | asin, price, monthlySalesFloor, rating, ratingCount, fbaFee |
 | 4 | `products/competitors` | Competitor discovery | same fields as products/search |
 | 5 | `realtime/product` | Live ASIN detail | rating, features, bestsellersRank[], buyboxWinner.price, variants |
@@ -140,8 +140,8 @@ For every parsed HTTP response from `zoodata.py`, treat `_transport.status` as t
 | 21 | `/openapi/v2/keywords/product-traffic-terms-trend` | Per-keyword weekly traffic trend for one ASIN | `data.context + data.items[].series[]` with nested ASIN, traffic, placement, keyword, and ad groups |
 | 22 | `/openapi/v2/keywords/product-traffic-trend` | ASIN-level weekly raw traffic across all keywords | `data.context + data.items[].series[]` with total/organic/ad traffic and term coverage |
 | 23 | `/openapi/v2/keywords/product-traffic-trend-profile` | Server-calculated four-week ASIN traffic conclusions | `data.context + data.items[].rows[].trafficTrendProfile` |
-| 24 | `markets/structure-profile` | One Top 100 distribution | data.buckets[] for one dimension |
-| 25 | `markets/history` | One category's month-end series | data.points[] with available MoM/YoY rates |
+| 24 | `markets/structure-profile` | One Top 100 distribution | data.buckets[] with four-window `newProductMetrics[]` |
+| 25 | `markets/history` | One category's month-end series | data.points[] with `marketTotal` and `marketSample` |
 
 ## Known Quirks
 - Market request quirks, including the live `sampleType` values and retired parameters, are owned by `references/openapi-reference.md § 2`.

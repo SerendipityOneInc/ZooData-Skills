@@ -16,7 +16,7 @@ For each supplied number, preserve currency, marketplace, unit, time horizon, an
 
 ## Calculation boundaries
 
-When enough compatible per-unit inputs exist, show `contribution per unit = net realized price − landed cost − marketplace/fulfillment fees − acquisition and expected return costs`. Show every included component and mark omitted material costs. `contribution margin = contribution per unit ÷ net realized price` only when that denominator is positive and all included costs use the same unit/currency. A scenario range is preferable to a point estimate when ads or returns are uncertain. Do not compute or claim profit from market `totalMonthlyRevenue`, `sampleMedianPrice`, or A+ content rate.
+When enough compatible per-unit inputs exist, show `contribution per unit = net realized price − landed cost − marketplace/fulfillment fees − acquisition and expected return costs`. Show every included component and mark omitted material costs. `contribution margin = contribution per unit ÷ net realized price` only when that denominator is positive and all included costs use the same unit/currency. A scenario range is preferable to a point estimate when ads or returns are uncertain. Do not compute or claim profit from category market revenue, selected-sample price, or A+ content rate.
 
 ## Risk evidence
 

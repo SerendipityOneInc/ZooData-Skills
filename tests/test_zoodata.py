@@ -363,11 +363,10 @@ class TestEndpointRouting(unittest.TestCase):
                     "--no-include-descendant-category-products", "--sample-type", "revenueTop100",
                     "--new-product-period", "12", "--top-n", "5",
                     "--total-monthly-revenue-min", "100000", "--sample-fbm-rate-max", "0.5",
-                    "--sample-monthly-sales-min", "1000",
                     "--sample-avg-package-volume-max", "5000",
-                    "--top-brand-sales-rate-max", "0.6",
-                    "--sample-top10-product-sales-rate-max", "0.3",
-                    "--sort", "topBrandSalesRate")
+                    "--top-n-brand-monthly-sales-rate-max", "0.6",
+                    "--top-n-product-monthly-revenue-rate-max", "0.3",
+                    "--sort", "sampleAvgMonthlySales")
         self.assertEqual(r["params"]["category"], {
             "name": "Health & Household", "includeDescendantCategoryProducts": False})
         self.assertEqual(r["params"]["sampleType"], "revenueTop100")
@@ -376,12 +375,13 @@ class TestEndpointRouting(unittest.TestCase):
         self.assertEqual(r["params"]["filters"], {
             "totalMonthlyRevenueMin": 100000,
             "sampleFbmRateMax": 0.5,
-            "sampleMonthlySalesMin": 1000,
             "sampleAvgPackageVolumeMax": 5000,
-            "topBrandSalesRateMax": 0.6,
-            "sampleTop10ProductSalesRateMax": 0.3,
+            "topNBrandMonthlySalesRateMax": 0.6,
+            "topNProductMonthlyRevenueRateMax": 0.3,
         })
-        self.assertEqual(r["params"]["sortBy"], "topBrandSalesRate")
+        self.assertEqual(r["params"]["sortBy"], "sampleAvgMonthlySales")
+        self.assertEqual(len(zoodata.MARKET_FILTER_FIELDS), 61)
+        self.assertEqual(len(zoodata.MARKET_SORT_FIELDS), 17)
 
     def test_market_batch_ids_and_path(self):
         r = run_cli("market", "--category-ids", "15342811, 3760941",
@@ -403,22 +403,21 @@ class TestEndpointRouting(unittest.TestCase):
 
     def test_market_structure_profile(self):
         r = run_cli("market-structure-profile", "--category-id", "3760901",
-                    "--dimension", "price", "--new-product-period", "6",
+                    "--dimension", "price",
                     "--no-include-descendant-category-products")
         self.assertEqual(r["endpoint"], "markets/structure-profile")
         self.assertEqual(r["params"]["dimension"], "price")
-        self.assertEqual(r["params"]["newProductPeriod"], "6")
+        self.assertNotIn("newProductPeriod", r["params"])
         self.assertFalse(r["params"]["includeDescendantCategoryProducts"])
         self.assertNotIn("categoryScope", r["params"])
 
     def test_market_history(self):
         r = run_cli("market-history", "--category-id", "3760901",
-                    "--date-from", "2026-01-01", "--date-to", "2026-08-31",
-                    "--new-product-period", "12")
+                    "--date-from", "2026-01-01", "--date-to", "2026-08-31")
         self.assertEqual(r["endpoint"], "markets/history")
         self.assertEqual(r["params"]["dateFrom"], "2026-01-01")
         self.assertEqual(r["params"]["dateTo"], "2026-08-31")
-        self.assertEqual(r["params"]["newProductPeriod"], "12")
+        self.assertNotIn("newProductPeriod", r["params"])
         self.assertTrue(r["params"]["includeDescendantCategoryProducts"])
         self.assertNotIn("categoryScope", r["params"])
         self.assertNotIn("date", r["params"])
@@ -427,7 +426,10 @@ class TestEndpointRouting(unittest.TestCase):
         for option, value in (("--category", "Pet Supplies"),
                               ("--keyword", "yoga"), ("--topn", "10"),
                               ("--top100-fbm-rate-max", "0.5"),
-                              ("--sales-min", "1000")):
+                              ("--sales-min", "1000"),
+                              ("--top-brand-sales-rate-max", "0.5"),
+                              ("--sample-top10-product-sales-rate-max", "0.5"),
+                              ("--sample-monthly-sales-min", "1000")):
             with self.subTest(option=option), self.assertRaises(SystemExit):
                 run_cli("market", option, value)
         retired_commands = (
@@ -439,6 +441,12 @@ class TestEndpointRouting(unittest.TestCase):
             ("market-history",
              ("--category-id", "3760901", "--date-from", "2026-01-01",
               "--date-to", "2026-08-31", "--end-date", "2026-08-31")),
+            ("market-history",
+             ("--category-id", "3760901", "--date-from", "2026-01-01",
+              "--date-to", "2026-08-31", "--new-product-period", "6")),
+            ("market-structure-profile",
+             ("--category-id", "3760901", "--dimension", "price",
+              "--new-product-period", "6")),
         )
         for command, argv in retired_commands:
             with self.subTest(command=command, option=argv[-2]), self.assertRaises(SystemExit):

@@ -53,16 +53,16 @@ python3 scripts/zoodata.py market --category-id "<categoryId from categories>"
 
 **Discontinuation Signals**:
 
-⚠️ API provides current snapshot only. Growth rates (`salesGrowthRate`, `bsrGrowthRate`) reflect recent trends but are not historical time-series. Use them as directional indicators, not definitive proof of sustained decline.
+Product growth rates (`salesGrowthRate`, `bsrGrowthRate`) reflect recent changes but are not product history points. Use `history` for an ASIN time series and `market-history` for category month-end movement before claiming a sustained trend.
 
 | Signal | Data Source | Trigger Condition |
 |--------|-------------|-------------------|
 | Sales decline | `salesGrowthRate` | Negative growth rate (current snapshot) |
 | High competition | `sellerCount` | Currently > 10 sellers |
 | BSR worsening | `bsrGrowthRate` | Negative BSR growth (rank number increasing) |
-| Weak market | `sampleMonthlySales` | Category avg below viable threshold |
+| Weak market | `marketSample.avgMonthlySales` | Sample per-product average below the seller's viable threshold |
 
-**Note:** `salesGrowthRate` and `bsrGrowthRate` come from `products`/`competitors` interface. `realtime/product` does NOT provide these fields. For stronger evidence, run this analysis periodically and compare snapshots.
+**Note:** `salesGrowthRate` and `bsrGrowthRate` come from `products`/`competitors`; `realtime/product` does not provide them. Use the corresponding history command when the requested historical dimension is available.
 
 **Output Template**
 

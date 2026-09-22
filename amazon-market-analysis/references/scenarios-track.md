@@ -26,7 +26,7 @@ The historical stage is valid without any prior discovery or entry assessment. A
 
 - Require the user's stated category set, cadence, and thresholds before initializing watch state. Require a notification destination only when the user requests external notifications. Do not schedule or persist state on a vague "what's trending?" request.
 - For an opted-in local baseline, store only category IDs/paths, scope, sample selector, returned date, selected market fields, and threshold configuration under `~/.zoodata/market-analysis/`; do not store credentials or seller private text in the snapshot. Explain where the state lives when it is created.
-- If the baseline uses an old `sample*` market schema, a different scope or selector, or lacks the metric to compare, initialize a compatible baseline and suppress change alerts for that first run. Preserve any old snapshot separately if the user requested an audit trail; never compute across incompatible fields.
+- If the baseline uses the former flat market schema, a different scope or selector, or lacks the metric to compare, initialize a compatible baseline and suppress change alerts for that first run. Preserve any old snapshot separately if the user requested an audit trail; never compute across incompatible fields.
 - Apply the comparison calculations owned by `evidence-protocols.md`. Treat user thresholds as alert filters, not causal explanations; without a threshold, report the measured difference without inventing severity.
 - A scheduler or external notification can be configured only when the user explicitly requests that recurring action and an available platform capability exists. Do not claim that a one-time skill run will continue unattended.
 

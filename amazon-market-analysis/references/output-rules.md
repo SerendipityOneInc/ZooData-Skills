@@ -44,7 +44,7 @@ A section, score, table header, or group label that contains mixed confidence mu
 
 ## Provenance and usage
 
-Within `Data Notes` or `Evidence`, identify the relevant endpoint and actual returned `_query.params` when available. For `markets/search`, distinguish a broad discovery page, a batch of `category.ids`, and an exact one-ID snapshot. State the page range, filter/sort, requested `category.includeDescendantCategoryProducts`, `sampleType`, `topN` or `newProductPeriod` when used, and returned date that materially constrain the claim. For structure/history, preserve their top-level `includeDescendantCategoryProducts` and `newProductPeriod`; for history, state requested and actual period bounds when different.
+Within `Data Notes` or `Evidence`, identify the relevant endpoint and actual returned `_query.params` when available. For `markets/search`, distinguish a broad discovery page, a batch of `category.ids`, and an exact one-ID snapshot. State the page range, filter/sort, requested `category.includeDescendantCategoryProducts`, `sampleType`, and `topN` or `newProductPeriod` when they selected a filter or sort; identify the returned Top N cutoff or new-product `periodMonths` used in the claim. For structure/history, preserve their top-level `includeDescendantCategoryProducts`; for history, state requested and actual period bounds when different.
 
 Use a localized API-usage table when live calls were made:
 
@@ -53,4 +53,4 @@ Use a localized API-usage table when live calls were made:
 | Actual endpoint identifier | N | Returned amount or unavailable |
 | **Total** | **N** | **Sum of returned amounts, or unavailable** |
 
-Count every executed call, including a call whose data was discarded. Use `meta.creditsConsumed` or composite accumulated metadata; do not add the composite total to its internal calls again. If a returned credit figure is absent, use a localized equivalent of `not returned by the API` rather than `unconfirmed`, `incomplete`, or an estimate. Report remaining credits only when returned.
+Count every executed call, including a call whose data was discarded. Prefer returned `meta.creditsConsumedExact` / `meta.creditsRemainingExact` for precise credit figures, falling back to `meta.creditsConsumed` / `meta.creditsRemaining` when exact fields are absent. For a composite, use its accumulated top-level metadata and do not add internal calls again. If a returned credit figure is absent, use a localized equivalent of `not returned by the API` rather than `unconfirmed`, `incomplete`, or an estimate. Report remaining credits only when returned.
