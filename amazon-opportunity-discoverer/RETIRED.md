@@ -19,6 +19,9 @@ metadata:
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}
 ---
 
+> **Retired:** This package is no longer discoverable, installable, or published. Use
+> `amazon-market-analysis` for market and product candidate discovery.
+
 # Amazon Opportunity Discoverer — Niche Scanner & Scoring
 
 Tell me your budget and experience. I find opportunities, score them, and rank.

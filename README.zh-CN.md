@@ -33,19 +33,20 @@
 
 [ZooData](https://zoodata.ai) 是专为 Agent 构建的数据基础设施。模型正在商品化，真正稀缺的是 Agent 能直接消费的结构化数据。ZooData 提供实时电商信号，让你的 Agent 每天能分析 10,000+ 商品，而不是 100 个。
 
-当前已接入亚马逊，提供 11 个 API 接口：产品搜索（13 种预设模式）、市场分析、竞品情报、实时追踪、AI 评论洞察、类目导航、价格带分析、品牌分析、历史数据。干净 JSON，Agent 即用。
+当前已接入亚马逊，提供 25 个商品与关键词 API 接口，覆盖产品搜索、市场分析、竞品情报、实时追踪、评论洞察、类目导航、价格带、品牌和历史数据。干净 JSON，Agent 即用。
 
 ## 技能概览
 
-本仓库包含 **11 个 Agent 技能**，分为两个层级：
+本仓库包含 **10 个 Agent 技能**，分为两个层级：
 
 **🏗️ 基础层** — 数据接入与全方位分析：
 
 | 技能 | 说明 | 输入 | 输出 | 核心优势 |
 |------|------|------|------|----------|
-| 📦 [`zoodata/`](zoodata/) | 直接调用全部 23 个 Amazon API 端点（12 个商品接口 + 11 个关键词接口） | 关键词/品类/ASIN/品牌 | 原始 API 数据 + 字段映射文档 | 所有其他 skill 的底层依赖 |
+| 📦 [`zoodata/`](zoodata/) | 直接调用全部 25 个 Amazon 商品与关键词 API 端点 | 关键词/品类/ASIN/品牌 | 原始 API 数据 + 字段映射文档 | 所有其他 skill 的底层依赖 |
 | 🎯 [`amazon-analysis/`](amazon-analysis/) | 13 种选品模式 + 市场/竞品/ASIN/定价/品类研究 | 关键词/品类/ASIN + 意图 | 分析发现、Top 产品、深度报告、置信度标签 | report/opportunity 复合命令一键跑完 |
 | 🔎 [`amazon-keyword-traffic-analysis/`](amazon-keyword-traffic-analysis/) | 基于 11 个关键词 intelligence 接口的关键词价值与商品流量健康工作流 | 种子词、目标词、ASIN 或 ASIN + 关键词 | 拓词分层、关键词价值分析、商品流量结构、趋势与健康诊断 | 专门覆盖关键词拓展、关键词分析和商品流量分析 |
+| 📊 [`amazon-market-analysis/`](amazon-market-analysis/) | 发现市场与产品候选、评估进入条件、追踪品类变化 | 市场问题、品类或选品需求 | 候选清单、条件性进入判断或趋势分析 | 一条故事线，明确区分市场证据与卖家决策 |
 
 **⚡ 专项层** — 面向特定工作流的专用技能：
 
@@ -54,11 +55,11 @@
 | ⚔️ [`amazon-competitor-intelligence-monitor/`](amazon-competitor-intelligence-monitor/) | 深度竞品情报 — Full Scan + Quick Check 双模式 | 关键词或 ASIN，可选竞品 ASIN | 竞品矩阵、品牌排名、价格地图、竞争力评分(1-100)、三级告警 | 双模式 + 自动监控调度 |
 | 📡 [`amazon-daily-market-radar/`](amazon-daily-market-radar/) | 自动化日常监控 — 价格变化、新竞品、BSR 波动、评论飙升 | 你的 ASIN(1-10) + 关键词 | 分级告警(RED/YELLOW/GREEN)、KPI 仪表盘、行动建议 | 区分持续趋势 vs 单日波动 |
 | ✅ [`amazon-listing-audit-pro/`](amazon-listing-audit-pro/) | 8 维度 Listing 健康检查 + 优化建议 | 你的 ASIN + 关键词 | 总分(X/100, A-F)、8 维度评分卡、关键词差距、修改清单 | 基于高频评论语言的改写建议 |
-| 🚪 [`amazon-market-entry-analyzer/`](amazon-market-entry-analyzer/) | 一键市场可行性评估 → GO/CAUTION/AVOID 判定 | 关键词或品类路径 | 子市场全景、判定结果、品牌格局、进入策略 | 自动发现子市场 + 双层 CR10 检查 |
-| 📈 [`amazon-market-trend-scanner/`](amazon-market-trend-scanner/) | 品类全景扫描 — 趋势子品类、新兴 niche | 1+ 品类路径或关键词 | 趋势仪表盘、热门品类 TOP 5、新进入者扫描 | 覆盖所有子品类的品类级趋势分析 |
-| 💎 [`amazon-opportunity-discoverer/`](amazon-opportunity-discoverer/) | 基于卖家画像的自动化选品 — 13 种模式 + 7 维度评分(1-100) | 预算 + 经验等级 + 关键词/品类 | Top 10 机会(S/A/B/C)、Top 3 详细分析、风险告警 | 画像驱动策略选择 + Quick-Scan |
 | 💰 [`amazon-pricing-command-center/`](amazon-pricing-command-center/) | 数据驱动定价信号 — RAISE/HOLD/LOWER | 一个或多个 ASIN | 价格信号、价格带热力图、竞品价格地图、BuyBox 分析 | 只需 ASIN 不需关键词 |
 | 💬 [`amazon-review-intelligence-extractor/`](amazon-review-intelligence-extractor/) | 从 10 亿+评论中提取消费者洞察，11 个分析维度 | 单个/多个 ASIN 或品类关键词 | 痛点、购买因素、用户画像、差异化路线图 | 省 95% token + 11 维度 |
+| 🌐 [`web-extract/`](web-extract/) | 从公开网页和搜索结果提取结构化数据 | URL、搜索词或网站 | 结构化 JSON 或网页内容 | 支持渲染网页和限定范围的网站爬取 |
+
+`amazon-market-analysis` 是统一市场 Skill。原 `amazon-market-entry-analyzer`、`amazon-market-trend-scanner` 和 `amazon-opportunity-discoverer` 目录仅保留为下线源码；其入口文件已改名为 `RETIRED.md`，不会被 Skill 安装器或发布器发现。
 
 ## 快速开始
 
@@ -71,19 +72,18 @@ npx skills add SerendipityOneInc/ZooData-Skills
 安装时会提示选择技能：
 
 **🏗️ 基础层：**
-- **ZooData** — 数据层概览，11 个 API 接口，快速集成
+- **ZooData** — 25 个 Amazon 商品与关键词 Intelligence API 接口
 - **Amazon Analysis** — 13 种选品模式，市场验证，竞品情报
 - **Amazon Keyword Intelligence** — 关键词拓展、关键词价值分析、商品流量健康诊断
+- **Amazon Market Analysis** — 市场发现、进入评估与趋势追踪
 
 **⚡ 专项层：**
 - **Amazon Competitor Intelligence Monitor** — 双模式竞品情报与三级告警
 - **Amazon Daily Market Radar** — 每日市场脉搏与异常检测
 - **Amazon Listing Audit Pro** — 8 维度 Listing 健康检查与优化
-- **Amazon Market Entry Analyzer** — 一键市场可行性评估，GO/CAUTION/AVOID 判定
-- **Amazon Market Trend Scanner** — 品类全景扫描与趋势发现
-- **Amazon Opportunity Discoverer** — 基于卖家画像的选品扫描与 7 维度评分
 - **Amazon Pricing Command Center** — 数据驱动定价信号，RAISE/HOLD/LOWER
 - **Amazon Review Intelligence Extractor** — 10 亿+评论消费者洞察，11 个分析维度
+- **Web Extract** — 公开网页结构化数据提取
 
 也可以手动克隆：
 ```bash
@@ -119,7 +119,9 @@ python amazon-analysis/scripts/zoodata.py products --keyword "wireless earbuds" 
 | 接口 | 说明 | 使用场景 |
 |------|------|----------|
 | 🔍 `products/search` | 商品搜索，20+ 筛选条件（CLI 另提供 13 种预设模式） | *"找 80 美元以下、4 星以上的跑步鞋"* |
-| 📊 `markets/search` | 市场维度指标——集中度、品牌份额、定价分布 | *"瑜伽垫市场竞争激烈吗？"* |
+| 📊 `markets/search` | 类目发现与指定类目的市场概览——规模、集中度与 Top 100 定价 | *"瑜伽垫市场竞争激烈吗？"* |
+| 🧩 `markets/structure-profile` | 品牌、价格等 Top 100 分布 | *"销售额集中在哪些价格带？"* |
+| 📅 `markets/history` | 类目市场的月末历史快照 | *"这个类目近几个月如何变化？"* |
 | 🏷️ `products/competitor-lookup` | 按关键词、品牌或 ASIN 发现竞品 | *"这个细分类目的头部卖家有哪些？"* |
 | ⚡ `realtime/product` | 实时商品详情——评论、功能、变体 | *"查一下 ASIN B0D5CRV4KL 的最新信息"* |
 | 💬 `reviews/analysis` | AI 驱动的评论洞察——情感分析、痛点提取 | *"消费者对这个产品的好评和差评分别集中在哪里？"* |
@@ -154,7 +156,7 @@ python amazon-analysis/scripts/zoodata.py products --keyword "wireless earbuds" 
 
 ```
 ├── zoodata/                              # 数据层技能（轻量版）
-│   ├── SKILL.md                            # 23 个接口，快速入门
+│   ├── SKILL.md                            # 25 个接口，快速入门
 │   └── references/
 │       └── openapi-reference.md            # API 字段参考
 │
@@ -203,21 +205,7 @@ python amazon-analysis/scripts/zoodata.py products --keyword "wireless earbuds" 
 │   └── scripts/
 │       └── zoodata.py
 │
-├── amazon-market-entry-analyzer/         # 市场可行性评估
-│   ├── SKILL.md
-│   ├── references/
-│   │   └── reference.md
-│   └── scripts/
-│       └── zoodata.py
-│
-├── amazon-opportunity-discoverer/        # 蓝海市场与机会发现
-│   ├── SKILL.md
-│   ├── references/
-│   │   └── reference.md
-│   └── scripts/
-│       └── zoodata.py
-│
-├── amazon-market-trend-scanner/           # 品类全景扫描与趋势发现
+├── amazon-market-analysis/               # 市场发现、进入评估与趋势追踪
 │   ├── SKILL.md
 │   ├── references/
 │   │   └── reference.md
@@ -237,6 +225,11 @@ python amazon-analysis/scripts/zoodata.py products --keyword "wireless earbuds" 
 │   │   └── reference.md
 │   └── scripts/
 │       └── zoodata.py
+│
+├── web-extract/                          # 公开网页结构化提取
+│   ├── SKILL.md
+│   └── scripts/
+│       └── webtools.py
 │
 ├── scoring-methodology.md                # 统一质量评分框架
 ├── CHANGELOG.md

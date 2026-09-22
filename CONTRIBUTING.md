@@ -39,14 +39,21 @@ The canonical runtime files are:
 
 - `zoodata/scripts/zoodata.py`
 - `zoodata/references/cli-contract.md`
+- `zoodata/references/analysis-contract.md`
 
-Each `amazon-*` skill has synced local copies at the matching `scripts/` and
-`references/` paths so the skill remains independently publishable. **Never
-edit copies directly** — sync is enforced at three layers:
+Each active `amazon-*` skill has synced local copies of the shared CLI files at the
+matching `scripts/` and `references/` paths so the skill remains independently
+publishable. The shared analysis contract is currently adopted by
+`amazon-keyword-traffic-analysis` and `amazon-market-analysis`; its copies are
+synced into those two skills by the same mechanism. Retired source directories
+do not contain a `SKILL.md` entrypoint, so skill installers, publishers, and
+this distribution step do not discover them. **Never edit copies
+directly** — sync is enforced at three layers:
 
 1. **Local pre-commit hook** — auto-syncs copies when canonical is staged.
    Install once per clone: `bash scripts/install-hooks.sh`
-2. **`scripts/sync-scripts.sh`** — mirrors both canonical files → copies.
+2. **`scripts/sync-scripts.sh`** — mirrors each canonical file to its enrolled
+   skill copies.
    `--check` performs a read-only release check and fails on a missing or
    byte-different copy. Normal sync refuses to overwrite a divergent copy
    without the canonical-source managed-copy marker.
@@ -55,6 +62,12 @@ edit copies directly** — sync is enforced at three layers:
    when a skill change forgot to update the canonical file or local copy.
 
 The canonical files own their respective managed-copy headers and content.
+`analysis-contract.md` is the highest repository-owned runtime prompt for
+skills that adopt it. Skill-specific instructions may extend or narrow it but
+must not duplicate, weaken, or override it. Each adopting skill's `SKILL.md`
+remains the domain responsibility map and names the local owners of API facts,
+semantics, scenarios, procedures, and rendering. Add skills to the enrolled
+list only as their local ownership map is migrated and reviewed.
 
 ## Testing Your Changes
 

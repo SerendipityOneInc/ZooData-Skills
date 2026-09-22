@@ -5,7 +5,7 @@ description: >
   Extracts pain points, buying factors, user profiles, usage patterns,
   and differentiation opportunities across 11 analysis dimensions.
   Compares review sentiment across competitors and generates listing copy suggestions.
-  Uses all 11 ZooData API endpoints with cross-validation.
+  Uses up to 11 relevant ZooData endpoints with cross-validation.
   Use when user asks about: review analysis, customer feedback, pain points, what customers say,
   review insights, sentiment analysis, consumer insights, product improvements, voice of customer,
   review comparison, negative reviews, customer complaints, buying factors, user profile.
@@ -371,7 +371,7 @@ Include a table at the end of every report:
 
 | Data | Endpoint | Key Params | Notes |
 |------|----------|------------|-------|
-| (e.g. Market Overview) | `markets/search` | categoryPath, topN=10 | 📊 Top N sampling, sales are lower-bound |
+| (e.g. Market Overview) | `markets/search` | Copy actual `_query.params` | 📊 Full category and selected Top 100 metrics |
 | ... | ... | ... | ... |
 
 Extract endpoint and params from `_query` in JSON output. Add notes: sampling method, T+1 delay, realtime vs DB, minimum review threshold, etc.

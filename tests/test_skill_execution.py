@@ -1,6 +1,6 @@
 """Execution smoke tests for every skill's bundled CLI.
 
-Goal: verify each of the 12 skills actually *executes* — the CLI imports and
+Goal: verify each of the 10 active skills actually *executes* — the CLI imports and
 builds its argparse tree, every subcommand the skill's SKILL.md declares it
 uses really exists and its parser is well-formed, and `check` runs without a
 Python traceback. All of this is **credit-free** (no API calls).
@@ -20,6 +20,11 @@ import unittest
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
+RETAINED_SOURCE_SKILLS = {
+    "amazon-market-entry-analyzer",
+    "amazon-market-trend-scanner",
+    "amazon-opportunity-discoverer",
+}
 
 
 def _discover_skills():
@@ -27,6 +32,8 @@ def _discover_skills():
     out = []
     for skill_md in sorted(REPO.glob("*/SKILL.md")):
         d = skill_md.parent
+        if d.name in RETAINED_SOURCE_SKILLS:
+            continue
         for cli_name in ("zoodata.py", "webtools.py"):
             cli = d / "scripts" / cli_name
             if cli.exists():
@@ -78,9 +85,9 @@ def _run(cli: Path, *args, timeout=30):
 
 
 class TestSkillCliExecutes(unittest.TestCase):
-    def test_at_least_all_twelve_skills_discovered(self):
+    def test_all_ten_active_skills_discovered(self):
         # Guard: the suite must actually cover every skill, not silently skip.
-        self.assertEqual(len(SKILLS), 12, f"discovered {len(SKILLS)}: {[s for s,_ in SKILLS]}")
+        self.assertEqual(len(SKILLS), 10, f"discovered {len(SKILLS)}: {[s for s,_ in SKILLS]}")
 
     def test_cli_help_runs(self):
         """`<cli> --help` exits 0 with no Python traceback (CLI imports + builds)."""
@@ -116,13 +123,14 @@ class TestSkillCliExecutes(unittest.TestCase):
 
     def test_check_runs_without_crash(self):
         """`<cli> check` must not crash with a traceback (exit code is env-dependent:
-        0 when a key is configured, non-zero when not — both are 'normal')."""
+        0 when a key is configured, non-zero when missing or rejected)."""
         for name, cli in SKILLS:
             with self.subTest(skill=name):
                 r = _run(cli, "check")
                 self.assertNotIn("Traceback (most recent call last)", r.stderr,
                                  f"{name} check crashed:\n{r.stderr}")
-                self.assertIn(r.returncode, (0, 1, 2), f"{name} check exit {r.returncode}")
+                expected = (0, 1, 2, 3) if name == "web-extract" else (0, 1, 2)
+                self.assertIn(r.returncode, expected, f"{name} check exit {r.returncode}")
 
     def test_shared_cli_contract_has_one_canonical_owner(self):
         contract = (
@@ -162,9 +170,7 @@ class TestSkillCliExecutes(unittest.TestCase):
             "amazon-competitor-intelligence-monitor",
             "amazon-daily-market-radar",
             "amazon-listing-audit-pro",
-            "amazon-market-entry-analyzer",
-            "amazon-market-trend-scanner",
-            "amazon-opportunity-discoverer",
+            "amazon-market-analysis",
             "amazon-pricing-command-center",
             "amazon-review-intelligence-extractor",
         }
@@ -173,13 +179,17 @@ class TestSkillCliExecutes(unittest.TestCase):
         for name in sorted(NON_KEYWORD_ZOODATA_SKILLS):
             with self.subTest(skill=name):
                 skill = (REPO / name / "SKILL.md").read_text()
-                self.assertIn("## Shared CLI Contract", skill)
-                self.assertIn(contract_ref, skill)
-                self.assertIn("Reapply it after every granular or composite result", skill)
+                if name == "amazon-market-analysis":
+                    self.assertIn("references/cli-contract.md", skill)
+                    self.assertIn("Interface Failure Stop Gate", skill)
+                else:
+                    self.assertIn("## Shared CLI Contract", skill)
+                    self.assertIn(contract_ref, skill)
+                    self.assertIn("Reapply it after every granular or composite result", skill)
+                    self.assertIn("### Local Interface Failure Output", skill)
+                    self.assertIn("https://zoodata.ai/en/pricing", skill)
                 self.assertNotIn("Always parse valid structured stdout even when the process exits non-zero", skill)
-                self.assertIn("### Local Interface Failure Output", skill)
                 self.assertNotIn("zoodata/SKILL.md", skill)
-                self.assertIn("https://zoodata.ai/en/pricing", skill)
 
         zoodata_skill = (REPO / "zoodata" / "SKILL.md").read_text()
         self.assertIn("## Shared CLI contract", zoodata_skill)
@@ -192,7 +202,7 @@ class TestSkillCliExecutes(unittest.TestCase):
         zoodata_skills = {
             name for name, cli in SKILLS if cli.name == "zoodata.py" and name != "zoodata"
         }
-        self.assertEqual(len(zoodata_skills), 10)
+        self.assertEqual(len(zoodata_skills), 8)
         for name in sorted(zoodata_skills):
             with self.subTest(skill=name):
                 copy = REPO / name / "references" / "cli-contract.md"
@@ -202,6 +212,66 @@ class TestSkillCliExecutes(unittest.TestCase):
                     canonical,
                     f"out-of-sync shared contract copy: {copy}",
                 )
+
+    def test_adopting_skills_have_the_canonical_analysis_contract(self):
+        canonical = (
+            REPO / "zoodata" / "references" / "analysis-contract.md"
+        ).read_bytes()
+        adopters = {
+            "amazon-keyword-traffic-analysis",
+            "amazon-market-analysis",
+        }
+        for name in adopters:
+            with self.subTest(skill=name):
+                copy = REPO / name / "references" / "analysis-contract.md"
+                self.assertEqual(copy.read_bytes(), canonical)
+                skill = (REPO / name / "SKILL.md").read_text()
+                self.assertIn(
+                    "Read and apply `references/analysis-contract.md`",
+                    skill,
+                )
+
+        for name, cli in SKILLS:
+            if cli.name == "zoodata.py" and name not in adopters | {"zoodata"}:
+                self.assertFalse(
+                    (REPO / name / "references" /
+                     "analysis-contract.md").exists(),
+                    f"non-adopting skill changed early: {name}",
+                )
+
+    def test_shared_analysis_contract_preserves_typed_evidence_states(self):
+        contract = (
+            REPO / "zoodata" / "references" / "analysis-contract.md"
+        ).read_text()
+
+        for state in (
+            "**Present**", "**Explicit null**", "**Absent field**",
+            "**Unreturned subject or period**", "**Local unread state**",
+        ):
+            self.assertIn(state, contract)
+        self.assertIn("including `0`, `false`, an empty string", contract)
+        self.assertIn("do not use truthiness", contract)
+        self.assertIn("This is not a source-data state", contract)
+        self.assertIn("documented business definition as the semantic identity", contract)
+        self.assertIn("treat that as a different claim", contract)
+        self.assertIn("the current incomplete period is outside", contract)
+        self.assertIn("every displayed value and table cell maps", contract)
+
+    def test_shared_analysis_contract_trusts_documented_evidence(self):
+        contract = (
+            REPO / "zoodata" / "references" / "analysis-contract.md"
+        ).read_text()
+
+        self.assertIn("### Trust documented evidence", contract)
+        self.assertIn("authoritative observation", contract)
+        self.assertIn("without independently auditing upstream collection", contract)
+        self.assertIn("only when the acquired evidence contains a concrete contradiction", contract)
+        self.assertIn("do not generalize it", contract)
+        self.assertIn("Its absence does not weaken", contract)
+        self.assertIn("Make the strongest judgment those inputs support", contract)
+        self.assertIn("only when it exists and materially affects", contract)
+        self.assertIn("keep routine validation internal", contract)
+        self.assertIn("declarations that expected gaps or conflicts do not exist", contract)
 
     def test_release_workflow_blocks_unsynced_shared_files(self):
         workflow = (REPO / ".github" / "workflows" / "shared-files-distribution.yml").read_text()
@@ -215,6 +285,8 @@ class TestSkillCliExecutes(unittest.TestCase):
         self.assertIn("CHECK_ONLY=1", sync_script)
         self.assertIn("OUT-OF-SYNC", sync_script)
         self.assertIn("references/cli-contract.md", pre_commit)
+        self.assertIn("references/analysis-contract.md", pre_commit)
+        self.assertIn("ANALYSIS_CONTRACT_SKILLS", sync_script)
 
     def test_keyword_skill_keeps_its_specialized_failure_gate(self):
         skill = (REPO / "amazon-keyword-traffic-analysis" / "SKILL.md").read_text()
@@ -247,7 +319,7 @@ class TestSkillCliLive(unittest.TestCase):
         execute end-to-end AND surface an aggregated credit total in its meta —
         the regression the _CreditTracker fix targets (was reported as 1)."""
         import json
-        cli = REPO / "amazon-market-entry-analyzer" / "scripts" / "zoodata.py"
+        cli = REPO / "amazon-market-analysis" / "scripts" / "zoodata.py"
         r = _run(cli, "market-entry", "--keyword", "yoga mat", timeout=300)
         self.assertEqual(r.returncode, 0, f"market-entry failed:\n{r.stderr[:400]}")
         meta = json.loads(r.stdout).get("meta", {})

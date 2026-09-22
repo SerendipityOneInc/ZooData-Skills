@@ -1,11 +1,16 @@
 #!/bin/bash
 # scripts/sync-scripts.sh
-# Sync canonical ZooData shared runtime files to all amazon-* skill directories.
+# Sync canonical ZooData shared runtime files to their enrolled skill directories.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SCRIPT_SOURCE="$REPO_ROOT/zoodata/scripts/zoodata.py"
 CONTRACT_SOURCE="$REPO_ROOT/zoodata/references/cli-contract.md"
+ANALYSIS_CONTRACT_SOURCE="$REPO_ROOT/zoodata/references/analysis-contract.md"
+ANALYSIS_CONTRACT_SKILLS=(
+  "amazon-keyword-traffic-analysis"
+  "amazon-market-analysis"
+)
 CHECK_ONLY=0
 
 if [[ ${1:-} == "--check" ]]; then
@@ -15,10 +20,7 @@ elif [[ $# -gt 0 ]]; then
   exit 2
 fi
 
-# Doc-only skills that do not embed the ZooData CLI/runtime contract.
-SKIP_SKILLS=()
-
-for source in "$SCRIPT_SOURCE" "$CONTRACT_SOURCE"; do
+for source in "$SCRIPT_SOURCE" "$CONTRACT_SOURCE" "$ANALYSIS_CONTRACT_SOURCE"; do
   if [[ ! -f "$source" ]]; then
     echo "ERROR: Canonical source file does not exist: $source"
     exit 1
@@ -28,7 +30,6 @@ done
 changed=0
 total=0
 conflict=0
-skipped=0
 
 sync_managed_file() {
   local source=$1
@@ -69,13 +70,9 @@ sync_managed_file() {
 }
 
 for skill_dir in "$REPO_ROOT"/amazon-*/; do
+  # A directory without SKILL.md is retained source, not a discoverable skill.
+  [[ -f "$skill_dir/SKILL.md" ]] || continue
   skill_name=$(basename "$skill_dir")
-
-  if [[ ${#SKIP_SKILLS[@]} -gt 0 && " ${SKIP_SKILLS[*]} " == *" $skill_name "* ]]; then
-    echo "  SKIP $skill_name (doc-only)"
-    skipped=$((skipped + 1))
-    continue
-  fi
 
   total=$((total + 1))
   sync_managed_file \
@@ -88,6 +85,13 @@ for skill_dir in "$REPO_ROOT"/amazon-*/; do
     "$skill_dir/references/cli-contract.md" \
     "$skill_name" \
     "references/cli-contract.md"
+  if [[ " ${ANALYSIS_CONTRACT_SKILLS[*]} " == *" $skill_name "* ]]; then
+    sync_managed_file \
+      "$ANALYSIS_CONTRACT_SOURCE" \
+      "$skill_dir/references/analysis-contract.md" \
+      "$skill_name" \
+      "references/analysis-contract.md"
+  fi
 done
 
 echo ""
@@ -98,7 +102,7 @@ if [[ $conflict -gt 0 ]]; then
 fi
 
 if [[ $CHECK_ONLY -eq 1 ]]; then
-  echo "Shared-file check passed: $total skills, 0 mismatches, $skipped skipped."
+  echo "Shared-file check passed: $total skills, 0 mismatches."
 else
-  echo "Done: $total skills processed, $changed files updated, $skipped skipped."
+  echo "Done: $total skills processed, $changed files updated."
 fi

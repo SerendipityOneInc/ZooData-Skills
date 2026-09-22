@@ -1,0 +1,20 @@
+{
+  "allowedCommands": [
+    "analyze",
+    "brand-detail",
+    "brand-overview",
+    "categories",
+    "check",
+    "competitors",
+    "history",
+    "market",
+    "market-entry",
+    "market-history",
+    "market-structure-profile",
+    "opportunity-scan",
+    "price-band-detail",
+    "price-band-overview",
+    "product",
+    "products"
+  ]
+}

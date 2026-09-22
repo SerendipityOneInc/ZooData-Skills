@@ -1,0 +1,56 @@
+# Output Rules — Amazon Market Analysis
+
+This module owns market-specific language, confidence labels, report shape, provenance, and credit accounting. The shared `analysis-contract.md` owns the universal user-facing boundary and progress discipline. The execution guide and scenario determine which conclusion is allowed; this module only renders it.
+
+## Language and interface failure
+
+Use the user's language for the entire report. Keep API field names, endpoint identifiers, ASINs, and standard units unchanged when translation would obscure identity. Do not show internal stage names, Gate labels, module names, tool retries, raw error payloads, or analysis-control instructions in the report.
+
+On a terminal interface failure selected by `execution-guide.md`, return one concise localized notice that the market analysis could not be completed, followed by succeeded and failed endpoint identifiers from the current turn. Do not attach a market verdict, ranking, trend claim, API-usage table, or next-stage prompt. Give technical error details only if the user requests diagnostics.
+
+## Quick lookup
+
+Answer the requested metric or distribution directly. State its category, `direct`/`subtree` scope, selected Top 100 type when relevant, returned date or month-end period, source endpoint, and material limitation. Mark a direct API value 📊 and a calculated value 🔍. Include the API usage table below when a live call was made. Do not turn a one-field lookup into a multi-stage report.
+
+## Full report shape
+
+For one normally completed full stage, use this localized top-level order:
+
+1. Title naming the category or observed candidate set and the current business question;
+2. `Data Notes` — source, returned dates, scope, sample selector, pages/rows or history-point coverage;
+3. `Evidence` — observed facts with units and source identity;
+4. `Analysis` — compatible comparisons, uncertainty, and labeled inference;
+5. `Conclusion` — only the active stage's authorized judgment;
+6. `API Usage` — calls and credits; and
+7. one final numbered selection list rendered from the guide's handoff decisions, after the report body.
+
+Scenario files may require a table or a subsection *inside* these headings; they do not rename or reorder the skeleton. Apply the shared user-facing boundary to the whole rendering. A prose sentence in the conclusion does not replace the final selection list. Do not repeat a previous report or present an unvisited stage as completed. A user-supplied seller figure must be labeled as user-provided.
+
+### Historical table rendering
+
+- A market-history table contains only actual returned month-end points whose displayed fields were validated against the complete isolated result. Use the exact returned month-end date or an unambiguous year-month label.
+- For a relative recent-month request, omit the current incomplete calendar month from the table, Evidence, and Conclusion. Do not create a no-data row for a snapshot that is not yet expected to exist. If the requested range needs clarification, state in `Data Notes` that the comparison covers the most recent completed month-end periods.
+- Do not create placeholder rows for unreturned completed months or locally omitted values. Put a confirmed source coverage gap in `Data Notes` and name the exact missing completed date and field, for example: `The API did not return {field} for {YYYY-MM-DD}.`
+- If every expected completed period and required field was returned, omit missingness commentary entirely. Render valid zero values directly in the table; do not append prose explaining that they are not missing. Do not mention an excluded incomplete period unless the requested range itself needs clarification.
+- Vague placeholders such as `details unconfirmed`, `incomplete response`, `same as left`, `unable to verify`, or localized equivalents are invalid. A local projection or display omission fails the report before rendering; it is never a data label or a reason to invite the user to pay for the same query again.
+
+## Confidence and evidence labels
+
+- 📊 Direct returned API observation, with endpoint, subject, and period.
+- 🔍 Derived or interpretive claim whose source fields and assumptions are shown.
+- 💡 Directional suggestion or validation priority; never mark it as a measured API fact.
+
+A section, score, table header, or group label that contains mixed confidence must not wear a stronger label than its least certain component. Do not use the three symbols as decorative prefixes. Report a score only with its actual components and the scenario's stated method; do not use a numeric score to conceal missing dimensions. Explain when a valid empty response narrows the conclusion.
+
+## Provenance and usage
+
+Within `Data Notes` or `Evidence`, identify the relevant endpoint and actual returned `_query.params` when available. For `markets/search`, distinguish a broad discovery page, a batch of `category.ids`, and an exact one-ID snapshot. State the page range, filter/sort, requested `category.includeDescendantCategoryProducts`, `sampleType`, and `topN` or `newProductPeriod` when they selected a filter or sort; identify the returned Top N cutoff or new-product `periodMonths` used in the claim. For structure/history, preserve their top-level `includeDescendantCategoryProducts`; for history, state requested and actual period bounds when different.
+
+Use a localized API-usage table when live calls were made:
+
+| Endpoint | Calls | Credits consumed |
+|---|---:|---:|
+| Actual endpoint identifier | N | Returned amount or unavailable |
+| **Total** | **N** | **Sum of returned amounts, or unavailable** |
+
+Count every executed call, including a call whose data was discarded. Prefer returned `meta.creditsConsumedExact` / `meta.creditsRemainingExact` for precise credit figures, falling back to `meta.creditsConsumed` / `meta.creditsRemaining` when exact fields are absent. For a composite, use its accumulated top-level metadata and do not add internal calls again. If a returned credit figure is absent, use a localized equivalent of `not returned by the API` rather than `unconfirmed`, `incomplete`, or an estimate. Report remaining credits only when returned.

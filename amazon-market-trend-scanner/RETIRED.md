@@ -19,6 +19,9 @@ metadata:
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}
 ---
 
+> **Retired:** This package is no longer discoverable, installable, or published. Use
+> `amazon-market-analysis` for category trends and market change analysis.
+
 # ZooData — Market Trend Scanner
 
 > Find rising categories before everyone else. Respond in user's language.

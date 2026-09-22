@@ -20,6 +20,7 @@ import io
 import json
 import os
 import sys
+import tempfile
 import unittest
 import urllib.error
 from unittest.mock import mock_open, patch
@@ -117,9 +118,9 @@ def run_cli_stdout(fmt, subcmd, *args):
 # ---------------------------------------------------------------------------
 class TestParseCategory(unittest.TestCase):
 
-    def test_comma_separated(self):
-        self.assertEqual(zoodata.parse_category("Pet Supplies,Dogs,Toys"),
-                         ["Pet Supplies", "Dogs", "Toys"])
+    def test_ambiguous_comma_path_is_rejected(self):
+        with self.assertRaisesRegex(SystemExit, "Ambiguous category path"):
+            zoodata.parse_category("Vitamins, Minerals & Supplements")
 
     def test_spaced_arrow(self):
         self.assertEqual(zoodata.parse_category("Pet Supplies > Dogs > Toys"),
@@ -145,7 +146,7 @@ class TestParseCategory(unittest.TestCase):
         self.assertEqual(result, ["A", "B>C"])
 
     def test_strips_whitespace(self):
-        self.assertEqual(zoodata.parse_category("  Pet Supplies , Dogs "),
+        self.assertEqual(zoodata.parse_category("  Pet Supplies > Dogs "),
                          ["Pet Supplies", "Dogs"])
 
     def test_arrow_protects_comma_in_category_name(self):
@@ -164,8 +165,13 @@ class TestParseCategory(unittest.TestCase):
             zoodata.parse_category('["Health & Household", "Vitamins, Minerals & Supplements", "Collagen"]'),
             ["Health & Household", "Vitamins, Minerals & Supplements", "Collagen"])
 
-    def test_malformed_json_falls_through_to_separator_parsing(self):
-        self.assertEqual(zoodata.parse_category("[not json"), ["[not json"])
+    def test_parent_json_parser_rejects_non_array_path(self):
+        with self.assertRaisesRegex(SystemExit, "valid JSON array"):
+            zoodata.parse_category_json("Health & Household > Vitamins")
+
+    def test_malformed_json_is_rejected(self):
+        with self.assertRaisesRegex(SystemExit, "valid JSON array"):
+            zoodata.parse_category("[not json")
 
 
 # ---------------------------------------------------------------------------
@@ -295,7 +301,7 @@ class TestPageParamConstruction(unittest.TestCase):
                          f"{subcmd}: page should be {expected_page}")
 
     def test_market(self):
-        self._check("market", ["--keyword", "yoga"], 3, 50)
+        self._check("market", ["--category-id", "3760901"], 3, 50)
 
     def test_products(self):
         self._check("products", ["--keyword", "yoga"], 2, 30)
@@ -316,7 +322,7 @@ class TestPageParamConstruction(unittest.TestCase):
         self._check("competitors", ["--keyword", "earbuds"], 2, 30)
 
     def test_market_page_default_is_1(self):
-        result = run_cli("market", "--keyword", "yoga")
+        result = run_cli("market", "--category-id", "3760901")
         self.assertEqual(result["params"].get("page"), 1)
         self.assertEqual(result["params"].get("pageSize"), 20)
 
@@ -330,9 +336,121 @@ class TestEndpointRouting(unittest.TestCase):
         r = run_cli("categories", "--keyword", "yoga")
         self.assertEqual(r["endpoint"], "categories")
 
+    def test_categories_parent_preserves_commas_in_json_path(self):
+        r = run_cli(
+            "categories",
+            "--parent", '["Health & Household", "Vitamins, Minerals & Supplements"]',
+        )
+        self.assertEqual(r["params"]["parentCategoryPath"], [
+            "Health & Household", "Vitamins, Minerals & Supplements",
+        ])
+
+    def test_categories_parent_rejects_non_json_before_api_call(self):
+        with self.assertRaisesRegex(SystemExit, "valid JSON array"):
+            run_cli("categories", "--parent", "Health & Household > Vitamins")
+
     def test_market(self):
-        r = run_cli("market", "--keyword", "yoga")
+        r = run_cli("market", "--category-id", "3760901")
         self.assertEqual(r["endpoint"], "markets/search")
+        self.assertEqual(r["params"]["category"], {
+            "ids": ["3760901"], "includeDescendantCategoryProducts": True})
+        self.assertEqual(r["params"]["sampleType"], "unitSalesTop100")
+        self.assertEqual(r["params"]["topN"], "10")
+        self.assertEqual(r["params"]["newProductPeriod"], "3")
+
+    def test_market_filters_use_new_names(self):
+        r = run_cli("market", "--category-name", "Health & Household",
+                    "--no-include-descendant-category-products", "--sample-type", "revenueTop100",
+                    "--new-product-period", "12", "--top-n", "5",
+                    "--total-monthly-revenue-min", "100000", "--sample-fbm-rate-max", "0.5",
+                    "--sample-avg-package-volume-max", "5000",
+                    "--top-n-brand-monthly-sales-rate-max", "0.6",
+                    "--top-n-product-monthly-revenue-rate-max", "0.3",
+                    "--sort", "sampleAvgMonthlySales")
+        self.assertEqual(r["params"]["category"], {
+            "name": "Health & Household", "includeDescendantCategoryProducts": False})
+        self.assertEqual(r["params"]["sampleType"], "revenueTop100")
+        self.assertEqual(r["params"]["newProductPeriod"], "12")
+        self.assertEqual(r["params"]["topN"], "5")
+        self.assertEqual(r["params"]["filters"], {
+            "totalMonthlyRevenueMin": 100000,
+            "sampleFbmRateMax": 0.5,
+            "sampleAvgPackageVolumeMax": 5000,
+            "topNBrandMonthlySalesRateMax": 0.6,
+            "topNProductMonthlyRevenueRateMax": 0.3,
+        })
+        self.assertEqual(r["params"]["sortBy"], "sampleAvgMonthlySales")
+        self.assertEqual(len(zoodata.MARKET_FILTER_FIELDS), 61)
+        self.assertEqual(len(zoodata.MARKET_SORT_FIELDS), 17)
+
+    def test_market_batch_ids_and_path(self):
+        r = run_cli("market", "--category-ids", "15342811, 3760941",
+                    "--sort", "totalMonthlySales", "--page-size", "100")
+        self.assertEqual(r["params"]["category"]["ids"], ["15342811", "3760941"])
+        self.assertEqual(r["params"]["pageSize"], 100)
+        self.assertEqual(r["params"]["sortBy"], "totalMonthlySales")
+        r = run_cli("market", "--category-path", "Health & Household > Health Care")
+        self.assertEqual(r["params"]["category"]["path"],
+                         ["Health & Household", "Health Care"])
+
+    def test_market_batch_rejects_bad_ids(self):
+        with self.assertRaises(SystemExit):
+            run_cli("market", "--category-ids", "15342811,15342811")
+        with self.assertRaises(SystemExit):
+            run_cli("market", "--category-ids", "")
+        with self.assertRaises(SystemExit):
+            run_cli("market", "--category-ids", ",".join(str(i) for i in range(101)))
+
+    def test_market_structure_profile(self):
+        r = run_cli("market-structure-profile", "--category-id", "3760901",
+                    "--dimension", "price",
+                    "--no-include-descendant-category-products")
+        self.assertEqual(r["endpoint"], "markets/structure-profile")
+        self.assertEqual(r["params"]["dimension"], "price")
+        self.assertNotIn("newProductPeriod", r["params"])
+        self.assertFalse(r["params"]["includeDescendantCategoryProducts"])
+        self.assertNotIn("categoryScope", r["params"])
+
+    def test_market_history(self):
+        r = run_cli("market-history", "--category-id", "3760901",
+                    "--date-from", "2026-01-01", "--date-to", "2026-08-31")
+        self.assertEqual(r["endpoint"], "markets/history")
+        self.assertEqual(r["params"]["dateFrom"], "2026-01-01")
+        self.assertEqual(r["params"]["dateTo"], "2026-08-31")
+        self.assertNotIn("newProductPeriod", r["params"])
+        self.assertTrue(r["params"]["includeDescendantCategoryProducts"])
+        self.assertNotIn("categoryScope", r["params"])
+        self.assertNotIn("date", r["params"])
+
+    def test_market_rejects_retired_cli_parameters(self):
+        for option, value in (("--category", "Pet Supplies"),
+                              ("--keyword", "yoga"), ("--topn", "10"),
+                              ("--top100-fbm-rate-max", "0.5"),
+                              ("--sales-min", "1000"),
+                              ("--top-brand-sales-rate-max", "0.5"),
+                              ("--sample-top10-product-sales-rate-max", "0.5"),
+                              ("--sample-monthly-sales-min", "1000")):
+            with self.subTest(option=option), self.assertRaises(SystemExit):
+                run_cli("market", option, value)
+        retired_commands = (
+            ("market-structure-profile",
+             ("--category-id", "3760901", "--dimension", "price", "--scope", "subtree")),
+            ("market-history",
+             ("--category-id", "3760901", "--date-from", "2026-01-01",
+              "--date-to", "2026-08-31", "--start-date", "2026-01-01")),
+            ("market-history",
+             ("--category-id", "3760901", "--date-from", "2026-01-01",
+              "--date-to", "2026-08-31", "--end-date", "2026-08-31")),
+            ("market-history",
+             ("--category-id", "3760901", "--date-from", "2026-01-01",
+              "--date-to", "2026-08-31", "--new-product-period", "6")),
+            ("market-structure-profile",
+             ("--category-id", "3760901", "--dimension", "price",
+              "--new-product-period", "6")),
+        )
+        for command, argv in retired_commands:
+            with self.subTest(command=command, option=argv[-2]), self.assertRaises(SystemExit):
+                run_cli(command, *argv)
 
     def test_products(self):
         r = run_cli("products", "--keyword", "yoga")
@@ -667,22 +785,90 @@ class TestCategoryResolutionMeta(unittest.TestCase):
 class TestOutputFormat(unittest.TestCase):
 
     def test_json_format_is_valid(self):
-        out = run_cli_stdout("json", "market", "--keyword", "yoga")
+        out = run_cli_stdout("json", "market", "--category-id", "3760901")
         parsed = json.loads(out)
         self.assertIsInstance(parsed, dict)
 
     def test_compact_format_is_valid_json(self):
-        out = run_cli_stdout("compact", "market", "--keyword", "yoga")
+        out = run_cli_stdout("compact", "market", "--category-id", "3760901")
         parsed = json.loads(out)
         self.assertIsInstance(parsed, dict)
 
     def test_compact_is_single_line(self):
-        out = run_cli_stdout("compact", "market", "--keyword", "yoga")
+        out = run_cli_stdout("compact", "market", "--category-id", "3760901")
         self.assertEqual(out.count("\n"), 1)  # only the trailing newline
 
     def test_json_is_indented(self):
-        out = run_cli_stdout("json", "market", "--keyword", "yoga")
+        out = run_cli_stdout("json", "market", "--category-id", "3760901")
         self.assertGreater(out.count("\n"), 1)
+
+
+class TestResultTempCleanup(unittest.TestCase):
+
+    def test_cleanup_removes_only_owned_stale_zoodata_directories(self):
+        today = zoodata.date(2026, 9, 20)
+        with tempfile.TemporaryDirectory() as root:
+            namespace = zoodata._result_temp_namespace(temp_root=root, create=True)
+            self.assertEqual(os.stat(namespace).st_mode & 0o777, 0o700)
+            stale = os.path.join(namespace, "2026-08-20")
+            boundary = os.path.join(namespace, "2026-08-21")
+            fresh = os.path.join(namespace, "2026-09-20")
+            unrelated = os.path.join(namespace, "not-a-date")
+            os.mkdir(stale)
+            os.mkdir(boundary)
+            os.mkdir(fresh)
+            os.mkdir(unrelated)
+
+            zoodata.cleanup_stale_result_dirs(temp_root=root, today=today)
+
+            self.assertFalse(os.path.exists(stale))
+            self.assertTrue(os.path.isdir(boundary))
+            self.assertTrue(os.path.isdir(fresh))
+            self.assertTrue(os.path.isdir(unrelated))
+
+    def test_cleanup_does_not_follow_prefixed_symlink(self):
+        today = zoodata.date(2026, 9, 20)
+        with tempfile.TemporaryDirectory() as root:
+            target = os.path.join(root, "preserve-target")
+            os.mkdir(target)
+            namespace = zoodata._result_temp_namespace(temp_root=root, create=True)
+            link = os.path.join(namespace, "2026-08-20")
+            os.symlink(target, link)
+
+            zoodata.cleanup_stale_result_dirs(temp_root=root, today=today)
+
+            self.assertTrue(os.path.isdir(target))
+            self.assertTrue(os.path.islink(link))
+
+    def test_scheduler_starts_detached_worker_and_returns(self):
+        now = 2_000_000_000
+        with tempfile.TemporaryDirectory() as root, \
+             patch.object(zoodata.tempfile, "gettempdir", return_value=root), \
+             patch.object(zoodata.time, "time", return_value=now), \
+             patch.object(zoodata.subprocess, "Popen") as popen:
+            zoodata._startup_temp_cleanup_scheduled = False
+
+            zoodata._schedule_stale_result_cleanup()
+
+            popen.assert_called_once()
+            self.assertTrue(popen.call_args.kwargs["start_new_session"])
+            self.assertIs(popen.call_args.kwargs["stdout"], zoodata.subprocess.DEVNULL)
+            self.assertIs(popen.call_args.kwargs["stderr"], zoodata.subprocess.DEVNULL)
+
+            zoodata._startup_temp_cleanup_scheduled = False
+            zoodata._schedule_stale_result_cleanup()
+            popen.assert_called_once()
+
+    def test_scheduler_failure_removes_daily_marker_for_later_retry(self):
+        with tempfile.TemporaryDirectory() as root, \
+             patch.object(zoodata.tempfile, "gettempdir", return_value=root), \
+             patch.object(zoodata.subprocess, "Popen", side_effect=OSError):
+            zoodata._startup_temp_cleanup_scheduled = False
+
+            zoodata._schedule_stale_result_cleanup()
+
+            namespace = zoodata._result_temp_namespace(temp_root=root)
+            self.assertFalse(os.path.exists(os.path.join(namespace, ".gc.stamp")))
 
 
 class TestSingleChannelCliOutput(unittest.TestCase):
@@ -1310,7 +1496,7 @@ class TestApiErrorPropagation(unittest.TestCase):
 
         with patch.object(zoodata, "api_call", return_value=error), \
              patch.object(sys, "argv", [
-                 "zoodata.py", "market", "--keyword", "yoga mat",
+                 "zoodata.py", "market", "--category-id", "3760901",
              ]), \
              patch("sys.stdout", stdout), \
              self.assertRaises(SystemExit) as raised:
@@ -1392,16 +1578,25 @@ class TestApiErrorPropagation(unittest.TestCase):
 # ---------------------------------------------------------------------------
 class TestCategoryParamPassing(unittest.TestCase):
 
-    def test_comma_format_parsed_to_list(self):
-        r = run_cli("market", "--category", "Pet Supplies,Dogs")
-        self.assertEqual(r["params"]["categoryPath"], ["Pet Supplies", "Dogs"])
+    def test_comma_in_category_name_requires_json_array(self):
+        r = run_cli(
+            "categories", "--category", '["Vitamins, Minerals & Supplements"]',
+        )
+        self.assertEqual(
+            r["params"]["categoryPath"],
+            ["Vitamins, Minerals & Supplements"],
+        )
+
+    def test_ambiguous_comma_category_is_rejected_before_api_call(self):
+        with self.assertRaisesRegex(SystemExit, "Ambiguous category path"):
+            run_cli("categories", "--category", "Vitamins, Minerals & Supplements")
 
     def test_arrow_format_parsed_to_list(self):
-        r = run_cli("market", "--category", "Pet Supplies > Dogs > Toys")
+        r = run_cli("categories", "--category", "Pet Supplies > Dogs > Toys")
         self.assertEqual(r["params"]["categoryPath"], ["Pet Supplies", "Dogs", "Toys"])
 
     def test_keyword_goes_to_correct_key(self):
-        r = run_cli("market", "--keyword", "yoga")
+        r = run_cli("categories", "--keyword", "yoga")
         self.assertIn("categoryKeyword", r["params"])
         self.assertEqual(r["params"]["categoryKeyword"], "yoga")
 
@@ -1409,93 +1604,97 @@ class TestCategoryParamPassing(unittest.TestCase):
 # ---------------------------------------------------------------------------
 # 9. cmd_market_entry: categoryPath → keyword fallback (regression for #XX)
 # ---------------------------------------------------------------------------
-class TestMarketEntryCategoryFallback(unittest.TestCase):
-    """cmd_market_entry must downgrade to keyword-only mode when a deep-leaf
-    categoryPath returns no aggregation data from markets/search.
-
-    Without this fallback, all 11 downstream endpoints inherit the dead
-    categoryPath and return empty/HTTP 500 — the symptom Kimi 2.5 reported when
-    asked to analyze a 5-level leaf like
-    'Electronics > … > Over-Ear Headphones'.
-    """
-
-    DEEP_LEAF = "Electronics,Headphones,Earbuds & Accessories,Headphones & Earbuds,Over-Ear Headphones"
-
-    def _run(self, market_when_categoryPath, market_when_categoryKeyword):
-        """Run market-entry, returning the ordered list of (endpoint, params) calls."""
+class TestMarketCategoryResolution(unittest.TestCase):
+    def test_search_snapshot_resolves_id_from_exact_category_path(self):
         calls = []
-        # Endpoints whose response.data is a dict (others use list)
-        dict_data_endpoints = {
-            "products/brand-overview", "products/brand-detail",
-            "products/price-band-overview", "products/price-band-detail",
-            "reviews/analysis", "realtime/product", "realtime/reviews",
-            "products/history",
-        }
+        def caller(endpoint, params, label=None):
+            calls.append((endpoint, params))
+            if endpoint == "categories":
+                return {"success": True, "data": [{"categoryId": "3760901",
+                    "categoryPath": ["Health & Household"]}]}
+            return {"success": True, "data": [{"categoryId": "3760901",
+                    "totalSkuCount": 100, "sampleSkuCount": 50,
+                    "sampleMonthlySales": 50000}]}
+        results = {}
+        response = zoodata._market_snapshot_for_category(
+            caller, ["Health & Household"], results=results)
+        self.assertTrue(response["success"])
+        self.assertEqual(calls[0], ("categories", {"categoryPath": ["Health & Household"]}))
+        self.assertEqual(calls[1][0], "markets/search")
+        self.assertEqual(calls[1][1]["category"], {
+            "ids": ["3760901"], "includeDescendantCategoryProducts": True})
+        self.assertEqual(calls[1][1]["sampleType"], "unitSalesTop100")
+        self.assertEqual(calls[1][1]["pageSize"], 1)
+        self.assertEqual(response["data"]["totalSkuCount"], 100)
+        self.assertEqual(response["data"]["sampleSkuCount"], 50)
+        self.assertEqual(response["data"]["sampleMonthlySales"], 50000)
+        self.assertEqual(results["meta"]["resolved_category_id"], "3760901")
 
-        def fake_api_call(endpoint, params):
-            calls.append((endpoint, dict(params)))
-            if endpoint == "markets/search":
-                if "categoryPath" in params:
-                    return market_when_categoryPath
-                return market_when_categoryKeyword
-            empty_data = {} if endpoint in dict_data_endpoints else []
-            return {"success": True, "data": empty_data, "meta": {"total": 0},
-                    "_query": {"endpoint": endpoint, "params": params}}
+    def test_search_snapshot_rejects_wrong_category_row(self):
+        def caller(endpoint, params, label=None):
+            if endpoint == "categories":
+                return {"success": True, "data": [{"categoryId": "3760901"}]}
+            return {"success": True, "data": [{"categoryId": "other"}]}
+        response = zoodata._market_snapshot_for_category(
+            caller, ["Health & Household"])
+        self.assertFalse(response["success"])
+        self.assertEqual(response["error"]["code"], "MARKET_NOT_FOUND")
 
-        argv = ["zoodata.py", "market-entry",
-                "--keyword", "Over-Ear Headphones",
-                "--category", self.DEEP_LEAF]
-        with patch.object(zoodata, "api_call", side_effect=fake_api_call), \
-             patch.object(zoodata, "output"), \
-             patch.object(sys, "argv", argv):
-            zoodata.main()
-        return calls
+    def test_missing_id_does_not_issue_unscoped_market_request(self):
+        calls = []
+        def caller(endpoint, params, label=None):
+            calls.append(endpoint)
+            return {"success": True, "data": []}
+        response = zoodata._market_snapshot_for_category(
+            caller, ["Unknown"], results={})
+        self.assertFalse(response["success"])
+        self.assertEqual(calls, ["categories"])
 
-    @staticmethod
-    def _market_resp(empty=False):
-        if empty:
-            return {"success": True, "data": [], "meta": {"total": 0},
-                    "_query": {"endpoint": "markets/search", "params": {}}}
-        return {"success": True, "data": [{"asin": "B0EXAMPLE"}],
-                "meta": {"total": 1234},
-                "_query": {"endpoint": "markets/search", "params": {}}}
+    def test_category_lookup_failure_is_preserved(self):
+        for status in (401, 402, 500):
+            with self.subTest(status=status):
+                calls = []
+                failure = {"success": False, "data": None,
+                           "error": {"code": "CATEGORY_FAILURE", "message": "original"},
+                           "_transport": {"status": status},
+                           "_query": {"endpoint": "categories"}}
 
-    def test_empty_categoryPath_triggers_keyword_retry(self):
-        calls = self._run(self._market_resp(empty=True), self._market_resp())
-        market_calls = [p for ep, p in calls if ep == "markets/search"]
-        self.assertGreaterEqual(len(market_calls), 2,
-            "Expected an initial categoryPath call followed by a keyword fallback retry")
-        self.assertIn("categoryPath", market_calls[0])
-        self.assertIn("categoryKeyword", market_calls[1])
-        self.assertNotIn("categoryPath", market_calls[1])
+                def caller(endpoint, params, label=None):
+                    calls.append(endpoint)
+                    return failure
 
-    def test_subsequent_endpoints_drop_categoryPath_after_downgrade(self):
-        calls = self._run(self._market_resp(empty=True), self._market_resp())
-        # Skip the very first markets/search (which legitimately uses
-        # categoryPath); every call after the downgrade must not carry it.
-        seen_first_market = False
-        for ep, p in calls:
-            if ep == "markets/search" and not seen_first_market:
-                seen_first_market = True
-                continue
-            self.assertNotIn("categoryPath", p,
-                f"{ep} should not carry categoryPath after downgrade, got {p}")
+                response = zoodata._market_snapshot_for_category(
+                    caller, ["Health & Household"])
+                self.assertIs(response, failure)
+                self.assertEqual(calls, ["categories"])
 
-    def test_nonempty_categoryPath_does_not_retry(self):
-        calls = self._run(self._market_resp(), self._market_resp())
-        market_calls = [p for ep, p in calls if ep == "markets/search"]
-        self.assertEqual(len(market_calls), 1,
-            "No fallback retry should fire when categoryPath returns data")
-        self.assertIn("categoryPath", market_calls[0])
+    def test_keyword_category_lookup_failure_is_preserved(self):
+        failure = {"success": False, "data": [],
+                   "error": {"code": "CREDITS_EXHAUSTED"},
+                   "_transport": {"status": 402}}
+        calls = []
 
-    def test_failed_categoryPath_call_also_triggers_retry(self):
-        # success=False (HTTP 500-equivalent) should also trigger downgrade
-        failed = {"success": False, "error": {"status": 500, "message": "boom"},
-                  "_query": {"endpoint": "markets/search", "params": {}}}
-        calls = self._run(failed, self._market_resp())
-        market_calls = [p for ep, p in calls if ep == "markets/search"]
-        self.assertGreaterEqual(len(market_calls), 2)
-        self.assertIn("categoryKeyword", market_calls[1])
+        def caller(endpoint, params, label=None):
+            calls.append((endpoint, params))
+            return failure
+
+        response = zoodata._market_snapshot_for_category(
+            caller, None, keyword="pet supplies")
+        self.assertIs(response, failure)
+        self.assertEqual(calls, [("categories", {"categoryKeyword": "pet supplies"})])
+
+    def test_cached_category_failure_is_preserved_without_another_call(self):
+        failure = {"success": False, "data": [{"categoryId": "3760901",
+                                            "categoryPath": ["Health & Household"]}],
+                   "error": {"code": "INVALID_KEY"},
+                   "_transport": {"status": 401}}
+
+        def caller(endpoint, params, label=None):
+            self.fail("failed cached category lookup must not trigger another call")
+
+        response = zoodata._market_snapshot_for_category(
+            caller, ["Health & Household"], results={"categories": failure})
+        self.assertIs(response, failure)
 
 
 class TestCommandAllowlist(unittest.TestCase):
@@ -1572,18 +1771,17 @@ class TestCommandAllowlist(unittest.TestCase):
         import subprocess
         repo_root = os.path.join(os.path.dirname(__file__), "..")
         restricted_copy = os.path.join(
-            repo_root, "amazon-market-trend-scanner", "scripts", "zoodata.py")
-        # 'history' is outside the trend-scanner allowlist
-        r = subprocess.run([sys.executable, restricted_copy, "history", "--help"],
+            repo_root, "amazon-market-analysis", "scripts", "zoodata.py")
+        # 'report' is outside the market-analysis allowlist
+        r = subprocess.run([sys.executable, restricted_copy, "report", "--help"],
                            capture_output=True, text=True, timeout=30)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        self.assertIn("--asins", r.stdout)
+        self.assertIn("--keyword", r.stdout)
         # ...but actually executing it is refused. Hermetic env: if the
         # refusal ever regresses, this degrades to a credential error
         # instead of a live API call from a developer machine.
-        r = subprocess.run([sys.executable, restricted_copy, "history",
-                            "--asins", "B0X", "--start-date", "2026-01-01",
-                            "--end-date", "2026-01-02"],
+        r = subprocess.run([sys.executable, restricted_copy, "report",
+                            "--keyword", "yoga mat"],
                            capture_output=True, text=True, timeout=30,
                            env={"PATH": os.environ.get("PATH", ""),
                                 "HOME": "/nonexistent"})
@@ -1600,12 +1798,11 @@ class TestCommandAllowlist(unittest.TestCase):
         import subprocess
         repo_root = os.path.join(os.path.dirname(__file__), "..")
         restricted_copy = os.path.join(
-            repo_root, "amazon-market-trend-scanner", "scripts", "zoodata.py")
+            repo_root, "amazon-market-analysis", "scripts", "zoodata.py")
         hermetic = {"PATH": os.environ.get("PATH", ""), "HOME": "/nonexistent"}
         r = subprocess.run(
-            [sys.executable, restricted_copy, "--format", "json", "history",
-             "--asins", "B0X", "--start-date", "2026-01-01",
-             "--end-date", "2026-01-02"],
+            [sys.executable, restricted_copy, "--format", "json", "report",
+             "--keyword", "yoga mat"],
             capture_output=True, text=True, timeout=30, env=hermetic)
         self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
         self.assertEqual(json.loads(r.stdout)["error"]["status"],
@@ -1613,9 +1810,8 @@ class TestCommandAllowlist(unittest.TestCase):
         # A stray unknown argument must not demote the refusal to a usage
         # error: the command can never run here, so the refusal wins.
         r = subprocess.run(
-            [sys.executable, restricted_copy, "--format", "json", "history",
-             "--asins", "B0X", "--start-date", "2026-01-01",
-             "--end-date", "2026-01-02", "--bogus"],
+            [sys.executable, restricted_copy, "--format", "json", "report",
+             "--keyword", "yoga mat", "--bogus"],
             capture_output=True, text=True, timeout=30, env=hermetic)
         self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
         self.assertEqual(json.loads(r.stdout)["error"]["status"],
@@ -1630,7 +1826,8 @@ class TestCommandAllowlist(unittest.TestCase):
         repo_root = os.path.join(os.path.dirname(__file__), "..")
         src = open(SCRIPT_PATH, encoding="utf-8").read()
         real_commands = set(re.findall(r"add_parser\(\s*[\"']([a-z0-9-]+)[\"']", src))
-        skill_dirs = sorted(glob.glob(os.path.join(repo_root, "amazon-*")))
+        skill_dirs = sorted(d for d in glob.glob(os.path.join(repo_root, "amazon-*"))
+                            if os.path.isfile(os.path.join(d, "SKILL.md")))
         self.assertGreater(len(skill_dirs), 5)
         for d in skill_dirs:
             manifest_path = os.path.join(d, "scripts", "allowed-commands.json")
@@ -1655,11 +1852,11 @@ class TestCommandAllowlist(unittest.TestCase):
         manifest); a wider one silently un-enforces the declaration.
 
         Every skill declares its command set on exactly ONE declaration
-        line — "This skill allows ..." (9 skills) or "The bundled manifest
-        allows exactly ..." (keyword-traffic-analysis). Only that line is
+        line — "This skill allows ..." or "The bundled manifest allows
+        exactly ...". Only that line is
         scanned, so ordinary prose edits elsewhere can never fire this
         test; when a route is added or removed, update the declaration
-        line and the manifest together. (market-entry's endpoint→CLI
+        line and the manifest together. (The unified market endpoint→CLI
         routing table is separately pinned by
         tests/test_non_keyword_cli_routing.py.)
         """
@@ -1670,7 +1867,8 @@ class TestCommandAllowlist(unittest.TestCase):
         real = set(re.findall(r"add_parser\(\s*[\"']([a-z0-9-]+)[\"']", src))
         MARKERS = ("This skill allows", "The bundled manifest allows exactly")
 
-        for d in sorted(glob.glob(os.path.join(repo_root, "amazon-*"))):
+        for d in sorted(d for d in glob.glob(os.path.join(repo_root, "amazon-*"))
+                        if os.path.isfile(os.path.join(d, "SKILL.md"))):
             name = os.path.basename(d)
             with open(os.path.join(d, "scripts", "allowed-commands.json"),
                       encoding="utf-8") as f:
@@ -1686,6 +1884,11 @@ class TestCommandAllowlist(unittest.TestCase):
                 declared = {t for t in
                             re.findall(r"`([a-z0-9-]+)`", declaration_lines[0])
                             if t in real}
+                declaration_tokens = [t for t in
+                                      re.findall(r"`([a-z0-9-]+)`", declaration_lines[0])
+                                      if t in real]
+                self.assertEqual(len(declaration_tokens), len(set(declaration_tokens)),
+                                 f"{name}: duplicate command in declaration")
                 self.assertEqual(declared, manifest,
                                  f"{name}: declared-only={sorted(declared - manifest)} "
                                  f"manifest-only={sorted(manifest - declared)}")
@@ -2233,21 +2436,23 @@ class TestCompositeRobustness(unittest.TestCase):
     def test_report_self_heals_category_for_product_keyword(self):
         def router(endpoint, params, calls):
             if endpoint == "categories":
+                if "categoryPath" in params:
+                    return {"success": True, "data": [{"categoryId": "3760901",
+                            "categoryPath": params["categoryPath"]}]}
                 return {"success": True, "data": []}            # no direct category match
             if endpoint == "products/search":
                 # real products/search rows carry categoryPath — resolution reads it directly
                 return {"success": True, "data": [{"asin": "B0PROBE001",
                         "categoryPath": ["Sports & Outdoors", "Yoga", "Mats"]}]}
             if endpoint == "markets/search":
-                return {"success": True, "data": [{"totalSkuCount": 100}]}
+                return {"success": True, "data": [{"categoryId": "3760901",
+                        "totalSkuCount": 100}]}
             return {"success": True, "data": []}
         calls, results = self._run(["report", "--keyword", "yoga mat"], router)
         market_calls = [p for ep, p in calls if ep == "markets/search"]
         self.assertTrue(market_calls, "markets/search was not called")
-        # self-heal: market must be scoped by the resolved categoryPath, not categoryKeyword
-        self.assertEqual(market_calls[0].get("categoryPath"),
-                         ["Sports & Outdoors", "Yoga", "Mats"])
-        self.assertNotIn("categoryKeyword", market_calls[0])
+        self.assertEqual(market_calls[0]["category"]["ids"], ["3760901"])
+        self.assertEqual(results["market"]["data"]["totalSkuCount"], 100)
 
     # --- Fix: terminal failure aborts composite fan-out ---
     def test_is_terminal_failure_helper(self):
@@ -2276,15 +2481,16 @@ class TestCompositeRobustness(unittest.TestCase):
         (404/422/empty-but-success) must NOT abort the whole composite."""
         def router(endpoint, params, calls):
             if endpoint == "categories":
-                return {"success": True, "data": [{"categoryPath": ["Sports", "Yoga"]}]}
+                return {"success": True, "data": [{"categoryId": "3760901",
+                        "categoryPath": ["Sports", "Yoga"]}]}
             if endpoint == "markets/search":
                 # non-terminal business failure mid fan-out — must be tolerated, not abort
                 return {"success": False, "error": {"code": "HTTP_422", "message": "validation"}}
-            return {"success": True, "data": []}
+            return {"success": True, "data": {} if endpoint == "reviews/analysis" else []}
         calls, results = self._run(["market-entry", "--keyword", "yoga mat"], router)
         self.assertFalse(results.get("meta", {}).get("aborted"),
                          "composite wrongly aborted on a non-terminal business failure")
-        # composite must have continued PAST the failing markets/search to other endpoints
+        # composite must have continued past the failing market search step
         endpoints = {ep for ep, _ in calls}
         self.assertTrue(endpoints - {"categories", "markets/search"},
                         f"composite stopped after the non-terminal failure; only hit {endpoints}")
@@ -2342,17 +2548,21 @@ class TestCompositeRobustness(unittest.TestCase):
     def test_report_category_resolves_from_products_not_realtime_probe(self):
         def router(endpoint, params, calls):
             if endpoint == "categories":
+                if "categoryPath" in params:
+                    return {"success": True, "data": [{"categoryId": "3760901",
+                            "categoryPath": params["categoryPath"]}]}
                 return {"success": True, "data": []}
             if endpoint == "products/search":
                 return {"success": True, "data": [{"asin": "B01",
                         "categoryPath": ["Sports & Outdoors", "Yoga", "Mats"]}]}
             if endpoint == "markets/search":
-                return {"success": True, "data": [{"totalSkuCount": 1}]}
+                return {"success": True, "data": [{"categoryId": "3760901",
+                        "totalSkuCount": 1}]}
             return {"success": True, "data": []}   # realtime (Step 4 detail) returns no category
         calls, results = self._run(["report", "--keyword", "yoga mat"], router)
         self.assertEqual(results.get("meta", {}).get("category_source"), "inferred_from_search")
         market = [p for ep, p in calls if ep == "markets/search"]
-        self.assertEqual(market[0].get("categoryPath"), ["Sports & Outdoors", "Yoga", "Mats"])
+        self.assertEqual(market[0]["category"]["ids"], ["3760901"])
 
     def test_resolve_category_never_calls_realtime(self):
         """Category resolution reads categoryPath from the products/search row and

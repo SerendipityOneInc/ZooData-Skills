@@ -19,6 +19,9 @@ metadata:
   openclaw: {"requires": {"env": ["ZOODATA_API_KEY"]}, "primaryEnv": "ZOODATA_API_KEY"}
 ---
 
+> **Retired:** This package is no longer discoverable, installable, or published. Use
+> `amazon-market-analysis` for market entry assessment.
+
 # Amazon Market Entry Analyzer — GO / CAUTION / AVOID
 
 One input (keyword/category). Full market viability assessment with sub-market discovery.

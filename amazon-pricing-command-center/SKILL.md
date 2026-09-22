@@ -60,7 +60,7 @@ On first interaction, tell user: "Give me your ASIN(s). I support single or batc
 5. **Batch mode**: group ASINs by leaf category → share market data within same category (saves credits)
 
 ## API Pitfalls
-- Revenue = `sampleAvgMonthlyRevenue` directly. **NEVER** calculate price×sales.
+- Read `references/reference.md § 2` for market revenue fields; do not calculate revenue from price × sales.
 - Sales = `monthlySalesFloor` (lower bound)
 - Price in realtime: `buyboxWinner.price`, NOT top-level `price`
 - **All keyword-based endpoints MUST include `--category`** once categoryPath is locked
@@ -141,7 +141,7 @@ Include a table at the end of every report:
 
 | Data | Endpoint | Key Params | Notes |
 |------|----------|------------|-------|
-| (e.g. Market Overview) | `markets/search` | categoryPath, topN=10 | 📊 Top N sampling, sales are lower-bound |
+| (e.g. Market Overview) | `markets/search` | Copy actual `_query.params` | 📊 Full category and selected Top 100 metrics |
 | ... | ... | ... | ... |
 
 Extract endpoint and params from `_query` in JSON output. Add notes: sampling method, T+1 delay, realtime vs DB, minimum review threshold, etc.

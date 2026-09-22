@@ -12,7 +12,7 @@ Handles authentication, retries, rate limits, parameter quirks, and output forma
 
 Usage:
     python zoodata.py categories --keyword "pet supplies"
-    python zoodata.py market --category "Pet Supplies" --topn 10
+    python zoodata.py market --category-id 3760901
     python zoodata.py products --keyword "yoga mat" --mode emerging
     python zoodata.py competitors --keyword "wireless earbuds"
     python zoodata.py product --asin B09V3KXJPB
@@ -38,12 +38,15 @@ import contextlib
 import io
 import json
 import os
+import shutil
+import subprocess
 import sys
+import tempfile
 import time
 import urllib.request
 import urllib.error
 import re
-from datetime import date
+from datetime import date, timedelta
 
 # ─── Configuration ───────────────────────────────────────────────────────────
 
@@ -88,6 +91,119 @@ BASE_URL_TRUSTED = _is_trusted_host(BASE_URL)  # gates Bearer-token transmission
 API_DOCS = "https://api.zoodata.ai/api-docs"   # API documentation URL
 MAX_RETRIES = 3       # Fixed attempt budget for HTTP and network failures
 RETRY_DELAY = 2       # Initial retry delay in seconds; doubles on each retry
+RESULT_TEMP_ROOT_PREFIX = "zoodata-results-"
+RESULT_TEMP_RUN_PREFIX = "run-"
+RESULT_TEMP_RETENTION_DAYS = 30
+RESULT_CLEANUP_INTERVAL_SECONDS = 24 * 60 * 60
+RESULT_CLEANUP_WORKER_FLAG = "--cleanup-stale-results"
+_startup_temp_cleanup_scheduled = False
+
+
+def _result_temp_namespace(temp_root=None, create=False):
+    """Return the validated private namespace for this user's result files."""
+    system_root = temp_root or tempfile.gettempdir()
+    current_uid = os.getuid() if hasattr(os, "getuid") else None
+    uid = str(current_uid) if current_uid is not None else "current"
+    root = os.path.join(system_root, f"{RESULT_TEMP_ROOT_PREFIX}{uid}")
+    if create:
+        try:
+            os.mkdir(root, 0o700)
+        except FileExistsError:
+            pass
+        except OSError:
+            return None
+    try:
+        info = os.lstat(root)
+        if os.path.islink(root) or not os.path.isdir(root):
+            return None
+        if current_uid is not None and info.st_uid != current_uid:
+            return None
+        if info.st_mode & 0o077:
+            return None
+    except OSError:
+        return None
+    return root
+
+
+def cleanup_stale_result_dirs(temp_root=None, today=None):
+    """Remove date buckets older than 30 days from this user's namespace."""
+    root = _result_temp_namespace(temp_root=temp_root, create=False)
+    if root is None:
+        return
+    cutoff = (today or date.today()) - timedelta(days=RESULT_TEMP_RETENTION_DAYS)
+    current_uid = os.getuid() if hasattr(os, "getuid") else None
+    try:
+        entries = os.scandir(root)
+    except OSError:
+        return
+    with entries:
+        for entry in entries:
+            if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", entry.name):
+                continue
+            try:
+                bucket_date = date.fromisoformat(entry.name)
+            except ValueError:
+                continue
+            try:
+                if not entry.is_dir(follow_symlinks=False):
+                    continue
+                info = entry.stat(follow_symlinks=False)
+                if current_uid is not None and info.st_uid != current_uid:
+                    continue
+                if bucket_date >= cutoff:
+                    continue
+                shutil.rmtree(entry.path)
+            except OSError:
+                # Garbage collection is best-effort and never blocks a command.
+                continue
+
+
+def _schedule_stale_result_cleanup():
+    """Start at most one detached cleanup worker per process and day."""
+    global _startup_temp_cleanup_scheduled
+    if _startup_temp_cleanup_scheduled:
+        return
+    _startup_temp_cleanup_scheduled = True
+
+    root = _result_temp_namespace(create=True)
+    if root is None:
+        return
+    marker = os.path.join(root, ".gc.stamp")
+    now = time.time()
+    try:
+        info = os.lstat(marker)
+        if not os.path.islink(marker) and now - info.st_mtime < RESULT_CLEANUP_INTERVAL_SECONDS:
+            return
+        if os.path.islink(marker):
+            return
+    except FileNotFoundError:
+        pass
+    except OSError:
+        return
+
+    flags = os.O_WRONLY | os.O_CREAT
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    try:
+        fd = os.open(marker, flags, 0o600)
+        os.close(fd)
+        os.utime(marker, (now, now), follow_symlinks=False)
+        subprocess.Popen(
+            [sys.executable, os.path.abspath(__file__), RESULT_CLEANUP_WORKER_FLAG],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            close_fds=True,
+            start_new_session=True,
+        )
+    except (OSError, ValueError):
+        # Startup collection is optional; the requested CLI command continues.
+        try:
+            if not os.path.islink(marker):
+                os.unlink(marker)
+        except OSError:
+            pass
+        return
 REALTIME_EMPTY_RETRIES = 3  # Total attempts when realtime/product returns a transient 200-empty (scrape miss)
 MIN_REQUEST_INTERVAL = 0.6  # Minimum seconds between requests (100 req/min = 0.6s)
 REQUEST_TIMEOUT = 60  # Request timeout in seconds; realtime/product can be slow (up to 30s)
@@ -340,11 +456,6 @@ def api_call(endpoint: str, params: dict) -> dict:
     # Clean params: remove None values
     params = {k: v for k, v in params.items() if v is not None}
 
-    # Quirk: topN and newProductPeriod must be strings
-    for str_field in ("topN", "newProductPeriod"):
-        if str_field in params and not isinstance(params[str_field], str):
-            params[str_field] = str(params[str_field])
-
     # Save the actual params sent to API (for _query metadata)
     actual_params = dict(params)
 
@@ -585,9 +696,51 @@ def _resolve_category(api_caller, log_fn, keyword=None, asin=None, results=None)
     return category_path, category_source
 
 
+def _market_snapshot_for_category(api_caller, category_path, keyword=None, results=None):
+    """Resolve a category ID and select its row from markets/search."""
+    category_result = (results or {}).get("categories")
+    if category_result and category_result.get("success") is False:
+        return category_result
+    rows = (category_result or {}).get("data") or []
+    if category_path:
+        rows = [row for row in rows if row.get("categoryPath") == category_path]
+        if not rows:
+            category_result = api_caller("categories", {"categoryPath": category_path},
+                                         "categories (market ID)")
+            if category_result.get("success") is False:
+                return category_result
+            rows = category_result.get("data") or []
+    elif keyword and not rows:
+        category_result = api_caller("categories", {"categoryKeyword": keyword},
+                                     "categories (market ID)")
+        if category_result.get("success") is False:
+            return category_result
+        rows = category_result.get("data") or []
+    category_id = next((row.get("categoryId") for row in rows
+                        if row.get("categoryId")), None)
+    if not category_id:
+        return {"success": False, "data": None,
+                "error": {"message": "No categoryId resolved for market search"}}
+    if results is not None:
+        results.setdefault("meta", {})["resolved_category_id"] = category_id
+    result = api_caller("markets/search", {"category": {
+                            "ids": [str(category_id)],
+                            "includeDescendantCategoryProducts": True},
+                        "marketplace": "US",
+                        "sampleType": "unitSalesTop100", "page": 1,
+                        "pageSize": 1}, "market")
+    if not result.get("success"):
+        return result
+    rows = result.get("data") or []
+    if not isinstance(rows, list) or len(rows) != 1 or str(rows[0].get("categoryId")) != str(category_id):
+        return {**result, "success": False, "data": None,
+                "error": {"code": "MARKET_NOT_FOUND",
+                          "message": "No matching category market returned by markets/search"}}
+    return {**result, "data": rows[0]}
+
+
 def _has_scope(keyword, category_path):
-    """A category-scoped discovery call (products/search, products/competitors,
-    markets/search for leaders) needs at least one filter. With neither keyword
+    """A category-scoped product discovery call needs at least one filter. With neither keyword
     nor categoryPath the API returns unfiltered global top-sellers — a real bug
     that benchmarks a listing against random products. Callers MUST gate such
     calls on this."""
@@ -801,6 +954,18 @@ def output(data, fmt="json"):
 
 # ─── Helper: parse category string ──────────────────────────────────────────
 
+def parse_category_json(cat_str: str) -> list:
+    """Parse an unambiguous JSON-array category path or fail before API use."""
+    try:
+        parsed = json.loads((cat_str or "").strip())
+    except (json.JSONDecodeError, ValueError) as exc:
+        raise SystemExit("Category path must be a valid JSON array of nonempty strings") from exc
+    if (not isinstance(parsed, list) or not parsed
+            or any(not isinstance(c, str) or not c.strip() for c in parsed)):
+        raise SystemExit("Category path must be a valid JSON array of nonempty strings")
+    return [c.strip() for c in parsed]
+
+
 def parse_category(cat_str: str) -> list:
     """Parse category path string into a list.
 
@@ -808,28 +973,26 @@ def parse_category(cat_str: str) -> list:
       - '["Pet Supplies", "Dogs"]'         (JSON array — unambiguous, safest)
       - 'Pet Supplies > Dogs > Toys'       (spaced arrow — recommended)
       - 'Pet Supplies>Dogs>Toys'           (bare arrow, no spaces)
-      - 'Pet Supplies,Dogs,Toys'           (comma-separated — AVOID for names
-        that contain commas, e.g. "Headphones, Earbuds & Accessories";
-        use '>' or JSON array for those)
+      - Category names containing commas must use the JSON-array form.
     """
     if not cat_str:
         return []
     # JSON array input — exact segments, no separator ambiguity
     stripped = cat_str.strip()
-    if stripped.startswith("[") and stripped.endswith("]"):
-        try:
-            parsed = json.loads(stripped)
-            if isinstance(parsed, list):
-                return [str(c).strip() for c in parsed if str(c).strip()]
-        except (json.JSONDecodeError, ValueError):
-            pass  # not valid JSON — fall through to separator parsing
+    if stripped.startswith("[") or stripped.endswith("]"):
+        return parse_category_json(stripped)
     # Arrow separators take priority: category names never contain '>',
     # but they DO contain commas (e.g. "Headphones, Earbuds & Accessories")
     if " > " in cat_str:
         return [c.strip() for c in cat_str.split(" > ")]
     if ">" in cat_str:
         return [c.strip() for c in cat_str.split(">")]
-    return [c.strip() for c in cat_str.split(",")]
+    if "," in stripped:
+        raise SystemExit(
+            "Ambiguous category path containing a comma; pass a JSON array "
+            "so category boundaries are explicit"
+        )
+    return [stripped]
 
 
 # ─── Review Analysis: Prompt-as-Data Toolkit ───────────────────────────────
@@ -1168,7 +1331,7 @@ def cmd_categories(args):
     elif args.category:
         params["categoryPath"] = parse_category(args.category)
     elif args.parent:
-        params["parentCategoryPath"] = parse_category(args.parent)
+        params["parentCategoryPath"] = parse_category_json(args.parent)
     # else: no params → root categories
     if args.marketplace:
         params["marketplace"] = args.marketplace
@@ -1177,25 +1340,118 @@ def cmd_categories(args):
     output(result, args.format)
 
 
+MARKET_FILTER_FIELDS = (
+    "sampleAvgMonthlySalesMin", "sampleAvgMonthlySalesMax",
+    "sampleAvgMonthlyRevenueMin", "sampleAvgMonthlyRevenueMax",
+    "sampleAvgPriceMin", "sampleAvgPriceMax",
+    "sampleAvgBsrMin", "sampleAvgBsrMax",
+    "sampleAvgRatingMin", "sampleAvgRatingMax",
+    "sampleAvgRatingCountMin", "sampleAvgRatingCountMax",
+    "totalSkuCountMin", "totalSkuCountMax",
+    "sampleSkuCountMin", "sampleSkuCountMax",
+    "topNProductMonthlySalesRateMin", "topNProductMonthlySalesRateMax",
+    "topNProductMonthlyRevenueRateMin", "topNProductMonthlyRevenueRateMax",
+    "topNBrandMonthlySalesRateMin", "topNBrandMonthlySalesRateMax",
+    "topNBrandMonthlyRevenueRateMin", "topNBrandMonthlyRevenueRateMax",
+    "sampleBrandCountMin", "sampleBrandCountMax",
+    "sampleSellerCountMin", "sampleSellerCountMax",
+    "sampleFbaRateMin", "sampleFbaRateMax",
+    "sampleAmzRateMin", "sampleAmzRateMax",
+    "sampleNewSkuCountMin", "sampleNewSkuCountMax",
+    "sampleNewSkuRateMin", "sampleNewSkuRateMax",
+    "sampleNewSkuAvgMonthlySalesMin", "sampleNewSkuAvgMonthlySalesMax",
+    "sampleNewSkuAvgPriceMin", "sampleNewSkuAvgPriceMax",
+    "sampleAvgPackageWeightMin", "sampleAvgPackageWeightMax",
+    "sampleAvgPackageVolumeMin", "sampleAvgPackageVolumeMax",
+    "sellerCountry",
+    "totalMonthlySalesMin", "totalMonthlyRevenueMin",
+    "sampleAvgGrossMarginRateMin", "sampleAvgGrossMarginRateMax",
+    "sampleNewSkuAvgMonthlyRevenueMin", "sampleNewSkuAvgMonthlyRevenueMax",
+    "sampleNewSkuAvgRatingMin", "sampleNewSkuAvgRatingMax",
+    "sampleNewSkuAvgRatingCountMin", "sampleNewSkuAvgRatingCountMax",
+    "sampleAvgSellerCountMin", "sampleAvgSellerCountMax",
+    "sampleFbmRateMin", "sampleFbmRateMax",
+    "sampleAPlusRateMin", "sampleAPlusRateMax",
+)
+
+MARKET_INTEGER_FILTER_FIELDS = {
+    "totalSkuCountMin", "totalSkuCountMax",
+    "sampleSkuCountMin", "sampleSkuCountMax",
+    "sampleBrandCountMin", "sampleBrandCountMax",
+    "sampleSellerCountMin", "sampleSellerCountMax",
+    "sampleNewSkuCountMin", "sampleNewSkuCountMax",
+}
+
+MARKET_SORT_FIELDS = (
+    "totalMonthlySales", "totalMonthlyRevenue",
+    "sampleMonthlySales", "sampleMonthlyRevenue",
+    "sampleAvgMonthlySales", "sampleAvgMonthlyRevenue",
+    "totalSkuCount", "sampleSkuCount", "sampleAvgPrice",
+    "sampleTotalMonthlySales", "sampleAvgBsr", "sampleAvgRating",
+    "sampleAvgRatingCount", "sampleBrandCount", "sampleSellerCount",
+    "sampleFbaRate", "sampleNewSkuRate",
+)
+
+
+def _camel_to_cli_flag(field):
+    return "--" + re.sub(r"(?<!^)(?=[A-Z])", "-", field).lower()
+
+
 def cmd_market(args):
-    """Search market-level aggregate data for a category."""
-    params = {}
-    if args.category:
-        params["categoryPath"] = parse_category(args.category)
-    if args.keyword:
-        params["categoryKeyword"] = args.keyword
-    if args.topn:
-        params["topN"] = str(args.topn)
-    if args.page_size:
-        params["pageSize"] = args.page_size
-    if args.page:
-        params["page"] = args.page
+    """Discover category markets (one row per category)."""
+    params = {"sampleType": args.sample_type, "marketplace": args.marketplace,
+              "topN": args.top_n, "newProductPeriod": args.new_product_period,
+              "page": args.page, "pageSize": args.page_size}
+    category = {"includeDescendantCategoryProducts": args.include_descendant_category_products}
+    if args.category_id is not None:
+        category["ids"] = [args.category_id]
+    elif args.category_ids is not None:
+        ids = [value.strip() for value in args.category_ids.split(",")]
+        if not 1 <= len(ids) <= 100 or any(not value for value in ids):
+            raise SystemExit("--category-ids requires 1–100 nonempty comma-separated IDs")
+        if len(set(ids)) != len(ids):
+            raise SystemExit("--category-ids contains duplicate IDs")
+        category["ids"] = ids
+    elif args.category_name is not None:
+        category["name"] = args.category_name
+    elif args.category_path is not None:
+        category["path"] = parse_category(args.category_path)
+    params["category"] = category
+    filters = {}
+    for field in MARKET_FILTER_FIELDS:
+        value = getattr(args, field)
+        if value is not None:
+            filters[field] = value
+    if filters:
+        params["filters"] = filters
+    if args.date:
+        params["date"] = args.date
     if args.sort:
         params["sortBy"] = args.sort
-    if args.order:
-        params["sortOrder"] = args.order
-
+    params["sortOrder"] = args.order
     result = api_call("markets/search", params)
+    output(result, args.format)
+
+
+def _market_single_params(args):
+    return {"categoryId": args.category_id,
+            "includeDescendantCategoryProducts": args.include_descendant_category_products,
+            "marketplace": args.marketplace,
+            "sampleType": args.sample_type,
+            **({"date": args.date} if getattr(args, "date", None) else {})}
+
+
+def cmd_market_structure_profile(args):
+    params = _market_single_params(args)
+    params["dimension"] = args.dimension
+    result = api_call("markets/structure-profile", params)
+    output(result, args.format)
+
+
+def cmd_market_history(args):
+    params = _market_single_params(args)
+    params.update({"dateFrom": args.date_from, "dateTo": args.date_to})
+    result = api_call("markets/history", params)
     output(result, args.format)
 
 
@@ -1343,7 +1599,6 @@ def cmd_report(args):
         print("ERROR: --keyword is required for report command.", file=sys.stderr)
         sys.exit(1)
 
-    topn = str(args.topn or 10)
     results = {}
 
     # Step 1: Confirm category (self-healing: categories -> products/search row's
@@ -1357,13 +1612,8 @@ def cmd_report(args):
 
     # Step 2: Market data
     print("Step 2/4: Pulling market data...", file=sys.stderr)
-    market_params = {"topN": topn}
-    if category_path:
-        market_params["categoryPath"] = category_path
-    else:
-        market_params["categoryKeyword"] = keyword
-    market_result = api_call("markets/search", market_params)
-    results["market"] = market_result
+    results["market"] = _market_snapshot_for_category(
+        _caller, category_path, keyword=keyword, results=results)
 
     # Step 3: Top products
     print("Step 3/4: Searching top products...", file=sys.stderr)
@@ -1414,12 +1664,8 @@ def cmd_opportunity(args):
 
     # Step 2: Market validation
     print("Step 2/4: Validating market...", file=sys.stderr)
-    market_params = {"topN": "10"}
-    if category_path:
-        market_params["categoryPath"] = category_path
-    else:
-        market_params["categoryKeyword"] = keyword
-    results["market"] = api_call("markets/search", market_params)
+    results["market"] = _market_snapshot_for_category(
+        _caller, category_path, keyword=keyword, results=results)
 
     # Step 3: Product candidates (high demand, low barrier)
     print("Step 3/4: Discovering product candidates...", file=sys.stderr)
@@ -1457,7 +1703,7 @@ def cmd_market_entry(args):
     Composite workflow: Full Market Entry Analysis.
     Runs ALL 11 endpoints in the correct order with fallback logic.
     Outputs a single structured JSON with all data needed for the report.
-    
+
     Steps:
       1. Market landscape: market + brand-overview + brand-detail
       2. Price structure: price-band-overview + price-band-detail
@@ -1510,34 +1756,10 @@ def cmd_market_entry(args):
 
     # ── Step 1: Market Landscape (3 calls) ──
     log("Step 1/6: Market landscape...")
-    
-    # 1a. Market aggregate
-    market_params = {"topN": "10", "pageSize": 20}
-    if category_path:
-        market_params["categoryPath"] = category_path
-    elif keyword:
-        market_params["categoryKeyword"] = keyword
-    results["market"] = safe_call("markets/search", market_params, "market")
 
-    # 1a-fallback: deep-leaf categoryPath has no aggregation data on the
-    # backend → downgrade to keyword-only mode so all subsequent steps use
-    # categoryKeyword instead of categoryPath. Only applies when both keyword
-    # and categoryPath were provided (otherwise we have nothing to fall back to).
-    if category_path and keyword:
-        m = results["market"] or {}
-        m_data = m.get("data") or []
-        m_total = (m.get("meta") or {}).get("total", 0)
-        if m.get("success") is False or not m_data or m_total == 0:
-            log(f"  → categoryPath {' > '.join(category_path)} returned empty; "
-                f"downgrading to keyword-only mode for subsequent steps")
-            results["meta"]["category_downgrade"] = {
-                "from": category_path,
-                "reason": "empty_aggregation",
-            }
-            category_path = None
-            market_params = {"topN": "10", "pageSize": 20, "categoryKeyword": keyword}
-            results["market"] = safe_call("markets/search", market_params,
-                                          "market (keyword fallback)")
+    # 1a. Market aggregate
+    results["market"] = _market_snapshot_for_category(
+        safe_call, category_path, keyword=keyword, results=results)
 
     # 1b. Brand overview (keyword + category, fallback to category-only)
     brand_ov_params = {"pageSize": 20}
@@ -1616,7 +1838,7 @@ def cmd_market_entry(args):
 
     # ── Step 4: Top Competitor Deep-Dive ──
     log("Step 4/6: Competitor deep-dive...")
-    
+
     # 4a. Competitor lookup
     comp_params = {"pageSize": 20, "dateRange": "30d", "marketplace": "US", "page": 1,
                    "sortBy": "monthlySalesFloor", "sortOrder": "desc"}
@@ -1654,7 +1876,7 @@ def cmd_market_entry(args):
     # Try history with Top 3, fallback to older ASINs
     history_data = []
     tried_asins = set()
-    
+
     # Sort products by listingDate (oldest first) for fallback
     products_by_age = sorted(
         [p for p in all_products if p.get("listingDate")],
@@ -1723,7 +1945,7 @@ def cmd_market_entry(args):
     log(f"   Steps: {', '.join(results['meta']['steps_completed'])}")
     log(f"   Products: {len(all_products)} | Realtime: {len(realtime_details)} | History: {len(history_data)}")
     log(f"   Reviews mode: {results['meta']['review_mode']}")
-    
+
     output(results, args.format)
 
 
@@ -1796,12 +2018,8 @@ def cmd_competitor_analysis(args):
 
     # Step 2: Market Context
     log("Step 2/7: Market context...")
-    market_params = {"topN": "10", "pageSize": 20}
-    if category_path:
-        market_params["categoryPath"] = category_path
-    elif keyword:
-        market_params["categoryKeyword"] = keyword
-    results["market"] = safe_call("markets/search", market_params, "market")
+    results["market"] = _market_snapshot_for_category(
+        safe_call, category_path, keyword=keyword, results=results)
 
     brand_params = {"pageSize": 20}
     if category_path:
@@ -2027,12 +2245,8 @@ def cmd_pricing_analysis(args):
 
     # Step 4: Market Benchmarks
     log("Step 4/8: Market benchmarks...")
-    market_params = {"topN": "10", "pageSize": 20}
-    if category_path:
-        market_params["categoryPath"] = category_path
-    elif keyword:
-        market_params["categoryKeyword"] = keyword
-    results["market"] = safe_call("markets/search", market_params, "market")
+    results["market"] = _market_snapshot_for_category(
+        safe_call, category_path, keyword=keyword, results=results)
 
     brand_params = {"pageSize": 20}
     if category_path:
@@ -2055,7 +2269,7 @@ def cmd_pricing_analysis(args):
     log("Step 5/8: Historical price trends...")
     today = time.strftime("%Y-%m-%d")
     thirty_ago = time.strftime("%Y-%m-%d", time.localtime(time.time() - 30 * 86400))
-    
+
     comp_data = results["products"].get("data", [])
     comp_asins = []
     seen = set()
@@ -2126,7 +2340,7 @@ def cmd_pricing_analysis(args):
 def cmd_daily_radar(args):
     """
     Composite workflow: Daily Market Radar.
-    Runs realtime snapshots → historical comparison → market pulse → 
+    Runs realtime snapshots → historical comparison → market pulse →
     new competitor detection → price landscape → review pulse.
     Designed for unattended daily monitoring.
     """
@@ -2193,10 +2407,10 @@ def cmd_daily_radar(args):
     log("Step 2/7: Historical comparison (7 days)...")
     today = time.strftime("%Y-%m-%d")
     seven_days_ago = time.strftime("%Y-%m-%d", time.localtime(time.time() - 7 * 86400))
-    
+
     history_data = []
     tried_asins = set()
-    
+
     # Round 1: All tracked ASINs
     r = _fetch_all_history(safe_call, tracked_asins, seven_days_ago, today, log_fn=log)
     history_data = r.get("data", [])
@@ -2208,12 +2422,8 @@ def cmd_daily_radar(args):
 
     # Step 3: Market Pulse
     log("Step 3/7: Market pulse...")
-    market_params = {"topN": "10", "pageSize": 20}
-    if category_path:
-        market_params["categoryPath"] = category_path
-    elif keyword:
-        market_params["categoryKeyword"] = keyword
-    results["market"] = safe_call("markets/search", market_params, "market")
+    results["market"] = _market_snapshot_for_category(
+        safe_call, category_path, keyword=keyword, results=results)
 
     # Brand overview + detail
     brand_params = {"pageSize": 20}
@@ -2221,7 +2431,7 @@ def cmd_daily_radar(args):
         brand_params["categoryPath"] = category_path
     if keyword:
         brand_params["keyword"] = keyword
-    
+
     r = safe_call("products/brand-overview", dict(brand_params), "brand-overview")
     if not r.get("data") or r.get("data", {}).get("sampleBrandCount", 0) == 0:
         if keyword and category_path:
@@ -2286,7 +2496,7 @@ def cmd_daily_radar(args):
             }, f"reviews {review_asin}")
             review_results["painPoints"] = _filter_review_insights(r, "painPoints")
             break
-    
+
     if not review_results:
         log("  ⚠️ No tracked ASIN with ≥50 reviews, using ratingBreakdown from realtime")
     results["reviews"] = review_results
@@ -2428,12 +2638,8 @@ def cmd_listing_audit(args):
 
     # Step 4: Market Context
     log("Step 4/7: Market context...")
-    market_params = {"topN": "10", "pageSize": 20}
-    if category_path:
-        market_params["categoryPath"] = category_path
-    elif keyword:
-        market_params["categoryKeyword"] = keyword
-    results["market"] = safe_call("markets/search", market_params, "market")
+    results["market"] = _market_snapshot_for_category(
+        safe_call, category_path, keyword=keyword, results=results)
 
     brand_params = {"pageSize": 20}
     if category_path:
@@ -2523,7 +2729,7 @@ def cmd_opportunity_scan(args):
     keyword = args.keyword
     category = args.category
     modes_str = getattr(args, 'modes', None)
-    
+
     # Custom filter params
     sales_min = getattr(args, 'sales_min', None)
     sales_max = getattr(args, 'sales_max', None)
@@ -2539,16 +2745,16 @@ def cmd_opportunity_scan(args):
 
     # Determine scan strategy
     has_custom_filters = any(v is not None for v in [sales_min, sales_max, ratings_max, price_min, price_max, rating_max, rating_min])
-    
+
     if modes_str:
         modes = [m.strip() for m in modes_str.split(",")]
     elif has_custom_filters:
         modes = ["custom"]  # Custom-only scan
     else:
         modes = ["emerging", "underserved", "high-demand-low-barrier"]  # Default modes
-    
+
     category_path = parse_category(category) if category else None
-    results = {"meta": {"keyword": keyword, "category": category, "modes": modes, 
+    results = {"meta": {"keyword": keyword, "category": category, "modes": modes,
                         "custom_filters": {k: v for k, v in {"sales_min": sales_min, "sales_max": sales_max,
                             "ratings_max": ratings_max, "price_min": price_min, "price_max": price_max,
                             "rating_max": rating_max, "rating_min": rating_min}.items() if v is not None},
@@ -2591,7 +2797,7 @@ def cmd_opportunity_scan(args):
     log(f"Step 1/6: Product scan ({scan_label})...")
     all_candidates = {}  # asin → product data (deduplicated)
     mode_results = {}
-    
+
     # Build custom filter params (applied to ALL scans)
     custom_params = {}
     if sales_min is not None:
@@ -2608,7 +2814,7 @@ def cmd_opportunity_scan(args):
         custom_params["ratingMax"] = rating_max
     if rating_min is not None:
         custom_params["ratingMin"] = rating_min
-    
+
     for mode in modes:
         log(f"  → {'Custom filters' if mode == 'custom' else f'Mode: {mode}'}")
         mode_products = []
@@ -2635,23 +2841,19 @@ def cmd_opportunity_scan(args):
             if asin and asin not in all_candidates:
                 all_candidates[asin] = p
         log(f"    → {len(mode_products)} products, {len(all_candidates)} unique total")
-    
+
     # Log actual search parameters for transparency
     if custom_params:
         log(f"  → Custom filters applied: {custom_params}")
-    
+
     results["scan_results"] = {m: len(ps) for m, ps in mode_results.items()}
     results["meta"]["total_candidates"] = len(all_candidates)
     results["meta"]["steps_completed"].append("product_scan")
 
     # Step 2: Market Context
     log("Step 2/6: Market context...")
-    market_params = {"topN": "10", "pageSize": 20}
-    if category_path:
-        market_params["categoryPath"] = category_path
-    elif keyword:
-        market_params["categoryKeyword"] = keyword
-    results["market"] = safe_call("markets/search", market_params, "market")
+    results["market"] = _market_snapshot_for_category(
+        safe_call, category_path, keyword=keyword, results=results)
 
     brand_params = {"pageSize": 20}
     if category_path:
@@ -2842,7 +3044,7 @@ def cmd_review_deepdive(args):
         }, f"reviews comp {comp_asin}")
         review_results[f"comp_{comp_asin}_painPoints"] = _filter_review_insights(r, "painPoints")
         review_results[f"comp_{comp_asin}_positives"] = _filter_review_insights(r, "positives")
-    
+
     results["reviews"] = review_results
     results["meta"]["steps_completed"].append("review_analysis")
 
@@ -2859,12 +3061,8 @@ def cmd_review_deepdive(args):
 
     # Step 4: Market & Competitive Context
     log("Step 4/5: Market context...")
-    market_params = {"topN": "10", "pageSize": 20}
-    if category_path:
-        market_params["categoryPath"] = category_path
-    elif keyword:
-        market_params["categoryKeyword"] = keyword
-    results["market"] = safe_call("markets/search", market_params, "market")
+    results["market"] = _market_snapshot_for_category(
+        safe_call, category_path, keyword=keyword, results=results)
 
     brand_params = {"pageSize": 20}
     if category_path:
@@ -2944,7 +3142,9 @@ def cmd_check(args):
     if args.endpoints:
         endpoints.extend([
             ("categories", {}, "Category tree"),
-            ("markets/search", {"categoryKeyword": "pet", "pageSize": 1}, "Market search"),
+            ("markets/search", {"category": {"includeDescendantCategoryProducts": True},
+                                "sampleType": "unitSalesTop100",
+                                "pageSize": 1}, "Market search"),
             ("products/search", {"keyword": "test", "pageSize": 1}, "Product search"),
             ("products/competitors", {"keyword": "test", "pageSize": 1}, "Competitor lookup"),
         ])
@@ -3424,6 +3624,11 @@ def main():
     _cli_had_error = False
     _cli_emitted_output = False
 
+    if sys.argv[1:] == [RESULT_CLEANUP_WORKER_FLAG]:
+        cleanup_stale_result_dirs()
+        return
+    _schedule_stale_result_cleanup()
+
     # Enforce the per-skill allowlist BEFORE argparse touches the command:
     # a disallowed subcommand must yield the structured refusal, not a
     # usage error about its arguments (allow_abbrev=False everywhere, so
@@ -3441,7 +3646,7 @@ def main():
         epilog="""
 Examples:
   %(prog)s categories --keyword "pet supplies"
-  %(prog)s market --category "Pet Supplies > Dogs" --topn 10
+  %(prog)s market --category-id 3760901
   %(prog)s products --keyword "yoga mat" --mode emerging
   %(prog)s products --keyword "yoga mat" --sales-min 300 --ratings-max 50
   %(prog)s competitors --keyword "wireless earbuds" --brand Anker
@@ -3462,21 +3667,54 @@ Examples:
     # ── categories ──
     p_cat = sub.add_parser("categories", help="Query Amazon category tree", allow_abbrev=False)
     p_cat.add_argument("--keyword", help="Search categories by keyword")
-    p_cat.add_argument("--category", help="Category path, '>' separated (names may contain commas, e.g. \"Electronics > Headphones, Earbuds & Accessories\"); JSON array also accepted")
-    p_cat.add_argument("--parent", help="Get child categories (comma-separated parent path)")
+    p_cat.add_argument("--category", help="Category path as a JSON array (required for names containing commas) or '>'-separated names")
+    p_cat.add_argument("--parent", help="Parent category path as a required JSON array of nonempty strings")
     p_cat.add_argument("--marketplace", default="US", help="Marketplace (default: US)")
     p_cat.set_defaults(func=cmd_categories)
 
     # ── market ──
-    p_mkt = sub.add_parser("market", help="Search market-level data for a category", allow_abbrev=False)
-    p_mkt.add_argument("--category", help="Category path, '>' separated (names may contain commas, e.g. \"Electronics > Headphones, Earbuds & Accessories\"); JSON array also accepted")
-    p_mkt.add_argument("--keyword", help="Category keyword")
-    p_mkt.add_argument("--topn", type=int, default=10, help="Top N for concentration analysis (default: 10)")
+    p_mkt = sub.add_parser("market", help="Discover category markets", allow_abbrev=False)
+    market_locator = p_mkt.add_mutually_exclusive_group()
+    market_locator.add_argument("--category-id", help="One exact category ID")
+    market_locator.add_argument("--category-ids", help="1–100 comma-separated category IDs")
+    market_locator.add_argument("--category-name", help="Exact category node name")
+    market_locator.add_argument("--category-path", help="Full category path, '>' separated")
+    p_mkt.add_argument("--include-descendant-category-products", action=argparse.BooleanOptionalAction,
+                       default=True, help="Include descendant-category products in each market row (default: true)")
+    p_mkt.add_argument("--marketplace", choices=["US"], default="US")
+    p_mkt.add_argument("--sample-type", choices=["unitSalesTop100", "revenueTop100"], default="unitSalesTop100")
+    p_mkt.add_argument("--top-n", choices=["3", "5", "10", "20"], default="10",
+                       help="Top N group used by Top N filters (default: 10); response includes all four groups")
+    p_mkt.add_argument("--new-product-period", choices=["1", "3", "6", "12"], default="3",
+                       help="New-product window used by filters and sorting (default: 3); response includes all four windows")
+    p_mkt.add_argument("--date", help="Snapshot date (YYYY-MM-DD)")
+    for field in MARKET_FILTER_FIELDS:
+        value_type = str if field == "sellerCountry" else (
+            int if field in MARKET_INTEGER_FILTER_FIELDS else float)
+        p_mkt.add_argument(_camel_to_cli_flag(field), dest=field, type=value_type)
     p_mkt.add_argument("--page-size", type=int, default=20)
     p_mkt.add_argument("--page", type=int, default=1, help="Page number (default: 1)")
-    p_mkt.add_argument("--sort", choices=['totalSkuCount', 'sampleSkuCount', 'sampleAvgPrice', 'sampleAvgMonthlySales', 'sampleAvgMonthlyRevenue', 'sampleTotalMonthlySales', 'sampleAvgBsr', 'sampleAvgRating', 'sampleAvgRatingCount', 'sampleBrandCount', 'sampleSellerCount', 'sampleFbaRate', 'sampleNewSkuRate', 'topAvgMonthlySales', 'topAvgMonthlyRevenue', 'topSalesRate', 'topBrandSalesRate', 'topSellerSalesRate'], metavar="FIELD", help="Sort field (markets enum), e.g. sampleAvgMonthlySales, topBrandSalesRate")
+    p_mkt.add_argument("--sort", choices=MARKET_SORT_FIELDS)
     p_mkt.add_argument("--order", choices=["asc", "desc"], default="desc")
     p_mkt.set_defaults(func=cmd_market)
+
+    p_structure = sub.add_parser("market-structure-profile", help="Read one Top 100 distribution", allow_abbrev=False)
+    p_history = sub.add_parser("market-history", help="Read month-end market history", allow_abbrev=False)
+    for name, p, handler in (("market-structure-profile", p_structure, cmd_market_structure_profile),
+                             ("market-history", p_history, cmd_market_history)):
+        p.add_argument("--category-id", required=True)
+        p.add_argument("--include-descendant-category-products", action=argparse.BooleanOptionalAction,
+                       default=True, help="Include descendant-category products (default: true)")
+        p.add_argument("--marketplace", choices=["US"], default="US")
+        p.add_argument("--sample-type", choices=["unitSalesTop100", "revenueTop100"], default="unitSalesTop100")
+        if name == "market-history":
+            p.add_argument("--date-from", required=True)
+            p.add_argument("--date-to", required=True)
+        else:
+            p.add_argument("--date", help="Snapshot date (YYYY-MM-DD)")
+        if name == "market-structure-profile":
+            p.add_argument("--dimension", required=True, choices=["brand", "seller", "price", "sellerCountry", "fulfillment", "ratingCount", "rating", "listingAge", "listingYear", "productFeature"])
+        p.set_defaults(func=handler)
 
     # ── products ──
     p_prod = sub.add_parser("products", help="Search products with filters (product selection)", allow_abbrev=False)
@@ -3527,7 +3765,6 @@ Examples:
     # ── report (composite) ──
     p_report = sub.add_parser("report", help="Full market analysis report (composite workflow)", allow_abbrev=False)
     p_report.add_argument("--keyword", required=True, help="Category/niche keyword")
-    p_report.add_argument("--topn", type=int, default=10, help="Top N (default: 10)")
     p_report.set_defaults(func=cmd_report)
 
     # ── opportunity (composite) ──

@@ -4,7 +4,7 @@
 > Load when handling product evaluation, risk assessment, review analysis, or multi-product comparison.
 > For API parameters, see `reference.md`.
 >
-> ⚠️ **Always resolve categoryPath before running these queries.** Tag conclusions with 📊/🔍/💡 confidence labels.
+> ⚠️ **Resolve categoryPath for product endpoints and categoryId for market endpoints before running these queries.** Tag conclusions with 📊/🔍/💡 confidence labels.
 
 ---
 
@@ -100,7 +100,8 @@ python3 scripts/zoodata.py product --asin B09XXXXX
 # Step 1: Competitive landscape (primary data: sales, margins, seller count)
 python3 scripts/zoodata.py competitors --keyword "product keyword" --page-size 20
 # Step 2: Market context (category-level metrics)
-python3 scripts/zoodata.py market --category "category path" --topn 10
+python3 scripts/zoodata.py categories --category "category path"
+python3 scripts/zoodata.py market --category-id "<categoryId from categories>"
 # Step 3 (optional): Review details for the target ASIN
 python3 scripts/zoodata.py product --asin B09XXXXX
 # Step 4 (recommended): Review sentiment for risk signal
@@ -111,17 +112,17 @@ python3 scripts/zoodata.py analyze --asin B09XXXXX --label-type issues,painPoint
 Step 3 (`product`) only adds review details and listing content — do NOT expect sales from it.
 Step 4 (`analyze`) provides AI-analyzed sentiment distribution and structured issues for risk assessment.
 
-**Six-Dimensional Risk Assessment Matrix**:
+**Five-Dimensional Risk Assessment Matrix**:
 
 | Risk Dimension | Data Source | 🟢 Low Risk | 🟡 Medium Risk | 🔴 High Risk |
 |---------|---------|---------|---------|---------|
-| Competition Intensity | topSalesRate | < 40% | 40-60% | > 60% |
 | Review Barrier | Top avg ratingCount | < 200 | 200-1000 | > 1000 |
-| Brand Barrier/Moat | topBrandSalesRate | < 30% | 30-50% | > 50% |
 | Price War Risk | Top price variance | High variance | Medium | Low variance |
 | Compliance Risk | categories | Regular | Requires certification | High-risk |
 | Review Sentiment | sentimentDistribution (negative) | < 15% | 15-30% | > 30% |
 | Seasonality | AI judgment | Year-round | Seasonal fluctuation | Strong seasonality |
+
+For competition context, compare the Top 10 product and brand concentration observations in a compatible market sample. Preserve the sample selector, descendant-product inclusion setting, and date. The old fixed cutoffs do not transfer; use compatible peer evidence before assigning competition or brand-barrier risk. The field paths and denominators belong to `reference.md` and `execution-guide.md`.
 
 **High-risk Category Compliance Alerts**:
 
@@ -177,7 +178,7 @@ python3 scripts/zoodata.py competitors --asin B09XXXXX
 > Trigger: "category pain points" / "what do users want" / "consumer portrait" / "category user analysis" / "who is buying"
 
 ```bash
-python3 scripts/zoodata.py analyze --category "Pet Supplies > Dogs > Toys" --period 90d
+python3 scripts/zoodata.py analyze --category "Pet Supplies > Dogs > Toys" --period 3m
 ```
 
 **Use case:** Understand the consumer landscape of a category **before** product selection. Not about specific ASINs, but about what users in this category care about, complain about, and value.

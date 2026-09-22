@@ -1,0 +1,51 @@
+# Evidence Protocols — Amazon Market Analysis
+
+This module owns shared evidence acquisition, identity matching, comparison, coverage, and reuse inside an active stage. The stage and conclusion ceiling come from `execution-guide.md` and the selected scenario; endpoint contracts come from `reference.md`.
+
+## Plan the minimum evidence
+
+1. Translate the current question into claim-sized needs and map each need to a documented endpoint and expected field.
+2. Acquire the smallest response that resolves those needs. Use `market --category-id ID --page-size 1` for one current category; use bounded `market` pages for discovery; request a structure dimension only if its distribution matters; request history only for a time question.
+3. After each result, apply the guide's Interface Failure Stop Gate before any next call. Separate retrieved facts from interpretations and recommendations.
+4. Record source, request parameters, resolved category ID, returned date, sample type, category scope, pages/rows covered, and credit metadata in an evidence ledger.
+
+Documentation is a contract, not an observed metric. Do not call a paid endpoint again merely to reformat a valid response.
+
+## Market result projection
+
+Apply the default result-isolation and cleanup procedure in `cli-contract.md` to every live market evidence command. Select projection fields from the claims planned for the active stage; the user does not need to choose fields or manage the temporary file. Always retain response success/failure identity, `_query.params`, credit metadata, coverage counts, category ID/name/path, marketplace, category scope, sample type, and returned date alongside every projected metric.
+
+For a multi-category comparison, validate the requested ID set, returned row IDs, row count, and every ranking field against the complete raw payload before emitting the projection. Include the compatible `marketTotal` demand measures and only the `marketSample` concentration, new-product, price, rating, or content measures used by the current comparison. From `productTopNMetrics[]` or `brandTopNMetrics[]`, retain only the named rank cutoff entries required by the question; from each scope's `newProductMetrics[]`, retain only the requested `periodMonths` rows. Retain a whole nested array only when the array itself is the requested evidence. Apply the shared analysis contract's evidence-state model to every projected field.
+
+For `markets/history`, project every returned `data.points[]` entry needed for the requested comparison in one local pass. Retain each point's exact date and every requested metric, together with `resolvedDateFrom`, `resolvedDateTo`, point count, scope, selector, and credit metadata. Before deleting the raw result, validate that the projected point count and dates equal the complete returned point set and that every table field is either present, explicitly `null`, or demonstrably absent in the raw point. A value lost through projection, transcript display, parsing, or other local handling is not an API coverage gap.
+
+The conversation-visible projection is not proof of raw-response completeness by itself. A collapsed `… +N lines` display is not truncation when the transcript or isolated result remains readable; inspect that complete result without another call. An actual token-truncation marker, omitted middle, fewer available category rows than the raw payload, a missing history point in the projection, or a missing required field cannot support a ranking or trend. `success=true` and `meta.total=N` establish neither row visibility nor field availability. Re-project the already acquired raw result locally, without another paid call. Do not present a local handling omission as "unconfirmed detail", "incomplete return", or missing source data, and do not offer another paid query as the normal remedy for the same acquired evidence. If the isolated raw result is unavailable, stop the affected report instead of rendering a partially populated comparison. Delete both raw and intermediate projection files through the shared cleanup path only after validation and the bounded projection have completed.
+
+## Category and snapshot identity
+
+- Resolve a human path through `categories` and preserve the returned `categoryId`. For a product keyword that has no direct category match, a product-search-derived path is only an inferred category; do not silently promote it to the user's intended market.
+- For an exact market query, require one `markets/search.data[]` row whose `categoryId` equals the requested ID. For an ID batch, compare returned IDs with the requested set before claiming complete coverage. A zero-row result is no market observation. Do not substitute the first unrelated discovery row.
+- Carry the request's `category.includeDescendantCategoryProducts` for search or `includeDescendantCategoryProducts` for structure/history, returned `includeDescendantCategoryProducts`, `sampleType`, relevant Top N rank cutoff and new-product `periodMonths`, marketplace, and returned date with every market field. Directly assigned products and descendant-inclusive products, or unit-sales-selected and revenue-selected Top 100, are different populations.
+- A composite's `market.data` is already a selected market object; a granular `market.data` is an array. Do not index either shape by assumption. Reuse compatible successful composite sections locally.
+
+## Bounded discovery and candidate validation
+
+- Declare page and credit limits before exploring a broad catalog. Rank only observed rows and disclose the filters, sort direction, page range, and `meta.total`; do not call the scanned pages the whole catalog.
+- Keep candidate category identity separate from product identity. When a product candidate is requested, use a category-locked `products` call and deduplicate ASINs across modes or pages before ranking them.
+- `--mode` is a CLI-local preset. Inspect the selected command's help and the returned `_query.params`; do not send the mode name to a raw API endpoint. User-supplied numeric thresholds take precedence over a preset when they conflict.
+- A full composite may contain already paid market, product, price, brand, and review evidence. Reuse it when compatible; call a granular endpoint only for a named missing field, incompatible date/scope, or a new user question.
+
+## Comparison and reconciliation
+
+- Compare a market only with the same category ID, scope, sample type, marketplace, metric path, denominator, and compatible dates. Month-end history points and a latest daily snapshot can be shown side by side but do not form a precise same-grain period change by default.
+- Use only returned available month-end points. For a relative recent-month request, end the comparison at the previous completed calendar month and do not create a row for the current incomplete month. Report `resolvedDateFrom` / `resolvedDateTo` when the requested completed-month bounds were not met; do not create missing months or extrapolate a rate. Derive a change only from two compatible returned point values for the same metric path.
+- Distinguish absolute changes from percentage-point changes for rates. When calculating a derived change, state its numerator, denominator, and dates; if a baseline is zero or missing, do not calculate a growth percentage.
+- Reconcile a material conflict before a verdict: for example, all-category sales may rise while Top 100 concentration also rises. Preserve both observations and narrow the conclusion. Do not average unlike fields or hide the conflict behind a single score.
+
+## Coverage and no-data handling
+
+- Report how many category rows, Top 100 products, distribution buckets, product candidates, reviews, and history points were actually observed when those counts materially limit a claim.
+- For a category comparison, report rows validated from the complete isolated result, not rows that happened to remain visible in a tool transcript.
+- `status=empty`, an empty `data[]`, empty buckets, and missing months are valid coverage boundaries. They do not prove zero demand, no competition, or a flat trend.
+- Suppress a ranking or comparative verdict when the selected population, period, or required field is missing. State the exact gap and, only when the active stage allows it, acquire the documented missing evidence.
+- Tag raw API facts separately from inference. A user-provided seller claim is an input, not an API-verified fact.
