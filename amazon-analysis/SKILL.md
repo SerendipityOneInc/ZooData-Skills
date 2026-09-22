@@ -69,4 +69,4 @@ Use the failure rendering in `references/execution-guide.md`; direct a user with
 python {skill_base_dir}/scripts/zoodata.py <documented-subcommand> ...
 ```
 
-This skill allows `categories`, `market`, `market-structure-profile`, `market-history`, `products`, `competitors`, `product`, `analyze`, `report`, `opportunity`, `history`, `check`, `reviews-raw`, `review-tag-prompt`, `review-reduce-prompt`, and `review-aggregate`.
+This skill allows `categories`, `market`, `market-structure-profile`, `market-history`, `products`, `competitors`, `product`, `analyze`, `report`, `opportunity`, `history`, `brand-overview`, `brand-detail`, `price-band-overview`, `price-band-detail`, `check`, `reviews-raw`, `review-tag-prompt`, `review-reduce-prompt`, and `review-aggregate`.

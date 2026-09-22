@@ -72,13 +72,13 @@ Both rates describe the selected Top 100, not the entire category. Without a com
 
 ```bash
 # Track ASIN price/BSR/sales history
-python3 scripts/zoodata.py history --asins B09XXXXX --start-date <YYYY-MM-DD> --end-date <YYYY-MM-DD>
+python3 scripts/zoodata.py history --asins B09XXXXX --start-date "<YYYY-MM-DD>" --end-date "<YYYY-MM-DD>"
 
 # Track category-market month-end history
-python3 scripts/zoodata.py market-history --category-id <categoryId> --date-from <YYYY-MM-DD> --date-to <YYYY-MM-DD>
+python3 scripts/zoodata.py market-history --category-id "<categoryId>" --date-from "<YYYY-MM-DD>" --date-to "<YYYY-MM-DD>"
 
-# Brand-level competitor deep dive
-python3 scripts/zoodata.py brand-detail --keyword "dog toys" --brand "CompetitorBrand" --page-size 20
+# Inspect brand ranking, then select CompetitorBrand from the returned rows
+python3 scripts/zoodata.py brand-detail --keyword "dog toys" --page-size 20
 ```
 
 **Output Template**

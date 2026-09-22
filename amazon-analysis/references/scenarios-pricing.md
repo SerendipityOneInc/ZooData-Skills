@@ -72,11 +72,11 @@ python3 scripts/zoodata.py product --asin B09XXXXX
 # Step 1: Overview — which price bands have opportunity
 python3 scripts/zoodata.py price-band-overview --keyword "yoga mat"
 
-# Step 2: Drill into a promising band
-python3 scripts/zoodata.py price-band-detail --keyword "yoga mat" --price-min 20 --price-max 40
+# Step 2: Inspect the detailed distribution, then select a promising band from the result
+python3 scripts/zoodata.py price-band-detail --keyword "yoga mat"
 
 # Step 3: Historical price trends for key ASINs
-python3 scripts/zoodata.py history --asin B09XXXXX --period 90d
+python3 scripts/zoodata.py history --asins B09XXXXX --start-date 2026-06-01 --end-date 2026-08-31
 ```
 
 **Key metrics**: `sampleOpportunityIndex` > 1.0 = underserved band, Sales/Competition Ratio = Avg Monthly Sales / Avg Review Count (higher = easier entry).

@@ -94,7 +94,7 @@ python3 scripts/zoodata.py brand-overview --keyword "pet toys"
 python3 scripts/zoodata.py price-band-overview --keyword "pet toys"
 
 # Historical validation for specific expansion candidates
-python3 scripts/zoodata.py history --asin B09XXXXX --period 90d
+python3 scripts/zoodata.py history --asins B09XXXXX --start-date 2026-06-01 --end-date 2026-08-31
 ```
 
 **Expansion evaluation**: Combine `brand-overview` (low concentration = easier entry) with `price-band-overview` (high opportunity index bands) to identify the best entry points.

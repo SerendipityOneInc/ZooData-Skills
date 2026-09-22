@@ -142,22 +142,22 @@ python3 scripts/zoodata.py market --category-id "<categoryId from categories>"
 # Step 3: Product landscape
 python3 scripts/zoodata.py products --keyword "yoga mat" --category "Sports & Outdoors > Exercise & Fitness > Yoga > Yoga Mats" --page-size 30
 
-# Step 4: Price band analysis
+# Step 4: Price band analysis; select a band from the returned detail rows
 python3 scripts/zoodata.py price-band-overview --keyword "yoga mat"
-python3 scripts/zoodata.py price-band-detail --keyword "yoga mat" --price-min 20 --price-max 40
+python3 scripts/zoodata.py price-band-detail --keyword "yoga mat"
 
-# Step 5: Brand landscape
+# Step 5: Brand landscape; select a brand from the returned detail rows
 python3 scripts/zoodata.py brand-overview --keyword "yoga mat"
-python3 scripts/zoodata.py brand-detail --keyword "yoga mat" --brand "TopBrand"
+python3 scripts/zoodata.py brand-detail --keyword "yoga mat"
 
 # Step 6: Realtime deep dive on top ASINs
 python3 scripts/zoodata.py product --asin B09XXXXX
 
 # Step 7: Historical validation
-python3 scripts/zoodata.py history --asin B09XXXXX --period 90d
+python3 scripts/zoodata.py history --asins B09XXXXX --start-date 2026-06-01 --end-date 2026-08-31
 
 # Step 8: Consumer insights
-python3 scripts/zoodata.py analyze --category "Sports & Outdoors > Exercise & Fitness > Yoga > Yoga Mats" --period 90d
+python3 scripts/zoodata.py analyze --category "Sports & Outdoors > Exercise & Fitness > Yoga > Yoga Mats" --period 3m
 ```
 
 **Cross-validation checks:**
