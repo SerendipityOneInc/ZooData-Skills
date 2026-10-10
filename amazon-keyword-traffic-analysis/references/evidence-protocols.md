@@ -30,7 +30,7 @@ Inside the active stage, keep acquisition and judgment logically separate:
 5. Load the field-semantic owner routed by `SKILL.md`, then map every candidate claim to exact returned evidence and a forbidden stronger inference.
 6. Reconcile material signals, account for evidence coverage, and return the evidence ledger to the guide-owned Evidence and Conclusion Authority Gates.
 
-Documentation alone is never a metric result. An additional call is justified only when one named stage inference remains unresolved, another documented contract contains the missing evidence, and no interface failure has occurred.
+Documentation alone is never a metric result. An additional evidence call is justified only when one named stage inference remains unresolved, another documented contract contains the missing evidence, and the shared CLI classification permits continued acquisition. Recovery of an already selected request follows `cli-contract.md`; it does not select another capability or expand the active stage.
 
 When a required comparison value or period boundary is absent, use another documented capability only if it preserves the claim's subject, grain, marketplace, and comparison meaning inside the active stage. A named ASIN × keyword traffic-term trend may resolve a named keyword movement question, but it cannot replace an ASIN-wide traffic structure profile or all-keyword trend evidence. If no equivalent authorized capability exists, leave the comparison unavailable and do not infer the missing value or period from cadence.
 

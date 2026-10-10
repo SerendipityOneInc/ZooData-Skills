@@ -145,12 +145,14 @@ Before translating or interpreting an API field, screenshot, CSV, or report fiel
 
 Classify every bundled CLI result through the local `cli-contract.md` before interpreting response fields or selecting another capability. Its terminal-interface classification is a hard interrupt for the active keyword stage and the current turn.
 
+When the shared contract selects automatic recovery, keep the current stage active and return here with the recovered result. Apply the stop consequences below only after terminal classification; recovery does not trigger a stage-end handoff.
+
 A local parsing, transformation, extraction, or formatting command that fails after a paid API response is also an interface failure for that evidence unit. If the original valid structured response remains available, use it directly without another evidence call; otherwise stop. Never call the same paid endpoint again merely to change output format or recover from local post-processing failure.
 
 1. Do not produce the requested market/product/operating conclusion and do not request ASIN, price, margin, SQP, Ads, or any other next-stage input.
 2. Retain earlier successful retrieval for compatible later reuse, but expose it only as permitted by `output-rules.md § Interface Failure Output`.
 3. Do not render the normal stage-end selection list.
-4. A result that the shared contract classifies as non-terminal may enter the separately supported credential, credit, validation, or `status=empty` route; none of those routes may override a terminal classification.
+4. A result that the shared contract classifies as non-terminal may enter the separately supported credential, credit, validation, automatic recovery, or `status=empty` route; none of those routes may override a terminal classification.
 
 ### Evidence Gate
 

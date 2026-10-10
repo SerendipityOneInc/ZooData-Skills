@@ -16,3 +16,4 @@ notification secrets live here). See `docs/release-notify.md`.
 
 Keep this file as an instruction bridge. Do not copy skill-specific contracts,
 module policies, or runtime rules into it.
+Follow `docs/pr-description.md` when writing or revising a PR description.

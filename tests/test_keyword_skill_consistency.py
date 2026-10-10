@@ -295,7 +295,8 @@ def test_interface_failure_policy_respects_module_ownership():
     assert "never attach an earlier attempt's body to the final transport status" in contract
     assert "`_transport.status=410` is a retired-interface response" in contract
     assert "Do not retry externally, silently forward, mutate parameters" in contract
-    assert "HTTP 404, HTTP 408, HTTP 429, HTTP 5xx" in contract
+    assert "HTTP 404, HTTP 408, HTTP 5xx" in contract
+    assert "`_transport.status=429` enters **Automatic rate-limit recovery**" in contract
     assert "Do not retry externally, mutate parameters, switch endpoints" in contract
     assert "Do not reinterpret an HTTP 5xx body as validation" in contract
     assert "A valid `status=empty` or a documented business/coverage error is not automatically terminal" in contract

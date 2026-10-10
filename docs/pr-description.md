@@ -1,0 +1,30 @@
+# Pull Request Description Guidelines
+
+A reviewer who did not join the discussion should be able to tell why the PR exists, what behavior changes, which skills or repository components it affects, and how the result was checked. Keep the title and description aligned with the final implementation. Use a short description for a small change and add detail only where the change needs it.
+
+## What every PR should explain
+
+- **Background and result:** Name the concrete problem and the behavior after the change. A short before/after example helps when a skill's answer or CLI behavior changes.
+- **Scope and compatibility:** Name affected skills, shared contracts, scripts, tests, or repository files. Identify endpoint fields, command arguments, data structures, and callers when the PR changes them. Say whether existing skill installations or callers need to update; omit unrelated categories.
+- **Changes by behavior:** Group changes by user-visible behavior or responsibility, rather than replaying commits or discussion history.
+- **Validation:** Record checks actually run and their results, including relevant consistency tests and `scripts/sync-scripts.sh --check` when shared files change. State what was not checked, such as a live API response or installed ClawHub copy. Do not call a sampled check exhaustive.
+- **Publication state:** Say whether the PR changes repository source only or also includes a separate publication step. A merge does not itself publish skills to ClawHub or create a GitHub Release. Name pending actions when they matter to use of the change.
+
+## When the change warrants more detail
+
+- For a skill contract or responsibility-map change, explain which module owns each new rule and how synced copies or dependent skills are affected.
+- For API or CLI changes, describe relevant request/response fields, command allowlists, credit implications, and compatibility with existing callers. Include only the surfaces the PR actually touches.
+- For a major upgrade or migration, explain the data flow and layer responsibilities, key design choices, old/new dependencies, migration order, caller impact, and rollback path. A small diagram may help.
+- For a release PR or a PR that coordinates publication, distinguish merged source, manual `clawhub sync`, a GitHub Release tagged `*-release`, and the separate Lark notification. State the rollback or republish path that applies. See [release-notify.md](release-notify.md) for this repository's release flow.
+- Mention backfills, deployments, or caller cutovers only if the PR actually involves them. Report each as completed, pending, or unverified; do not equate one state with another.
+
+## Keep it readable and accurate
+
+- Give each short paragraph one point. Use short lists for independent rules, conditions, null handling, exceptions, and pending work.
+- Use a table for comparable field mappings, options, or costs. Use a short code block or diagram when a contract, structure, or formula needs exact notation.
+- Keep key numbers near the result; link detailed logs and reports. Use readable units and suitable precision, leaving full precision in audit records.
+- Separate completed facts, planned actions, and unverified hypotheses. Do not claim a skill is published or a caller has switched because the repository code changed.
+- Omit discarded proposals unless they explain an important choice. Replace vague claims such as “optimized” or “enhanced” with the behavior that changed.
+- Remove inapplicable template prompts instead of filling the PR with empty sections.
+
+These guidelines govern PR descriptions only. They do not change approval, commit, deployment, publication, or merge rules.

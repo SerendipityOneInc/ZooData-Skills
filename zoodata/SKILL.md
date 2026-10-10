@@ -154,7 +154,7 @@ For every parsed HTTP response from `zoodata.py`, treat `_transport.status` as t
 - `realtime/product` cold-start: first call for an uncached ASIN may return `success: true` with an EMPTY `data` (`asin: ""`) while the live fetch warms up — retry once after a few seconds before concluding "no data" (still billed 1 credit per call)
 - `reviewCountMin/Max` filters currently broken (API-56)
 - `reviews/analysis` may 500 for certain ASINs (API-58) — retry different ASIN
-- Rate limit: 100 req/min, 10 req/sec burst
+- Rate limits: follow the limit exposed by the service for the active request; a client pacing default is not the service quota. The shared `references/cli-contract.md` owns automatic rate-limit recovery for bundled CLI calls.
 - `categories` uses `categoryKeyword` (not `keyword`) and `parentCategoryPath` (not `parentCategoryName`)
 - `reviews/analysis`: `mode` required ("asin"/"category"), use `asins` (plural array) not `asin`
 - `realtime/reviews`: returns 10 reviews/page fixed (no `pageSize` param); 1 credit/page; cursor-paginated; hard cap = 100 reviews (10 pages); supports `marketplace` US/UK only
