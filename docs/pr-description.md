@@ -8,6 +8,12 @@ PR 描述必须使用中文，包括章节标题、正文、表格说明和检�
 
 文件路径、命令、API 端点、字段名、枚举值、产品名称和其他需要精确引用的技术标识保留原始拼写；其解释使用中文。保留实际验证结果和验证限制，不能因翻译而改变事实。
 
+## 最终结果
+
+PR 描述只写最终背景、行为变化、影响范围、验证结果和发布状态，不记录排查过程、调用重试经过、提交顺序或讨论历史。验证结果以最终实际检查为准；已经复测成功的项目写成功结果，仍未验证或未解决的限制应明确保留。
+
+技能变更的背景应说明 Agent 原本在哪个判断或执行环节会出错，以及最终规则如何帮助它正确读取证据、解释结论和完成任务，不能只复述字段差异或罗列改动文件。
+
 ## What every PR should explain
 
 - **Background and result:** Name the concrete problem and the behavior after the change. A short before/after example helps when a skill's answer or CLI behavior changes.
@@ -30,7 +36,7 @@ PR 描述必须使用中文，包括章节标题、正文、表格说明和检�
 - Use a table for comparable field mappings, options, or costs. Use a short code block or diagram when a contract, structure, or formula needs exact notation.
 - Keep key numbers near the result; link detailed logs and reports. Use readable units and suitable precision, leaving full precision in audit records.
 - Separate completed facts, planned actions, and unverified hypotheses. Do not claim a skill is published or a caller has switched because the repository code changed.
-- Omit discarded proposals unless they explain an important choice. Replace vague claims such as “optimized” or “enhanced” with the behavior that changed.
+- Omit discarded proposals, debugging steps, retry history, and discussion chronology. Explain the final design choices and replace vague claims such as “optimized” or “enhanced” with the behavior that changed.
 - Remove inapplicable template prompts instead of filling the PR with empty sections.
 
 These guidelines govern PR descriptions only. They do not change approval, commit, deployment, publication, or merge rules.

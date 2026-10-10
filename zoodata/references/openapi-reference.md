@@ -391,7 +391,20 @@ Send `granularity=week` when specifying the compatibility field; the bundled CLI
 
 Context fields identify `marketplace`, `site`, `requestedDate`, `resolvedDate`, `granularity`, and `dataWindow.currentPeriod` when available. The current period is the selected snapshot, not the historical range used by annual seasonality.
 
-The exposed MCP contract describes a compact response with six graded dimensions (`demandScale`, `top3Concentration`, `top20OrganicEntryDifficulty`, `supplySaturation`, `brandStructure`, `organicProductBenchmark`), raw business evidence in `levelEvidence`, separate observed advertising coverage, and `marketProfile.annualSeasonality`. Graded dimensions retain `level` and `interpretation`; no normalized scores are returned. Only available dimensions and evidence are included. An item without a profile contains only `identity`; legacy item `status`, `emptyReason`, support flags, and `scoringSpec` are not prerequisites for this shape. Use the exact live-schema spelling for the advertising coverage block; do not invent an alias from legacy `adActivity`.
+The MCP contract and observed response use a compact response with six graded dimensions (`demandScale`, `top3Concentration`, `top20OrganicEntryDifficulty`, `supplySaturation`, `brandStructure`, `organicProductBenchmark`), raw business evidence in `levelEvidence`, separate `marketProfile.adCoverage`, and `marketProfile.annualSeasonality`. Graded dimensions retain `level` and `interpretation`; no normalized scores are returned. Only available dimensions and evidence are included. An item without a profile contains only `identity`; legacy item `status`, `emptyReason`, support flags, and `scoringSpec` are not prerequisites for this shape.
+
+Compact `levelEvidence` field identities (each returned value is a `{value,direction}` pair):
+
+| Dimension | Business evidence fields |
+|---|---|
+| `demandScale` | `estimatedSearchVolume`, `abaSearchFrequencyRank` |
+| `top3Concentration` | `abaTop3ClickShare`, `abaTop3ConversionShare` |
+| `top20OrganicEntryDifficulty` | `organicTop20RolloverMultiplier` |
+| `supplySaturation` | `searchResultSkuCount`, `observedSkuCount`, `titleKeywordDensity` |
+| `brandStructure` | `top20RankWeightedBrandHhi`, `top1BrandShare`, `top3BrandShare` |
+| `organicProductBenchmark` | `top48OrganicAverageRating`, `top48OrganicAverageReviewCount`, `top48OrganicAverageRecentSaleCount` |
+
+`adCoverage` contains `adCoverageRate`, `observedAdSkuCount`, and `observedSkuCount` as `{value,direction}` pairs, without a required grade or interpretation. It is not an alias for legacy `adActivity`. Compact annual seasonality can contain only `classification`; do not require unreturned peak evidence. Profile evidence names do not rename fields on `keywords/detail`.
 
 The default HTTP surface can still return the legacy score-bearing response: `context.scoringSpec` (`id`, `version`, `scoreType`, `scoreRange`, `referenceScope`), item `status=ok|empty` / `emptyReason`, graded dimensions plus `adActivity` with `supported`, `calculationStatus`, `unsupportedReason`, and `levelEvidence.score.{value,direction}`, and nested `marketCharacteristics.volatility` / `marketCharacteristics.annualSeasonality`. A legacy unavailable item can contain `marketProfile=null`. Read scores with the returned scoring spec only in this shape; do not attach old scores or nested characteristic paths to compact evidence.
 

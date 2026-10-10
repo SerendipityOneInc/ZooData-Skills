@@ -1065,6 +1065,30 @@ def test_market_profile_compact_and_legacy_shapes_do_not_share_required_fields()
     assert "`non_seasonal` may still have historical `peakPeriods`" in semantics
 
 
+def test_compact_market_profile_business_evidence_has_exact_field_identity():
+    reference = read("references/reference.md")
+    compact = reference.split("### Metric layer: `keywords/market-profile`", 1)[1].split("The default HTTP surface", 1)[0]
+    api = (ROOT.parent / "zoodata/references/openapi-reference.md").read_text(encoding="utf-8")
+    compact_api = api.split("## 12b.", 1)[1].split("The default HTTP surface", 1)[0]
+    semantics = read("references/metrics-market-profile.md")
+
+    for field in (
+        "estimatedSearchVolume", "abaSearchFrequencyRank", "abaTop3ClickShare",
+        "abaTop3ConversionShare", "organicTop20RolloverMultiplier",
+        "searchResultSkuCount", "observedSkuCount", "titleKeywordDensity",
+        "top20RankWeightedBrandHhi", "top1BrandShare", "top3BrandShare",
+        "top48OrganicAverageRating", "top48OrganicAverageReviewCount",
+        "top48OrganicAverageRecentSaleCount", "adCoverageRate", "observedAdSkuCount",
+    ):
+        assert f"`{field}`" in compact
+        assert f"`{field}`" in compact_api
+        assert f"`{field}`" in semantics
+    assert "marketProfile.adCoverage" in compact
+    assert "higher_means_more` does not mean a higher grade" in semantics
+    assert "not interchangeable with the raw snapshot's `organicRolloverRate`" in semantics
+    assert "an omitted peak field is not an empty peak array" in semantics
+
+
 def test_raw_keyword_trend_and_window_profile_fields_remain_distinct():
     reference = read("references/reference.md")
     raw = reference.split("### Data layer: `keywords/trend`", 1)[1].split("\n### ", 1)[0]

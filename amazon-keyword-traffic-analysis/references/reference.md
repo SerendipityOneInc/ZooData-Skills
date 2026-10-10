@@ -165,12 +165,25 @@ Request:
 
 Response envelope: `data.context + data.items[]`, preserving request order for single and batch requests. Context identifies marketplace/site, requested/resolved date, and `dataWindow.currentPeriod` when available.
 
-The exposed MCP contract describes a compact profile:
+The MCP contract and observed response use a compact profile:
 
 - Six graded dimensions: `demandScale`, `top3Concentration`, `top20OrganicEntryDifficulty`, `supplySaturation`, `brandStructure`, and `organicProductBenchmark`, with returned `level`, `interpretation`, and raw business evidence in `levelEvidence`.
-- Observed advertising coverage is separate from the graded dimensions. Its exact field spelling and evidence fields must come from the active surface's schema and response, not a guessed alias for legacy `adActivity`.
+- Observed advertising coverage is separate from the graded dimensions, under `marketProfile.adCoverage`, with `adCoverageRate`, `observedAdSkuCount`, and `observedSkuCount` as `{value,direction}` evidence pairs; it is not legacy `adActivity`.
 - Annual seasonality is at `marketProfile.annualSeasonality`. Only available dimensions and evidence are returned; no normalized scores are returned.
 - An unavailable item contains only `identity`; absence of `status`, `emptyReason`, support flags, or scoring metadata is part of this compact shape. An identity-only item costs zero; an item containing a profile costs one credit. The balance precheck uses requested keyword count, while `meta.creditsConsumedExact` reports actual usage.
+
+Compact `levelEvidence` field identities (each returned value is a `{value,direction}` pair):
+
+| Dimension | Business evidence fields |
+|---|---|
+| `demandScale` | `estimatedSearchVolume`, `abaSearchFrequencyRank` |
+| `top3Concentration` | `abaTop3ClickShare`, `abaTop3ConversionShare` |
+| `top20OrganicEntryDifficulty` | `organicTop20RolloverMultiplier` |
+| `supplySaturation` | `searchResultSkuCount`, `observedSkuCount`, `titleKeywordDensity` |
+| `brandStructure` | `top20RankWeightedBrandHhi`, `top1BrandShare`, `top3BrandShare` |
+| `organicProductBenchmark` | `top48OrganicAverageRating`, `top48OrganicAverageReviewCount`, `top48OrganicAverageRecentSaleCount` |
+
+These are profile field names; `detail.snapshotData` retains its own schema. Compact annual seasonality can contain only `classification`; peak evidence is not required by this shape.
 
 The default HTTP surface can still return the legacy score-bearing shape:
 
