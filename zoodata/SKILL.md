@@ -154,12 +154,12 @@ For every parsed HTTP response from `zoodata.py`, treat `_transport.status` as t
 - `realtime/product` cold-start: first call for an uncached ASIN may return `success: true` with an EMPTY `data` (`asin: ""`) while the live fetch warms up — retry once after a few seconds before concluding "no data" (still billed 1 credit per call)
 - `reviewCountMin/Max` filters currently broken (API-56)
 - `reviews/analysis` may 500 for certain ASINs (API-58) — retry different ASIN
-- Rate limit: 100 req/min, 10 req/sec burst
+- Rate limits: follow the limit exposed by the service for the active request; a client pacing default is not the service quota. The shared `references/cli-contract.md` owns automatic rate-limit recovery for bundled CLI calls.
 - `categories` uses `categoryKeyword` (not `keyword`) and `parentCategoryPath` (not `parentCategoryName`)
 - `reviews/analysis`: `mode` required ("asin"/"category"), use `asins` (plural array) not `asin`
 - `realtime/reviews`: returns 10 reviews/page fixed (no `pageSize` param); 1 credit/page; cursor-paginated; hard cap = 100 reviews (10 pages); supports `marketplace` US/UK only
 - `keywords/detail` accepts exactly one of `keyword` / `keywords[]` (max 20), resolves `date` to the nearest available weekly snapshot, and returns input-ordered `data.items[]`; an unmatched item has `status=empty`, not top-level `data: null`
-- `keywords/market-profile` accepts one of `keyword` / `keywords[]` (max 20), requires `date`, supports weekly granularity only, and returns input-ordered `data.items[]` with `status=ok|empty`. `emptyReason` is descriptive no-result text, not an enum. A subject-specific calculation failure can return HTTP 500 for the whole batch.
+- `keywords/market-profile` accepts one of `keyword` / `keywords[]` (max 20), requires `date`, and supports weekly granularity only. The published compact MCP contract differs from the legacy HTTP shape; load `references/openapi-reference.md § 12b` before imposing score or availability fields. A subject-specific calculation failure can return HTTP 500 for the whole batch.
 - `keywords/trend-profile` accepts one of `keyword` / `keywords[]` (max 20), requires `date` and 1–4 unique `windowPeriods` selected from 4/8/12/26, and supports weekly granularity only.
 - `keywords/extends` requires `query` (not `keyword`), uses the latest available weekly snapshot, supports `queryType` = `phrase` or `fuzzy`, and may legitimately return empty `data.rows[]`; the MCP schema has no `date` parameter, and the CLI has no `--date` option for this command
 - All eleven current keyword and product-traffic request schemas retain `granularity` for compatibility and accept only `week`; all currently support only marketplace `US`. The bundled CLI sends both values explicitly. Never send another granularity or legacy `lookbackDays`. Use returned weekly period boundaries instead of inferring a rolling window.
@@ -199,12 +199,7 @@ Keyword value boundary:
 - Availability: standard production endpoint under the documented base URL
 - Input: exactly one of `keyword` or `keywords[]` (1–20), required `date`, optional `marketplace`; compatibility-retained `granularity` supports only `week`
 - Response shape: `data.context + data.items[]`, preserving request order
-- Context fields: `requestedDate`, `resolvedDate`, `dataWindow.currentPeriod`, `scoringSpec`, marketplace/site/granularity
-- Item fields: `identity`, `status=ok|empty`, `marketProfile`, `emptyReason`
-- `marketProfile` dimensions: `marketCharacteristics`, `demandScale`, `top3Concentration`, `adActivity`, `top20OrganicEntryDifficulty`, `supplySaturation`, `brandStructure`, `organicProductBenchmark`
-- Interpret scores only with `context.scoringSpec` (`id`, `version`, `scoreType`, `scoreRange`, `referenceScope`). Scored dimensions expose `supported`, `calculationStatus`, `unsupportedReason`, `level`, `interpretation`, and `levelEvidence.score.{value,direction}`. There is no aggregate coverage object.
-- `marketCharacteristics.volatility` and `marketCharacteristics.annualSeasonality` are independent evidence objects. Do not collapse their classifications, let one override the other, or invent peak periods from an empty list.
-- Unmatched keywords return `status=empty`, `marketProfile=null`, and a descriptive `emptyReason`; resolved context and `scoringSpec` may be null
+- Read `references/openapi-reference.md § 12b` for the compact MCP and legacy HTTP response contracts, field identity, availability, and billing. Compact profiles return business evidence without normalized scores; do not require legacy `scoringSpec`, item status, or support flags. Legacy score-bearing results remain interpreted under their own returned scoring context.
 - A subject-specific calculation failure can currently produce HTTP 500 for the whole batch. Treat it as a service failure, not an item-level `empty` result; do not automatically fan out all subjects into single calls.
 - Three-layer boundary: use data-layer `keywords/detail` for source snapshot fields, metric-layer `keywords/market-profile` for stable deterministic profile objects, and the Agent + skill layer for evidence composition, confidence, explanations, limitations, and actions
 - Metric-first access: call the matching metric before its source data endpoint. Descend only when the Agent needs an indicator or evidence grain omitted by the metric contract, the metric endpoint is unavailable and transparent data-based calculation is valid, no metric exists, or raw evidence is explicitly requested. Incomplete metric calculation coverage is a conclusion limit—not by itself a reason to call same-source data.
@@ -222,7 +217,7 @@ Keyword value boundary:
 ### `/openapi/v2/keywords/trend-profile` (metric layer)
 - Input: exactly one of `keyword` / `keywords[]` (1–20), required `date`, required unique `windowPeriods[]` selected from 4/8/12/26, optional `marketplace`; compatibility-retained `granularity` supports only `week`
 - Response: `data.context + data.items[].rows[]`; every requested window returns one row with `rowContext`, `status=ok|empty`, `emptyReason`, and `trendProfile`
-- Available profiles contain independently guarded `searchDemand` and `abaRank` dimensions with `trend`, `trendPattern`, and `{value,direction}` entries under `trendEvidence`
+- Available profiles contain independently guarded `searchDemand` and `abaRank` dimensions with `trend` and `{value,direction}` entries under `trendEvidence`. `trendPattern` is not required; search demand can also return window-specific `volatilityLevel` and `lastPeriodWindowPosition`.
 - Evidence includes first/last/change values, normalized slope, direction consistency, aligned/eligible period counts, plus demand volatility/window position or ABA best/worst rank
 - Use this metric endpoint before raw `keywords/trend` for trend-shape and volatility judgments. Descend only for required weekly points or fields omitted from the profile.
 - Preserve null empty reasons rather than inventing one. Billing is per keyword with at least one `status=ok` window; use returned credit metadata.

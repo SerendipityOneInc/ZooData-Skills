@@ -295,7 +295,8 @@ def test_interface_failure_policy_respects_module_ownership():
     assert "never attach an earlier attempt's body to the final transport status" in contract
     assert "`_transport.status=410` is a retired-interface response" in contract
     assert "Do not retry externally, silently forward, mutate parameters" in contract
-    assert "HTTP 404, HTTP 408, HTTP 429, HTTP 5xx" in contract
+    assert "HTTP 404, HTTP 408, HTTP 5xx" in contract
+    assert "`_transport.status=429` enters **Automatic rate-limit recovery**" in contract
     assert "Do not retry externally, mutate parameters, switch endpoints" in contract
     assert "Do not reinterpret an HTTP 5xx body as validation" in contract
     assert "A valid `status=empty` or a documented business/coverage error is not automatically terminal" in contract
@@ -1040,6 +1041,70 @@ def test_api_reference_remains_the_contract_source():
     assert "tested batch currently returned HTTP 500" not in reference
     assert "Current service failure boundary" not in reference
     assert "| `keywords/market-profile` | metric | published and available |" in reference
+
+
+def test_market_profile_compact_and_legacy_shapes_do_not_share_required_fields():
+    reference = read("references/reference.md")
+    section = reference.split("### Metric layer: `keywords/market-profile`", 1)[1].split("\n### ", 1)[0]
+    compact, legacy = section.split("The default HTTP surface", 1)
+    semantics = read("references/metrics-market-profile.md")
+
+    assert "identity-only" in compact
+    assert "marketProfile.annualSeasonality" in compact
+    assert "no normalized scores" in compact
+    assert "status=ok|empty" not in compact
+    assert "scoringSpec" in legacy
+    assert "levelEvidence.score.{value,direction}" in legacy
+    assert "marketCharacteristics" in legacy
+    assert "interpret only `status=ok`" not in semantics
+    assert "do not require a status field in a compact profile" in semantics
+    assert "raw business evidence in `levelEvidence`" in semantics
+    assert "Do not synthesize a score" in semantics
+    assert "fraction of distinct observed products" in semantics
+    assert "not advertising activity scores, spend, impression share" in semantics
+    assert "`non_seasonal` may still have historical `peakPeriods`" in semantics
+
+
+def test_compact_market_profile_business_evidence_has_exact_field_identity():
+    reference = read("references/reference.md")
+    compact = reference.split("### Metric layer: `keywords/market-profile`", 1)[1].split("The default HTTP surface", 1)[0]
+    api = (ROOT.parent / "zoodata/references/openapi-reference.md").read_text(encoding="utf-8")
+    compact_api = api.split("## 12b.", 1)[1].split("The default HTTP surface", 1)[0]
+    semantics = read("references/metrics-market-profile.md")
+
+    for field in (
+        "estimatedSearchVolume", "abaSearchFrequencyRank", "abaTop3ClickShare",
+        "abaTop3ConversionShare", "organicTop20RolloverMultiplier",
+        "searchResultSkuCount", "observedSkuCount", "titleKeywordDensity",
+        "top20RankWeightedBrandHhi", "top1BrandShare", "top3BrandShare",
+        "top48OrganicAverageRating", "top48OrganicAverageReviewCount",
+        "top48OrganicAverageRecentSaleCount", "adCoverageRate", "observedAdSkuCount",
+    ):
+        assert f"`{field}`" in compact
+        assert f"`{field}`" in compact_api
+        assert f"`{field}`" in semantics
+    assert "marketProfile.adCoverage" in compact
+    assert "higher_means_more` does not mean a higher grade" in semantics
+    assert "not interchangeable with the raw snapshot's `organicRolloverRate`" in semantics
+    assert "an omitted peak field is not an empty peak array" in semantics
+
+
+def test_raw_keyword_trend_and_window_profile_fields_remain_distinct():
+    reference = read("references/reference.md")
+    raw = reference.split("### Data layer: `keywords/trend`", 1)[1].split("\n### ", 1)[0]
+    profile = reference.split("### Metric layer: `keywords/trend-profile`", 1)[1].split("\n### ", 1)[0]
+    semantics = read("references/metrics-trend-profile.md")
+
+    for field in ("requestedDateFrom", "requestedDateTo", "resolvedDateFrom", "resolvedDateTo", "periodStartDate", "periodEndDate"):
+        assert field in raw
+    assert "rows[]" not in raw
+    assert "rowContext" in profile
+    assert "trendEvidence" in profile
+    assert "volatilityLevel" in profile
+    assert "lastPeriodWindowPosition" in profile
+    assert "no required `trendPattern` field" in profile
+    assert "Search-demand `volatilityLevel` and `lastPeriodWindowPosition` describe that window" in semantics
+    assert "trend/pattern" not in semantics
 
 
 def test_reference_stays_contract_local_and_scenarios_own_selection():

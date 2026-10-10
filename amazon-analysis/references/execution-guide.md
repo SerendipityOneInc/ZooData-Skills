@@ -132,6 +132,8 @@ When `monthlySalesFloor` is null: **Monthly sales ≈ 300,000 / BSR^0.65**
 
 **Data consistency rule:** The same metric must use the same precision throughout the report. Do NOT use "10K+" in one table and "47,000" in another for the same product. Pick one level of precision and apply it consistently across all sections.
 
+**Classification evidence:** When a returned classification materially supports a Quick or Full-mode answer, inspect any accompanying evidence and show the decisive returned values in that first answer, with direction and reference scope when provided. If asked why the classification was assigned, distinguish returned scoring evidence from disclosed calculation inputs. Do not infer an unpublished formula from related raw fields or treat a returned numeric zero as missing. Follow `reference.md` for field identity and the applicable scenario for business meaning.
+
 Respond in the user's language, retaining API field names and established technical terms in English. Show findings, the actual query conditions (`_query.params`, category identity, date, scope, sample type), and data notes about estimation, freshness, and sampling.
 
 **Sample bias disclosure:** Clearly state in the report body (not just Data Provenance): "This analysis is based on Top [N] products by sales volume, which skews toward established products. New or niche products may be underrepresented."

@@ -85,6 +85,41 @@ def test_caller_delegates_credential_resolution_to_cli():
     assert "do not inspect local credential stores or pre-resolve, compare, export, or override credential values" in contract
 
 
+def test_rate_limit_recovery_is_shared_and_preserves_acquisition_boundaries():
+    contract = CONTRACT_PATH.read_text(encoding="utf-8")
+    classification = contract.split("## Classification order", 1)[1].split("\n## ", 1)[0]
+    recovery = contract.split("## Automatic rate-limit recovery", 1)[1].split("\n## ", 1)[0]
+    terminal = classification.split("A terminal interface failure is present", 1)[1]
+
+    # Transport exhaustion must not send ordinary throttling straight to the
+    # terminal rendering shared by all consuming skills.
+    assert classification.index("`_transport.status=429`") < classification.index("A terminal interface failure")
+    assert "HTTP 429" not in terminal
+    assert "not the Agent's workflow disposition" in classification
+    assert "Do not end the turn" in recovery
+    assert "ask whether to continue" in recovery
+    assert "three recovery invocations per failed request" in recovery
+    assert "10 minutes of cumulative cooldown" in recovery
+    assert "stricter user cost, call, or time boundary" in recovery
+    assert "original endpoint, parameters, subject, period, filters, and page/cursor" in recovery
+    assert "replay a whole partly successful composite" in recovery
+    assert "ABORTED_AFTER_TERMINAL_FAILURE" in contract
+    assert "not another endpoint response" in contract
+    assert "failure metadata alone does not create a resume capability" in contract
+
+    # Independently published skills must receive the same policy, while
+    # domain guides only dispatch to it instead of defining their own timing.
+    for name in (*NON_KEYWORD_SKILLS, "amazon-keyword-traffic-analysis"):
+        assert (ROOT / name / "references/cli-contract.md").read_text(encoding="utf-8") == contract
+    keyword = ROOT / "amazon-keyword-traffic-analysis/references"
+    evidence = (keyword / "evidence-protocols.md").read_text(encoding="utf-8")
+    guide = (keyword / "execution-guide.md").read_text(encoding="utf-8")
+    assert "no interface failure has occurred" not in evidence
+    assert "shared CLI classification permits continued acquisition" in evidence
+    assert "When the shared contract selects automatic recovery" in guide
+    assert "60 seconds" not in guide
+
+
 def test_environment_network_restrictions_request_permission_before_failure_output():
     contract = CONTRACT_PATH.read_text(encoding="utf-8")
 

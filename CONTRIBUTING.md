@@ -120,6 +120,83 @@ Keep this repository-maintenance process out of runtime skill instructions and
 user-facing reports. Add or update consistency tests to enforce both ownership
 and the absence of maintenance-language leakage.
 
+## Skill Diagnosis and Repair
+
+Use this process when a skill produces the wrong behavior, stops prematurely,
+omits required evidence, or repeatedly needs user correction.
+
+### 1. Understand the design before proposing a fix
+
+Read the affected skill's complete `SKILL.md`, its responsibility map, and the
+shared contracts and workflow modules governing the reported behavior. Follow
+the loading and precedence chain through acquisition, interpretation, output,
+and continuation. Inspect relevant scripts and tests to compare the declared
+design with actual capabilities. A keyword search locates candidates; read the
+surrounding rules and their callers before deciding what to change.
+
+### 2. Trace the observed behavior to its cause
+
+State the user's intended outcome and the observed deviation. Trace the path
+from input or tool result through classification, workflow decision, and
+user-facing behavior. Identify the controlling file, rule, and supporting
+implementation evidence; distinguish verified causes from hypotheses.
+
+- Determine whether the defect is in a rule, rule precedence, missing routing,
+  implementation, or available capability.
+- Check whether the Agent followed a harmful rule correctly or failed to follow
+  an adequate rule. These require different repairs.
+- Use the reported run and local artifacts first. Repeating paid acquisition
+  is justified only when it resolves a named uncertainty needed for the repair.
+- Do not start by tuning retries, rewriting code, or adding instructions merely
+  because those changes appear related to the symptom.
+
+### 3. Choose the owner and scope
+
+Apply **Skill Specification Ownership** above. Place a general rule in its
+existing shared owner and domain-specific behavior in its domain owner. Check
+all consumers of a shared rule, including callers that have not adopted newer
+contracts. State the cause, chosen owner, affected consumers, and intended
+behavior before editing. An ownership change requires explicit architectural
+review; an incident alone does not justify a new abstraction or global policy.
+
+### 4. Make the smallest complete repair
+
+Fix the controlling rule and any downstream instruction that would still
+prevent the intended behavior. Preserve one policy source and use references
+from callers. Update managed copies through the repository's sync mechanism.
+Change executable code when the required capability is missing or incorrect;
+instructions must not promise behavior the available tools cannot perform.
+
+Check the full path, including successful, recoverable, terminal, partial,
+paginated, and composite outcomes where applicable. For automatic recovery,
+define who acts, what evidence is retained, how work resumes, and when recovery
+stops. Keep routine execution decisions with the Agent while preserving user
+authorization, cost limits, evidence identity, and persistent-state boundaries.
+Avoid replacing one premature stop with an unbounded retry or repeated user
+confirmation loop. Keep unrelated findings separate from the repair.
+
+### 5. Verify behavior and integration
+
+Review the original failure scenario against the revised instruction chain,
+plus relevant neighboring cases such as normal success, exhausted recovery,
+and partial completion. Run the affected ownership, routing, and consistency
+checks; check shared-file distribution when shared sources change. Add focused
+regression coverage for meaningful behavior or ownership invariants rather than
+merely requiring the new wording. Do not weaken tests just to accept a patch.
+
+Distinguish static checks, mocked execution, Agent scenario evaluation, and live
+validation. Passing text-consistency tests alone does not demonstrate that an
+Agent will complete the real workflow. Use live calls only when necessary and
+within the task's authorization and cost boundaries.
+
+### 6. Report the result and its limits
+
+Summarize the root cause, rule ownership, changed behavior, affected scope,
+actual verification, and remaining capability gaps. Distinguish local changes,
+commits, published packages, and installed copies; editing repository sources
+does not update an already installed skill. Follow the PR description rules
+when preparing the review handoff.
+
 ## Command Allowlists
 
 Every `amazon-*` skill declares its permitted CLI command set on exactly one

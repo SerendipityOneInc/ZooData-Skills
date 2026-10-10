@@ -273,6 +273,23 @@ class TestSkillCliExecutes(unittest.TestCase):
         self.assertIn("keep routine validation internal", contract)
         self.assertIn("declarations that expected gaps or conflicts do not exist", contract)
 
+    def test_material_classifications_expose_returned_evidence_across_skills(self):
+        contract = (
+            REPO / "zoodata" / "references" / "analysis-contract.md"
+        ).read_text()
+        general_guide = (
+            REPO / "amazon-analysis" / "references" / "execution-guide.md"
+        ).read_text()
+
+        for text in (contract, general_guide):
+            self.assertIn("classification materially supports", text)
+            self.assertIn("first answer", text)
+            self.assertIn("direction and reference scope when provided", text)
+            self.assertIn("returned scoring evidence", text)
+            self.assertIn("related raw fields", text)
+            self.assertNotIn("levelEvidence.score", text)
+        self.assertIn("returned numeric zero", general_guide)
+
     def test_release_workflow_blocks_unsynced_shared_files(self):
         workflow = (REPO / ".github" / "workflows" / "shared-files-distribution.yml").read_text()
         sync_script = (REPO / "scripts" / "sync-scripts.sh").read_text()
