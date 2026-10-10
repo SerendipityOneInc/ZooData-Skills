@@ -1,30 +1,38 @@
-<!-- Follow docs/pr-description.md. Remove prompts that do not apply. -->
+<!-- 遵循 docs/pr-description.md，PR 描述使用中文，删除不适用的提示。 -->
 
-## Background and result
-What problem does this solve, and what behavior changes? Add a short before/after example when useful.
+## 背景与结果
 
-## Scope and changes
-Name affected skills or repository components. Describe changes by behavior and any compatibility impact. Include API fields, data structures, or callers only when touched.
+说明解决的问题和行为变化；必要时用简短的修改前后示例解释。
 
-## Validation
-List checks actually run and their results. Note any meaningful validation limit, such as no live API check or no installed-skill check.
+## 影响范围与改动
 
-## Publication status
-Is this repository source only, or has a separate publication step occurred? Name pending ClawHub sync or release actions when relevant.
+列出受影响的技能或仓库组件，按行为说明改动和兼容性影响。涉及 API 字段、数据结构或调用方时，说明相关变化。
 
-<!-- For a major upgrade: explain data flow, layer ownership, design choices, old/new compatibility, migration order, caller impact, and rollback. -->
+## 验证
 
-## Related issue
-<!-- Link an issue if applicable; use Closes # only when this PR resolves it. -->
+记录实际执行的检查及结果，说明验证限制，例如未进行在线 API 验证或已安装技能验证。
 
-## Type of change
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Documentation update
-- [ ] Breaking change
+## 发布状态
 
-## Checklist
-- [ ] I reported the applicable checks and their results
-- [ ] I have updated documentation if needed
-- [ ] I checked the affected skill's responsibility map if a skill changed
-- [ ] I have read [CONTRIBUTING.md](../CONTRIBUTING.md)
+说明本次是否只修改仓库源码，或已执行独立的发布步骤。列出与本次改动相关、尚待执行的 ClawHub 同步或发布操作。
+
+<!-- 重大升级需说明数据流、各层职责、设计选择、新旧兼容性、迁移顺序、调用方影响和回滚方式。 -->
+
+## 关联 Issue
+
+<!-- 按需关联 Issue；只有本 PR 解决该问题时才使用 Closes #。 -->
+
+## 改动类型
+
+- [ ] 缺陷修复
+- [ ] 新功能
+- [ ] 文档更新
+- [ ] 不兼容变更
+
+## 检查清单
+
+- [ ] PR 描述使用中文，技术标识保留原始拼写
+- [ ] 已记录适用的检查及结果
+- [ ] 已按需更新文档
+- [ ] 如有技能改动，已核对受影响技能的职责划分
+- [ ] 已阅读 [CONTRIBUTING.md](../CONTRIBUTING.md)

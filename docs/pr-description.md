@@ -2,6 +2,12 @@
 
 A reviewer who did not join the discussion should be able to tell why the PR exists, what behavior changes, which skills or repository components it affects, and how the result was checked. Keep the title and description aligned with the final implementation. Use a short description for a small change and add detail only where the change needs it.
 
+## 描述语言
+
+PR 描述必须使用中文，包括章节标题、正文、表格说明和检查清单。创建或修改已有 PR 描述时，都应遵守此要求。
+
+文件路径、命令、API 端点、字段名、枚举值、产品名称和其他需要精确引用的技术标识保留原始拼写；其解释使用中文。保留实际验证结果和验证限制，不能因翻译而改变事实。
+
 ## What every PR should explain
 
 - **Background and result:** Name the concrete problem and the behavior after the change. A short before/after example helps when a skill's answer or CLI behavior changes.
