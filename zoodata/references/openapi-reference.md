@@ -389,13 +389,15 @@ Send `granularity=week` when specifying the compatibility field; the bundled CLI
 
 **Response:** `data.context + data.items[]` for both single and batch requests.
 
-Context fields: `marketplace`, `site`, `requestedDate`, `resolvedDate`, `granularity`, `dataWindow.currentPeriod`, and `scoringSpec` (`id`, `version`, `scoreType`, `scoreRange`, `referenceScope`).
+Context fields identify `marketplace`, `site`, `requestedDate`, `resolvedDate`, `granularity`, and `dataWindow.currentPeriod` when available. The current period is the selected snapshot, not the historical range used by annual seasonality.
 
-Each item has `identity`, `status=ok|empty`, `marketProfile`, and `emptyReason`. `marketProfile` contains `marketCharacteristics`, `demandScale`, `top3Concentration`, `adActivity`, `top20OrganicEntryDifficulty`, `supplySaturation`, `brandStructure`, and `organicProductBenchmark`.
+The exposed MCP contract describes a compact response with six graded dimensions (`demandScale`, `top3Concentration`, `top20OrganicEntryDifficulty`, `supplySaturation`, `brandStructure`, `organicProductBenchmark`), raw business evidence in `levelEvidence`, separate observed advertising coverage, and `marketProfile.annualSeasonality`. Graded dimensions retain `level` and `interpretation`; no normalized scores are returned. Only available dimensions and evidence are included. An item without a profile contains only `identity`; legacy item `status`, `emptyReason`, support flags, and `scoringSpec` are not prerequisites for this shape. Use the exact live-schema spelling for the advertising coverage block; do not invent an alias from legacy `adActivity`.
 
-Use returned scores only with `context.scoringSpec`. Each scored dimension exposes `supported`, `level`, `interpretation`, `calculationStatus`, `unsupportedReason`, and `levelEvidence.score.{value,direction}`; evaluate it independently and treat any explicit unavailable signal as a conclusion boundary. `marketCharacteristics.volatility` exposes type and mapping-confidence evidence. `marketCharacteristics.annualSeasonality` separately exposes classification, year-over-year correlation, eligible-pair count, peak-pattern detection, and peak periods. Do not merge the two classifications or invent peak periods. This endpoint returns deterministic weekly snapshot evidence, not trend, root cause, recommendations, or seller-private ABA-SQP conversion data.
+The default HTTP surface can still return the legacy score-bearing response: `context.scoringSpec` (`id`, `version`, `scoreType`, `scoreRange`, `referenceScope`), item `status=ok|empty` / `emptyReason`, graded dimensions plus `adActivity` with `supported`, `calculationStatus`, `unsupportedReason`, and `levelEvidence.score.{value,direction}`, and nested `marketCharacteristics.volatility` / `marketCharacteristics.annualSeasonality`. A legacy unavailable item can contain `marketProfile=null`. Read scores with the returned scoring spec only in this shape; do not attach old scores or nested characteristic paths to compact evidence.
 
-An unmatched keyword returns `status=empty`, `marketProfile=null`, descriptive `emptyReason` text, zero consumed credits, and may return null resolved context / scoring spec. A subject-specific calculation error can currently return HTTP 500 for the entire batch; treat that as a service failure rather than an empty item, and do not automatically fan out the batch. Use returned `meta.creditsConsumed` / `meta.creditsConsumedExact`.
+Identify the response shape from the complete result and the active acquisition surface's contract. Advertising coverage is the fraction of distinct observed products seen in sponsored placements, not spend or impression share. Annual seasonality is a historical estimate independent of a trend window; historical peaks do not imply annual recurrence, `non_seasonal` can include historical peaks, and an empty `peakPeriods` means no peak was identified in available evidence. Use trend-profile for window-specific volatility. This endpoint does not return root cause, recommendations, or seller-private ABA-SQP conversion data.
+
+For compact responses, each item containing `marketProfile` costs one credit and identity-only items cost zero. The balance precheck uses requested keyword count; actual usage is in `meta.creditsConsumedExact`. Preserve returned legacy billing metadata as well. A subject-specific calculation error can return HTTP 500 for the entire batch; classify it through the shared CLI contract rather than treating it as an empty item or automatically fanning out the batch.
 
 Three-layer boundary: `keywords/detail` is the traceable data layer; `keywords/market-profile` is the stable deterministic metric layer; the Agent + skill layer combines evidence and produces confidence, explanations, limitations, and recommendations.
 
@@ -430,6 +432,8 @@ Each item has `identity`, `status=ok|empty`, `series[]`, `emptyReason`, and null
 `periodStartDate`, `periodEndDate`, `estimateSearchCount`, `abaRank`,
 `abaTop3ClickShareRate`, and `abaTop3ConversionShareRate`.
 
+Context range fields are `requestedDateFrom`, `requestedDateTo`, `resolvedDateFrom`, and `resolvedDateTo`. Point boundaries identify returned weekly observations; this endpoint does not return market grading or a precomputed trend profile.
+
 ---
 
 ## 13b. /openapi/v2/keywords/trend-profile (metric layer)
@@ -446,6 +450,8 @@ Each item has `identity`, `status=ok|empty`, `series[]`, `emptyReason`, and null
 Send `granularity=week` when specifying the compatibility field; the bundled CLI sends it explicitly.
 
 **Response:** `data.context + data.items[].rows[]`. Each keyword has one row per requested window. Rows return `status=ok|empty`, `rowContext`, `emptyReason`, and `trendProfile`. `status=ok` profiles expose guarded `searchDemand` and `abaRank` dimensions. Their `trendEvidence` values include an explicit direction plus slope and consistency evidence, so do not infer the server label from endpoint movement alone. Preserve null empty reasons without inventing one.
+
+The component's overall direction is `trend`; `trendPattern` is not a required field. Search-demand components can also return `volatilityLevel` and `lastPeriodWindowPosition`, both scoped to the row's `analysisWindow`.
 
 Use this metric endpoint first for trend shape and volatility; call raw `keywords/trend` only when weekly points or omitted fields are required.
 

@@ -78,7 +78,8 @@ Rules:
 - Normalize every batch keyword to `LOWER(TRIM(value))` before calling, then deduplicate; uppercase, surrounding whitespace, or duplicate batch values return validation errors. Single-keyword request fields retain their endpoint-specific normalization behavior.
 - Preserve input order in `data.items[]` and when merging multiple chunks.
 - Outer `success` is service execution status, not proof that every item has data.
-- Billing is per `status=ok` subject for batch keyword and product-traffic endpoints. `trend-profile` bills a keyword when at least one requested window row has `status=ok`. For the structure endpoint, each successfully returned ASIN item with `status=ok` is billed once, while an ASIN item with `status=empty` is not billed; raw ASIN trends follow the same per-successful-ASIN rule. Product traffic trend profiles bill an ASIN when at least one requested window row has `status=ok`. Empty-only subjects are not billed. Always use returned credit metadata rather than calculating credits from subject or row counts.
+- Metric responses may use compact presence-based availability. For `market-profile`, an identity-only item has no profile; absent legacy `status` or support flags do not by themselves invalidate a returned profile. Apply the endpoint-specific shape below rather than imposing another endpoint's availability fields.
+- Billing is per `status=ok` subject for batch keyword and product-traffic endpoints that return item status; compact market-profile billing uses profile presence as specified below. `trend-profile` bills a keyword when at least one requested window row has `status=ok`. For the structure endpoint, each successfully returned ASIN item with `status=ok` is billed once, while an ASIN item with `status=empty` is not billed; raw ASIN trends follow the same per-successful-ASIN rule. Product traffic trend profiles bill an ASIN when at least one requested window row has `status=ok`. Empty-only subjects are not billed. Always use returned credit metadata rather than calculating credits from subject or row counts.
 
 CLI examples:
 
@@ -162,18 +163,24 @@ Request:
 - `marketplace=US` only; default `US`
 - compatibility-retained `granularity` supports only `week`
 
-Response:
+Response envelope: `data.context + data.items[]`, preserving request order for single and batch requests. Context identifies marketplace/site, requested/resolved date, and `dataWindow.currentPeriod` when available.
 
-- `data.context`: marketplace, site, requested/resolved date, weekly period, and `scoringSpec` (`id`, `version`, `scoreType`, `scoreRange`, `referenceScope`)
-- `data.items[]`: input-order identity, `status=ok|empty`, `marketProfile`, and `emptyReason`
-- `marketProfile`: `marketCharacteristics`, `demandScale`, `top3Concentration`, `adActivity`, `top20OrganicEntryDifficulty`, `supplySaturation`, `brandStructure`, and `organicProductBenchmark`
-- current profile objects use camelCase fields. Each scored dimension returns `supported`, `level`, `interpretation`, `calculationStatus`, `unsupportedReason`, and `levelEvidence.score.{value,direction}`
-- internal objects are versioned by `context.scoringSpec`, which returns the model id/version, normalized range, and reference scope
-- every dimension independently returns its own `supported`, `calculationStatus`, `level`, `levelEvidence.score.value`, and `unsupportedReason`; the current contract has no aggregate `calculationCoverage` object
-- `marketCharacteristics.volatility` exposes its own support/status boundary, `type`, source value, and mapping-confidence evidence
-- `marketCharacteristics.annualSeasonality` independently exposes support/status, `classification`, year-over-year correlation, eligible pair count, peak-pattern detection, and `peakPeriods`
+The exposed MCP contract describes a compact profile:
 
-This endpoint returns deterministic weekly snapshot evidence. It does not return history, strategy advice, root cause, recommended actions, or seller-private ABA-SQP conversion data. An unmatched keyword returns `status=empty`, `marketProfile=null`, and a descriptive `emptyReason`; context fields such as `resolvedDate`, `dataWindow`, and `scoringSpec` may then be null. Empty items are not billed; the response reports billing through `meta.creditsConsumed` / `meta.creditsConsumedExact`.
+- Six graded dimensions: `demandScale`, `top3Concentration`, `top20OrganicEntryDifficulty`, `supplySaturation`, `brandStructure`, and `organicProductBenchmark`, with returned `level`, `interpretation`, and raw business evidence in `levelEvidence`.
+- Observed advertising coverage is separate from the graded dimensions. Its exact field spelling and evidence fields must come from the active surface's schema and response, not a guessed alias for legacy `adActivity`.
+- Annual seasonality is at `marketProfile.annualSeasonality`. Only available dimensions and evidence are returned; no normalized scores are returned.
+- An unavailable item contains only `identity`; absence of `status`, `emptyReason`, support flags, or scoring metadata is part of this compact shape. An identity-only item costs zero; an item containing a profile costs one credit. The balance precheck uses requested keyword count, while `meta.creditsConsumedExact` reports actual usage.
+
+The default HTTP surface can still return the legacy score-bearing shape:
+
+- `context.scoringSpec` contains `id`, `version`, `scoreType`, `scoreRange`, and `referenceScope`; items contain `status=ok|empty`, `marketProfile`, and `emptyReason`.
+- Graded dimensions and `adActivity` contain `supported`, `calculationStatus`, `unsupportedReason`, `level`, `interpretation`, and `levelEvidence.score.{value,direction}`.
+- `marketCharacteristics` contains separate `volatility` and `annualSeasonality` objects. The latter carries `classificationEvidence`; unavailable items can return `marketProfile=null` and descriptive `emptyReason`.
+
+Identify the shape from the complete response and the active acquisition surface's contract. A compact profile does not require legacy fields; a legacy response does not establish that raw compact evidence or top-level seasonality was returned. No aggregate `calculationCoverage` object is required. A subject-specific calculation failure can return HTTP 500; HTTP classification is owned by `cli-contract.md`.
+
+The snapshot period is not the historical range used by annual seasonality. Field meanings and inference limits belong to `metrics-market-profile.md`. This endpoint does not provide strategy advice, root cause, recommended actions, or seller-private ABA-SQP conversion data. Use returned `meta.creditsConsumedExact` when available and retain legacy credit metadata.
 
 Layer fact: `keywords/market-profile` supplies server-calculated multidimensional profile objects; `keywords/detail` supplies raw snapshot fields. Unsupported profile dimensions do not imply that the raw endpoint contains their missing calculation inputs.
 
@@ -188,7 +195,10 @@ Request:
 Response:
 
 - `data.context`: requested/resolved range and weekly granularity
+- `data.items[]`: input-order `identity`, item `status=ok|empty`, `series[]`, `emptyReason`, and nullable auxiliary `errorCode` / `errorMessage`
 - `data.items[].series[]`: `periodStartDate`, `periodEndDate`, `estimateSearchCount`, `abaRank`, `abaTop3ClickShareRate`, `abaTop3ConversionShareRate`
+
+The range context uses `requestedDateFrom`, `requestedDateTo`, `resolvedDateFrom`, and `resolvedDateTo`. A weekly point's own period boundaries identify the observation; this response has no market grading, trend-profile object, or inferred daily rows.
 
 This endpoint returns raw weekly history rather than fixed-window profile objects.
 
@@ -208,6 +218,7 @@ Response:
 - each row contains `rowContext`, `status=ok|empty`, `emptyReason`, and `trendProfile`
 - available profiles contain `searchDemand` and `abaRank`; inspect `supported`, `calculationStatus`, and `unsupportedReason` independently
 - `trendEvidence` fields are `{ value, direction }` pairs covering first/last/change evidence, normalized slope, direction consistency, and eligible/aligned period counts
+- `searchDemand` may additionally return `volatilityLevel` and `lastPeriodWindowPosition`. There is no required `trendPattern` field. A component's overall label is its returned `trend`, not an invented pattern classification.
 
 This endpoint returns server-calculated fixed-window trend profiles, including normalized slope and direction-consistency evidence. Nullable `emptyReason` / `observedPeriodCount` remain null when the service does not return a value. Billing is per keyword with at least one `status=ok` row; use returned credit metadata.
 

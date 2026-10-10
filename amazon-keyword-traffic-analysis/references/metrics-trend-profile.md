@@ -6,12 +6,14 @@ Load this file **after** `keywords/trend-profile` returns and **before** making 
 
 For every requested window, inspect `rowContext`, `status`, `emptyReason`, then each dimension's `supported`, `calculationStatus`, and `unsupportedReason`. Interpret only returned evidence in a `status=ok` row. Do not combine different windows into one label without naming which window supports each statement.
 
+Use the component's returned `trend` as its overall direction and `trendEvidence` as support. Search-demand `volatilityLevel` and `lastPeriodWindowPosition` describe that window. Do not require an unreturned `trendPattern` or substitute annual seasonality for window-specific volatility.
+
 ## Dimension matrix
 
 | Metric | Meaning | Direction/evidence | Directly supports | Prohibited inference | Related raw fields |
 |---|---|---|---|---|---|
-| `searchDemand` | Search-demand trend over the requested fixed weekly window | Higher search count = stronger demand; positive change/slope = rising demand; higher direction consistency = more aligned period pairs | Returned demand trend/pattern, volatility level, last-period window position, and strength/consistency of direction within that window | Product lifecycle, durable long-term growth, cause of movement, conversion, future forecast, or seasonality | `trend.series[].estimateSearchCount`, `periodStartDate`, `periodEndDate` |
-| `abaRank` | ABA-rank trend over the requested fixed weekly window | Lower ABA rank = better; positive rank-improvement count = improvement; positive normalized rank slope = worsening | Returned ABA-rank trend/pattern and the evidence strength within that window | Search-volume growth by itself, conversion, product rank, organic rank, or cause of ABA-rank movement | `trend.series[].abaRank`, `periodStartDate`, `periodEndDate` |
+| `searchDemand` | Search-demand trend over the requested fixed weekly window | Higher search count = stronger demand; positive change/slope = rising demand; higher direction consistency = more aligned period pairs | Returned demand trend, volatility level, last-period window position, and strength/consistency of direction within that window | Product lifecycle, durable long-term growth, cause of movement, conversion, future forecast, or seasonality | `trend.series[].estimateSearchCount`, `periodStartDate`, `periodEndDate` |
+| `abaRank` | ABA-rank trend over the requested fixed weekly window | Lower ABA rank = better; positive rank-improvement count = improvement; positive normalized rank slope = worsening | Returned ABA-rank trend and the evidence strength within that window | Search-volume growth by itself, conversion, product rank, organic rank, or cause of ABA-rank movement | `trend.series[].abaRank`, `periodStartDate`, `periodEndDate` |
 
 ## Evidence-field matrix
 
