@@ -64,4 +64,4 @@ Respond in the user's language.
 python {skill_base_dir}/scripts/zoodata.py <documented-subcommand> ...
 ```
 
-The bundled manifest allows exactly: `categories`, `market`, `market-structure-profile`, `market-history`, `products`, `competitors`, `product`, `analyze`, `price-band-overview`, `price-band-detail`, `brand-overview`, `brand-detail`, `history`, `market-entry`, `opportunity-scan`, and the diagnostic `check`.
+The bundled manifest allows exactly: `categories`, `market`, `market-profile`, `market-price-distributions`, `market-rating-distributions`, `market-rating-count-distributions`, `market-listing-age-distributions`, `market-fulfillment-distributions`, `market-seller-country-distributions`, `market-content-distributions`, `market-top-product-concentrations`, `market-brand-concentrations`, `market-seller-concentrations`, `market-listing-launch-trend`, `market-history`, `products`, `competitors`, `product`, `analyze`, `price-band-overview`, `price-band-detail`, `brand-overview`, `brand-detail`, `history`, `market-entry`, `opportunity-scan`, and the diagnostic `check`.

@@ -1,6 +1,7 @@
 """Ownership and scenario routing for the unified market skill."""
 
 import re
+import json
 import runpy
 import unittest
 from pathlib import Path
@@ -19,21 +20,16 @@ class TestMarketSkillOwnership(unittest.TestCase):
     def test_upgraded_market_request_metadata_matches_shared_cli(self):
         owner = (ROOT / "zoodata" / "references" /
                  "openapi-reference.md").read_text()
-        filters_block = owner.split("Current `filters` keys", 1)[1].split(
-            "Current `sortBy` values", 1)[0]
-        documented_filters = set()
-        for name in re.findall(r"`([^`]+)`", filters_block):
-            if name.endswith("Min/Max"):
-                documented_filters.update((name[:-7] + "Min", name[:-7] + "Max"))
-            elif name.endswith(("Min", "Max")) or name == "sellerCountry":
-                documented_filters.add(name)
-        sort_block = owner.split("Current `sortBy` values are", 1)[1].split(
-            ".\n", 1)[0]
-        documented_sorts = set(re.findall(r"`([^`]+)`", sort_block))
-        cli = runpy.run_path(str(ROOT / "zoodata" / "scripts" / "zoodata.py"))
-        self.assertEqual(documented_filters, set(cli["MARKET_FILTER_FIELDS"]))
-        self.assertEqual(documented_sorts, set(cli["MARKET_SORT_FIELDS"]))
-        self.assertEqual((len(documented_filters), len(documented_sorts)), (61, 17))
+        fixture = json.loads((ROOT / "tests/fixtures/market-spu-contract.json").read_text())
+        metadata = owner.split("#### Numeric filter and sort names", 1)[1].split("## 2a.", 1)[0]
+        documented = set(re.findall(r"`([^`]+)`", metadata))
+        cli = runpy.run_path(str(ROOT / "zoodata/scripts/zoodata.py"))
+        self.assertEqual(documented, set(fixture["numericFilters"]))
+        self.assertEqual(set(cli["MARKET_FILTER_FIELDS"]), set(fixture["numericFilters"]))
+        self.assertEqual(set(cli["MARKET_SORT_FIELDS"]), set(fixture["sortBy"]))
+        self.assertEqual(len(documented), 192)
+        self.assertEqual(set(cli["MARKET_DETAIL_ENDPOINTS"]), set(fixture["detailEndpoints"]))
+        self.assertEqual(len(cli["MARKET_DETAIL_ENDPOINTS"]), 12)
 
     def test_one_market_skill_dispatches_three_independent_scenarios(self):
         skill = (MARKET / "SKILL.md").read_text()
@@ -152,15 +148,21 @@ class TestMarketSkillOwnership(unittest.TestCase):
 
         self.assertIn("two supplied compatible snapshots", scenario)
         self.assertIn("Persistent watch", scenario)
+        self.assertIn("SKU grain or a legacy market schema", scenario)
+        self.assertIn("product grain", evidence)
+        self.assertNotIn("former flat market schema", scenario)
         self.assertIn("one-time comparison of supplied snapshots remains a historical trend", scenario)
         self.assertIn("Render history rows and missing-period treatment only through `output-rules.md`", scenario)
         self.assertNotIn("placeholder row", scenario)
         self.assertNotIn("current incomplete month", scenario)
-        self.assertIn("project every returned `data.points[]` entry", evidence)
+        self.assertIn("project every returned `data[]` entry", evidence)
         self.assertIn("projected point count and dates equal", evidence)
         self.assertIn("is not an API coverage gap", evidence)
         self.assertIn("do not offer another paid query", evidence)
         self.assertIn("### Historical table rendering", output)
+        self.assertIn("actual returned SPU snapshots", output)
+        self.assertIn("only for verified month-end observations", output)
+        self.assertNotIn("contains only actual returned month-end points", output)
         self.assertIn("omit the current incomplete calendar month", output)
         self.assertIn("omit missingness commentary entirely", output)
         self.assertIn("Render valid zero values directly", output)
@@ -238,59 +240,39 @@ class TestMarketSkillOwnership(unittest.TestCase):
         self.assertIn("amazon-market-analysis", general_description)
         self.assertIn("discover\n  candidate niches and products", market_description)
 
-    def test_market_field_and_history_names_match_current_response(self):
-        owners = (
-            ROOT / "zoodata" / "references" / "openapi-reference.md",
-            MARKET / "references" / "reference.md",
-            MARKET / "references" / "market-metric-semantics.md",
-        )
-        for path in owners:
-            with self.subTest(module=path.name):
-                text = path.read_text()
-                self.assertIn("marketTotal", text)
-                self.assertIn("marketSample", text)
-                self.assertIn("newProductMetrics", text)
-                self.assertIsNone(re.search(r"sampleNewProduct\w*6m", text))
-                self.assertNotIn("sampleConservative", text)
+    def test_market_field_and_history_names_match_spu_response(self):
+        api_owners = [
+            ROOT / "zoodata/references/openapi-reference.md",
+            MARKET / "references/reference.md",
+            *[ROOT / name / "references/reference.md" for name in (
+                "amazon-analysis", "amazon-competitor-intelligence-monitor",
+                "amazon-daily-market-radar", "amazon-listing-audit-pro",
+                "amazon-pricing-command-center", "amazon-review-intelligence-extractor")],
+        ]
+        for path in api_owners:
+            text = path.read_text()
+            with self.subTest(path=path):
+                for required in ("SPU", "categoryScope", "categoryIds", "dateRange",
+                                 "sampleMonthlySaleCnt", "avgProductMonthlySaleCnt",
+                                 "totalMonthlySaleAmt", "sellerCountryCodes",
+                                 "HTTP 410", "exact common snapshot", "two decimals",
+                                 "Content and seller-country memberships overlap"):
+                    self.assertIn(required.lower(), text.lower())
+                self.assertNotIn("Response `data.points[]`", text)
+                self.assertNotIn("Required: `categoryId`, `dimension`", text)
+                self.assertNotIn("sampleAvgMonthlySalesMin", text)
         for path in ROOT.glob("amazon-*/references/*.md"):
             if path.parent.parent.name in RETIRED_MARKET_SOURCE_SKILLS:
                 continue
             text = path.read_text()
+            for obsolete in ("sampleConservative", "actualStartDate", "actualEndDate"):
+                self.assertNotIn(obsolete, text, str(path))
             self.assertIsNone(re.search(r"sampleNewProduct\w*6m", text), str(path))
-            self.assertNotIn("sampleConservative", text, str(path))
-            self.assertNotIn("actualStartDate", text, str(path))
-            self.assertNotIn("actualEndDate", text, str(path))
-
-        for skill_name in (
-            "amazon-analysis", "amazon-competitor-intelligence-monitor",
-            "amazon-daily-market-radar", "amazon-listing-audit-pro",
-            "amazon-pricing-command-center",
-            "amazon-review-intelligence-extractor",
-        ):
-            reference_text = (ROOT / skill_name / "references" / "reference.md").read_text()
-            market_section = reference_text.split("## 2. Market endpoints", 1)[1].split("## 3.", 1)[0]
-            self.assertNotIn("categoryScope", market_section, skill_name)
-            self.assertNotIn("startDate", market_section, skill_name)
-            self.assertNotIn("endDate", market_section, skill_name)
-            self.assertIn("includeDescendantCategoryProducts", market_section)
-            self.assertIn("dateFrom", market_section)
-            self.assertIn("dateTo", market_section)
-            self.assertIn("marketTotal", market_section)
-            self.assertIn("marketSample", market_section)
-            self.assertIn("newProductMetrics[]", market_section)
-
-        owner = owners[0].read_text()
-        reference = owners[1].read_text()
-        semantics = owners[2].read_text()
-        self.assertIn("`topNProductMonthlySalesRateMin/Max`", owner)
-        self.assertNotIn("`topSalesRateMin/Max`", owner)
-        self.assertNotIn("`sampleTop10ProductSalesRateMin/Max`", owner)
-        self.assertIn("`dateFrom`, and `dateTo`", owner)
-        self.assertIn("`includeDescendantCategoryProducts`", reference)
-        self.assertIn("`marketSample.productTopNMetrics[]`", semantics)
-        self.assertIn("`periodMonths`", semantics)
-        self.assertNotIn("`startDate`, and `endDate`", reference)
-        self.assertNotIn("Optional `categoryScope`", owner)
+        semantics = (MARKET / "references/market-metric-semantics.md").read_text()
+        for required in ("SPUs", "per-SPU", "overlap", "unknown fulfillment",
+                         "SKU history", "cohorts", "Missing baseline",
+                         "rounded zero", "full-category sales"):
+            self.assertIn(required.lower(), semantics.lower())
 
     def test_market_router_and_scenarios_respect_declared_ownership(self):
         skill = (MARKET / "SKILL.md").read_text()
@@ -319,7 +301,18 @@ class TestMarketSkillOwnership(unittest.TestCase):
             section = text.split("## 6c. reviews/search", 1)[1].split("\n---", 1)[0]
             self.assertIn("direct API reference only", section)
             self.assertIn("has no\n`reviews/search` subcommand", section)
-            self.assertIn("not counted in the 25 CLI-backed", section)
+            self.assertIn("not counted in the 36 CLI-backed", section)
+
+    def test_market_endpoint_inventory_lists_all_14_active_routes(self):
+        fixture = json.loads((ROOT / "tests/fixtures/market-spu-contract.json").read_text())
+        expected = {"markets/search", "markets/history",
+                    *("markets/" + name for name in fixture["detailEndpoints"])}
+        for path in (ROOT / "zoodata/README.md", ROOT / "zoodata/SKILL.md"):
+            routes = re.findall(r"^\| [0-9]+ \| `([^`]+)`", path.read_text(), re.M)
+            routes = [route.removeprefix("/openapi/v2/") for route in routes]
+            self.assertEqual(len(routes), 36, str(path))
+            self.assertEqual({route for route in routes if route.startswith("markets/")},
+                             expected, str(path))
 
     def test_general_analysis_usage_uses_cli_accumulated_metadata(self):
         guide = (ROOT / "amazon-analysis" / "references" /

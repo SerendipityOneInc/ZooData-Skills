@@ -51,7 +51,11 @@ class TestGeneralAnalysisScenarioCommands(unittest.TestCase):
                                      "quote placeholders to prevent shell redirection")
                     self.assertEqual(tokens[:2], ["python3", "scripts/zoodata.py"])
                     self.assertIn(tokens[2], self.allowed)
-                    with patch.object(sys, "argv", [str(CLI_PATH), *tokens[2:]]), \
+                    # Templates quote date placeholders for shell safety; use a
+                    # valid representative date when exercising typed parsers.
+                    argv = ["2026-01-01" if token == "<YYYY-MM-DD>" else token
+                            for token in tokens[2:]]
+                    with patch.object(sys, "argv", [str(CLI_PATH), *argv]), \
                          patch.object(self.cli, "_schedule_stale_result_cleanup"), \
                          patch.object(argparse.ArgumentParser, "parse_known_args",
                                       stop_after_parse):

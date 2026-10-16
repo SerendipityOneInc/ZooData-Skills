@@ -10,7 +10,7 @@ Use this route for a named category or niche, including questions such as "how c
 
 | Stage | Entry input | Evidence | Conclusion authority |
 |---|---|---|---|
-| Market screen | Resolved category ID and selected product-inclusion scope | Exact `market` snapshot; named `market-structure-profile` dimensions and `market-history` periods as needed; category-scoped product/brand/price/review observations only for a named question | Describe size, selected-sample concentration, price/review barriers, and observed trajectory; no seller-specific GO. |
+| Market screen | Resolved category ID and selected product-inclusion scope | Exact `market` snapshot; named independent market distribution/concentration commands and `market-history` periods as needed; category-scoped product/brand/price/review observations only for a named question | Describe size, selected-sample concentration, price/review barriers, and observed trajectory; no seller-specific GO. |
 | Seller fit and entry verdict | Resolved category plus explicit entry decision request, compatible market evidence, and seller capital/operating inputs sufficient for the requested verdict | Carried or newly acquired market-screen evidence plus seller-provided cost, budget, differentiator, validation plan, and known compliance/IP constraints interpreted through `seller-input-semantics.md` | Conditional GO/CAUTION/AVOID for this seller and category; no guarantee of profit, legal clearance, or automatic launch action. |
 
 The seller-fit stage may obtain the named market-screen evidence in the same turn when the user's request and inputs already support it. If seller inputs are absent, complete the market screen and name the exact missing decision inputs as a possible continuation.

@@ -33,7 +33,9 @@
 
 [ZooData](https://zoodata.ai) 是专为 Agent 构建的数据基础设施。模型正在商品化，真正稀缺的是 Agent 能直接消费的结构化数据。ZooData 提供实时电商信号，让你的 Agent 每天能分析 10,000+ 商品，而不是 100 个。
 
-当前已接入亚马逊，提供 25 个商品与关键词 API 接口，覆盖产品搜索、市场分析、竞品情报、实时追踪、评论洞察、类目导航、价格带、品牌和历史数据。干净 JSON，Agent 即用。
+当前已接入亚马逊，提供 36 个商品与关键词 API 接口，覆盖产品搜索、市场分析、竞品情报、实时追踪、评论洞察、类目导航、价格带、品牌和历史数据。干净 JSON，Agent 即用。
+
+SPU 市场接口需要对应服务部署及已安装技能更新，见[市场接口迁移说明](docs/market-spu-migration.md)。
 
 ## 技能概览
 
@@ -43,7 +45,7 @@
 
 | 技能 | 说明 | 输入 | 输出 | 核心优势 |
 |------|------|------|------|----------|
-| 📦 [`zoodata/`](zoodata/) | 直接调用全部 25 个 Amazon 商品与关键词 API 端点 | 关键词/品类/ASIN/品牌 | 原始 API 数据 + 字段映射文档 | 所有其他 skill 的底层依赖 |
+| 📦 [`zoodata/`](zoodata/) | 直接调用全部 36 个 Amazon 商品与关键词 API 端点 | 关键词/品类/ASIN/品牌 | 原始 API 数据 + 字段映射文档 | 所有其他 skill 的底层依赖 |
 | 🎯 [`amazon-analysis/`](amazon-analysis/) | 13 种选品模式 + 市场/竞品/ASIN/定价/品类研究 | 关键词/品类/ASIN + 意图 | 分析发现、Top 产品、深度报告、置信度标签 | report/opportunity 复合命令一键跑完 |
 | 🔎 [`amazon-keyword-traffic-analysis/`](amazon-keyword-traffic-analysis/) | 基于 11 个关键词 intelligence 接口的关键词价值与商品流量健康工作流 | 种子词、目标词、ASIN 或 ASIN + 关键词 | 拓词分层、关键词价值分析、商品流量结构、趋势与健康诊断 | 专门覆盖关键词拓展、关键词分析和商品流量分析 |
 | 📊 [`amazon-market-analysis/`](amazon-market-analysis/) | 发现市场与产品候选、评估进入条件、追踪品类变化 | 市场问题、品类或选品需求 | 候选清单、条件性进入判断或趋势分析 | 一条故事线，明确区分市场证据与卖家决策 |
@@ -72,7 +74,7 @@ npx skills add SerendipityOneInc/ZooData-Skills
 安装时会提示选择技能：
 
 **🏗️ 基础层：**
-- **ZooData** — 25 个 Amazon 商品与关键词 Intelligence API 接口
+- **ZooData** — 36 个 Amazon 商品与关键词 Intelligence API 接口
 - **Amazon Analysis** — 13 种选品模式，市场验证，竞品情报
 - **Amazon Keyword Intelligence** — 关键词拓展、关键词价值分析、商品流量健康诊断
 - **Amazon Market Analysis** — 市场发现、进入评估与趋势追踪
@@ -120,7 +122,7 @@ python amazon-analysis/scripts/zoodata.py products --keyword "wireless earbuds" 
 |------|------|----------|
 | 🔍 `products/search` | 商品搜索，20+ 筛选条件（CLI 另提供 13 种预设模式） | *"找 80 美元以下、4 星以上的跑步鞋"* |
 | 📊 `markets/search` | 类目发现与指定类目的市场概览——规模、集中度与 Top 100 定价 | *"瑜伽垫市场竞争激烈吗？"* |
-| 🧩 `markets/structure-profile` | 品牌、价格等 Top 100 分布 | *"销售额集中在哪些价格带？"* |
+| 🧩 `markets/profile` | SPU 概况及独立分布、集中度接口 | *"销售额集中在哪些价格带？"* |
 | 📅 `markets/history` | 类目市场的月末历史快照 | *"这个类目近几个月如何变化？"* |
 | 🏷️ `products/competitor-lookup` | 按关键词、品牌或 ASIN 发现竞品 | *"这个细分类目的头部卖家有哪些？"* |
 | ⚡ `realtime/product` | 实时商品详情——评论、功能、变体 | *"查一下 ASIN B0D5CRV4KL 的最新信息"* |
@@ -156,7 +158,7 @@ python amazon-analysis/scripts/zoodata.py products --keyword "wireless earbuds" 
 
 ```
 ├── zoodata/                              # 数据层技能（轻量版）
-│   ├── SKILL.md                            # 25 个接口，快速入门
+│   ├── SKILL.md                            # 36 个接口，快速入门
 │   └── references/
 │       └── openapi-reference.md            # API 字段参考
 │

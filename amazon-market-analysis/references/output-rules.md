@@ -28,7 +28,7 @@ Scenario files may require a table or a subsection *inside* these headings; they
 
 ### Historical table rendering
 
-- A market-history table contains only actual returned month-end points whose displayed fields were validated against the complete isolated result. Use the exact returned month-end date or an unambiguous year-month label.
+- A market-history table contains only actual returned SPU snapshots whose displayed fields were validated against the complete isolated result. Use the exact returned date; a year-month label is valid only for verified month-end observations.
 - For a relative recent-month request, omit the current incomplete calendar month from the table, Evidence, and Conclusion. Do not create a no-data row for a snapshot that is not yet expected to exist. If the requested range needs clarification, state in `Data Notes` that the comparison covers the most recent completed month-end periods.
 - Do not create placeholder rows for unreturned completed months or locally omitted values. Put a confirmed source coverage gap in `Data Notes` and name the exact missing completed date and field, for example: `The API did not return {field} for {YYYY-MM-DD}.`
 - If every expected completed period and required field was returned, omit missingness commentary entirely. Render valid zero values directly in the table; do not append prose explaining that they are not missing. Do not mention an excluded incomplete period unless the requested range itself needs clarification.
@@ -44,7 +44,7 @@ A section, score, table header, or group label that contains mixed confidence mu
 
 ## Provenance and usage
 
-Within `Data Notes` or `Evidence`, identify the relevant endpoint and actual returned `_query.params` when available. For `markets/search`, distinguish a broad discovery page, a batch of `category.ids`, and an exact one-ID snapshot. State the page range, filter/sort, requested `category.includeDescendantCategoryProducts`, `sampleType`, and `topN` or `newProductPeriod` when they selected a filter or sort; identify the returned Top N cutoff or new-product `periodMonths` used in the claim. For structure/history, preserve their top-level `includeDescendantCategoryProducts`; for history, state requested and actual period bounds when different.
+Within `Data Notes` or `Evidence`, identify the relevant endpoint and actual returned `_query.params` when available. For `markets/search`, distinguish a broad discovery page, a batch of `category.ids`, and an exact one-ID snapshot. State the page range, filter/sort, requested `category.includeDescendantCategoryProducts`, `sampleType`, and `topN` or `newProductPeriod` when they selected a filter or sort; identify the returned Top N cutoff or new-product window identity used in the claim. For detail/history, preserve `categoryScope`; for history, state requested and actual period bounds when different.
 
 Use a localized API-usage table when live calls were made:
 

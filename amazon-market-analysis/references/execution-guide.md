@@ -29,7 +29,7 @@ Each full-mode scenario stage defines exactly `Stage`, `Entry input`, `Evidence`
 
 | Level | Available evidence | Maximum conclusion |
 |---|---|---|
-| Market observation | Category snapshot, selected Top 100 structure, available month-end history | Bounded market size, structure, relative attractiveness, or observed movement |
+| Market observation | Category snapshot, selected Top 100 structure, available SPU history | Bounded market size, structure, relative attractiveness, or observed movement |
 | Candidate observation | Market evidence plus product, competitor, review, or price-band observations | Candidate validation priority and specific barriers; no measured margin or seller fit |
 | Seller-constrained | Compatible observations plus seller-provided capital, cost, operational constraints, and known compliance facts | Conditional GO/CAUTION/AVOID for the named seller and market; no guarantee of profit or legal clearance |
 
@@ -65,7 +65,7 @@ Classify every CLI result through `cli-contract.md`. On a terminal interface fai
 
 ### Field Identity Gate
 
-Resolve `(source, categoryId, includeDescendantCategoryProducts, sampleType, marketplace, metric path, unit, denominator, date or comparison periods)` before a claim. Do not move a Top 100 rate to the whole category, use `meta.total` as product count, or equate product history with market history. If identity is unresolved, state the unavailable field instead of guessing. For derived values, show the compatible inputs and formula.
+Resolve `(source, categoryId, categoryScope, product grain, sampleType, marketplace, metric path, unit, denominator, date or comparison periods)` before a claim. Do not move a Top 100 rate to the whole category, use `meta.total` as product count, or equate product history with market history. If identity is unresolved, state the unavailable field instead of guessing. For derived values, show the compatible inputs and formula.
 
 ### Evidence Gate
 

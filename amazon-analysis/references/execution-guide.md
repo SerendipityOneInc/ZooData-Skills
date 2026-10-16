@@ -101,7 +101,7 @@ When `products` or `competitors` returns ASINs in Full-mode analysis, call `prod
 3. If still no match, use realtime/product on a known ASIN to extract categoryPath
 4. Validate categoryPath matches the user's intended product type
 
-**Data-driven category selection:** When the user provides a broad interest (e.g. "home products") instead of a specific niche, resolve its category ID with `categories`, browse all direct children with `categories --parent`, and compare them through `market --category-ids` in batches of at most 100 IDs. Do not choose candidate children from category-tree order. Compare returned `marketSample.newProductMetrics[]` at the same `periodMonths`, the Top 10 row of `marketSample.brandTopNMetrics[]`, `marketSample.fbmRate`, and `marketSample.medianPrice` as separate selected Top 100 observations; keep them separate from full-category totals and avoid an uncalibrated composite score. Select Top 3-5 for deeper analysis only after the relevant children have comparable market rows.
+**Data-driven category selection:** When the user provides a broad interest (e.g. "home products") instead of a specific niche, resolve its category ID with `categories`, browse all direct children with `categories --parent`, and compare them through `market --category-ids` in batches of at most 100 IDs. Do not choose candidate children from category-tree order. Compare returned sample new-product fields at the same window, `top10BrandMonthlySaleCntRate`, `sampleFbmProductRate`, and `medianProductPrice30d` as separate selected Top 100 observations; keep them separate from full-category totals and avoid an uncalibrated composite score. Select Top 3-5 for deeper analysis only after the relevant children have comparable market rows.
 
 ---
 
@@ -222,7 +222,7 @@ Use the thresholds in `Market Health Assessment` below only with matching return
 
 ### Opportunity Viability
 When user asks "should I sell X" or "is this a good niche":
-- Compare selected-sample demand, review burden, and `marketSample.brandTopNMetrics[brandTopN=10].monthlySalesRate` separately against markets with compatible category scope, sample selector, and date. A selected Top 100 rate alone does not establish entry viability.
+- Compare selected-sample demand, review burden, and `top10BrandMonthlySaleCntRate` separately against markets with compatible category scope, sample selector, and date. A selected Top 100 rate alone does not establish entry viability.
 - Treat seller costs, product differentiation, and compliance evidence as separate inputs before an entry verdict.
 - Mixed signals → Present data, let user decide with their domain knowledge 💡
 
@@ -233,15 +233,15 @@ When user asks "should I sell X" or "is this a good niche":
 
 ## Market Health Assessment
 
-Use `marketTotal.monthlyRevenue` from `markets/search` for full-category revenue and `marketSample.monthlyRevenue` for its selected sample. Do not calculate revenue from price × sales; the field definitions are in `reference.md § 2`.
+Use `totalMonthlySaleAmt` from `markets/search` for full-category revenue and `sampleMonthlySaleAmt` for its selected sample. Do not calculate revenue from price × sales; the field definitions are in `reference.md § 2`.
 
 | Indicator | Good | Caution | Warning |
 |-----------|------|---------|---------|
-| Monthly demand per sampled product (`marketSample.avgMonthlySales`) | >1,500 units 🔍 | 500-1,500 🔍 | <500 🔍 |
-| Avg review count (`marketSample.avgRatingCount`) | <500 🔍 | 500-5,000 🔍 | >5,000 🔍 |
-| FBM rate (`marketSample.fbmRate`) | <40% 🔍 | 40-60% 🔍 | >60% 🔍 |
+| Monthly demand per sampled product (`avgProductMonthlySaleCnt`) | >1,500 units 🔍 | 500-1,500 🔍 | <500 🔍 |
+| Avg review count (`avgProductRatingCnt`) | <500 🔍 | 500-5,000 🔍 | >5,000 🔍 |
+| FBM rate (`sampleFbmProductRate`) | <40% 🔍 | 40-60% 🔍 | >60% 🔍 |
 
-These remaining bands are exploratory heuristics, not calibrated entry verdicts. Read `marketSample.productTopNMetrics[productTopN=10].monthlySalesRate` and `marketSample.brandTopNMetrics[brandTopN=10].monthlySalesRate` as separate selected Top 100 monthly-sales concentration measures. Read `marketSample.newProductMetrics[].newSkuRate` from an explicitly identified `periodMonths` row as the new-product share within that sample. Do not classify these three rates from former fixed cutoffs; compare compatible peers or prior snapshots and state the observed denominator and window.
+These remaining bands are exploratory heuristics, not calibrated entry verdicts. Read `top10ProductMonthlySaleCntRate` and `top10BrandMonthlySaleCntRate` as separate selected Top 100 monthly-sales concentration measures. Read the sample new-product rate from an explicitly identified window as the new-product share within that sample. Do not classify these three rates from former fixed cutoffs; compare compatible peers or prior snapshots and state the observed denominator and window.
 
 ## Cross-endpoint evidence use
 
