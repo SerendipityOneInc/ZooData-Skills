@@ -10,7 +10,7 @@ Use this route when the user asks what changed in a named category, which subcat
 
 | Stage | Entry input | Evidence | Conclusion authority |
 |---|---|---|---|
-| Historical trend | Resolved category ID and requested or inferable bounded period; alternatively, two supplied compatible snapshots for a one-time comparison | `market-history` observations or the supplied snapshots; compatible exact `market` snapshot and selected `market-structure-profile` only for a named current-state question | Describe observed period movement and coverage; no cause or forecast. |
+| Historical trend | Resolved category ID and requested or inferable bounded period; alternatively, two supplied compatible snapshots for a one-time comparison | `market-history` observations or the supplied snapshots; compatible exact `market` snapshot and selected independent market distribution/concentration evidence only for a named current-state question | Describe observed period movement and coverage; no cause or forecast. |
 | Persistent watch | Explicit monitoring intent, category IDs, cadence, thresholds, and a compatible prior baseline or authorization to initialize one | Current exact `market` rows, the saved or user-provided baseline, and `market-history` only when month-end context is requested | Classify observed changes against stated thresholds; first baseline run cannot claim a change. |
 
 The historical stage is valid without any prior discovery or entry assessment. A one-time comparison of supplied snapshots remains a historical trend task and creates no watch state.
@@ -25,8 +25,8 @@ The historical stage is valid without any prior discovery or entry assessment. A
 ## Persistent monitoring
 
 - Require the user's stated category set, cadence, and thresholds before initializing watch state. Require a notification destination only when the user requests external notifications. Do not schedule or persist state on a vague "what's trending?" request.
-- For an opted-in local baseline, store only category IDs/paths, scope, sample selector, returned date, selected market fields, and threshold configuration under `~/.zoodata/market-analysis/`; do not store credentials or seller private text in the snapshot. Explain where the state lives when it is created.
-- If the baseline uses the former flat market schema, a different scope or selector, or lacks the metric to compare, initialize a compatible baseline and suppress change alerts for that first run. Preserve any old snapshot separately if the user requested an audit trail; never compute across incompatible fields.
+- For an opted-in local baseline, store only category IDs/paths, scope, product grain, sample selector, returned date, selected market fields, and threshold configuration under `~/.zoodata/market-analysis/`; do not store credentials or seller private text in the snapshot. Explain where the state lives when it is created.
+- If the baseline uses SKU grain or a legacy market schema, a different scope or selector, or lacks the metric to compare, initialize a compatible baseline and suppress change alerts for that first run. Preserve any old snapshot separately if the user requested an audit trail; never compute across incompatible fields.
 - Apply the comparison calculations owned by `evidence-protocols.md`. Treat user thresholds as alert filters, not causal explanations; without a threshold, report the measured difference without inventing severity.
 - A scheduler or external notification can be configured only when the user explicitly requests that recurring action and an available platform capability exists. Do not claim that a one-time skill run will continue unattended.
 

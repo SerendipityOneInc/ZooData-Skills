@@ -1,34 +1,40 @@
 # Market Metric Semantics
 
-This module owns returned market-field meaning, denominator, time grain, and inference limits. `reference.md` owns where and how the fields are requested; scenarios own what decision may follow.
+This module owns returned market-field meaning, denominator, time grain, and inference limits. `reference.md` owns where and how fields are requested; scenarios own what decision may follow.
 
 ## Market size and selected sample
 
-| Field family | Population and meaning | Permitted inference | Prohibited shortcut |
-|---|---|---|---|
-| `marketTotal.skuCount`, `marketTotal.spuCount` | All products in the selected category scope at the returned snapshot | Category supply size, with SKU/SPU distinction | Treat `meta.total` or Top 100 count as total products |
-| `marketTotal.monthlySales`, `marketTotal.monthlyRevenue` | Estimated monthly units and revenue for the full category scope | Category-scale demand and revenue | Calculate revenue as price × sales or call it seller sales |
-| `marketSample.skuCount`, `marketSample.monthlySales`, `marketSample.monthlyRevenue` | Selected Top 100, possibly fewer than 100 products | Sample size and selected-sample scale | Treat a Top 100 measure as the whole category |
-| `marketSample.salesCoverageRate`, `marketSample.revenueCoverageRate` | Selected Top 100 share of the corresponding all-category measure | Describe sample coverage | Apply sales coverage to revenue or infer an unreturned remainder's structure |
-| `marketSample.medianPrice` and `marketSample.avgPrice` | Price measures of the selected sample with different aggregation | Describe observed price positioning | Infer margin, profit, or the price of every product |
-| `marketSample.avgGrossMarginRate` | Service-estimated average gross-margin rate for the selected sample | Describe this sample estimate with its source and date | Treat it as the seller's actual unit margin or contribution margin |
+Market measures count SPUs (parent products), merging same-product variants. They cannot be compared directly with older SKU counts or SKU history.
 
-The sample is chosen by `sampleType`; `unitSalesTop100` and `revenueTop100` can contain different products. Every Top 100 claim carries the sample selector and returned date. A descendant-inclusive market row counts products in that category and its descendants; a direct-only row counts products assigned to that category itself. A parent row and one of its descendant rows can overlap.
+| Search field family | Population and meaning | Permitted inference | Prohibited shortcut |
+|---|---|---|---|
+| `totalProductCnt`, `totalMonthlySaleCnt`, `totalMonthlySaleAmt` | Full category scope: parent-product count, estimated monthly units and USD revenue | Category supply and demand scale | Use meta.total or sample size as category product count |
+| `sampleProductCnt`, `sampleMonthlySaleCnt`, `sampleMonthlySaleAmt` | Selected Top 100 SPUs, possibly fewer | Sample size and totals | Call these per-product averages or whole-category totals |
+| `avgProductMonthlySaleCnt`, `avgProductMonthlySaleAmt` | Per-SPU monthly averages within the selected sample | Observed average product scale | Confuse with the sample totals or infer seller revenue |
+| `avgProductPrice30d`, `medianProductPrice30d` | Different price aggregations in the selected sample | Observed price positioning | Infer profit or the price of every product |
+| `avgProductGrossMarginRate` | Service-estimated average sample gross margin | Describe the returned estimate | Treat as seller contribution margin |
+| `avgProductRatingAmt`, `avgProductRatingCnt` | Sample average star rating and rating count | Observed rating and review barrier | Treat rating count as a separate unavailable review-count metric |
+
+`marketSize` in profile carries full-category measures; top-level sample totals and `sampleProfile` carry the selected sample. Preserve their scope when mapping profile evidence to search fields. Revenue is returned USD, not price × sales, and must not be converted from cents again.
+
+The sample selector determines the population. Every claim retains the actual snapshot date and category scope. Parent subtree and descendant rows can overlap; they are not additive independent markets.
 
 ## Structure, entry, and concentration
 
-- `marketSample.productTopNMetrics[]` and `marketSample.brandTopNMetrics[]` return N=3/5/10/20 groups. Each `monthlySalesRate` or `monthlyRevenueRate` is a share of the selected Top 100 sample, not the whole category. Product and brand rows have different rank cutoffs and actual selected counts; brand averages are per product within the selected brands. There is no seller Top N array in this market response.
-- `marketSample.brandCount`, `marketSample.sellerCount`, `marketSample.avgSellerCount`, `marketSample.avgRating`, and `marketSample.avgRatingCount` describe the selected sample. A low review count may indicate a lower observed review barrier, but it does not prove easy entry or conversion.
-- `marketSample.fbmRate`, `marketSample.aPlusRate`, and `marketSample.videoRate` are shares in the selected sample. They are content and fulfillment observations, not cost, margin, or compliance measures.
-- A product is new for `periodMonths=N` when its business launch date is later than the snapshot date minus N calendar months and no later than the snapshot date. A product without a business launch date is not counted as new but remains in the applicable product-count denominator.
-- `marketTotal.newProductMetrics[]` describes each of the 1/3/6/12-month windows across the full category; `marketSample.newProductMetrics[]` describes those same windows within the selected Top 100. Each row supplies `newSkuCount`, `newSkuRate`, `newSkuMonthlySales`, and `newSkuMonthlyRevenue`; the sample row also supplies averages and sample sales/revenue shares. Identify the exact `periodMonths` row used. A broader claim about all entrants, survival, or seller success needs separate evidence.
-- Search `topN` chooses the group used by Top N filters; search `newProductPeriod` chooses the window used by new-product filters and sorting. Neither limits the returned arrays. Distinguish the request selector from the returned `productTopN`/`brandTopN` or `periodMonths` identity.
-- `markets/structure-profile.data.buckets[]` partitions one selected Top 100 dimension for the returned date. Its `skuRate`, `salesRate`, and `revenueRate` have different denominators. Bucket `amazonSelfOperated*` fields describe the Amazon self-operated subset inside that bucket, and bucket `newProductMetrics[]` carries all four periods. An example ASIN is an illustration of its bucket, not proof that the entire category has that property.
+- Fixed Top 3/5/10/20 Product, Brand and Seller concentration fields and profile arrays describe the selected sample, never the whole category. `concentrationRate` follows the sample selector: unit share for unitSalesTop100, revenue share for revenueTop100. Explicit `MonthlySaleCntRate` and `MonthlySaleAmtRate` remain unit and revenue shares respectively.
+- `observedSellerCnt` is a distinct observed-seller count; `avgProductSellerCnt` is a per-product mean. Seller concentration cannot be replaced by brand concentration.
+- New-product windows cover 1/3/6/12 calendar months based on business launch date. Missing launch dates remain in the population denominator without being counted as new. Full-category and sample windows have separate denominators. A returned new-product share is not survival, seller success, or conversion evidence.
+- Fixed search window and rank names, selected dynamic aliases, and profile `windowMonths` / `topN` identities must refer to the same cutoff for a comparison.
+- Distribution product membership, unit sales and revenue rates have different denominators. Content and seller-country memberships can overlap; do not sum their rates to 100%. Countries describe observed membership, not exclusive seller origin.
+- Fulfillment uses a market-representative bucket for each SPU; unknown fulfillment stays in the denominator. FBA/FBM/AMZ observations do not establish costs, compliance or profit.
+- `aPlusProductRate`, `videoProductRate`, ratings and price structure describe observed sample characteristics. They may motivate validation but do not prove easy entry.
+- Public floating values, including fractional rates, are rounded to two decimals. Preserve null and true zero; a rounded zero share does not prove the exact unrounded share is zero. Do not invent extra precision.
 
 ## Time and product observations
 
-- `markets/search` gives a current or requested daily market snapshot. `markets/history.points[]` gives available month-end snapshots. A daily row and a month-end point may differ because of date, coverage, or data refresh; do not label their raw difference MoM.
-- Before its month-end snapshot exists, the current incomplete calendar month is outside a completed-month trend population. Its absence is expected timing, not a missing history point, zero value, or table row.
-- The upgraded history response has no server MoM or YoY rate fields. A derived rate requires two returned comparable points for the same metric path, category, scope, sample selector, and month-end grain. A missing comparison point is not zero growth.
-- `products/search.monthlySalesFloor` and `monthlyRevenueFloor` are product-level lower-bound estimates. They cannot be added to replace `marketTotal.monthlySales` or `marketTotal.monthlyRevenue` without a documented complete population.
-- Market movement, a new-product share, or a price shift may guide an investigation. None identifies its cause, actual seller conversion, profitability, or a recommended launch date by itself.
+- History rows are actual published SPU snapshots identified by `dt`. Preserve the actual returned time grain; do not presume every row is month-end. Missing dates remain absent; the service does not fill gaps or substitute SKU history. A latest snapshot and a completed-month observation can be shown side by side but are not automatically a comparable MoM pair.
+- The current incomplete calendar month is outside a completed-month trend population. Its absence is expected timing, not zero or a missing completed-month point.
+- History has core sample totals, counts, prices and ratings; it does not establish full-category sales or new-product trends. A derived MoM/YoY requires two returned comparable dates, identical category, scope, sample, metric, unit and denominator. Missing baseline is not zero growth.
+- Launch-trend rows group products by launch month/year within one selected snapshot. They are cohorts, not repeated demand observations or historical market growth.
+- Product `monthlySalesFloor` / `monthlyRevenueFloor` are product-level lower-bound estimates; summing an incomplete product sample cannot replace market totals.
+- Market movement alone does not identify a cause, seller conversion, profitability, or a recommended launch date.

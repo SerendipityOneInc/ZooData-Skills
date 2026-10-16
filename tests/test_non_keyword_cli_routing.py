@@ -33,7 +33,7 @@ def test_market_cli_routing_is_owned_by_reference_and_uses_literal_subcommands()
     expected_routes = {
         "categories": "categories",
         "markets/search": "market",
-        "markets/structure-profile": "market-structure-profile",
+        "markets/profile": "market-profile",
         "markets/history": "market-history",
         "products/search": "products",
         "products/competitors": "competitors",
@@ -45,6 +45,10 @@ def test_market_cli_routing_is_owned_by_reference_and_uses_literal_subcommands()
         "products/brand-detail": "brand-detail",
         "products/history": "history",
     }
+    import json
+    fixture = json.loads((ROOT / "tests/fixtures/market-spu-contract.json").read_text())
+    expected_routes.update({"markets/" + route: "market-" + route
+                            for route in fixture["detailEndpoints"]})
     for endpoint, command in expected_routes.items():
         assert f"| `{endpoint}` | `{command}` |" in reference
 

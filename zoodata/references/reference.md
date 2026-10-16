@@ -21,8 +21,19 @@
 | 9 | `products/brand-overview` | Brand count, CR10, top-brand avg price/rating |
 | 10 | `products/brand-detail` | Per-brand SKU/sales/revenue/share ranking |
 | 11 | `products/history` | 30-day price/BSR/sales trend |
-| 12 | `markets/structure-profile` | Selected Top 100 distribution |
-| 13 | `markets/history` | Available month-end category history |
+| 12 | `markets/profile` | SPU profile |
+| 13 | `markets/history` | Available SPU snapshot history |
+| 14 | `markets/price-distributions` | SPU price-distributions |
+| 15 | `markets/rating-distributions` | SPU rating-distributions |
+| 16 | `markets/rating-count-distributions` | SPU rating-count-distributions |
+| 17 | `markets/listing-age-distributions` | SPU listing-age-distributions |
+| 18 | `markets/fulfillment-distributions` | SPU fulfillment-distributions |
+| 19 | `markets/seller-country-distributions` | SPU seller-country-distributions |
+| 20 | `markets/content-distributions` | SPU content-distributions |
+| 21 | `markets/top-product-concentrations` | SPU top-product-concentrations |
+| 22 | `markets/brand-concentrations` | SPU brand-concentrations |
+| 23 | `markets/seller-concentrations` | SPU seller-concentrations |
+| 24 | `markets/listing-launch-trend` | SPU listing-launch-trend |
 
 Base URL: `https://api.zoodata.ai/openapi/v2`
 Auth: `Bearer $ZOODATA_API_KEY`
@@ -58,7 +69,7 @@ CLI `categories --parent` requires a nonempty JSON string array. Other category-
 ## 2. Market endpoints
 
 For the exact request and response contracts of `markets/search`,
-`markets/structure-profile` and `markets/history`,
+`markets/profile`, the independent distribution/concentration/launch routes, and `markets/history`,
 read [openapi-reference.md](openapi-reference.md#2-marketssearch).
 This summary reference does not redefine those schemas.
 
@@ -179,7 +190,7 @@ Request params: `keyword`, `brand`, `asin`, `categoryPath`, `sortBy`, `pageSize`
 ## 6c. reviews/search
 
 This route is documented for direct API reference only in this release. The bundled CLI has no
-`reviews/search` subcommand, and this route is not counted in the 25 CLI-backed Amazon commerce and
+`reviews/search` subcommand, and this route is not counted in the 36 CLI-backed Amazon commerce and
 keyword-intelligence endpoints described by the package index.
 
 **Request:**
@@ -283,21 +294,21 @@ keyword-intelligence endpoints described by the package index.
 | Data Point | Primary Source | Validation Source |
 |-----------|---------------|-------------------|
 | Market size | markets/search | products/search (total count) |
-| Brand concentration | brand-overview (sampleTop10BrandSalesRate) | markets/search (marketSample.brandTopNMetrics[brandTopN=10].monthlySalesRate) |
+| Brand concentration | brand-overview (sampleTop10BrandSalesRate) | markets/search (top10BrandMonthlySaleCntRate) |
 | Price distribution | price-band-detail | products/search (price field) |
-| Competition level | markets/search (`marketSample.productTopNMetrics[productTopN=10].monthlySalesRate`, selected Top 100 sales) | brand-detail (top brand shares) |
+| Competition level | markets/search (`top10ProductMonthlySaleCntRate`, selected Top 100 sales) | brand-detail (top brand shares) |
 | Consumer demand | reviews/analysis | products (sales + growth) |
-| Avg rating quality | markets/search (marketSample.avgRating) | brand-overview (sampleTop10AvgRating) |
+| Avg rating quality | markets/search (avgProductRatingAmt) | brand-overview (sampleTop10AvgRating) |
 
 ## Field Differences Across Endpoints
 
 | Data | markets | products/competitors | realtime/product | reviews/analysis | realtime/reviews | price-band | brand | history |
 |------|---------|---------------------|----------|---------|---------|------------|-------|---------|
-| Sales | marketTotal.monthlySales / marketSample.monthlySales | monthlySalesFloor | ❌ | ❌ | ❌ | sampleSalesRate | sampleGroupMonthlySales | monthlySalesFloor[] |
-| Price | marketSample.medianPrice | price | buyboxWinner.price | ❌ | ❌ | bandMin/MaxPrice | sampleAvgPrice | price[] |
+| Sales | totalMonthlySaleCnt / sampleMonthlySaleCnt | monthlySalesFloor | ❌ | ❌ | ❌ | sampleSalesRate | sampleGroupMonthlySales | monthlySalesFloor[] |
+| Price | medianProductPrice30d | price | buyboxWinner.price | ❌ | ❌ | bandMin/MaxPrice | sampleAvgPrice | price[] |
 | BSR | ❌ | bsr (int) | bestsellersRank[] | ❌ | ❌ | ❌ | ❌ | bsr[] |
-| Rating | marketSample.avgRating | rating | rating | avgRating | rating (per review) | sampleAvgRating | sampleAvgRating | rating[] |
-| Reviews | marketSample.avgRatingCount | ratingCount | ratingCount | reviewCount | reviews[] (raw text, max 100) | ❌ | sampleAvgRatingCount | ratingCount[] |
+| Rating | avgProductRatingAmt | rating | rating | avgRating | rating (per review) | sampleAvgRating | sampleAvgRating | rating[] |
+| Reviews | avgProductRatingCnt | ratingCount | ratingCount | reviewCount | reviews[] (raw text, max 100) | ❌ | sampleAvgRatingCount | ratingCount[] |
 | Insights | ❌ | ❌ | ❌ | ✅ consumerInsights | ❌ (raw only — feeds Local Review Toolkit) | ❌ | ❌ | ❌ |
-| Concentration | marketSample.brandTopNMetrics[brandTopN=10].monthlySalesRate | ❌ | ❌ | ❌ | ❌ | sampleTop3BrandSalesRate | CR10 | ❌ |
+| Concentration | top10BrandMonthlySaleCntRate | ❌ | ❌ | ❌ | ❌ | sampleTop3BrandSalesRate | CR10 | ❌ |
 | Opportunity | ❌ | ❌ | ❌ | ❌ | ❌ | sampleOpportunityIndex | ❌ | ❌ |

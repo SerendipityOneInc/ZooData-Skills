@@ -18,7 +18,18 @@
     "review-reduce-prompt",
     "review-tag-prompt",
     "reviews-raw",
-    "market-structure-profile",
-    "market-history"
+    "market-history",
+    "market-profile",
+    "market-price-distributions",
+    "market-rating-distributions",
+    "market-rating-count-distributions",
+    "market-listing-age-distributions",
+    "market-fulfillment-distributions",
+    "market-seller-country-distributions",
+    "market-content-distributions",
+    "market-top-product-concentrations",
+    "market-brand-concentrations",
+    "market-seller-concentrations",
+    "market-listing-launch-trend"
   ]
 }

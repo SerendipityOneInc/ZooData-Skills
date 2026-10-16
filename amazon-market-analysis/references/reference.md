@@ -8,8 +8,19 @@ This module owns production acquisition facts for `amazon-market-analysis`. All 
 |---|---|---|---|
 | `categories` | `categories` | `data[]` | Resolve IDs and browse children |
 | `markets/search` | `market` | `data[]` plus `meta.total` | Discover markets or retrieve one exact category snapshot |
-| `markets/structure-profile` | `market-structure-profile` | `data.buckets[]` | Selected Top 100 distribution |
-| `markets/history` | `market-history` | `data.points[]` | Available month-end market snapshots |
+| `markets/profile` | `market-profile` | `data[]` | SPU profile |
+| `markets/price-distributions` | `market-price-distributions` | `data[]` | SPU price-distributions |
+| `markets/rating-distributions` | `market-rating-distributions` | `data[]` | SPU rating-distributions |
+| `markets/rating-count-distributions` | `market-rating-count-distributions` | `data[]` | SPU rating-count-distributions |
+| `markets/listing-age-distributions` | `market-listing-age-distributions` | `data[]` | SPU listing-age-distributions |
+| `markets/fulfillment-distributions` | `market-fulfillment-distributions` | `data[]` | SPU fulfillment-distributions |
+| `markets/seller-country-distributions` | `market-seller-country-distributions` | `data[]` | SPU seller-country-distributions |
+| `markets/content-distributions` | `market-content-distributions` | `data[]` | SPU content-distributions |
+| `markets/top-product-concentrations` | `market-top-product-concentrations` | `data[]` | SPU top-product-concentrations |
+| `markets/brand-concentrations` | `market-brand-concentrations` | `data[]` | SPU brand-concentrations |
+| `markets/seller-concentrations` | `market-seller-concentrations` | `data[]` | SPU seller-concentrations |
+| `markets/listing-launch-trend` | `market-listing-launch-trend` | `data[]` | SPU listing-launch-trend |
+| `markets/history` | `market-history` | `data[]` | Available SPU snapshots |
 | `products/search` | `products` | `data[]` | Candidate product observations |
 | `products/competitors` | `competitors` | `data[]` | Competitor observations |
 | `realtime/product` | `product` | `data` object | Current ASIN detail; no monthly sales estimate |
@@ -28,21 +39,47 @@ This module owns production acquisition facts for `amazon-market-analysis`. All 
 
 ## Market search and single-category snapshot
 
-`markets/search` takes a nested `category` object: `ids` (1–100 exact IDs), a complete `path`, or an exact `name` are alternative row selectors. `category.includeDescendantCategoryProducts` defaults to `true` and controls whether **each returned market row's product measures** include its descendant categories. It does not select extra market rows. The `filters` object holds the 61 current market metric conditions and is applied before pagination. `sampleType`, `topN`, `newProductPeriod`, `date`, `page` (1-based), `pageSize` (1–100), `sortBy`, and `sortOrder` are top-level request fields. `topN` selects `3`, `5`, `10`, or `20` for Top N filters; `newProductPeriod` selects a `1`, `3`, `6`, or `12` calendar-month business launch window for new-product filters and sorting. Neither selector limits the response arrays. US is the documented marketplace. Inspect `market --help` for the exact current filter and sort names.
+This is the SPU contract defined by the service schemas dated 2026-10-16. Inspect the active OpenAPI/MCP schema before live use; a deployment still exposing the older three-route market contract is incompatible. Do not silently use SKU fields or substitute the retired route.
 
-There is no automatic parent-to-children market-row expansion. Use `categories --parent` to enumerate all direct child IDs, then send them as `category.ids` in one `markets/search` request when there are at most 100. Pagination and sorting operate on those ID-selected rows; `meta.total` counts matching rows after filters. Larger ID sets require batches, each with its own `meta.total`. The returned `includeDescendantCategoryProducts` identifies the product aggregation used for each row. Parent and child rows may overlap when descendant products are included.
+All 14 market endpoints use SPU (parent-product) grain: variants of the same product are merged. Only US is supported. Money is already USD; rates are fractions. Public floating metrics are rounded to two decimals, midpoint away from zero; integers and null remain unchanged. Filtering and sorting use these same rounded values. A returned zero is a value, not missingness. `avgProductReviewCnt` is unavailable; use the documented rating-count field where appropriate, without inventing a separate review metric.
 
-The bundled `market` CLI exposes mutually exclusive `--category-id`, `--category-ids` (comma-separated), `--category-path`, and `--category-name`. `--no-include-descendant-category-products` switches each row to directly assigned products only; inclusion is the default. It also exposes `--sample-type`, `--top-n`, `--new-product-period`, `--date`, `--page`, `--page-size`, `--sort`, `--order`, and exact kebab-case forms of every current filter field, such as `--sample-avg-monthly-sales-min`, `--top-n-product-monthly-sales-rate-max`, and `--sample-new-sku-rate-min`. Its supported sample values are `unitSalesTop100` and `revenueTop100`. For one market, use `market --category-id ID --page-size 1`; verify the returned row's `categoryId` before interpreting it. Omitted `date` requests the latest available snapshot; the returned row's `date` is authoritative.
+### Search request and response
 
-Each row contains category identity and two distinct metric objects. `marketTotal` holds full-category size, estimated monthly sales/revenue, per-product averages, and `newProductMetrics[]`. `marketSample` holds selected Top 100 size, sales/revenue, per-product averages, coverage, package, price, gross-margin estimate, brand/seller, rating, fulfillment, content, and its own `newProductMetrics[]`. Both new-product arrays return `periodMonths=1,3,6,12`. `marketSample.productTopNMetrics[]` and `marketSample.brandTopNMetrics[]` each return Top 3/5/10/20 sales/revenue groups. The upgraded row has no flat `total*` or `sample*` fields, fixed Top 10 fields, or seller Top N array. The selected sample has at most 100 products. `meta.total` counts matching markets, not products; a nested concentration rate is still sample-scoped.
+`markets/search` accepts nested `category.ids` (1–100 exact IDs), `category.path` (warehouse hierarchy prefix including descendant market rows), or `category.name` (exact node name), mutually exclusive. Optional `categoryKeyword` matches a literal case-insensitive substring at any categoryPath level, including literal %, _ and quotes. It does not require category-directory expansion. `category.includeDescendantCategoryProducts` defaults to true and controls the product population inside each market row, independently of the selected rows. Parent and descendant rows can overlap.
 
-The MCP `markets/search` route also lists `sampleType=bySale100|byRevenue100` as aliases; use normalized `unitSalesTop100|revenueTop100` values consistently in the bundled CLI and other market routes. The active MCP tool list contains search, structure-profile, and history only; `markets/overview` is absent. Legacy flat market requests remain accepted separately, while the bundled CLI sends the published nested form only.
+`dateRange=30d` resolves the latest common SPU publication within the last seven days; `YYYY-MM` selects an exact published month end. Search does not accept `date`. The returned `dt` is authoritative. `sampleType=unitSalesTop100|revenueTop100` selects at most 100 SPUs. `topN=3|5|10|20` and `newProductPeriod=1|3|6|12` select dynamic Top N and new-product metric aliases; all fixed cutoffs/windows remain returned. `page` is 1-based, `pageSize` is 1–100, `sortOrder=asc|desc`. Filters and sorting apply before pagination. `meta.total` counts matching markets, not products.
 
-## Market structure and history
+Each of 192 numeric `filters` fields takes `{min?, max?}`, with finite inclusive bounds and min <= max. Money bounds use USD and rates use fractions. `filters.sellerCountryCodes` is a nonempty list of country codes. The same 192 numeric names are allowed in `sortBy`; default sort is `avgProductMonthlySaleAmt` descending. Old flat Min/Max filters are not accepted.
 
-`markets/structure-profile` requires `categoryId` and one `dimension`: `brand`, `seller`, `price`, `sellerCountry`, `fulfillment`, `ratingCount`, `rating`, `listingAge`, `listingYear`, or `productFeature`. Optional context includes `includeDescendantCategoryProducts`, `sampleType`, and `date`; `newProductPeriod` is not accepted. `data.buckets[]` covers only the selected Top 100; `data.sampleSkuCount` is its size. Bucket rows carry product/sales/revenue counts and shares, Amazon self-operated measures, four-window `newProductMetrics[]`, example ASINs, and dimension-specific values. An empty bucket array is no distribution observation. The CLI uses `--no-include-descendant-category-products` for a direct-only request; it does not accept the former `--scope`.
+Response `data[]` contains flat Product fields, not `marketTotal` / `marketSample`: `totalProductCnt`, `totalMonthlySaleCnt`, `totalMonthlySaleAmt`; `sampleProductCnt`, `sampleMonthlySaleCnt`, `sampleMonthlySaleAmt`; `avgProductMonthlySaleCnt`, `avgProductMonthlySaleAmt`, `avgProductPrice30d`, `avgProductRatingAmt`, `avgProductRatingCnt`, `observedSellerCnt`, `sampleBrandCnt`, fulfillment/content fields, fixed `top3/5/10/20*`, fixed `totalMonth1/3/6/12NewProduct*` and `sampleMonth1/3/6/12NewProduct*`, plus selected `topN*` and `sampleNewProduct*` aliases. Identity is `categoryId`, `categoryName`, `categoryPath`, `categoryIdPath`, `categoryScope`, `sampleType`, `site`, `currency`, `dt`, `productGrain=SPU`. Preserve missing paths instead of constructing one.
 
-`markets/history` requires `categoryId`, `dateFrom`, and `dateTo`; optional context includes `includeDescendantCategoryProducts` and `sampleType`; `newProductPeriod` is not accepted. `data.points[]` contains available month-end snapshots in ascending date order. Absent months are omitted. Check `resolvedDateFrom` and `resolvedDateTo`; each point contains `marketTotal` and `marketSample` with size, monthly sales/revenue, averages, and four-window `newProductMetrics[]`. The upgraded response does not include MoM/YoY fields. The CLI uses `--category-id`, `--date-from`, `--date-to`, `--sample-type`, and the descendant-product boolean flag; it does not accept the former `--scope`, `--start-date`, or `--end-date`.
+### Profile, distributions, concentration and launch cohort
+
+All twelve detail routes accept `categoryIds` (1–100), `categoryScope=direct|subtree` (default subtree), `sampleType`, `marketplace=US`, and optional `date`. Omitted date resolves the latest common publication in seven days; explicit date requires an exact common snapshot and does not fall back to yesterday. Responses are `data[]`, each market independent. Legacy `categoryId` and `includeDescendantCategoryProducts` are accepted by the service as identity aliases; new CLI calls send the canonical form.
+
+`profile` returns `marketSize` (productCnt, monthlySaleCnt/Amt, newProductProfile), top-level sample totals, and `sampleProfile` (price, rating, seller/content measures, newProductProfile and concentrationProfile). Profile windows use `windowMonths`; concentration profile arrays are `topnProductMetrics`, `topnBrandMetrics`, `topnSellerMetrics`, `topnSellerCountryMetrics`, with `topN` identities.
+
+The seven distribution responses use `priceDistribution`, `ratingDistribution`, `ratingCountDistribution`, `listingAgeDistribution`, `fulfillmentDistribution`, `sellerCountryDistribution`, or `contentDistribution` inside each market row. Buckets use `membershipProductCnt` / `productMembershipRate`, `monthlySaleCnt` / `saleCntRate`, `monthlySaleAmt` / `saleAmtRate` as applicable; fields differ by dimension. Do not expect a universal buckets object. Content and seller-country memberships overlap. Fulfillment uses the market-representative SPU bucket; unknown fulfillment remains in the denominator.
+
+`top-product-concentrations` and `seller-concentrations` return `topnMetrics`; brand concentration returns `topnBrandMetrics`. Detail lists are `topProducts`, `sellerList`, and `topnBrandList`, respectively, with at most 20 leading entities. All four cutoffs are returned. `concentrationRate` uses quantity for unitSalesTop100 and revenue for revenueTop100.
+
+`listing-launch-trend` additionally takes `granularity=month|year` (default month). Rows identify `snapshotDt`, `listingPeriod`, and `productCnt`: launch cohorts within the selected snapshot, not snapshots of historic demand.
+
+`markets/structure-profile` is retired: HTTP 410 with dimension-specific migration guidance; no charge, absent from active discovery. There is no bundled `market-structure-profile` command. `markets/overview` is absent.
+
+### History
+
+`markets/history` takes `categoryIds`, `categoryScope`, `sampleType`, `marketplace=US`, required `dateFrom` and `dateTo` (ordered dates). It does not accept a snapshot `date` or `newProductPeriod`. Returns flat `data[]` rows with actual `dt`, category identity, `totalProductCnt`, `sampleProductCnt`, `sampleMonthlySaleCnt/Amt`, price and rating core fields. It has no points envelope, resolvedDateFrom/To, full-market sales, new-product history, distributions, or server MoM/YoY. Missing SPU snapshots stay absent; old SKU history is never substituted.
+
+Market reads cost 1 credit per call in this contract, including a batch of IDs. Read actual `meta.creditsConsumed` and `meta.creditsRemaining` when returned.
+
+## Bundled market commands
+
+`market` exposes mutually exclusive `--category-id`, `--category-ids`, `--category-path`, `--category-name`, plus optional `--category-keyword`, `--date-range`, sample and paging options. `--no-include-descendant-category-products` selects direct product scope. Each numeric filter has its exact kebab-case metric flag with `MIN:MAX`, `MIN:`, or `:MAX`, e.g. `--avg-product-price30d 10:30`, `--top-n-brand-monthly-sale-cnt-rate :0.6`. `--seller-country-codes US CN` sends a country list. `--sort` uses the exact camelCase metric name; inspect `market --help` for all 192 names.
+
+Every `market-<detail-route>` and `market-history` accepts either `--category-id ID` or `--category-ids ID1,ID2`, and `--category-scope direct|subtree`. Detail routes expose `--date`; history requires `--date-from` / `--date-to`; launch trend exposes `--granularity`. Scope defaults to subtree.
+
+There is no automatic direct-child enumeration for exact ID selection. Use `categories --parent` to enumerate direct children, then send `category.ids` in one `markets/search` request for at most 100 IDs, with `--page-size 100`. Larger sets require batches and complete page coverage. `meta.total` counts matching rows after filters. `--parent` requires a nonempty JSON string array. A prefix search includes deeper descendants, so it cannot replace a direct-child-only comparison.
 
 ## Supporting product evidence
 

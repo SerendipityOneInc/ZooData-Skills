@@ -51,7 +51,7 @@ Use the failure rendering in `references/execution-guide.md`; direct a user with
 ## Non-negotiable boundaries
 
 - Require `ZOODATA_API_KEY`; use the bundled CLI and the local command manifest. The credential-only `check` path precedes evidence calls. Stop and follow the shared CLI contract on credential, credit, validation, or terminal interface failures; do not invent missing evidence.
-- Resolve and preserve a category path or ID before category-scoped comparisons. Distinguish inferred category paths from direct matches. Preserve marketplace, date, category scope, sample type, and the difference between full-category `marketTotal` and selected Top 100 `marketSample` metrics.
+- Resolve and preserve a category path or ID before category-scoped comparisons. Distinguish inferred category paths from direct matches. Preserve marketplace, date, category scope, sample type, and the difference between full-category and selected Top 100 SPU metrics.
 - Treat seller budget, experience, risk tolerance, and other profile text as local interpretation inputs. Send only the documented category/product identifiers and numeric filters to the API.
 - State estimated credit cost before a broad multi-call scan. Require the user's explicit monitoring request before creating recurring work or saved baselines.
 
@@ -69,4 +69,4 @@ Use the failure rendering in `references/execution-guide.md`; direct a user with
 python {skill_base_dir}/scripts/zoodata.py <documented-subcommand> ...
 ```
 
-This skill allows `categories`, `market`, `market-structure-profile`, `market-history`, `products`, `competitors`, `product`, `analyze`, `report`, `opportunity`, `history`, `brand-overview`, `brand-detail`, `price-band-overview`, `price-band-detail`, `check`, `reviews-raw`, `review-tag-prompt`, `review-reduce-prompt`, and `review-aggregate`.
+This skill allows `categories`, `market`, `market-profile`, `market-price-distributions`, `market-rating-distributions`, `market-rating-count-distributions`, `market-listing-age-distributions`, `market-fulfillment-distributions`, `market-seller-country-distributions`, `market-content-distributions`, `market-top-product-concentrations`, `market-brand-concentrations`, `market-seller-concentrations`, `market-listing-launch-trend`, `market-history`, `products`, `competitors`, `product`, `analyze`, `report`, `opportunity`, `history`, `brand-overview`, `brand-detail`, `price-band-overview`, `price-band-detail`, `check`, `reviews-raw`, `review-tag-prompt`, `review-reduce-prompt`, and `review-aggregate`.

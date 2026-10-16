@@ -37,6 +37,7 @@ import argparse
 import contextlib
 import io
 import json
+import math
 import os
 import shutil
 import subprocess
@@ -1340,56 +1341,89 @@ def cmd_categories(args):
     output(result, args.format)
 
 
-MARKET_FILTER_FIELDS = (
-    "sampleAvgMonthlySalesMin", "sampleAvgMonthlySalesMax",
-    "sampleAvgMonthlyRevenueMin", "sampleAvgMonthlyRevenueMax",
-    "sampleAvgPriceMin", "sampleAvgPriceMax",
-    "sampleAvgBsrMin", "sampleAvgBsrMax",
-    "sampleAvgRatingMin", "sampleAvgRatingMax",
-    "sampleAvgRatingCountMin", "sampleAvgRatingCountMax",
-    "totalSkuCountMin", "totalSkuCountMax",
-    "sampleSkuCountMin", "sampleSkuCountMax",
-    "topNProductMonthlySalesRateMin", "topNProductMonthlySalesRateMax",
-    "topNProductMonthlyRevenueRateMin", "topNProductMonthlyRevenueRateMax",
-    "topNBrandMonthlySalesRateMin", "topNBrandMonthlySalesRateMax",
-    "topNBrandMonthlyRevenueRateMin", "topNBrandMonthlyRevenueRateMax",
-    "sampleBrandCountMin", "sampleBrandCountMax",
-    "sampleSellerCountMin", "sampleSellerCountMax",
-    "sampleFbaRateMin", "sampleFbaRateMax",
-    "sampleAmzRateMin", "sampleAmzRateMax",
-    "sampleNewSkuCountMin", "sampleNewSkuCountMax",
-    "sampleNewSkuRateMin", "sampleNewSkuRateMax",
-    "sampleNewSkuAvgMonthlySalesMin", "sampleNewSkuAvgMonthlySalesMax",
-    "sampleNewSkuAvgPriceMin", "sampleNewSkuAvgPriceMax",
-    "sampleAvgPackageWeightMin", "sampleAvgPackageWeightMax",
-    "sampleAvgPackageVolumeMin", "sampleAvgPackageVolumeMax",
-    "sellerCountry",
-    "totalMonthlySalesMin", "totalMonthlyRevenueMin",
-    "sampleAvgGrossMarginRateMin", "sampleAvgGrossMarginRateMax",
-    "sampleNewSkuAvgMonthlyRevenueMin", "sampleNewSkuAvgMonthlyRevenueMax",
-    "sampleNewSkuAvgRatingMin", "sampleNewSkuAvgRatingMax",
-    "sampleNewSkuAvgRatingCountMin", "sampleNewSkuAvgRatingCountMax",
-    "sampleAvgSellerCountMin", "sampleAvgSellerCountMax",
-    "sampleFbmRateMin", "sampleFbmRateMax",
-    "sampleAPlusRateMin", "sampleAPlusRateMax",
-)
+# SPU market contract: hermes-workspace#616, d4facfe56842 (2026-10-16).
+MARKET_FILTER_FIELDS = tuple("""
+totalProductCnt sampleProductCnt sampleMonthlySaleCnt sampleMonthlySaleAmt avgProductMonthlySaleCnt
+avgProductMonthlySaleAmt avgProductPrice30d avgProductBigBsr30d avgProductRatingAmt
+avgProductRatingCnt avgProductPackageWeightOz avgProductPackageVolumeIn3 sampleBrandCnt
+observedSellerCnt avgProductSellerCnt aPlusProductRate sampleFbaProductRate sampleFbmProductRate
+sampleAmzProductRate topNProductAvgMonthlySaleCnt topNProductAvgMonthlySaleAmt
+topNProductBigCategoryAvgBsr topNProductMonthlySaleCntRate topNProductMonthlySaleAmtRate
+topNBrandMonthlySaleCntRate topNSellerConcentrationRate sampleNewProductCnt sampleNewProductRate
+sampleNewProductAvgPrice30d sampleNewProductAvgRatingAmt sampleNewProductAvgRatingCnt
+sampleNewProductAvgMonthlySaleCnt sampleNewProductAvgMonthlySaleAmt totalMonth1NewProductCnt
+totalMonth1NewProductRate totalMonth1NewProductMonthlySaleCnt totalMonth1NewProductMonthlySaleAmt
+totalMonth3NewProductCnt totalMonth3NewProductRate totalMonth3NewProductMonthlySaleCnt
+totalMonth3NewProductMonthlySaleAmt totalMonth6NewProductCnt totalMonth6NewProductRate
+totalMonth6NewProductMonthlySaleCnt totalMonth6NewProductMonthlySaleAmt totalMonth12NewProductCnt
+totalMonth12NewProductRate totalMonth12NewProductMonthlySaleCnt totalMonth12NewProductMonthlySaleAmt
+totalMonthlySaleCnt totalMonthlySaleAmt minPrice30d maxPrice30d medianProductPrice30d
+avgProductMonthlyNewRatingCnt avgProductGrossMarginRate aPlusProductCnt videoProductCnt
+videoProductRate sampleMonth1NewProductCnt sampleMonth1NewProductRate
+sampleMonth1NewProductMonthlySaleCnt sampleMonth1NewProductMonthlySaleCntRate
+sampleMonth1NewProductMonthlySaleAmt sampleMonth1NewProductMonthlySaleAmtRate
+sampleMonth1NewProductAvgPrice30d sampleMonth1NewProductAvgRatingAmt
+sampleMonth1NewProductAvgRatingCnt sampleMonth3NewProductCnt sampleMonth3NewProductRate
+sampleMonth3NewProductMonthlySaleCnt sampleMonth3NewProductMonthlySaleCntRate
+sampleMonth3NewProductMonthlySaleAmt sampleMonth3NewProductMonthlySaleAmtRate
+sampleMonth3NewProductAvgPrice30d sampleMonth3NewProductAvgRatingAmt
+sampleMonth3NewProductAvgRatingCnt sampleMonth6NewProductCnt sampleMonth6NewProductRate
+sampleMonth6NewProductMonthlySaleCnt sampleMonth6NewProductMonthlySaleCntRate
+sampleMonth6NewProductMonthlySaleAmt sampleMonth6NewProductMonthlySaleAmtRate
+sampleMonth6NewProductAvgPrice30d sampleMonth6NewProductAvgRatingAmt
+sampleMonth6NewProductAvgRatingCnt sampleMonth6NewProductMinRatingAmt
+sampleMonth6NewProductMaxRatingAmt sampleMonth12NewProductCnt sampleMonth12NewProductRate
+sampleMonth12NewProductMonthlySaleCnt sampleMonth12NewProductMonthlySaleCntRate
+sampleMonth12NewProductMonthlySaleAmt sampleMonth12NewProductMonthlySaleAmtRate
+sampleMonth12NewProductAvgPrice30d sampleMonth12NewProductAvgRatingAmt
+sampleMonth12NewProductAvgRatingCnt top3ProductConcentrationRate top3ProductProductCnt
+top3ProductBrandCnt top3ProductMonthlySaleCnt top3ProductMonthlySaleAmt top3ProductBigCategoryAvgBsr
+top3ProductSmallCategoryAvgBsr top5ProductConcentrationRate top5ProductProductCnt
+top5ProductBrandCnt top5ProductMonthlySaleCnt top5ProductMonthlySaleAmt top5ProductBigCategoryAvgBsr
+top5ProductSmallCategoryAvgBsr top10ProductConcentrationRate top10ProductProductCnt
+top10ProductBrandCnt top10ProductMonthlySaleCnt top10ProductMonthlySaleAmt
+top10ProductBigCategoryAvgBsr top10ProductSmallCategoryAvgBsr top20ProductConcentrationRate
+top20ProductProductCnt top20ProductBrandCnt top20ProductMonthlySaleCnt top20ProductMonthlySaleAmt
+top20ProductBigCategoryAvgBsr top20ProductSmallCategoryAvgBsr top3BrandConcentrationRate
+top3BrandBrandCnt top3BrandMonthlySaleCnt top3BrandMonthlySaleAmt top3BrandProductCnt
+top3BrandBigCategoryAvgBsr top5BrandConcentrationRate top5BrandBrandCnt top5BrandMonthlySaleCnt
+top5BrandMonthlySaleAmt top5BrandProductCnt top5BrandBigCategoryAvgBsr top10BrandConcentrationRate
+top10BrandBrandCnt top10BrandMonthlySaleCnt top10BrandMonthlySaleAmt top10BrandProductCnt
+top10BrandBigCategoryAvgBsr top20BrandConcentrationRate top20BrandBrandCnt top20BrandMonthlySaleCnt
+top20BrandMonthlySaleAmt top20BrandProductCnt top20BrandBigCategoryAvgBsr
+top3SellerConcentrationRate top5SellerConcentrationRate top10SellerConcentrationRate
+top20SellerConcentrationRate top3SellerCountryConcentrationRate top5SellerCountryConcentrationRate
+top10SellerCountryConcentrationRate top20SellerCountryConcentrationRate
+top3ProductMonthlySaleCntRate top3ProductAvgMonthlySaleCnt top3ProductMonthlySaleAmtRate
+top3ProductAvgMonthlySaleAmt top5ProductMonthlySaleCntRate top5ProductAvgMonthlySaleCnt
+top5ProductMonthlySaleAmtRate top5ProductAvgMonthlySaleAmt top10ProductMonthlySaleCntRate
+top10ProductAvgMonthlySaleCnt top10ProductMonthlySaleAmtRate top10ProductAvgMonthlySaleAmt
+top20ProductMonthlySaleCntRate top20ProductAvgMonthlySaleCnt top20ProductMonthlySaleAmtRate
+top20ProductAvgMonthlySaleAmt top3BrandMonthlySaleCntRate top3BrandAvgMonthlySaleCnt
+top3BrandMonthlySaleAmtRate top3BrandAvgMonthlySaleAmt top5BrandMonthlySaleCntRate
+top5BrandAvgMonthlySaleCnt top5BrandMonthlySaleAmtRate top5BrandAvgMonthlySaleAmt
+top10BrandMonthlySaleCntRate top10BrandAvgMonthlySaleCnt top10BrandMonthlySaleAmtRate
+top10BrandAvgMonthlySaleAmt top20BrandMonthlySaleCntRate top20BrandAvgMonthlySaleCnt
+top20BrandMonthlySaleAmtRate top20BrandAvgMonthlySaleAmt topNBrandAvgMonthlySaleCnt
+topNBrandAvgMonthlySaleAmt topNBrandMonthlySaleAmtRate
+""".split())
 
-MARKET_INTEGER_FILTER_FIELDS = {
-    "totalSkuCountMin", "totalSkuCountMax",
-    "sampleSkuCountMin", "sampleSkuCountMax",
-    "sampleBrandCountMin", "sampleBrandCountMax",
-    "sampleSellerCountMin", "sampleSellerCountMax",
-    "sampleNewSkuCountMin", "sampleNewSkuCountMax",
-}
+# Every numeric filter is also an allowed sort field in this contract.
+MARKET_SORT_FIELDS = MARKET_FILTER_FIELDS
 
-MARKET_SORT_FIELDS = (
-    "totalMonthlySales", "totalMonthlyRevenue",
-    "sampleMonthlySales", "sampleMonthlyRevenue",
-    "sampleAvgMonthlySales", "sampleAvgMonthlyRevenue",
-    "totalSkuCount", "sampleSkuCount", "sampleAvgPrice",
-    "sampleTotalMonthlySales", "sampleAvgBsr", "sampleAvgRating",
-    "sampleAvgRatingCount", "sampleBrandCount", "sampleSellerCount",
-    "sampleFbaRate", "sampleNewSkuRate",
+MARKET_DETAIL_ENDPOINTS = (
+    "profile",
+    "price-distributions",
+    "rating-distributions",
+    "rating-count-distributions",
+    "listing-age-distributions",
+    "fulfillment-distributions",
+    "seller-country-distributions",
+    "content-distributions",
+    "top-product-concentrations",
+    "brand-concentrations",
+    "seller-concentrations",
+    "listing-launch-trend",
 )
 
 
@@ -1406,11 +1440,10 @@ def cmd_market(args):
     if args.category_id is not None:
         category["ids"] = [args.category_id]
     elif args.category_ids is not None:
-        ids = [value.strip() for value in args.category_ids.split(",")]
-        if not 1 <= len(ids) <= 100 or any(not value for value in ids):
-            raise SystemExit("--category-ids requires 1–100 nonempty comma-separated IDs")
-        if len(set(ids)) != len(ids):
-            raise SystemExit("--category-ids contains duplicate IDs")
+        try:
+            ids = _market_category_ids(args.category_ids)
+        except argparse.ArgumentTypeError as exc:
+            raise SystemExit(str(exc))
         category["ids"] = ids
     elif args.category_name is not None:
         category["name"] = args.category_name
@@ -1421,11 +1454,18 @@ def cmd_market(args):
     for field in MARKET_FILTER_FIELDS:
         value = getattr(args, field)
         if value is not None:
-            filters[field] = value
+            bounds = {key: bound for key, bound in zip(("min", "max"), value)
+                      if bound is not None}
+            if len(bounds) == 2 and bounds["min"] > bounds["max"]:
+                raise SystemExit(f"{field}: min must not exceed max")
+            filters[field] = bounds
+    if args.seller_country_codes:
+        filters["sellerCountryCodes"] = args.seller_country_codes
     if filters:
         params["filters"] = filters
-    if args.date:
-        params["date"] = args.date
+    params["dateRange"] = args.date_range
+    if args.category_keyword:
+        params["categoryKeyword"] = args.category_keyword
     if args.sort:
         params["sortBy"] = args.sort
     params["sortOrder"] = args.order
@@ -1433,26 +1473,73 @@ def cmd_market(args):
     output(result, args.format)
 
 
+def _market_category_ids(value):
+    ids = [item.strip() for item in value.split(",")]
+    if not 1 <= len(ids) <= 100 or any(not item or len(item) > 128 for item in ids):
+        raise argparse.ArgumentTypeError("requires 1–100 nonempty category IDs of at most 128 characters")
+    if len(set(ids)) != len(ids):
+        raise argparse.ArgumentTypeError("duplicate category IDs")
+    return ids
+
+
+def _market_range(value):
+    parts = value.split(":")
+    try:
+        if len(parts) != 2 or not any(parts):
+            raise ValueError
+        bounds = tuple(float(part) if part else None for part in parts)
+        if any(bound is not None and not math.isfinite(bound) for bound in bounds):
+            raise ValueError
+        if all(bound is not None for bound in bounds) and bounds[0] > bounds[1]:
+            raise ValueError
+        return bounds
+    except ValueError:
+        raise argparse.ArgumentTypeError("expected MIN:MAX, MIN:, or :MAX with finite ordered bounds")
+
+
+def _market_date_range(value):
+    if value == "30d":
+        return value
+    try:
+        if not re.fullmatch(r"[0-9]{4}-(0[1-9]|1[0-2])", value):
+            raise ValueError
+        date.fromisoformat(value + "-01")
+        return value
+    except ValueError:
+        raise argparse.ArgumentTypeError("expected 30d or YYYY-MM")
+
+
+def _market_date(value):
+    try:
+        if not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", value):
+            raise ValueError
+        date.fromisoformat(value)
+        return value
+    except ValueError:
+        raise argparse.ArgumentTypeError("expected a valid YYYY-MM-DD date")
+
+
 def _market_single_params(args):
-    return {"categoryId": args.category_id,
-            "includeDescendantCategoryProducts": args.include_descendant_category_products,
+    return {"categoryIds": args.category_ids,
+            "categoryScope": args.category_scope,
             "marketplace": args.marketplace,
             "sampleType": args.sample_type,
             **({"date": args.date} if getattr(args, "date", None) else {})}
 
 
-def cmd_market_structure_profile(args):
+def cmd_market_detail(args):
     params = _market_single_params(args)
-    params["dimension"] = args.dimension
-    result = api_call("markets/structure-profile", params)
-    output(result, args.format)
+    if args.market_endpoint == "listing-launch-trend":
+        params["granularity"] = args.granularity
+    output(api_call("markets/" + args.market_endpoint, params), args.format)
 
 
 def cmd_market_history(args):
     params = _market_single_params(args)
+    if args.date_from > args.date_to:
+        raise SystemExit("--date-from must not exceed --date-to")
     params.update({"dateFrom": args.date_from, "dateTo": args.date_to})
-    result = api_call("markets/history", params)
-    output(result, args.format)
+    output(api_call("markets/history", params), args.format)
 
 
 def cmd_products(args):
@@ -3687,34 +3774,50 @@ Examples:
                        help="Top N group used by Top N filters (default: 10); response includes all four groups")
     p_mkt.add_argument("--new-product-period", choices=["1", "3", "6", "12"], default="3",
                        help="New-product window used by filters and sorting (default: 3); response includes all four windows")
-    p_mkt.add_argument("--date", help="Snapshot date (YYYY-MM-DD)")
+    p_mkt.add_argument("--date-range", type=_market_date_range, default="30d",
+                       help="30d (latest published snapshot) or YYYY-MM (exact month end)")
+    p_mkt.add_argument("--category-keyword", help="Literal case-insensitive substring at any category path level")
     for field in MARKET_FILTER_FIELDS:
-        value_type = str if field == "sellerCountry" else (
-            int if field in MARKET_INTEGER_FILTER_FIELDS else float)
-        p_mkt.add_argument(_camel_to_cli_flag(field), dest=field, type=value_type)
-    p_mkt.add_argument("--page-size", type=int, default=20)
+        p_mkt.add_argument(_camel_to_cli_flag(field), dest=field, type=_market_range,
+                           metavar="MIN:MAX", help="Inclusive range; USD for money, fractions for rates")
+    p_mkt.add_argument("--seller-country-codes", nargs="+")
+    p_mkt.add_argument("--page-size", type=int, choices=range(1, 101), default=20)
     p_mkt.add_argument("--page", type=int, default=1, help="Page number (default: 1)")
     p_mkt.add_argument("--sort", choices=MARKET_SORT_FIELDS)
     p_mkt.add_argument("--order", choices=["asc", "desc"], default="desc")
     p_mkt.set_defaults(func=cmd_market)
 
-    p_structure = sub.add_parser("market-structure-profile", help="Read one Top 100 distribution", allow_abbrev=False)
-    p_history = sub.add_parser("market-history", help="Read month-end market history", allow_abbrev=False)
-    for name, p, handler in (("market-structure-profile", p_structure, cmd_market_structure_profile),
-                             ("market-history", p_history, cmd_market_history)):
-        p.add_argument("--category-id", required=True)
-        p.add_argument("--include-descendant-category-products", action=argparse.BooleanOptionalAction,
-                       default=True, help="Include descendant-category products (default: true)")
+    market_parsers = [
+        ("profile", sub.add_parser("market-profile", help="SPU market profile", allow_abbrev=False)),
+        ("price-distributions", sub.add_parser("market-price-distributions", help="SPU market price-distributions", allow_abbrev=False)),
+        ("rating-distributions", sub.add_parser("market-rating-distributions", help="SPU market rating-distributions", allow_abbrev=False)),
+        ("rating-count-distributions", sub.add_parser("market-rating-count-distributions", help="SPU market rating-count-distributions", allow_abbrev=False)),
+        ("listing-age-distributions", sub.add_parser("market-listing-age-distributions", help="SPU market listing-age-distributions", allow_abbrev=False)),
+        ("fulfillment-distributions", sub.add_parser("market-fulfillment-distributions", help="SPU market fulfillment-distributions", allow_abbrev=False)),
+        ("seller-country-distributions", sub.add_parser("market-seller-country-distributions", help="SPU market seller-country-distributions", allow_abbrev=False)),
+        ("content-distributions", sub.add_parser("market-content-distributions", help="SPU market content-distributions", allow_abbrev=False)),
+        ("top-product-concentrations", sub.add_parser("market-top-product-concentrations", help="SPU market top-product-concentrations", allow_abbrev=False)),
+        ("brand-concentrations", sub.add_parser("market-brand-concentrations", help="SPU market brand-concentrations", allow_abbrev=False)),
+        ("seller-concentrations", sub.add_parser("market-seller-concentrations", help="SPU market seller-concentrations", allow_abbrev=False)),
+        ("listing-launch-trend", sub.add_parser("market-listing-launch-trend", help="SPU market listing-launch-trend", allow_abbrev=False)),
+        ("history", sub.add_parser("market-history", help="SPU market history", allow_abbrev=False)),
+    ]
+    for endpoint, p in market_parsers:
+        ids = p.add_mutually_exclusive_group(required=True)
+        ids.add_argument("--category-id", dest="category_ids", type=_market_category_ids)
+        ids.add_argument("--category-ids", type=_market_category_ids)
+        p.add_argument("--category-scope", choices=["direct", "subtree"], default="subtree")
         p.add_argument("--marketplace", choices=["US"], default="US")
         p.add_argument("--sample-type", choices=["unitSalesTop100", "revenueTop100"], default="unitSalesTop100")
-        if name == "market-history":
-            p.add_argument("--date-from", required=True)
-            p.add_argument("--date-to", required=True)
+        if endpoint == "history":
+            p.add_argument("--date-from", type=_market_date, required=True)
+            p.add_argument("--date-to", type=_market_date, required=True)
         else:
-            p.add_argument("--date", help="Snapshot date (YYYY-MM-DD)")
-        if name == "market-structure-profile":
-            p.add_argument("--dimension", required=True, choices=["brand", "seller", "price", "sellerCountry", "fulfillment", "ratingCount", "rating", "listingAge", "listingYear", "productFeature"])
-        p.set_defaults(func=handler)
+            p.add_argument("--date", type=_market_date, help="Exact common published snapshot date (YYYY-MM-DD)")
+        if endpoint == "listing-launch-trend":
+            p.add_argument("--granularity", choices=["month", "year"], default="month")
+        p.set_defaults(func=cmd_market_history if endpoint == "history" else cmd_market_detail,
+                       market_endpoint=endpoint)
 
     # ── products ──
     p_prod = sub.add_parser("products", help="Search products with filters (product selection)", allow_abbrev=False)
