@@ -65,7 +65,7 @@ Classify every CLI result through `cli-contract.md`. On a terminal interface fai
 
 ### Field Identity Gate
 
-Resolve `(source, categoryId, categoryScope, product grain, sampleType, marketplace, metric path, unit, denominator, date or comparison periods)` before a claim. Do not move a Top 100 rate to the whole category, use `meta.total` as product count, or equate product history with market history. If identity is unresolved, state the unavailable field instead of guessing. For derived values, show the compatible inputs and formula.
+Resolve `(source, category identity and paths, includeDescendantCategoryProducts, product grain, sampleType, marketplace, currency, metric path, unit, denominator, date or comparison periods)` before a claim. Do not move a Top 100 rate to the whole category, use `meta.total` as product count, or equate product history with market history. If identity is unresolved, state the unavailable field instead of guessing. For derived values, show the compatible inputs and formula.
 
 ### Evidence Gate
 

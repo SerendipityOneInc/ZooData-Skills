@@ -155,7 +155,7 @@ class TestMarketSkillOwnership(unittest.TestCase):
         self.assertIn("Render history rows and missing-period treatment only through `output-rules.md`", scenario)
         self.assertNotIn("placeholder row", scenario)
         self.assertNotIn("current incomplete month", scenario)
-        self.assertIn("project every returned `data[]` entry", evidence)
+        self.assertIn("project every returned `data[].history[]` point", evidence)
         self.assertIn("projected point count and dates equal", evidence)
         self.assertIn("is not an API coverage gap", evidence)
         self.assertIn("do not offer another paid query", evidence)
@@ -252,7 +252,7 @@ class TestMarketSkillOwnership(unittest.TestCase):
         for path in api_owners:
             text = path.read_text()
             with self.subTest(path=path):
-                for required in ("SPU", "categoryScope", "categoryIds", "dateRange",
+                for required in ("SPU", "includeDescendantCategoryProducts", "categoryIds", "dateRange",
                                  "sampleMonthlySaleCnt", "avgProductMonthlySaleCnt",
                                  "totalMonthlySaleAmt", "sellerCountryCodes",
                                  "HTTP 410", "exact common snapshot", "two decimals",
@@ -271,8 +271,49 @@ class TestMarketSkillOwnership(unittest.TestCase):
         semantics = (MARKET / "references/market-metric-semantics.md").read_text()
         for required in ("SPUs", "per-SPU", "overlap", "unknown fulfillment",
                          "SKU history", "cohorts", "Missing baseline",
-                         "rounded zero", "full-category sales"):
+                         "rounded zero", "Full-market sales"):
             self.assertIn(required.lower(), semantics.lower())
+
+    def test_upgraded_response_shapes_and_field_identity_are_documented(self):
+        fixture = json.loads((ROOT / "tests/fixtures/market-spu-contract.json").read_text())
+        fields = fixture["responseFields"]
+        self.assertEqual(fields["MarketHistoryFact"], ["snapshotDate", "marketSize", "sampleProfile"])
+        self.assertEqual(fields["MarketHistorySeries"],
+                         ["site", "category", "includeDescendantCategoryProducts",
+                          "sampleType", "currency", "history"])
+        for name in ("PriceBucket", "RatingBucket", "RatingCountBucket", "ListingAgeBucket",
+                     "FulfillmentBucket", "SellerCountryBucket", "ContentBucket"):
+            with self.subTest(model=name):
+                self.assertTrue({"bucketProductCnt", "bucketProductRate",
+                                 "monthlySaleCntRate", "monthlySaleAmtRate"} <= set(fields[name]))
+                self.assertFalse({"membershipProductCnt", "productMembershipRate",
+                                  "saleCntRate", "saleAmtRate"} & set(fields[name]))
+        for model in ("MarketSearchFact", "MarketProfile", "ListingLaunchTrend"):
+            self.assertIn("snapshotDate", fields[model])
+            self.assertNotIn("dt", fields[model])
+            self.assertNotIn("productGrain", fields[model])
+        self.assertNotIn("sampleProductCnt", fields["MarketProfile"])
+        self.assertTrue({"productCnt", "monthlySaleCnt", "monthlySaleAmt",
+                         "avgProductMonthlySaleCnt", "avgProductMonthlySaleAmt"} <= set(fields["SampleProfile"]))
+        self.assertTrue({"monthlySaleCnt", "monthlySaleAmt"} <= set(fields["TopNConcentration"]))
+        self.assertTrue({"productCnt", "monthlySaleCnt", "monthlySaleAmt"} <=
+                        set(fields["MarketHistorySampleProfile"]))
+        self.assertNotIn("avgProductMonthlySaleCnt", fields["MarketHistorySampleProfile"])
+        evidence = (MARKET / "references/evidence-protocols.md").read_text()
+        self.assertIn("data[].history[]", evidence)
+        self.assertIn("complete identity", evidence)
+        self.assertIn("Multiple series for one category ID", evidence)
+        for path in [ROOT / "zoodata/references/openapi-reference.md",
+                     *[p for p in ROOT.glob("amazon-*/references/reference.md")
+                       if (p.parents[1] / "SKILL.md").exists() and "All 14 market endpoints" in p.read_text()]]:
+            text = path.read_text()
+            for required in ("snapshotDate", "data[]", "history[]", "bucketProductCnt",
+                             "bucketProductRate", "monthlySaleCntRate", "monthlySaleAmtRate",
+                             "no top-level sample totals", "Series are separated"):
+                self.assertIn(required, text, str(path))
+            for obsolete in ("categoryScope=direct|subtree", "productGrain=SPU",
+                             "The returned `dt`", "Returns flat `data[]` rows"):
+                self.assertNotIn(obsolete, text, str(path))
 
     def test_market_router_and_scenarios_respect_declared_ownership(self):
         skill = (MARKET / "SKILL.md").read_text()

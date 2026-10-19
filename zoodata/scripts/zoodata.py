@@ -725,8 +725,8 @@ def _market_snapshot_for_category(api_caller, category_path, keyword=None, resul
     if results is not None:
         results.setdefault("meta", {})["resolved_category_id"] = category_id
     result = api_caller("markets/search", {"category": {
-                            "ids": [str(category_id)],
-                            "includeDescendantCategoryProducts": True},
+                            "ids": [str(category_id)]},
+                        "includeDescendantCategoryProducts": True,
                         "marketplace": "US",
                         "sampleType": "unitSalesTop100", "page": 1,
                         "pageSize": 1}, "market")
@@ -1341,7 +1341,7 @@ def cmd_categories(args):
     output(result, args.format)
 
 
-# SPU market contract: hermes-workspace#616, d4facfe56842 (2026-10-16).
+# SPU market contract: hermes-workspace#616, b8ef9b752317 (2026-10-19).
 MARKET_FILTER_FIELDS = tuple("""
 totalProductCnt sampleProductCnt sampleMonthlySaleCnt sampleMonthlySaleAmt avgProductMonthlySaleCnt
 avgProductMonthlySaleAmt avgProductPrice30d avgProductBigBsr30d avgProductRatingAmt
@@ -1436,7 +1436,8 @@ def cmd_market(args):
     params = {"sampleType": args.sample_type, "marketplace": args.marketplace,
               "topN": args.top_n, "newProductPeriod": args.new_product_period,
               "page": args.page, "pageSize": args.page_size}
-    category = {"includeDescendantCategoryProducts": args.include_descendant_category_products}
+    params["includeDescendantCategoryProducts"] = args.include_descendant_category_products
+    category = {}
     if args.category_id is not None:
         category["ids"] = [args.category_id]
     elif args.category_ids is not None:
@@ -1521,7 +1522,7 @@ def _market_date(value):
 
 def _market_single_params(args):
     return {"categoryIds": args.category_ids,
-            "categoryScope": args.category_scope,
+            "includeDescendantCategoryProducts": args.include_descendant_category_products,
             "marketplace": args.marketplace,
             "sampleType": args.sample_type,
             **({"date": args.date} if getattr(args, "date", None) else {})}
@@ -3229,7 +3230,7 @@ def cmd_check(args):
     if args.endpoints:
         endpoints.extend([
             ("categories", {}, "Category tree"),
-            ("markets/search", {"category": {"includeDescendantCategoryProducts": True},
+            ("markets/search", {"includeDescendantCategoryProducts": True,
                                 "sampleType": "unitSalesTop100",
                                 "pageSize": 1}, "Market search"),
             ("products/search", {"keyword": "test", "pageSize": 1}, "Product search"),
@@ -3806,7 +3807,8 @@ Examples:
         ids = p.add_mutually_exclusive_group(required=True)
         ids.add_argument("--category-id", dest="category_ids", type=_market_category_ids)
         ids.add_argument("--category-ids", type=_market_category_ids)
-        p.add_argument("--category-scope", choices=["direct", "subtree"], default="subtree")
+        p.add_argument("--include-descendant-category-products", action=argparse.BooleanOptionalAction,
+                       default=True, help="Include descendant-category products (default: true)")
         p.add_argument("--marketplace", choices=["US"], default="US")
         p.add_argument("--sample-type", choices=["unitSalesTop100", "revenueTop100"], default="unitSalesTop100")
         if endpoint == "history":
