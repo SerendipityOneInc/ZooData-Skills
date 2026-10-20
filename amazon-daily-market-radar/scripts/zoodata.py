@@ -1341,7 +1341,7 @@ def cmd_categories(args):
     output(result, args.format)
 
 
-# SPU market contract: hermes-workspace#616, b8ef9b752317 (2026-10-19).
+# SPU market contract: hermes-workspace#616, 4284967a4b6a (2026-10-20).
 MARKET_FILTER_FIELDS = tuple("""
 totalProductCnt sampleProductCnt sampleMonthlySaleCnt sampleMonthlySaleAmt avgProductMonthlySaleCnt
 avgProductMonthlySaleAmt avgProductPrice30d avgProductBigBsr30d avgProductRatingAmt

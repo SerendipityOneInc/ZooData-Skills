@@ -516,6 +516,42 @@ class TestEndpointRouting(unittest.TestCase):
                     self.assertNotIn("category_scope", params)
                     self.assertNotIn("includeDescendantCategoryProducts", params.get("category", {}))
 
+    def test_every_market_request_matches_frozen_public_property_set(self):
+        with open(os.path.join(os.path.dirname(__file__), "fixtures", "market-spu-contract.json")) as stream:
+            contract = json.load(stream)
+        for endpoint, route in contract["endpointContracts"].items():
+            argv = ["--category-ids", "1,2", "--no-include-descendant-category-products"]
+            if endpoint == "history":
+                argv += ["--date-from", "2026-07-01", "--date-to", "2026-09-30"]
+            elif endpoint != "search":
+                argv += ["--date", "2026-09-30"]
+            params = run_cli(route["command"], *argv)["params"]
+            schema = contract["requestContracts"][route["request"]]
+            with self.subTest(endpoint=endpoint):
+                self.assertLessEqual(set(params), set(schema["properties"]))
+                self.assertLessEqual(set(schema["required"]), set(params))
+                self.assertIs(params["includeDescendantCategoryProducts"], False)
+                if endpoint == "history":
+                    self.assertNotIn("date", schema["properties"])
+                    self.assertNotIn("date", params)
+
+    def test_all_market_responses_keep_public_fields_and_metadata(self):
+        with open(os.path.join(os.path.dirname(__file__), "fixtures", "market-spu-contract.json")) as stream:
+            contract = json.load(stream)
+        for endpoint, route in contract["endpointContracts"].items():
+            argv = ["--category-id", "1"]
+            if endpoint == "history":
+                argv += ["--date-from", "2026-07-01", "--date-to", "2026-09-30"]
+            payload = {"success": True,
+                       "data": [dict.fromkeys(contract["responseFields"][route["response"]])],
+                       "meta": {"creditsConsumed": 1, "creditsRemaining": 0}}
+            with self.subTest(endpoint=endpoint), \
+                    patch.object(zoodata, "api_call", return_value=payload), \
+                    patch.object(zoodata, "output") as output, \
+                    patch.object(sys, "argv", ["zoodata.py", route["command"], *argv]):
+                zoodata.main()
+                output.assert_called_once_with(payload, "json")
+
     def test_market_rejects_retired_cli_parameters(self):
         for option, value in (("--category", "Pet Supplies"),
                               ("--keyword", "yoga"), ("--topn", "10"),

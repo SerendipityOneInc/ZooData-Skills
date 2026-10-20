@@ -277,8 +277,8 @@ class TestMarketSkillOwnership(unittest.TestCase):
     def test_upgraded_response_shapes_and_field_identity_are_documented(self):
         fixture = json.loads((ROOT / "tests/fixtures/market-spu-contract.json").read_text())
         fields = fixture["responseFields"]
-        self.assertEqual(fields["MarketHistoryFact"], ["snapshotDate", "marketSize", "sampleProfile"])
-        self.assertEqual(fields["MarketHistorySeries"],
+        self.assertEqual(list(fields["MarketHistoryFact"]), ["snapshotDate", "marketSize", "sampleProfile"])
+        self.assertEqual(list(fields["MarketHistorySeries"]),
                          ["site", "category", "includeDescendantCategoryProducts",
                           "sampleType", "currency", "history"])
         for name in ("PriceBucket", "RatingBucket", "RatingCountBucket", "ListingAgeBucket",
@@ -314,6 +314,42 @@ class TestMarketSkillOwnership(unittest.TestCase):
             for obsolete in ("categoryScope=direct|subtree", "productGrain=SPU",
                              "The returned `dt`", "Returns flat `data[]` rows"):
                 self.assertNotIn(obsolete, text, str(path))
+
+    def test_market_request_types_and_optional_response_shapes_are_pinned(self):
+        fixture = json.loads((ROOT / "tests/fixtures/market-spu-contract.json").read_text())
+        self.assertEqual(len(fixture["endpointContracts"]), 14)
+        requests = fixture["requestContracts"]
+        self.assertEqual(len(requests), 4)
+        self.assertEqual(requests["MarketSearchRequest"]["required"], [])
+        self.assertEqual(requests["MarketHistoryRequest"]["required"],
+                         ["categoryIds", "dateFrom", "dateTo"])
+        for name in ("MarketIdentity", "MarketLaunchRequest"):
+            self.assertEqual(requests[name]["required"], ["categoryIds"])
+            self.assertEqual(requests[name]["properties"]["date"]["type"], "string(date)|null")
+        self.assertNotIn("date", requests["MarketHistoryRequest"]["properties"])
+        self.assertEqual(requests["MarketIdentity"]["properties"]["includeDescendantCategoryProducts"],
+                         {"type": "boolean", "default": True})
+        for model, fields in fixture["responseFields"].items():
+            for field, kind in fields.items():
+                with self.subTest(model=model, field=field):
+                    self.assertTrue(kind.endswith("|null"), kind)
+        self.assertEqual(fixture["responseFields"]["PriceBucket"]["bucketProductCnt"], "integer|null")
+        self.assertEqual(fixture["responseFields"]["PriceBucket"]["monthlySaleAmt"], "number|null")
+        self.assertEqual(fixture["responseFields"]["MarketHistorySeries"]["history"],
+                         "array<MarketHistoryFact>|null")
+
+    def test_market_legacy_search_compatibility_stays_in_api_owner(self):
+        for path in [ROOT / "zoodata/references/openapi-reference.md", MARKET / "references/reference.md"]:
+            text = path.read_text()
+            self.assertIn("Search alone normalizes legacy", text)
+            self.assertIn("conflicts fail validation", text)
+            self.assertIn("even `date=null` is rejected", text)
+            self.assertNotIn("Old flat Min/Max filters are not accepted", text)
+        semantics = (MARKET / "references/market-metric-semantics.md").read_text()
+        self.assertIn("parent bucket counts", semantics)
+        self.assertIn("enclosing ranked group", semantics)
+        self.assertIn("bucketIndex", semantics)
+        self.assertNotIn("normalize_legacy_market_search", semantics)
 
     def test_market_router_and_scenarios_respect_declared_ownership(self):
         skill = (MARKET / "SKILL.md").read_text()
