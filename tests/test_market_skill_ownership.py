@@ -274,6 +274,41 @@ class TestMarketSkillOwnership(unittest.TestCase):
                 self.assertRegex(reference, pattern)
                 self.assertNotRegex(guide, pattern)
 
+    def test_market_temporal_inference_limits_have_one_owner(self):
+        reference = (MARKET / "references/reference.md").read_text()
+        semantics = (MARKET / "references/market-metric-semantics.md").read_text()
+        launch = reference.split("### Listing launch composition", 1)[1].split("### History", 1)[0]
+        history = reference.split("### History", 1)[1].split("### Credits", 1)[0]
+        self.assertIn("market-metric-semantics.md#time-and-product-observations", launch)
+        self.assertIn("market-metric-semantics.md#business-time-identity", launch)
+        self.assertIn("market-metric-semantics.md#time-and-product-observations", history)
+        # Schema availability belongs to the API reference; conclusions do not.
+        self.assertIn("Each point has `date` (YYYY-MM or YYYY) and productCount", launch)
+        self.assertIn("There is no returned resolvedDate", launch)
+        for pattern in (r"not (?:repeated demand observations or )?historical market growth",
+                        r"(?:not|or) all products launched", r"old SKU history is never substituted"):
+            self.assertNotRegex(reference, pattern)
+        self.assertIn("not repeated demand observations or historical market growth", semantics)
+        self.assertIn("do not count all products launched", semantics)
+        self.assertIn("does not fill gaps or substitute SKU history", semantics)
+
+    def test_general_output_preserves_each_sources_business_time(self):
+        guide = (ROOT / "amazon-analysis/references/execution-guide.md").read_text()
+        reporting = guide.split("### Business-time reporting (all modes)", 1)[1].split("### Disclaimer", 1)[0]
+        provenance = guide.split("### Data Provenance Block", 1)[1].split("### API Usage Summary", 1)[0]
+        quick = guide.split("## Execution Mode", 1)[1].split("## Product Selection", 1)[0]
+        self.assertIn("Business-time reporting", quick)
+        self.assertIn("time-field meaning from `reference.md`", reporting)
+        self.assertIn("Mixed reports retain separate time identities", reporting)
+        self.assertIn("First-launch month/year", reporting)
+        self.assertIn("must not stand in for data business time", reporting)
+        self.assertIn("or block a valid answer", reporting)
+        self.assertIn("Business dates / periods by source", provenance)
+        self.assertIn("mixed market-profile, history and launch-composition reports", provenance)
+        self.assertNotRegex(guide, r"\|\s*(?:Timestamp|Data Freshness)\s*\|")
+        self.assertNotIn("DB data ~T+1, realtime = live", guide)
+        self.assertNotIn("API data as of [date]", guide)
+
     def test_focused_market_discovery_routes_away_from_general_skill(self):
         general = (ROOT / "amazon-analysis" / "SKILL.md").read_text()
         general_description = general.split("description: >", 1)[1].split("metadata:", 1)[0]

@@ -9,7 +9,7 @@ Load when performing comprehensive product selection, market analysis, or compet
 
 | Task Type | Mode | Behavior |
 |-----------|------|----------|
-| Single ASIN lookup, simple data query | **Quick** | Execute command, return key data. Skip evaluation criteria and output standard block. |
+| Single ASIN lookup, simple data query | **Quick** | Execute command, return key data using Business-time reporting below. Skip evaluation criteria and the Full-mode output block. |
 | Market analysis, product selection, competitor comparison, risk assessment | **Full** | Complete flow: command → analysis → evaluation criteria → output standard block. |
 
 **Quick mode trigger:** User asks for a single specific data point ("B09XXX monthly sales?", "how many brands in cat litter?") — no decision analysis needed.
@@ -90,7 +90,7 @@ When `products` or `competitors` returns ASINs in Full-mode analysis, call `prod
 
 **When to supplement**: Product selection / competitor analysis → top 3 by sales. Risk assessment → target + top 2 competitors. Multi-product comparison → all compared ASINs (max 5). Skip for: single ASIN lookup, market overview, listing analysis.
 
-**Data conflict rule**: `products`/`competitors` = ~T+1 delay; `realtime/product` = live. Use realtime for price/BSR/rating; use products/competitors for sales/margin/fees. Note significant differences: "⚡ Price updated: $29.99 → $24.99 (likely promotion)"
+**Data conflict rule**: Compare source-specific business dates or periods under Business-time reporting below before interpreting differences. Use realtime for price/BSR/rating; use products/competitors for sales/margin/fees. Note significant observed differences with their source and time identity; label a proposed cause as a hypothesis.
 
 ---
 
@@ -142,9 +142,17 @@ Respond in the user's language, retaining API field names and established techni
 
 **Anomaly handling:** Products with extreme growth rates (>200%) or sudden BSR changes must be tagged 💡 Directional, never 📊 Data-backed. Do NOT claim "proves innovation works" or "confirms market opportunity" based on a single product's spike. State: "Product X showed [metric], which MAY indicate [hypothesis]. Further validation needed."
 
+### Business-time reporting (all modes)
+
+Use each source's time-field meaning from `reference.md`, including its market date contracts. Report actual data business dates or periods per endpoint. Keep requested selection dates/ranges separate from the returned business time when they differ. Mixed reports retain separate time identities for their sources; do not assign one common date or freshness claim to the whole report.
+
+Use localized labels such as Data business date (数据日期), Observation period (观测期间), and First-launch month/year (首次上架月份/年份) as appropriate to the source. For launch composition, report the returned first-launch periods and relevant requested bounds. Do not label them as the sample's data date, substitute query time, invent an additional date, or block a valid answer because that endpoint has no separate data-date field. Query time, if useful and actually recorded, must be labeled Query time and must not stand in for data business time.
+
+For fields or sources without documented business-time information, omit a date unless the absence materially limits the requested comparison. Follow the source contract instead of automatically assigning DB ~T+1 or realtime = current query date. A missing date that the endpoint does not promise is not a coverage gap.
+
 ### Disclaimer (every Full-mode report)
 
-> ⚠️ **Important**: This analysis is based on ZooData API data as of [date]. Sales figures are lower-bound estimates. Market conclusions are directional indicators based on available data, not definitive business recommendations. Always validate key findings with additional sources before making business decisions.
+> ⚠️ **Important**: This analysis uses ZooData API data for the business dates or periods identified per source. Sales estimates follow each source's field definition. Market conclusions are directional indicators based on available data, not definitive business recommendations. Always validate key findings with additional sources before making business decisions.
 
 ### Confidence Labels (every conclusion must be tagged)
 
@@ -169,9 +177,8 @@ Use this rendered template at the end of every Full-mode report:
 | Locked CategoryPath | [resolved category] |
 | Category Resolution | [how many attempts, final path] |
 | Marketplace | [US/etc] |
-| Timestamp | [date] |
+| Business dates / periods by source | [endpoint-specific dates or periods under Business-time reporting; omit if not applicable] |
 | Sample Size | [total returned / post-filter valid / analyzed] |
-| Data Freshness | DB data ~T+1, realtime = live |
 | Endpoints Used | [list with call count] |
 | Credits Consumed | [total] |
 | Known Limitations | [list any gaps] |
@@ -182,6 +189,7 @@ Use this rendered template at the end of every Full-mode report:
 3. If multiple interfaces used, list each one
 4. If data has limitations, proactively explain
 5. ⚠️ **Self-check:** scan your response — if you don't see `📋 **Data Provenance**`, ADD IT before replying
+6. Apply Business-time reporting to each source separately, including mixed market-profile, history and launch-composition reports. No generic Timestamp or fixed freshness row is required.
 
 ### API Usage Summary (All Modes — MANDATORY)
 

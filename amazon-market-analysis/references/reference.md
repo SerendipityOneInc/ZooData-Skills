@@ -73,7 +73,7 @@ Root and nested warehouse fields are optional and nullable. A nested array can b
 
 `listing-launch-trend` accepts the common market identity and `granularity=month|year` (default month), plus optional `dateFrom` and `dateTo`. These inclusive bounds filter first-launch dates before grouping, not sample snapshot dates; if both are provided, dateFrom must not exceed dateTo. The sample always comes from the latest available snapshot. The request has no `date` property, even date=null is rejected.
 
-Response data[] contains site, categoryId, categoryPath/idPath, includeDescendantCategoryProducts, sampleType, granularity and `points[]`. Each point has `date` (YYYY-MM or YYYY) and productCount. There is no returned resolvedDate, snapshotDate or currency. Missing periods are not filled. These are current-sample launch cohorts, not historical market growth or all products launched in those months.
+Response data[] contains site, categoryId, categoryPath/idPath, includeDescendantCategoryProducts, sampleType, granularity and `points[]`. Each point has `date` (YYYY-MM or YYYY) and productCount. There is no returned resolvedDate, snapshotDate or currency. Missing periods are not filled. For interpretation and inference limits, read [Time and product observations](market-metric-semantics.md#time-and-product-observations); for date meaning, read [Business-time identity](market-metric-semantics.md#business-time-identity).
 
 `markets/structure-profile` is retired: HTTP 410 with migration guidance, no charge and absent from active discovery. There is no bundled market-structure-profile command. `markets/overview` is absent.
 
@@ -83,7 +83,7 @@ Response data[] contains site, categoryId, categoryPath/idPath, includeDescendan
 
 Response `data[]` contains series: site, category={id,path,idPath}, includeDescendantCategoryProducts, sampleType, currency and `points[]`. Each point has `date`, `marketSize` and `sampleProfile`. Series are separated by site, category ID and paths, scope, sample type and currency; a path change can yield multiple series for one ID. Empty results return data=[].
 
-Both nested blocks contain productCount, monthlySales and monthlyRevenue for the full market and sample respectively. The sample additionally returns avgPrice, avgMonthlySales, avgMonthlyRevenue and avgRating, avgRatingCount. No min/max price/rating fields, new-product history, distribution history or server MoM/YoY are returned. There is no top-level data.points envelope or history[] field, and no resolvedDateFrom/To; retain requested bounds locally and read actual bounds from each nonempty series' points[].date. Missing months remain absent; old SKU history is never substituted.
+Both nested blocks contain productCount, monthlySales and monthlyRevenue for the full market and sample respectively. The sample additionally returns avgPrice, avgMonthlySales, avgMonthlyRevenue and avgRating, avgRatingCount. No min/max price/rating fields, new-product history, distribution history or server MoM/YoY are returned. There is no top-level data.points envelope or history[] field, and no resolvedDateFrom/To; retain requested bounds locally and read actual bounds from each nonempty series' points[].date. Missing months remain absent. For comparison and inference limits, read [Time and product observations](market-metric-semantics.md#time-and-product-observations).
 
 ### Credits
 
