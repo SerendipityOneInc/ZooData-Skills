@@ -76,17 +76,17 @@ Select **ZooData** when prompted.
 | 23 | `keywords/product-traffic-trend-profile` | Server-calculated four-week ASIN traffic trend profile |
 | 24 | `markets/profile` | SPU profile; independent detail routes below |
 | 25 | `markets/history` | Published SPU category-market snapshots |
-| 26 | `markets/price-distributions` | SPU price-distributions | `data[]` |
-| 27 | `markets/rating-distributions` | SPU rating-distributions | `data[]` |
-| 28 | `markets/rating-count-distributions` | SPU rating-count-distributions | `data[]` |
-| 29 | `markets/listing-age-distributions` | SPU listing-age-distributions | `data[]` |
-| 30 | `markets/fulfillment-distributions` | SPU fulfillment-distributions | `data[]` |
-| 31 | `markets/seller-country-distributions` | SPU seller-country-distributions | `data[]` |
-| 32 | `markets/content-distributions` | SPU content-distributions | `data[]` |
-| 33 | `markets/top-product-concentrations` | SPU top-product-concentrations | `data[]` |
-| 34 | `markets/brand-concentrations` | SPU brand-concentrations | `data[]` |
-| 35 | `markets/seller-concentrations` | SPU seller-concentrations | `data[]` |
-| 36 | `markets/listing-launch-trend` | SPU listing-launch-trend | `data[]` |
+| 26 | `markets/price-distributions` | SPU price-distributions |
+| 27 | `markets/rating-distributions` | SPU rating-distributions |
+| 28 | `markets/rating-count-distributions` | SPU rating-count-distributions |
+| 29 | `markets/listing-age-distributions` | SPU listing-age-distributions |
+| 30 | `markets/fulfillment-distributions` | SPU fulfillment-distributions |
+| 31 | `markets/seller-country-distributions` | SPU seller-country-distributions |
+| 32 | `markets/content-distributions` | SPU content-distributions |
+| 33 | `markets/top-product-concentrations` | SPU top-product-concentrations |
+| 34 | `markets/brand-concentrations` | SPU brand-concentrations |
+| 35 | `markets/seller-concentrations` | SPU seller-concentrations |
+| 36 | `markets/listing-launch-trend` | SPU listing-launch-trend |
 
 Keyword endpoint note: ZooData keyword data is estimated search, exposure, visibility, rank, placement, and impression evidence; it is not seller ABA-SQP or Amazon Ads performance. Analysis-stage routing, seller-artifact acquisition, and output policy are owned by [`amazon-keyword-traffic-analysis`](../amazon-keyword-traffic-analysis/).
 
