@@ -10,14 +10,14 @@ On a terminal interface failure selected by `execution-guide.md`, return one con
 
 ## Quick lookup
 
-Answer the requested metric or distribution directly. State its category, `direct`/`subtree` scope, selected Top 100 type when relevant, returned date or month-end period, source endpoint, and material limitation. Mark a direct API value 📊 and a calculated value 🔍. Include the API usage table below when a live call was made. Do not turn a one-field lookup into a multi-stage report.
+Answer the requested metric or distribution directly. State its category, `direct`/`subtree` scope, selected Top 100 type when relevant, endpoint-specific business time as rendered below, source endpoint, and material limitation. Mark a direct API value 📊 and a calculated value 🔍. Include the API usage table below when a live call was made. Do not turn a one-field lookup into a multi-stage report.
 
 ## Full report shape
 
 For one normally completed full stage, use this localized top-level order:
 
 1. Title naming the category or observed candidate set and the current business question;
-2. `Data Notes` — source, returned dates, scope, sample selector, pages/rows or history-point coverage;
+2. `Data Notes` — source, relevant business dates or periods, scope, sample selector, pages/rows or history-point coverage;
 3. `Evidence` — observed facts with units and source identity;
 4. `Analysis` — compatible comparisons, uncertainty, and labeled inference;
 5. `Conclusion` — only the active stage's authorized judgment;
@@ -28,7 +28,7 @@ Scenario files may require a table or a subsection *inside* these headings; they
 
 ### Historical table rendering
 
-- A market-history table contains only actual returned month-end points whose displayed fields were validated against the complete isolated result. Use the exact returned month-end date or an unambiguous year-month label.
+- A market-history table contains only actual returned SPU snapshots whose displayed fields were validated against the complete isolated result. Use the exact returned date; a year-month label is valid only for verified month-end observations.
 - For a relative recent-month request, omit the current incomplete calendar month from the table, Evidence, and Conclusion. Do not create a no-data row for a snapshot that is not yet expected to exist. If the requested range needs clarification, state in `Data Notes` that the comparison covers the most recent completed month-end periods.
 - Do not create placeholder rows for unreturned completed months or locally omitted values. Put a confirmed source coverage gap in `Data Notes` and name the exact missing completed date and field, for example: `The API did not return {field} for {YYYY-MM-DD}.`
 - If every expected completed period and required field was returned, omit missingness commentary entirely. Render valid zero values directly in the table; do not append prose explaining that they are not missing. Do not mention an excluded incomplete period unless the requested range itself needs clarification.
@@ -44,7 +44,11 @@ A section, score, table header, or group label that contains mixed confidence mu
 
 ## Provenance and usage
 
-Within `Data Notes` or `Evidence`, identify the relevant endpoint and actual returned `_query.params` when available. For `markets/search`, distinguish a broad discovery page, a batch of `category.ids`, and an exact one-ID snapshot. State the page range, filter/sort, requested `category.includeDescendantCategoryProducts`, `sampleType`, and `topN` or `newProductPeriod` when they selected a filter or sort; identify the returned Top N cutoff or new-product `periodMonths` used in the claim. For structure/history, preserve their top-level `includeDescendantCategoryProducts`; for history, state requested and actual period bounds when different.
+### Business-time rendering
+
+Apply the meanings in `market-metric-semantics.md § Business-time identity`. Label resolvedDate as the data's business date (数据日期), and history dates as observation months/dates. When the actual business date differs from the request's date, identify the actual date and make the distinction clear where relevant. For launch composition, label periods as first-launch month/year (首次上架月份/年份) and show a requested first-launch range when relevant. Do not add a missing-snapshot warning, production timestamp, or date-verification step to a valid composition answer.
+
+Within `Data Notes` or `Evidence`, identify the relevant endpoint and actual returned `_query.params` when available. For `markets/search`, distinguish a broad discovery page, a batch of `category.ids`, and an exact one-ID observation. State the page range, filter/sort, requested `includeDescendantCategoryProducts`, `sampleType`, and `topN` or `newProductPeriod` when they selected a filter or sort; identify the returned Top N cutoff or new-product window identity used in the claim. Render the business-time identity above and preserve scope and series identity; state requested and returned history bounds when different.
 
 Use a localized API-usage table when live calls were made:
 

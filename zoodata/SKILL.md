@@ -18,7 +18,7 @@ metadata:
 ---
 
 > **📋 Live API Reference**: Field names and parameters may change. For MCP calls, refresh and
-> inspect the current ZooData MCP `inputSchema`; for direct HTTP calls, also consult the OpenAPI
+> inspect the current ZooData MCP `inputSchema` and `outputSchema`; for direct HTTP calls, also consult the OpenAPI
 > spec at https://zoodata.ai/api/v1/openapi-spec.
 > Keyword compatibility field: all eleven current keyword and product-traffic request schemas
 > retain `granularity`, but the only supported value is `week`. The bundled CLI always sends
@@ -27,7 +27,7 @@ metadata:
 
 # ZooData — Commerce Data Infrastructure for AI Agents
 
-200M+ Amazon products. 25 Amazon and keyword-intelligence endpoints. One API key.
+200M+ Amazon products. 36 Amazon and keyword-intelligence endpoints. One API key.
 
 ## Quick Start
 1. Get key: [zoodata.ai/api-keys](https://zoodata.ai/en/api-keys) (1,000 free credits)
@@ -113,12 +113,12 @@ When `zoodata.py` returns a structured error with `_transport.status=402`, apply
 
 For every parsed HTTP response from `zoodata.py`, treat `_transport.status` as the authoritative outer status; response-body and nested status-like fields do not override it. When the CLI returns HTTP 422 / `VALIDATION_ERROR`, read the preserved structured server error on stdout, including its message/details and `_query.params`. Do not retry the unchanged request. Correct the named fields first; the CLI exits non-zero while preserving the server error fields for the calling agent. Current keyword requests retain `granularity` for compatibility but accept only `week`; legacy `lookbackDays` remains unsupported.
 
-## 25 Amazon and Keyword Endpoints
+## 36 Amazon and Keyword Endpoints
 
 | # | Endpoint | Purpose | Key Output |
 |---|----------|---------|------------|
 | 1 | `categories` | Browse/search category tree | categoryPath, productCount |
-| 2 | `markets/search` | Paginated discovery or exact category snapshot | categoryId, `marketTotal` and selected `marketSample` metrics |
+| 2 | `markets/search` | Paginated discovery or exact category snapshot | categoryId, flat SPU Product metrics |
 | 3 | `products/search` | Product search (20+ filter fields) | asin, price, monthlySalesFloor, rating, ratingCount, fbaFee |
 | 4 | `products/competitors` | Competitor discovery | same fields as products/search |
 | 5 | `realtime/product` | Live ASIN detail | rating, features, bestsellersRank[], buyboxWinner.price, variants |
@@ -140,8 +140,19 @@ For every parsed HTTP response from `zoodata.py`, treat `_transport.status` as t
 | 21 | `/openapi/v2/keywords/product-traffic-terms-trend` | Per-keyword weekly traffic trend for one ASIN | `data.context + data.items[].series[]` with nested ASIN, traffic, placement, keyword, and ad groups |
 | 22 | `/openapi/v2/keywords/product-traffic-trend` | ASIN-level weekly raw traffic across all keywords | `data.context + data.items[].series[]` with total/organic/ad traffic and term coverage |
 | 23 | `/openapi/v2/keywords/product-traffic-trend-profile` | Server-calculated four-week ASIN traffic conclusions | `data.context + data.items[].rows[].trafficTrendProfile` |
-| 24 | `markets/structure-profile` | One Top 100 distribution | data.buckets[] with four-window `newProductMetrics[]` |
-| 25 | `markets/history` | One category's month-end series | data.points[] with `marketTotal` and `marketSample` |
+| 24 | `markets/profile` | SPU profile; independent detail routes below | marketSize, sampleProfile |
+| 25 | `markets/history` | Monthly SPU history | market series with points[] |
+| 26 | `markets/price-distributions` | SPU price-distributions | `data[]` |
+| 27 | `markets/rating-distributions` | SPU rating-distributions | `data[]` |
+| 28 | `markets/rating-count-distributions` | SPU rating-count-distributions | `data[]` |
+| 29 | `markets/listing-age-distributions` | SPU listing-age-distributions | `data[]` |
+| 30 | `markets/fulfillment-distributions` | SPU fulfillment-distributions | `data[]` |
+| 31 | `markets/seller-country-distributions` | SPU seller-country-distributions | `data[]` |
+| 32 | `markets/content-distributions` | SPU content-distributions | `data[]` |
+| 33 | `markets/top-product-concentrations` | SPU top-product-concentrations | `data[]` |
+| 34 | `markets/brand-concentrations` | SPU brand-concentrations | `data[]` |
+| 35 | `markets/seller-concentrations` | SPU seller-concentrations | `data[]` |
+| 36 | `markets/listing-launch-trend` | SPU listing-launch-trend | `data[]` |
 
 ## Known Quirks
 - Market request quirks, including the live `sampleType` values and retired parameters, are owned by `references/openapi-reference.md § 2`.

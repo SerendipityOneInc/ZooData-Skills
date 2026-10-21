@@ -79,4 +79,4 @@ python3 scripts/zoodata.py price-band-detail --keyword "yoga mat"
 python3 scripts/zoodata.py history --asins B09XXXXX --start-date 2026-06-01 --end-date 2026-08-31
 ```
 
-**Key metrics**: `sampleOpportunityIndex` > 1.0 = underserved band, Sales/Competition Ratio = Avg Monthly Sales / Avg Review Count (higher = easier entry).
+**Key metrics**: `sampleOpportunityIndex` > 1.0 = underserved band, Sales/Competition Ratio = Avg Monthly Sales / Avg Rating Count (higher = easier entry).

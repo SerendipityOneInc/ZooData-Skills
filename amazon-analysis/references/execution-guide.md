@@ -9,7 +9,7 @@ Load when performing comprehensive product selection, market analysis, or compet
 
 | Task Type | Mode | Behavior |
 |-----------|------|----------|
-| Single ASIN lookup, simple data query | **Quick** | Execute command, return key data. Skip evaluation criteria and output standard block. |
+| Single ASIN lookup, simple data query | **Quick** | Execute command, return key data using Business-time reporting below. Skip evaluation criteria and the Full-mode output block. |
 | Market analysis, product selection, competitor comparison, risk assessment | **Full** | Complete flow: command → analysis → evaluation criteria → output standard block. |
 
 **Quick mode trigger:** User asks for a single specific data point ("B09XXX monthly sales?", "how many brands in cat litter?") — no decision analysis needed.
@@ -90,7 +90,7 @@ When `products` or `competitors` returns ASINs in Full-mode analysis, call `prod
 
 **When to supplement**: Product selection / competitor analysis → top 3 by sales. Risk assessment → target + top 2 competitors. Multi-product comparison → all compared ASINs (max 5). Skip for: single ASIN lookup, market overview, listing analysis.
 
-**Data conflict rule**: `products`/`competitors` = ~T+1 delay; `realtime/product` = live. Use realtime for price/BSR/rating; use products/competitors for sales/margin/fees. Note significant differences: "⚡ Price updated: $29.99 → $24.99 (likely promotion)"
+**Data conflict rule**: Compare source-specific business dates or periods under Business-time reporting below before interpreting differences. Use realtime for price/BSR/rating; use products/competitors for sales/margin/fees. Note significant observed differences with their source and time identity; label a proposed cause as a hypothesis.
 
 ---
 
@@ -101,7 +101,7 @@ When `products` or `competitors` returns ASINs in Full-mode analysis, call `prod
 3. If still no match, use realtime/product on a known ASIN to extract categoryPath
 4. Validate categoryPath matches the user's intended product type
 
-**Data-driven category selection:** When the user provides a broad interest (e.g. "home products") instead of a specific niche, resolve its category ID with `categories`, browse all direct children with `categories --parent`, and compare them through `market --category-ids` in batches of at most 100 IDs. Do not choose candidate children from category-tree order. Compare returned `marketSample.newProductMetrics[]` at the same `periodMonths`, the Top 10 row of `marketSample.brandTopNMetrics[]`, `marketSample.fbmRate`, and `marketSample.medianPrice` as separate selected Top 100 observations; keep them separate from full-category totals and avoid an uncalibrated composite score. Select Top 3-5 for deeper analysis only after the relevant children have comparable market rows.
+**Data-driven category selection:** When the user provides a broad interest (e.g. "home products") instead of a specific niche, resolve its category ID with `categories`, browse all direct children with `categories --parent`, and compare them through `market --category-ids` in batches of at most 100 IDs. Do not choose candidate children from category-tree order. Compare returned sample new-product fields at the same window, `top10BrandMonthlySalesRate`, `sampleFbmProductRate`, and `medianProductPrice` as separate selected Top 100 observations; keep them separate from full-category totals and avoid an uncalibrated composite score. Select Top 3-5 for deeper analysis only after the relevant children have comparable market rows.
 
 ---
 
@@ -142,9 +142,17 @@ Respond in the user's language, retaining API field names and established techni
 
 **Anomaly handling:** Products with extreme growth rates (>200%) or sudden BSR changes must be tagged 💡 Directional, never 📊 Data-backed. Do NOT claim "proves innovation works" or "confirms market opportunity" based on a single product's spike. State: "Product X showed [metric], which MAY indicate [hypothesis]. Further validation needed."
 
+### Business-time reporting (all modes)
+
+Use each source's time-field meaning from `reference.md`, including its market date contracts. Report actual data business dates or periods per endpoint. Keep requested selection dates/ranges separate from the returned business time when they differ. Mixed reports retain separate time identities for their sources; do not assign one common date or freshness claim to the whole report.
+
+Use localized labels such as Data business date (数据日期), Observation period (观测期间), and First-launch month/year (首次上架月份/年份) as appropriate to the source. For launch composition, report the returned first-launch periods and relevant requested bounds. Do not label them as the sample's data date, substitute query time, invent an additional date, or block a valid answer because that endpoint has no separate data-date field. Query time, if useful and actually recorded, must be labeled Query time and must not stand in for data business time.
+
+For fields or sources without documented business-time information, omit a date unless the absence materially limits the requested comparison. Follow the source contract instead of automatically assigning DB ~T+1 or realtime = current query date. A missing date that the endpoint does not promise is not a coverage gap.
+
 ### Disclaimer (every Full-mode report)
 
-> ⚠️ **Important**: This analysis is based on ZooData API data as of [date]. Sales figures are lower-bound estimates. Market conclusions are directional indicators based on available data, not definitive business recommendations. Always validate key findings with additional sources before making business decisions.
+> ⚠️ **Important**: This analysis uses ZooData API data for the business dates or periods identified per source. Sales estimates follow each source's field definition. Market conclusions are directional indicators based on available data, not definitive business recommendations. Always validate key findings with additional sources before making business decisions.
 
 ### Confidence Labels (every conclusion must be tagged)
 
@@ -169,9 +177,8 @@ Use this rendered template at the end of every Full-mode report:
 | Locked CategoryPath | [resolved category] |
 | Category Resolution | [how many attempts, final path] |
 | Marketplace | [US/etc] |
-| Timestamp | [date] |
+| Business dates / periods by source | [endpoint-specific dates or periods under Business-time reporting; omit if not applicable] |
 | Sample Size | [total returned / post-filter valid / analyzed] |
-| Data Freshness | DB data ~T+1, realtime = live |
 | Endpoints Used | [list with call count] |
 | Credits Consumed | [total] |
 | Known Limitations | [list any gaps] |
@@ -182,6 +189,7 @@ Use this rendered template at the end of every Full-mode report:
 3. If multiple interfaces used, list each one
 4. If data has limitations, proactively explain
 5. ⚠️ **Self-check:** scan your response — if you don't see `📋 **Data Provenance**`, ADD IT before replying
+6. Apply Business-time reporting to each source separately, including mixed market-profile, history and launch-composition reports. No generic Timestamp or fixed freshness row is required.
 
 ### API Usage Summary (All Modes — MANDATORY)
 
@@ -222,7 +230,7 @@ Use the thresholds in `Market Health Assessment` below only with matching return
 
 ### Opportunity Viability
 When user asks "should I sell X" or "is this a good niche":
-- Compare selected-sample demand, review burden, and `marketSample.brandTopNMetrics[brandTopN=10].monthlySalesRate` separately against markets with compatible category scope, sample selector, and date. A selected Top 100 rate alone does not establish entry viability.
+- Compare selected-sample demand, review burden, and `top10BrandMonthlySalesRate` separately against markets with compatible category scope, sample selector, and date. A selected Top 100 rate alone does not establish entry viability.
 - Treat seller costs, product differentiation, and compliance evidence as separate inputs before an entry verdict.
 - Mixed signals → Present data, let user decide with their domain knowledge 💡
 
@@ -233,15 +241,17 @@ When user asks "should I sell X" or "is this a good niche":
 
 ## Market Health Assessment
 
-Use `marketTotal.monthlyRevenue` from `markets/search` for full-category revenue and `marketSample.monthlyRevenue` for its selected sample. Do not calculate revenue from price × sales; the field definitions are in `reference.md § 2`.
+Use `totalMonthlyRevenue` from `markets/search` for full-category revenue and `sampleMonthlyRevenue` for its selected sample. Do not calculate revenue from price × sales; the field definitions are in `reference.md § 2`.
 
 | Indicator | Good | Caution | Warning |
 |-----------|------|---------|---------|
-| Monthly demand per sampled product (`marketSample.avgMonthlySales`) | >1,500 units 🔍 | 500-1,500 🔍 | <500 🔍 |
-| Avg review count (`marketSample.avgRatingCount`) | <500 🔍 | 500-5,000 🔍 | >5,000 🔍 |
-| FBM rate (`marketSample.fbmRate`) | <40% 🔍 | 40-60% 🔍 | >60% 🔍 |
+| Monthly demand per sampled product (`avgMonthlySales`) | >1,500 units 🔍 | 500-1,500 🔍 | <500 🔍 |
+| Average rating count (`avgRatingCount`, 平均评分数) | <500 🔍 | 500-5,000 🔍 | >5,000 🔍 |
+| FBM rate (`sampleFbmProductRate`) | <40% 🔍 | 40-60% 🔍 | >60% 🔍 |
 
-These remaining bands are exploratory heuristics, not calibrated entry verdicts. Read `marketSample.productTopNMetrics[productTopN=10].monthlySalesRate` and `marketSample.brandTopNMetrics[brandTopN=10].monthlySalesRate` as separate selected Top 100 monthly-sales concentration measures. Read `marketSample.newProductMetrics[].newSkuRate` from an explicitly identified `periodMonths` row as the new-product share within that sample. Do not classify these three rates from former fixed cutoffs; compare compatible peers or prior snapshots and state the observed denominator and window.
+These remaining bands are exploratory heuristics, not calibrated entry verdicts. Read `top10ProductMonthlySalesRate` and `top10BrandMonthlySalesRate` as separate selected Top 100 monthly-sales concentration measures. Read the sample new-product rate from an explicitly identified window as the new-product share within that sample. Do not classify these three rates from former fixed cutoffs; compare compatible peers or prior snapshots and state the observed denominator and window.
+
+Before comparing distribution or concentration evidence, read [the market response contract](reference.md#profile-distributions-and-concentration) for supported fields, denominators and bucket boundaries.
 
 ## Cross-endpoint evidence use
 

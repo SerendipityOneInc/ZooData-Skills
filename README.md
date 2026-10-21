@@ -38,6 +38,9 @@ https://github.com/user-attachments/assets/305a161b-7a53-49b8-afdc-4469a4fbf361
 
 
 
+
+SPU market contracts require the matching service deployment and updated installed skills; see [market migration](docs/market-spu-migration.md).
+
 ## Skills Overview
 
 This repo contains **10 agent skills** organized in two tiers:
@@ -46,7 +49,7 @@ This repo contains **10 agent skills** organized in two tiers:
 
 | Skill | What It Does | Input | Output | Key Advantage |
 |-------|-------------|-------|--------|---------------|
-| 📦 [`zoodata/`](zoodata/) | Direct access to 25 Amazon commerce and keyword-intelligence endpoints | Keyword, category, ASIN, or brand | Raw API data with field mapping and quirk documentation | Complete API reference — every other skill builds on this |
+| 📦 [`zoodata/`](zoodata/) | Direct access to 36 Amazon commerce and keyword-intelligence endpoints | Keyword, category, ASIN, or brand | Raw API data with field mapping and quirk documentation | Complete API reference — every other skill builds on this |
 | 🎯 [`amazon-analysis/`](amazon-analysis/) | 13 built-in selection modes + market research, competitor analysis, ASIN evaluation, pricing, category research | Keyword/category/ASIN + intent | Analysis findings, top products, ASIN deep dives, confidence-tagged insights | Composite commands (`report`, `opportunity`) run multi-endpoint pipelines in one shot |
 | 🔎 [`amazon-keyword-traffic-analysis/`](amazon-keyword-traffic-analysis/) | Keyword value and product traffic-health workflows built on 11 keyword intelligence endpoints | Seed keyword, target keyword, ASIN, or ASIN + keyword | Expansion tiers, keyword-value analysis, product traffic structure, trends, and health diagnosis | Dedicated flows for keyword expansion, keyword analysis, and product traffic analysis |
 | 📊 [`amazon-market-analysis/`](amazon-market-analysis/) | Discover market and product candidates, evaluate entry conditions, and track category changes | Market question, category, or product opportunity brief | Observed shortlist, conditional entry assessment, or bounded trend analysis | One connected story with separate evidence and seller-decision boundaries |
@@ -75,7 +78,7 @@ npx skills add SerendipityOneInc/ZooData-Skills
 You'll be prompted to select which skills to install:
 
 **🏗️ Foundation:**
-- **ZooData — 25 Amazon Commerce and Keyword Intelligence Endpoints**
+- **ZooData — 36 Amazon Commerce and Keyword Intelligence Endpoints**
 - **Amazon Analysis — Full-Spectrum Research & Seller Intelligence**
 - **Amazon Keyword Intelligence — Expansion, Reverse ASIN & Monitoring**
 - **Amazon Market Analysis — Discovery, Entry & Change**
@@ -123,8 +126,8 @@ python amazon-analysis/scripts/zoodata.py products --keyword "wireless earbuds" 
 |----------|-------------|-----------------|
 | 🔍 `products/search` | Product search with 20+ filters (13 preset modes via the CLI) | *"Find running shoes under $80 with 4+ stars"* |
 | 📊 `markets/search` | Category discovery and exact snapshot — size, concentration, selected Top 100 pricing | *"How competitive is the yoga mat market?"* |
-| 🧩 `markets/structure-profile` | Brand, price and other Top 100 distributions | *"Which price bands account for sales?"* |
-| 📅 `markets/history` | Available month-end category-market trends | *"How has this category changed by month?"* |
+| 🧩 `markets/profile` | SPU profile and independent distribution/concentration routes | *"Which price bands account for sales?"* |
+| 📅 `markets/history` | Published SPU category-market trends | *"How has this category changed by month?"* |
 | 🏷️ `products/competitors` | Competitor discovery by keyword, brand, or ASIN | *"Who are the top sellers in this niche?"* |
 | ⚡ `realtime/product` | Real-time product details — reviews, features, variants | *"Get current details for ASIN B0D5CRV4KL"* |
 | 💬 `reviews/analysis` | AI-powered review insights — sentiment, pain points | *"What do customers love/hate about this product?"* |
@@ -159,7 +162,7 @@ The skill CLI (`zoodata.py --mode`) provides 13 preset modes for different resea
 
 ```
 ├── zoodata/                              # Data layer skill (lightweight)
-│   ├── SKILL.md                            # 25 Amazon and keyword endpoints, quick start
+│   ├── SKILL.md                            # 36 Amazon and keyword endpoints, quick start
 │   └── references/
 │       └── openapi-reference.md            # API field reference
 │

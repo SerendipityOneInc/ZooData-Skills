@@ -15,6 +15,7 @@ Run from repo root:
 """
 
 import importlib.util
+import contextlib
 import http.client
 import io
 import json
@@ -226,6 +227,7 @@ class TestProductModes(unittest.TestCase):
 # 3. --help for every subcommand (argparse definition sanity)
 # ---------------------------------------------------------------------------
 SUBCOMMANDS = [
+    *["market-" + route for route in zoodata.MARKET_DETAIL_ENDPOINTS], "market-history",
     "categories", "market", "products", "competitors", "product",
     "report", "opportunity", "market-entry", "competitor-analysis",
     "pricing-analysis", "daily-radar", "listing-audit", "opportunity-scan",
@@ -353,35 +355,39 @@ class TestEndpointRouting(unittest.TestCase):
         r = run_cli("market", "--category-id", "3760901")
         self.assertEqual(r["endpoint"], "markets/search")
         self.assertEqual(r["params"]["category"], {
-            "ids": ["3760901"], "includeDescendantCategoryProducts": True})
+            "ids": ["3760901"]})
+        self.assertTrue(r["params"]["includeDescendantCategoryProducts"])
         self.assertEqual(r["params"]["sampleType"], "unitSalesTop100")
         self.assertEqual(r["params"]["topN"], "10")
         self.assertEqual(r["params"]["newProductPeriod"], "3")
 
-    def test_market_filters_use_new_names(self):
+    def test_market_filters_use_spu_ranges(self):
         r = run_cli("market", "--category-name", "Health & Household",
                     "--no-include-descendant-category-products", "--sample-type", "revenueTop100",
                     "--new-product-period", "12", "--top-n", "5",
-                    "--total-monthly-revenue-min", "100000", "--sample-fbm-rate-max", "0.5",
-                    "--sample-avg-package-volume-max", "5000",
-                    "--top-n-brand-monthly-sales-rate-max", "0.6",
-                    "--top-n-product-monthly-revenue-rate-max", "0.3",
-                    "--sort", "sampleAvgMonthlySales")
+                    "--avg-monthly-revenue", "100000:",
+                    "--sample-fbm-product-rate", ":0.5",
+                    "--avg-package-volume-in3", "0:5000",
+                    "--top-n-brand-monthly-sales-rate", ":0.6",
+                    "--seller-country-codes", "US", "CN",
+                    "--sort", "avgMonthlySales", "--date", "2026-09-15")
         self.assertEqual(r["params"]["category"], {
-            "name": "Health & Household", "includeDescendantCategoryProducts": False})
+            "name": "Health & Household"})
+        self.assertFalse(r["params"]["includeDescendantCategoryProducts"])
         self.assertEqual(r["params"]["sampleType"], "revenueTop100")
         self.assertEqual(r["params"]["newProductPeriod"], "12")
         self.assertEqual(r["params"]["topN"], "5")
+        self.assertEqual(r["params"]["date"], "2026-09-15")
         self.assertEqual(r["params"]["filters"], {
-            "totalMonthlyRevenueMin": 100000,
-            "sampleFbmRateMax": 0.5,
-            "sampleAvgPackageVolumeMax": 5000,
+            "avgMonthlyRevenueMin": 100000,
+            "sampleFbmProductRateMax": 0.5,
+            "avgPackageVolumeIn3Min": 0, "avgPackageVolumeIn3Max": 5000,
             "topNBrandMonthlySalesRateMax": 0.6,
-            "topNProductMonthlyRevenueRateMax": 0.3,
+            "sellerCountryCodes": ["US", "CN"],
         })
-        self.assertEqual(r["params"]["sortBy"], "sampleAvgMonthlySales")
-        self.assertEqual(len(zoodata.MARKET_FILTER_FIELDS), 61)
-        self.assertEqual(len(zoodata.MARKET_SORT_FIELDS), 17)
+        self.assertEqual(r["params"]["sortBy"], "avgMonthlySales")
+        self.assertEqual(len(zoodata.MARKET_FILTER_FIELDS), 28)
+        self.assertEqual(len(zoodata.MARKET_SORT_FIELDS), 192)
 
     def test_market_batch_ids_and_path(self):
         r = run_cli("market", "--category-ids", "15342811, 3760941",
@@ -401,15 +407,21 @@ class TestEndpointRouting(unittest.TestCase):
         with self.assertRaises(SystemExit):
             run_cli("market", "--category-ids", ",".join(str(i) for i in range(101)))
 
-    def test_market_structure_profile(self):
-        r = run_cli("market-structure-profile", "--category-id", "3760901",
-                    "--dimension", "price",
-                    "--no-include-descendant-category-products")
-        self.assertEqual(r["endpoint"], "markets/structure-profile")
-        self.assertEqual(r["params"]["dimension"], "price")
-        self.assertNotIn("newProductPeriod", r["params"])
-        self.assertFalse(r["params"]["includeDescendantCategoryProducts"])
-        self.assertNotIn("categoryScope", r["params"])
+    def test_market_detail_routes(self):
+        for endpoint in zoodata.MARKET_DETAIL_ENDPOINTS:
+            with self.subTest(endpoint=endpoint):
+                dates = (["--date-from", "2026-07-01", "--date-to", "2026-09-30"]
+                         if endpoint == "listing-launch-trend" else ["--date", "2026-10-14"])
+                r = run_cli("market-" + endpoint, "--category-ids", "3760901,123",
+                            "--no-include-descendant-category-products", *dates)
+                self.assertEqual(r["endpoint"], "markets/" + endpoint)
+                expected = {"categoryIds": ["3760901", "123"], "includeDescendantCategoryProducts": False,
+                            "sampleType": "unitSalesTop100", "marketplace": "US",
+                            "date": "2026-10-14"}
+                if endpoint == "listing-launch-trend":
+                    expected.pop("date")
+                    expected.update({"granularity": "month", "dateFrom": "2026-07-01", "dateTo": "2026-09-30"})
+                self.assertEqual(r["params"], expected)
 
     def test_market_history(self):
         r = run_cli("market-history", "--category-id", "3760901",
@@ -420,7 +432,156 @@ class TestEndpointRouting(unittest.TestCase):
         self.assertNotIn("newProductPeriod", r["params"])
         self.assertTrue(r["params"]["includeDescendantCategoryProducts"])
         self.assertNotIn("categoryScope", r["params"])
+        self.assertEqual(r["params"]["categoryIds"], ["3760901"])
         self.assertNotIn("date", r["params"])
+
+    def test_launch_bounds_filter_first_launch_dates_and_are_optional(self):
+        cases = [
+            ([], {}),
+            (["--date-from", "2026-07-01"], {"dateFrom": "2026-07-01"}),
+            (["--date-to", "2026-09-30"], {"dateTo": "2026-09-30"}),
+            (["--date-from", "2026-07-01", "--date-to", "2026-09-30"],
+             {"dateFrom": "2026-07-01", "dateTo": "2026-09-30"}),
+        ]
+        for argv, bounds in cases:
+            with self.subTest(bounds=bounds):
+                params = run_cli("market-listing-launch-trend", "--category-id", "1",
+                                 "--granularity", "year", *argv)["params"]
+                self.assertEqual(params, {
+                    "categoryIds": ["1"], "marketplace": "US",
+                    "sampleType": "unitSalesTop100", "includeDescendantCategoryProducts": True,
+                    "granularity": "year", **bounds,
+                })
+
+    def test_market_full_contract_filter_surface(self):
+        fixture_path = os.path.join(os.path.dirname(__file__), "fixtures", "market-spu-contract.json")
+        with open(fixture_path) as stream:
+            contract = json.load(stream)
+        flags = []
+        for field in contract["numericFilters"]:
+            flags.extend([zoodata._camel_to_cli_flag(field), "0:1"])
+        r = run_cli("market", "--category-keyword", "BeAding %_'", *flags)
+        self.assertEqual(r["params"]["filters"],
+                         {field + suffix: value for field in contract["numericFilters"]
+                          for suffix, value in (("Min", 0), ("Max", 1))})
+        self.assertEqual(r["params"]["categoryKeyword"], "BeAding %_'")
+        self.assertNotIn("date", r["params"])
+        self.assertNotIn("dateRange", r["params"])
+        for sort in contract["sortBy"]:
+            with self.subTest(sort=sort):
+                self.assertEqual(run_cli("market", "--sort", sort)["params"]["sortBy"], sort)
+
+    def test_market_invalid_spu_inputs_make_no_request(self):
+        cases = [
+            ("market", "--date", "2026-02-30"),
+            ("market", "--avg-product-price30d", "10:20"),
+            ("market", "--sort", "totalProductCnt"),
+            ("market", "--sort", "avgProductPrice30d"),
+            ("market", "--total-monthly-revenue", "1:2"),
+            ("market-listing-launch-trend", "--category-id", "1", "--date", "2026-10-01"),
+            ("market-listing-launch-trend", "--category-id", "1", "--date-from", "2026-10-01", "--date-to", "2026-09-30"),
+            ("market", "--category-scope", "direct"),
+            ("market-profile", "--category-id", "1", "--category-scope", "direct"),
+            ("market", "--date-range", "2026-13"),
+            ("market", "--date-range", "0000-01"),
+            ("market", "--date-range", "2026-01-01"),
+            ("market", "--sample-avg-price-min", "10"),
+            ("market", "--avg-product-review-cnt", "1:2"),
+            ("market", "--sort", "avgProductReviewCnt"),
+            ("market-structure-profile", "--category-id", "1", "--dimension", "price"),
+            ("market-profile", "--category-ids", "1,1"),
+            ("market-profile", "--category-ids", "1,"),
+            ("market-profile", "--category-id", "1", "--category-ids", "2"),
+            ("market-profile", "--category-id", "1", "--date", "2026-02-30"),
+            ("market-history", "--category-id", "1", "--date-from", "2026-10-01",
+             "--date-to", "2026-09-30"),
+            ("market-history", "--category-id", "1", "--date-from", "bad",
+             "--date-to", "2026-09-30"),
+        ]
+        cases.extend(("market", "--avg-price", value)
+                     for value in ("nan:2", "1:inf", "2:1", ":", "1:2:3", "abc:2"))
+        for argv in cases:
+            with self.subTest(argv=argv), patch.object(zoodata, "api_call") as api, \
+                    patch.object(sys, "argv", ["zoodata.py", *argv]), \
+                    contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                zoodata.main()
+            api.assert_not_called()
+
+    def test_market_response_preserves_grouped_spu_history(self):
+        groups = []
+        for path in (["Root", "Market"], ["New Root", "Market"]):
+            groups.append({
+                "site": "amazon.com", "category": {"id": "1", "path": path, "idPath": ["0", "1"]},
+                "includeDescendantCategoryProducts": False, "sampleType": "revenueTop100",
+                "currency": "USD", "points": [
+                    {"date": "2026-07-31",
+                     "marketSize": {"productCount": 1000, "monthlySales": 0, "monthlyRevenue": None},
+                     "sampleProfile": {"productCount": 100, "monthlyRevenue": 0,
+                                       "avgRatingCount": None}},
+                    {"date": "2026-09-30", "marketSize": None,
+                     "sampleProfile": {"monthlyRevenue": 2.67}},
+                ],
+            })
+        payload = {"success": True, "data": groups, "meta": {"creditsConsumed": 1}}
+        with patch.object(zoodata, "api_call", return_value=payload), \
+                patch.object(zoodata, "output") as output, \
+                patch.object(sys, "argv", ["zoodata.py", "market-history", "--category-id", "1",
+                                           "--date-from", "2026-07-01", "--date-to", "2026-09-30"]):
+            zoodata.main()
+        output.assert_called_once_with(payload, "json")
+
+    def test_all_market_routes_send_canonical_boolean_scope(self):
+        for command in ("market", *("market-" + route for route in zoodata.MARKET_DETAIL_ENDPOINTS),
+                        "market-history"):
+            extra = ["--category-id", "1"]
+            if command == "market-history":
+                extra += ["--date-from", "2026-07-01", "--date-to", "2026-09-30"]
+            for option, expected in (([], True), (["--no-include-descendant-category-products"], False),
+                                     (["--include-descendant-category-products"], True)):
+                with self.subTest(command=command, expected=expected):
+                    params = run_cli(command, *extra, *option)["params"]
+                    self.assertIs(params["includeDescendantCategoryProducts"], expected)
+                    self.assertNotIn("categoryScope", params)
+                    self.assertNotIn("category_scope", params)
+                    self.assertNotIn("includeDescendantCategoryProducts", params.get("category", {}))
+
+    def test_every_market_request_matches_frozen_public_property_set(self):
+        with open(os.path.join(os.path.dirname(__file__), "fixtures", "market-spu-contract.json")) as stream:
+            contract = json.load(stream)
+        for endpoint, route in contract["endpointContracts"].items():
+            argv = ["--category-ids", "1,2", "--no-include-descendant-category-products"]
+            if endpoint == "history":
+                argv += ["--date-from", "2026-07-01", "--date-to", "2026-09-30"]
+            elif endpoint == "listing-launch-trend":
+                argv += ["--date-from", "2026-07-01", "--date-to", "2026-09-30"]
+            elif endpoint != "search":
+                argv += ["--date", "2026-09-30"]
+            params = run_cli(route["command"], *argv)["params"]
+            schema = contract["requestContracts"][route["request"]]
+            with self.subTest(endpoint=endpoint):
+                self.assertLessEqual(set(params), set(schema["properties"]))
+                self.assertLessEqual(set(schema["required"]), set(params))
+                self.assertIs(params["includeDescendantCategoryProducts"], False)
+                if endpoint == "history":
+                    self.assertNotIn("date", schema["properties"])
+                    self.assertNotIn("date", params)
+
+    def test_all_market_responses_keep_public_fields_and_metadata(self):
+        with open(os.path.join(os.path.dirname(__file__), "fixtures", "market-spu-contract.json")) as stream:
+            contract = json.load(stream)
+        for endpoint, route in contract["endpointContracts"].items():
+            argv = ["--category-id", "1"]
+            if endpoint == "history":
+                argv += ["--date-from", "2026-07-01", "--date-to", "2026-09-30"]
+            payload = {"success": True,
+                       "data": [dict.fromkeys(contract["responseFields"][route["response"]])],
+                       "meta": {"creditsConsumed": 1, "creditsRemaining": 0}}
+            with self.subTest(endpoint=endpoint), \
+                    patch.object(zoodata, "api_call", return_value=payload), \
+                    patch.object(zoodata, "output") as output, \
+                    patch.object(sys, "argv", ["zoodata.py", route["command"], *argv]):
+                zoodata.main()
+                output.assert_called_once_with(payload, "json")
 
     def test_market_rejects_retired_cli_parameters(self):
         for option, value in (("--category", "Pet Supplies"),
@@ -1613,7 +1774,7 @@ class TestMarketCategoryResolution(unittest.TestCase):
                 return {"success": True, "data": [{"categoryId": "3760901",
                     "categoryPath": ["Health & Household"]}]}
             return {"success": True, "data": [{"categoryId": "3760901",
-                    "totalSkuCount": 100, "sampleSkuCount": 50,
+                    "totalProductCount": 100, "sampleProductCount": 50,
                     "sampleMonthlySales": 50000}]}
         results = {}
         response = zoodata._market_snapshot_for_category(
@@ -1622,11 +1783,12 @@ class TestMarketCategoryResolution(unittest.TestCase):
         self.assertEqual(calls[0], ("categories", {"categoryPath": ["Health & Household"]}))
         self.assertEqual(calls[1][0], "markets/search")
         self.assertEqual(calls[1][1]["category"], {
-            "ids": ["3760901"], "includeDescendantCategoryProducts": True})
+            "ids": ["3760901"]})
+        self.assertTrue(calls[1][1]["includeDescendantCategoryProducts"])
         self.assertEqual(calls[1][1]["sampleType"], "unitSalesTop100")
         self.assertEqual(calls[1][1]["pageSize"], 1)
-        self.assertEqual(response["data"]["totalSkuCount"], 100)
-        self.assertEqual(response["data"]["sampleSkuCount"], 50)
+        self.assertEqual(response["data"]["totalProductCount"], 100)
+        self.assertEqual(response["data"]["sampleProductCount"], 50)
         self.assertEqual(response["data"]["sampleMonthlySales"], 50000)
         self.assertEqual(results["meta"]["resolved_category_id"], "3760901")
 
@@ -2180,11 +2342,17 @@ class TestCheckCommand(unittest.TestCase):
         })()
 
         with patch.object(zoodata, "_resolve_credential", return_value="test_key"), \
-             patch.object(zoodata, "api_call", return_value=error), \
+             patch.object(zoodata, "api_call", return_value=error) as api, \
              patch.object(zoodata, "output", side_effect=fake_output):
             zoodata.cmd_check(args)
 
         self.assertEqual(captured["endpoints"]["categories"]["status"], "failed")
+
+        market_params = next(call.args[1] for call in api.call_args_list
+                             if call.args[0] == "markets/search")
+        self.assertIs(market_params["includeDescendantCategoryProducts"], True)
+        self.assertNotIn("categoryScope", market_params)
+        self.assertNotIn("includeDescendantCategoryProducts", market_params.get("category", {}))
 
     def test_keyword_check_does_not_interpret_account_statuses(self):
         captured = {}

@@ -27,50 +27,156 @@ CLI `categories --parent` requires a nonempty JSON string array. Other category-
 
 ## 2. markets/search
 
-Paginated category-market discovery and single-category snapshot lookup. It returns market metrics, but not distribution buckets or historical points.
+The market contract follows the current MCP descriptions, inputSchema and outputSchema. Inspect the connected service's tools/list before live MCP use; cached tool definitions and another deployment's documentation may describe a different version. Use the configured service for verification.
 
-The contract below comes from the upgraded ZooData MCP `tools/list` and OpenAPI schema on 2026-09-22. The market tools are `markets/search`, `markets/structure-profile`, and `markets/history`; `markets/overview` is absent.
+All 14 market endpoints use SPU (parent-product / Amazon Listing) grain: variants of the same product are merged. Only US is supported. Money is already USD; rates are fractions. Public floating metrics are rounded to two decimals, midpoint away from zero; integers and null remain unchanged. Filtering and sorting use these same rounded values. A returned zero is a value, not missingness. `avgReviewCount` is unavailable; rating count is not written-review count.
 
-| Parameter | Type | Note |
-|-----------|------|------|
-| category.ids | String[] | 1–100 exact market-row IDs; alternative to `category.path` or `category.name` |
-| category.path / category.name | String[] / String | Complete path to one ID, or exact node name; alternatives to `category.ids` |
-| category.includeDescendantCategoryProducts | Boolean | Defaults to true; includes descendant-category products **within each returned row**, not descendant market rows |
-| sampleType | String | `unitSalesTop100` / `revenueTop100`; the search schema also accepts `bySale100` / `byRevenue100`, but new CLI requests use normalized values |
-| topN | String | `3`, `5`, `10`, or `20`; selects the group used by Top N filters; all four groups are returned |
-| newProductPeriod | String | `1`, `3`, `6`, or `12` calendar months; selects the window used by new-product filters and sorting; all four windows are returned |
-| date | Date | Optional; omitted means latest available snapshot |
-| marketplace | String | `US` only |
-| page / pageSize | Integer | 1-based page; pageSize 1–100 |
-| sortBy | String | Full-category, sample, per-product average, dynamic Top N, and new-product fields listed below |
-| sortOrder | String | `asc` / `desc` |
-| filters | Object | Market metric filters applied after row selection and before pagination |
+### Search request and response
 
-Current `filters` keys, grouped by measure:
+`resolvedDate` records the actual business date of returned market data. Keep it distinct from the requested `date`, which selects data and can resolve to a different business date. Launch composition instead uses its returned first-launch periods; its contract does not require an additional data-date field.
 
-- selected-sample averages: `sampleAvgMonthlySalesMin/Max`, `sampleAvgMonthlyRevenueMin/Max`, `sampleAvgPriceMin/Max`, `sampleAvgBsrMin/Max`, `sampleAvgRatingMin/Max`, `sampleAvgRatingCountMin/Max`, `sampleAvgGrossMarginRateMin/Max`, `sampleAvgPackageWeightMin/Max`, `sampleAvgPackageVolumeMin/Max`, and `sampleAvgSellerCountMin/Max`;
-- category/sample size and totals: `totalSkuCountMin/Max`, `sampleSkuCountMin/Max`, `totalMonthlySalesMin`, and `totalMonthlyRevenueMin`;
-- Top N selected by `topN`: `topNProductMonthlySalesRateMin/Max`, `topNProductMonthlyRevenueRateMin/Max`, `topNBrandMonthlySalesRateMin/Max`, and `topNBrandMonthlyRevenueRateMin/Max`;
-- sample structure: `sampleBrandCountMin/Max`, `sampleSellerCountMin/Max`, `sampleFbaRateMin/Max`, `sampleFbmRateMin/Max`, `sampleAmzRateMin/Max`, `sampleAPlusRateMin/Max`, and `sellerCountry`;
-- selected-period new products: `sampleNewSkuCountMin/Max`, `sampleNewSkuRateMin/Max`, `sampleNewSkuAvgMonthlySalesMin/Max`, `sampleNewSkuAvgMonthlyRevenueMin/Max`, `sampleNewSkuAvgPriceMin/Max`, `sampleNewSkuAvgRatingMin/Max`, and `sampleNewSkuAvgRatingCountMin/Max`.
+`markets/search` accepts nested `category.ids` (1–100 exact IDs), `category.path` (1–10 hierarchy names, matching a path prefix), or `category.name` (exact name), mutually exclusive. Top-level `categoryIds` is an alternative to nested locators. `categoryKeyword` is a literal case-insensitive substring at any categoryPath level. Top-level `includeDescendantCategoryProducts` controls product coverage inside each market, independently of market-row selection; omitted/null means descendant-inclusive. Parent and child markets can overlap. Other market requests require a real boolean, default true.
 
-Current `sortBy` values are `totalMonthlySales`, `totalMonthlyRevenue`, `sampleMonthlySales`, `sampleMonthlyRevenue`, `sampleAvgMonthlySales`, `sampleAvgMonthlyRevenue`, `totalSkuCount`, `sampleSkuCount`, `sampleAvgPrice`, `sampleTotalMonthlySales`, `sampleAvgBsr`, `sampleAvgRating`, `sampleAvgRatingCount`, `sampleBrandCount`, `sampleSellerCount`, `sampleFbaRate`, and `sampleNewSkuRate`.
+Search uses optional `date` as a cutoff: omit for the latest common published snapshot, or select the most recent common snapshot on or before the supplied valid YYYY-MM-DD. Historical snapshots start at 2026-02 and are month ends; the cutoff need not be a month end. If none is available before the cutoff, data is empty. Read actual `resolvedDate`. The current inputSchema has no `dateRange`. This cutoff differs from the exact-date contract of profile/distribution/concentration routes.
 
-Response: each `data[]` row carries `date`, category identity, `includeDescendantCategoryProducts`, `sampleType`, currency, and two separate statistical scopes. `marketTotal` has full-category `skuCount`, `spuCount`, `monthlySales`, `monthlyRevenue`, `avgMonthlySales`, `avgMonthlyRevenue`, and `newProductMetrics[]`. `marketSample` has selected Top 100 `skuCount`, sales/revenue totals and averages, price, gross-margin estimate, BSR, package, coverage, brand/seller, rating, fulfillment, and content measures. It also has `newProductMetrics[]`, `productTopNMetrics[]`, and `brandTopNMetrics[]`. Top N rows return product or brand rank cutoff, actual selected count, averages, totals, and sales/revenue shares. Both new-product arrays always contain periods 1/3/6/12, identified by `periodMonths`. There is no flat `total*`/`sample*` response family, fixed Top 10 field family, or seller Top N array in the upgraded response.
+`sampleType=unitSalesTop100|revenueTop100` selects up to 100 Listings. `topN=3|5|10|20` (default 10) and `newProductPeriod=1|3|6|12` (default 3) select dynamic metric aliases; fixed cutoffs/windows remain returned. Page starts at 1, pageSize is 1–100 (default 20). Filters and ordering apply before pagination; meta.total counts matching markets, not products.
 
-`meta.total` counts matching markets after category and metric filters; in an ID batch it is scoped to the submitted IDs. For one snapshot, send `category.ids=[ID]` with `pageSize=1` and verify the returned ID. Keep full-category and selected Top 100 denominators separate. A product is new for `newProductPeriod=N` when its business launch date is later than the snapshot date minus N calendar months and no later than the snapshot date. Products without a business launch date are not counted as new but remain in the relevant product-count denominator.
+`filters` has 28 numeric Min/Max pairs, expressed as flat fields, for example `{"avgPriceMin":10,"avgPriceMax":50}`. Bounds are inclusive and finite, either side may be omitted, and min must not exceed max. Nested `{min,max}` metric objects are not the canonical public schema. `sellerCountryCodes` is a list of 1–100 codes (OR); other conditions combine with AND. Sort supports 192 numeric response metrics, independently of the smaller filter set; default avgMonthlyRevenue descending. A sortable metric is not necessarily filterable.
 
-## 2a. markets/structure-profile
+Response `data[]` contains flat fields: `totalProductCount`, `totalMonthlySales`, `totalMonthlyRevenue` for the full market; `sampleProductCount`, `sampleMonthlySales`, `sampleMonthlyRevenue` for the sample; `avgMonthlySales`, `avgMonthlyRevenue`, prices, ratings and seller/content metrics. Fixed `top3/5/10/20*`, `totalMonth1/3/6/12NewProduct*`, `sampleMonth1/3/6/12NewProduct*` and selected dynamic aliases remain distinct. Identity is categoryId/name/path, categoryIdPath, includeDescendantCategoryProducts, sampleType, site, currency and `resolvedDate`. Preserve missing paths. No productGrain response field is required.
 
-Required `categoryId` and one `dimension`: `brand`, `seller`, `price`, `sellerCountry`, `fulfillment`, `ratingCount`, `rating`, `listingAge`, `listingYear`, or `productFeature`. Optional `includeDescendantCategoryProducts` defaults to true; optional `sampleType`, `date`, and `marketplace=US` use the same meanings as search. `newProductPeriod` is not accepted. Retired scope selectors are not accepted.
+### Profile, distributions and concentration
 
-Response `data.buckets[]` describes **the selected Top 100**, not the whole category. Each bucket has SKU count/share, estimated sales/revenue/share, dimension-specific measures, Amazon self-operated measures, `exampleAsins[]`, and `newProductMetrics[]` for all four periods. `data.sampleSkuCount` is the product-share denominator. Product, sales, and revenue shares use their own valid denominators.
+The eleven profile/distribution/concentration routes accept categoryIds (1–100), includeDescendantCategoryProducts (strict boolean, default true), sampleType (default unitSalesTop100), marketplace=US and optional `date`. Omit date for the latest common publication; an explicit date requires an exact common snapshot, with empty data on an unpublished date. There is no yesterday fallback. Each ID selects an independent market in data[]. Category IDs are nonempty and at most 128 characters; the service deduplicates them. Detail/history/launch inputSchema has no categoryScope or nested scope. Search alone normalizes legacy inputs; such compatibility does not add CLI options or restore old responses. Use current MCP inputSchema when constructing MCP arguments.
+
+`profile` returns `marketSize` (full-market productCount, monthlySales, monthlyRevenue and newProductProfile) and `sampleProfile` (sample productCount, monthlySales, monthlyRevenue, avgMonthlySales, avgMonthlyRevenue, price, rating, seller/content measures, newProductProfile and concentrationProfile). Profile has no top-level sample totals. Windows use windowMonths; concentrationProfile arrays are topnProductMetrics, topnBrandMetrics, topnSellerMetrics and topnSellerCountryMetrics, with topN identities.
+
+The seven distributions use `priceDistribution`, `ratingDistribution`, `ratingCountDistribution`, `listingAgeDistribution`, `fulfillmentDistribution`, `sellerCountryDistribution` or `contentDistribution`. Each market also returns sampleProductCount, sampleMonthlySales, sampleMonthlyRevenue and `sampleAvgPrice`, `sampleAvgMonthlySales`, `sampleAvgMonthlyRevenue`, `sampleAvgRating`, `sampleAvgRatingCount` at the root. Bucket fields are `bucketProductCount`, `bucketProductRate`, `monthlySales`, `monthlySalesRate`, `monthlyRevenue`, `monthlyRevenueRate`, `avgPrice`, `avgMonthlySales`, `avgMonthlyRevenue`, `avgRating`, `avgRatingCount`. Dimensions have different identifiers/bounds; do not expect a universal buckets object. No bucket new-product or brand-concentration block is provided. Content and seller-country memberships overlap; fulfillment uses the representative bucket with unknowns retained in its denominator.
+
+`top-product-concentrations` and `seller-concentrations` use `topnMetrics`; brand also uses `topnMetrics`. Entity arrays are topProductList, topSellerList and topBrandList, at most 20 leading entities. Root sample totals and means use the same sample-prefixed fields as distributions. Top N rows contain productCount, concentrationRate, monthlySales, monthlyRevenue, per-product price/sales/rating means and newProductProfile. All four cutoffs return both sales totals. New-product windows have windowMonths, productCount, monthlySales, monthlyRevenue, monthlySalesRate/monthlyRevenueRate and per-product means. Entity shares use monthlySalesRate/monthlyRevenueRate, named consistently with distribution shares; retain the entity or bucket population when interpreting them. Entity rank follows sampleType; seller-country distributionRank is display order, not a sales rank. concentrationRate follows the sample's ranking metric.
+
+Root and nested warehouse fields are optional and nullable. A nested array can be null; an empty data array, a null metric and a real zero are distinct results.
+
+### Listing launch composition
+
+`listing-launch-trend` accepts the common market identity and `granularity=month|year` (default month), plus optional `dateFrom` and `dateTo`. These inclusive bounds filter first-launch dates before grouping, not sample snapshot dates; if both are provided, dateFrom must not exceed dateTo. The sample always comes from the latest available snapshot. The request has no `date` property, even date=null is rejected.
+
+Response data[] contains site, categoryId, categoryPath/idPath, includeDescendantCategoryProducts, sampleType, granularity and `points[]`. Each point has `date` (YYYY-MM or YYYY) and productCount. There is no returned resolvedDate, snapshotDate or currency. Missing periods are not filled. These are current-sample launch cohorts, not historical market growth or all products launched in those months.
+
+`markets/structure-profile` is retired: HTTP 410 with migration guidance, no charge and absent from active discovery. There is no bundled market-structure-profile command. `markets/overview` is absent.
+
+### History
+
+`markets/history` takes categoryIds, includeDescendantCategoryProducts, sampleType, marketplace=US and required `dateFrom/dateTo` (valid ordered YYYY-MM-DD). Query boundaries need not be month ends. Only published month-end snapshots inside the range are returned in ascending order. A current-month-only range can be empty because no completed month end is included. There is no date property: even `date=null` is rejected, as is newProductPeriod.
+
+Response `data[]` contains series: site, category={id,path,idPath}, includeDescendantCategoryProducts, sampleType, currency and `points[]`. Each point has `date`, `marketSize` and `sampleProfile`. Series are separated by site, category ID and paths, scope, sample type and currency; a path change can yield multiple series for one ID. Empty results return data=[].
+
+Both nested blocks contain productCount, monthlySales and monthlyRevenue for the full market and sample respectively. The sample additionally returns avgPrice, avgMonthlySales, avgMonthlyRevenue and avgRating, avgRatingCount. No min/max price/rating fields, new-product history, distribution history or server MoM/YoY are returned. There is no top-level data.points envelope or history[] field, and no resolvedDateFrom/To; retain requested bounds locally and read actual bounds from each nonempty series' points[].date. Missing months remain absent; old SKU history is never substituted.
+
+### Credits
+
+Search costs 1 credit per call, including empty data. Other market reads cost 1 credit per distinct returned market (site/category ID); empty data is free. Their admission check requires balance for the distinct requested market count at the unit price without pre-deducting credits. A batch is not a flat 1-credit call. Use actual meta.creditsConsumed/Remaining and their Exact variants when returned.
+
+#### Numeric filter names
+
+`avgMonthlySales`, `avgMonthlyRevenue`, `avgRatingCount`, `avgBigBsr30d`, `avgPrice`, `avgRating`,
+`avgPackageWeightOz`, `avgPackageVolumeIn3`, `totalProductCount`, `topNProductBigCategoryAvgBsr`,
+`topNProductAvgMonthlySales`, `topNProductAvgMonthlyRevenue`, `sampleBrandCount`, `sellerCount`,
+`avgSellerCount`, `topNProductMonthlySalesRate`, `topNBrandMonthlySalesRate`, `aPlusProductRate`,
+`sampleFbaProductRate`, `sampleFbmProductRate`, `sampleAmzProductRate`, `sampleNewProductCount`,
+`sampleNewProductRate`, `sampleNewProductAvgPrice`, `sampleNewProductAvgRatingCount`,
+`sampleNewProductAvgRating`, `sampleNewProductAvgMonthlySales`, `sampleNewProductAvgMonthlyRevenue`
+
+#### Numeric sort names
+
+`totalProductCount`, `sampleProductCount`, `sampleMonthlySales`, `sampleMonthlyRevenue`,
+`avgMonthlySales`, `avgMonthlyRevenue`, `avgPrice`, `avgBigBsr30d`, `avgRating`, `avgRatingCount`,
+`avgPackageWeightOz`, `avgPackageVolumeIn3`, `sampleBrandCount`, `sellerCount`, `avgSellerCount`,
+`aPlusProductRate`, `sampleFbaProductRate`, `sampleFbmProductRate`, `sampleAmzProductRate`,
+`topNProductAvgMonthlySales`, `topNProductAvgMonthlyRevenue`, `topNProductBigCategoryAvgBsr`,
+`topNProductMonthlySalesRate`, `topNProductMonthlyRevenueRate`, `topNBrandMonthlySalesRate`,
+`topNSellerConcentrationRate`, `sampleNewProductCount`, `sampleNewProductRate`,
+`sampleNewProductAvgPrice`, `sampleNewProductAvgRating`, `sampleNewProductAvgRatingCount`,
+`sampleNewProductAvgMonthlySales`, `sampleNewProductAvgMonthlyRevenue`,
+`totalMonth1NewProductCount`, `totalMonth1NewProductRate`, `totalMonth1NewProductMonthlySales`,
+`totalMonth1NewProductMonthlyRevenue`, `totalMonth3NewProductCount`, `totalMonth3NewProductRate`,
+`totalMonth3NewProductMonthlySales`, `totalMonth3NewProductMonthlyRevenue`,
+`totalMonth6NewProductCount`, `totalMonth6NewProductRate`, `totalMonth6NewProductMonthlySales`,
+`totalMonth6NewProductMonthlyRevenue`, `totalMonth12NewProductCount`, `totalMonth12NewProductRate`,
+`totalMonth12NewProductMonthlySales`, `totalMonth12NewProductMonthlyRevenue`, `totalMonthlySales`,
+`totalMonthlyRevenue`, `minPrice`, `maxPrice`, `medianProductPrice`, `avgMonthlyNewRatingCount`,
+`avgGrossMarginRate`, `aPlusProductCount`, `videoProductCount`, `videoProductRate`,
+`sampleMonth1NewProductCount`, `sampleMonth1NewProductRate`, `sampleMonth1NewProductMonthlySales`,
+`sampleMonth1NewProductMonthlySalesRate`, `sampleMonth1NewProductMonthlyRevenue`,
+`sampleMonth1NewProductMonthlyRevenueRate`, `sampleMonth1NewProductAvgPrice`,
+`sampleMonth1NewProductAvgRating`, `sampleMonth1NewProductAvgRatingCount`,
+`sampleMonth3NewProductCount`, `sampleMonth3NewProductRate`, `sampleMonth3NewProductMonthlySales`,
+`sampleMonth3NewProductMonthlySalesRate`, `sampleMonth3NewProductMonthlyRevenue`,
+`sampleMonth3NewProductMonthlyRevenueRate`, `sampleMonth3NewProductAvgPrice`,
+`sampleMonth3NewProductAvgRating`, `sampleMonth3NewProductAvgRatingCount`,
+`sampleMonth6NewProductCount`, `sampleMonth6NewProductRate`, `sampleMonth6NewProductMonthlySales`,
+`sampleMonth6NewProductMonthlySalesRate`, `sampleMonth6NewProductMonthlyRevenue`,
+`sampleMonth6NewProductMonthlyRevenueRate`, `sampleMonth6NewProductAvgPrice`,
+`sampleMonth6NewProductAvgRating`, `sampleMonth6NewProductAvgRatingCount`,
+`sampleMonth6NewProductMinRating`, `sampleMonth6NewProductMaxRating`,
+`sampleMonth12NewProductCount`, `sampleMonth12NewProductRate`,
+`sampleMonth12NewProductMonthlySales`, `sampleMonth12NewProductMonthlySalesRate`,
+`sampleMonth12NewProductMonthlyRevenue`, `sampleMonth12NewProductMonthlyRevenueRate`,
+`sampleMonth12NewProductAvgPrice`, `sampleMonth12NewProductAvgRating`,
+`sampleMonth12NewProductAvgRatingCount`, `top3ProductConcentrationRate`, `top3ProductProductCount`,
+`top3ProductBrandCount`, `top3ProductMonthlySales`, `top3ProductMonthlyRevenue`,
+`top3ProductBigCategoryAvgBsr`, `top3ProductSmallCategoryAvgBsr`, `top5ProductConcentrationRate`,
+`top5ProductProductCount`, `top5ProductBrandCount`, `top5ProductMonthlySales`,
+`top5ProductMonthlyRevenue`, `top5ProductBigCategoryAvgBsr`, `top5ProductSmallCategoryAvgBsr`,
+`top10ProductConcentrationRate`, `top10ProductProductCount`, `top10ProductBrandCount`,
+`top10ProductMonthlySales`, `top10ProductMonthlyRevenue`, `top10ProductBigCategoryAvgBsr`,
+`top10ProductSmallCategoryAvgBsr`, `top20ProductConcentrationRate`, `top20ProductProductCount`,
+`top20ProductBrandCount`, `top20ProductMonthlySales`, `top20ProductMonthlyRevenue`,
+`top20ProductBigCategoryAvgBsr`, `top20ProductSmallCategoryAvgBsr`, `top3BrandConcentrationRate`,
+`top3BrandBrandCount`, `top3BrandMonthlySales`, `top3BrandMonthlyRevenue`, `top3BrandProductCount`,
+`top3BrandBigCategoryAvgBsr`, `top5BrandConcentrationRate`, `top5BrandBrandCount`,
+`top5BrandMonthlySales`, `top5BrandMonthlyRevenue`, `top5BrandProductCount`,
+`top5BrandBigCategoryAvgBsr`, `top10BrandConcentrationRate`, `top10BrandBrandCount`,
+`top10BrandMonthlySales`, `top10BrandMonthlyRevenue`, `top10BrandProductCount`,
+`top10BrandBigCategoryAvgBsr`, `top20BrandConcentrationRate`, `top20BrandBrandCount`,
+`top20BrandMonthlySales`, `top20BrandMonthlyRevenue`, `top20BrandProductCount`,
+`top20BrandBigCategoryAvgBsr`, `top3SellerConcentrationRate`, `top5SellerConcentrationRate`,
+`top10SellerConcentrationRate`, `top20SellerConcentrationRate`,
+`top3SellerCountryConcentrationRate`, `top5SellerCountryConcentrationRate`,
+`top10SellerCountryConcentrationRate`, `top20SellerCountryConcentrationRate`,
+`top3ProductMonthlySalesRate`, `top3ProductAvgMonthlySales`, `top3ProductMonthlyRevenueRate`,
+`top3ProductAvgMonthlyRevenue`, `top5ProductMonthlySalesRate`, `top5ProductAvgMonthlySales`,
+`top5ProductMonthlyRevenueRate`, `top5ProductAvgMonthlyRevenue`, `top10ProductMonthlySalesRate`,
+`top10ProductAvgMonthlySales`, `top10ProductMonthlyRevenueRate`, `top10ProductAvgMonthlyRevenue`,
+`top20ProductMonthlySalesRate`, `top20ProductAvgMonthlySales`, `top20ProductMonthlyRevenueRate`,
+`top20ProductAvgMonthlyRevenue`, `top3BrandMonthlySalesRate`, `top3BrandAvgMonthlySales`,
+`top3BrandMonthlyRevenueRate`, `top3BrandAvgMonthlyRevenue`, `top5BrandMonthlySalesRate`,
+`top5BrandAvgMonthlySales`, `top5BrandMonthlyRevenueRate`, `top5BrandAvgMonthlyRevenue`,
+`top10BrandMonthlySalesRate`, `top10BrandAvgMonthlySales`, `top10BrandMonthlyRevenueRate`,
+`top10BrandAvgMonthlyRevenue`, `top20BrandMonthlySalesRate`, `top20BrandAvgMonthlySales`,
+`top20BrandMonthlyRevenueRate`, `top20BrandAvgMonthlyRevenue`, `topNBrandAvgMonthlySales`,
+`topNBrandAvgMonthlyRevenue`, `topNBrandMonthlyRevenueRate`
+
+## 2a. Market detail routes
+
+| Endpoint | CLI command | Data shape | Purpose |
+|---|---|---|---|
+| `markets/profile` | `market-profile` | `data[]` | SPU profile |
+| `markets/price-distributions` | `market-price-distributions` | `data[]` | SPU price-distributions |
+| `markets/rating-distributions` | `market-rating-distributions` | `data[]` | SPU rating-distributions |
+| `markets/rating-count-distributions` | `market-rating-count-distributions` | `data[]` | SPU rating-count-distributions |
+| `markets/listing-age-distributions` | `market-listing-age-distributions` | `data[]` | SPU listing-age-distributions |
+| `markets/fulfillment-distributions` | `market-fulfillment-distributions` | `data[]` | SPU fulfillment-distributions |
+| `markets/seller-country-distributions` | `market-seller-country-distributions` | `data[]` | SPU seller-country-distributions |
+| `markets/content-distributions` | `market-content-distributions` | `data[]` | SPU content-distributions |
+| `markets/top-product-concentrations` | `market-top-product-concentrations` | `data[]` | SPU top-product-concentrations |
+| `markets/brand-concentrations` | `market-brand-concentrations` | `data[]` | SPU brand-concentrations |
+| `markets/seller-concentrations` | `market-seller-concentrations` | `data[]` | SPU seller-concentrations |
+| `markets/listing-launch-trend` | `market-listing-launch-trend` | `data[]` | SPU listing-launch-trend |
 
 ## 2b. markets/history
 
-Required `categoryId`, `dateFrom`, and `dateTo`; optional `includeDescendantCategoryProducts` defaults to true; optional `sampleType` and `marketplace=US` use the same meanings as search. `newProductPeriod` is not accepted. Retired scope and history-date parameter names are not accepted.
-
-Response `data.points[]` is sorted ascending and contains available month-end snapshots only. Missing months are omitted, not filled. Each point has `date`, `marketTotal`, and `marketSample`; both scopes carry size, monthly sales/revenue, averages, and four-window `newProductMetrics[]`. The upgraded history response does not supply MoM/YoY fields. Compare points using each `date` and response `resolvedDateFrom` / `resolvedDateTo`.
+Use the History contract above.
 
 ---
 
@@ -164,7 +270,7 @@ See `zoodata.py reviews-raw / review-tag-prompt / review-reduce-prompt / review-
 ## 6c. reviews/search
 
 This route is documented for direct API reference only in this release. The bundled CLI has no
-`reviews/search` subcommand, and this route is not counted in the 25 CLI-backed Amazon commerce and
+`reviews/search` subcommand, and this route is not counted in the 36 CLI-backed Amazon commerce and
 keyword-intelligence endpoints described by the package index.
 
 | Parameter | Type | Required | Note |
@@ -317,7 +423,7 @@ TaggedReview vs RealtimeReview: `reviews/search` uses snapshot data with AI tags
 | subBsr | List\<Integer\> | Sub-category BSR |
 | monthlySalesFloor | List\<Integer\> | Monthly sales lower bound |
 | rating | List\<Float\> | Rating on each date |
-| ratingCount | List\<Integer\> | Review count on each date |
+| ratingCount | List\<Integer\> | Rating count on each date |
 | sellerCount | List\<Integer\> | Seller count |
 | title | List\<ChangeLog\> | Title changes `{date, value}` |
 | imageUrl | List\<ChangeLog\> | Main image changes `{date, value}` |

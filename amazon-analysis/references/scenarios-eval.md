@@ -81,7 +81,7 @@ python3 scripts/zoodata.py product --asin B09XXXXX
 | Monthly Sales | `monthlySalesFloor` | competitors |
 | BSR | `bsr` | competitors |
 | Rating | `rating` | competitors |
-| Review Count | `ratingCount` | competitors |
+| Rating count | `ratingCount` | competitors |
 | Variant Count | `variantCount` | competitors |
 | FBA Fee | `fbaFee` | competitors |
 | Seller Count | `sellerCount` | competitors |
