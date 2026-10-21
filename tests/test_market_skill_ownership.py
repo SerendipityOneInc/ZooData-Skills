@@ -255,8 +255,8 @@ class TestMarketSkillOwnership(unittest.TestCase):
             text = path.read_text()
             with self.subTest(path=path):
                 for required in ("SPU", "includeDescendantCategoryProducts", "categoryIds", "dateRange",
-                                 "sampleMonthlySaleCnt", "avgProductMonthlySaleCnt",
-                                 "totalMonthlySaleAmt", "sellerCountryCodes",
+                                 "sampleMonthlySales", "avgMonthlySales",
+                                 "totalMonthlyRevenue", "sellerCountryCodes",
                                  "HTTP 410", "exact common snapshot", "two decimals",
                                  "Content and seller-country memberships overlap"):
                     self.assertIn(required.lower(), text.lower())
@@ -286,23 +286,34 @@ class TestMarketSkillOwnership(unittest.TestCase):
         for name in ("PriceBucket", "RatingBucket", "RatingCountBucket", "ListingAgeBucket",
                      "FulfillmentBucket", "SellerCountryBucket", "ContentBucket"):
             with self.subTest(model=name):
-                self.assertTrue({"bucketProductCnt", "bucketProductRate",
-                                 "monthlySaleCntRate", "monthlySaleAmtRate"} <= set(fields[name]))
+                self.assertTrue({"bucketProductCount", "bucketProductRate",
+                                 "monthlySalesRate", "monthlyRevenueRate"} <= set(fields[name]))
                 self.assertFalse({"membershipProductCnt", "productMembershipRate",
                                   "saleCntRate", "saleAmtRate"} & set(fields[name]))
         for model in ("MarketSearchFact", "MarketProfile"):
             self.assertIn("resolvedDate", fields[model])
             self.assertNotIn("dt", fields[model])
             self.assertNotIn("productGrain", fields[model])
-        self.assertNotIn("sampleProductCnt", fields["MarketProfile"])
-        self.assertTrue({"productCnt", "monthlySaleCnt", "monthlySaleAmt",
-                         "avgProductMonthlySaleCnt", "avgProductMonthlySaleAmt"} <= set(fields["SampleProfile"]))
-        self.assertTrue({"monthlySaleCnt", "monthlySaleAmt"} <= set(fields["TopNConcentration"]))
-        self.assertTrue({"productCnt", "monthlySaleCnt", "monthlySaleAmt"} <=
+        self.assertNotIn("sampleProductCount", fields["MarketProfile"])
+        self.assertTrue({"productCount", "monthlySales", "monthlyRevenue",
+                         "avgMonthlySales", "avgMonthlyRevenue"} <= set(fields["SampleProfile"]))
+        self.assertTrue({"monthlySales", "monthlyRevenue"} <= set(fields["TopNConcentration"]))
+        self.assertTrue({"productCount", "monthlySales", "monthlyRevenue"} <=
                         set(fields["MarketHistorySampleProfile"]))
-        self.assertIn("avgProductMonthlySaleCnt", fields["MarketHistorySampleProfile"])
+        self.assertIn("avgMonthlySales", fields["MarketHistorySampleProfile"])
         self.assertNotIn("resolvedDate", fields["ListingLaunchTrend"])
         self.assertIn("points", fields["ListingLaunchTrend"])
+        for model, entity_field in (("TopProductConcentration", "topProductList"),
+                                    ("BrandConcentration", "topBrandList"),
+                                    ("SellerConcentration", "topSellerList")):
+            self.assertIn("topnMetrics", fields[model])
+            self.assertIn(entity_field, fields[model])
+            self.assertNotIn("topnBrandMetrics", fields[model])
+        self.assertIn("topnBrandMetrics", fields["ConcentrationProfile"])
+        for model in ("TopProduct", "TopBrand", "TopSeller"):
+            self.assertIn("rank", fields[model])
+            self.assertNotIn("distributionRank", fields[model])
+        self.assertIn("distributionRank", fields["SellerCountryBucket"])
         evidence = (MARKET / "references/evidence-protocols.md").read_text()
         self.assertIn("data[].points[]", evidence)
         self.assertIn("complete identity", evidence)
@@ -311,8 +322,8 @@ class TestMarketSkillOwnership(unittest.TestCase):
                      *[p for p in ROOT.glob("amazon-*/references/reference.md")
                        if (p.parents[1] / "SKILL.md").exists() and "All 14 market endpoints" in p.read_text()]]:
             text = path.read_text()
-            for required in ("resolvedDate", "data[]", "points[]", "bucketProductCnt",
-                             "bucketProductRate", "monthlySaleCntRate", "monthlySaleAmtRate",
+            for required in ("resolvedDate", "data[]", "points[]", "bucketProductCount",
+                             "bucketProductRate", "monthlySalesRate", "monthlyRevenueRate",
                              "no top-level sample totals", "Series are separated"):
                 self.assertIn(required, text, str(path))
             for obsolete in ("categoryScope=direct|subtree", "productGrain=SPU",
@@ -340,8 +351,8 @@ class TestMarketSkillOwnership(unittest.TestCase):
             for field, kind in fields.items():
                 with self.subTest(model=model, field=field):
                     self.assertTrue(kind.endswith("|null"), kind)
-        self.assertEqual(fixture["responseFields"]["PriceBucket"]["bucketProductCnt"], "integer|null")
-        self.assertEqual(fixture["responseFields"]["PriceBucket"]["monthlySaleAmt"], "number|null")
+        self.assertEqual(fixture["responseFields"]["PriceBucket"]["bucketProductCount"], "integer|null")
+        self.assertEqual(fixture["responseFields"]["PriceBucket"]["monthlyRevenue"], "number|null")
         self.assertEqual(fixture["responseFields"]["MarketHistorySeries"]["points"],
                          "array<MarketHistoryFact>|null")
 
@@ -353,8 +364,8 @@ class TestMarketSkillOwnership(unittest.TestCase):
             self.assertIn("even `date=null` is rejected", text)
             self.assertNotIn("Old flat Min/Max filters are not accepted", text)
         semantics = (MARKET / "references/market-metric-semantics.md").read_text()
-        self.assertIn("monthlySaleCntRate", semantics)
-        self.assertIn("monthlySaleAmtRate", semantics)
+        self.assertIn("monthlySalesRate", semantics)
+        self.assertIn("monthlyRevenueRate", semantics)
         self.assertIn("enclosing ranked group", semantics)
         self.assertIn("bucketIndex", semantics)
         self.assertNotIn("normalize_legacy_market_search", semantics)

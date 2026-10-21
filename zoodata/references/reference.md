@@ -294,21 +294,21 @@ keyword-intelligence endpoints described by the package index.
 | Data Point | Primary Source | Validation Source |
 |-----------|---------------|-------------------|
 | Market size | markets/search | products/search (total count) |
-| Brand concentration | brand-overview (sampleTop10BrandSalesRate) | markets/search (top10BrandMonthlySaleCntRate) |
+| Brand concentration | brand-overview (sampleTop10BrandSalesRate) | markets/search (top10BrandMonthlySalesRate) |
 | Price distribution | price-band-detail | products/search (price field) |
-| Competition level | markets/search (`top10ProductMonthlySaleCntRate`, selected Top 100 sales) | brand-detail (top brand shares) |
+| Competition level | markets/search (`top10ProductMonthlySalesRate`, selected Top 100 sales) | brand-detail (top brand shares) |
 | Consumer demand | reviews/analysis | products (sales + growth) |
-| Avg rating quality | markets/search (avgProductRatingAmt) | brand-overview (sampleTop10AvgRating) |
+| Avg rating quality | markets/search (avgRating) | brand-overview (sampleTop10AvgRating) |
 
 ## Field Differences Across Endpoints
 
 | Data | markets | products/competitors | realtime/product | reviews/analysis | realtime/reviews | price-band | brand | history |
 |------|---------|---------------------|----------|---------|---------|------------|-------|---------|
-| Sales | totalMonthlySaleCnt / sampleMonthlySaleCnt | monthlySalesFloor | ❌ | ❌ | ❌ | sampleSalesRate | sampleGroupMonthlySales | monthlySalesFloor[] |
-| Price | medianProductPrice30d | price | buyboxWinner.price | ❌ | ❌ | bandMin/MaxPrice | sampleAvgPrice | price[] |
+| Sales | totalMonthlySales / sampleMonthlySales | monthlySalesFloor | ❌ | ❌ | ❌ | sampleSalesRate | sampleGroupMonthlySales | monthlySalesFloor[] |
+| Price | medianProductPrice | price | buyboxWinner.price | ❌ | ❌ | bandMin/MaxPrice | sampleAvgPrice | price[] |
 | BSR | ❌ | bsr (int) | bestsellersRank[] | ❌ | ❌ | ❌ | ❌ | bsr[] |
-| Rating | avgProductRatingAmt | rating | rating | avgRating | rating (per review) | sampleAvgRating | sampleAvgRating | rating[] |
-| Reviews | avgProductRatingCnt | ratingCount | ratingCount | reviewCount | reviews[] (raw text, max 100) | ❌ | sampleAvgRatingCount | ratingCount[] |
+| Rating | avgRating | rating | rating | avgRating | rating (per review) | sampleAvgRating | sampleAvgRating | rating[] |
+| Reviews | avgRatingCount | ratingCount | ratingCount | reviewCount | reviews[] (raw text, max 100) | ❌ | sampleAvgRatingCount | ratingCount[] |
 | Insights | ❌ | ❌ | ❌ | ✅ consumerInsights | ❌ (raw only — feeds Local Review Toolkit) | ❌ | ❌ | ❌ |
-| Concentration | top10BrandMonthlySaleCntRate | ❌ | ❌ | ❌ | ❌ | sampleTop3BrandSalesRate | CR10 | ❌ |
+| Concentration | top10BrandMonthlySalesRate | ❌ | ❌ | ❌ | ❌ | sampleTop3BrandSalesRate | CR10 | ❌ |
 | Opportunity | ❌ | ❌ | ❌ | ❌ | ❌ | sampleOpportunityIndex | ❌ | ❌ |

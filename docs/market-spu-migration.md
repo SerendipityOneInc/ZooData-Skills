@@ -1,6 +1,18 @@
 # 市场接口技能迁移
 
-本次以 2026-10-21 从 `http://localhost:8080/mcp` 直接取得的 tools/list、inputSchema 和实际 tools/call 响应为准。旧源码提交或会话缓存的工具定义不能代替当前服务契约。接口仍为 14 个，统计粒度为合并同父商品变体的 Listing/SPU，仅美国站。
+本次以 2026-10-21 从 `http://localhost:8080/mcp` 直接取得的 tools/list、inputSchema、outputSchema 和实际 tools/call 响应为准。旧源码提交或会话缓存的工具定义不能代替当前服务契约。接口仍为 14 个，统计粒度为合并同父商品变体的 Listing/SPU，仅美国站。
+
+## 字段命名迁移
+
+| 旧名称 | 当前名称 |
+|---|---|
+| productCnt、sampleProductCnt | productCount、sampleProductCount |
+| monthlySaleCnt、monthlySaleAmt | monthlySales、monthlyRevenue |
+| avgProductPrice30d、avgProductRatingAmt | avgPrice、avgRating |
+| avgProductMonthlySaleCnt、avgProductMonthlySaleAmt | avgMonthlySales、avgMonthlyRevenue |
+| topProducts、topnBrandList、sellerList | topProductList、topBrandList、topSellerList |
+
+筛选 Min/Max 和排序值都使用新名称，CLI 标志同步为 `--avg-price`、`--avg-monthly-sales` 等，不提供旧字段标志别名。响应的 39 个模型直接以 MCP outputSchema 冻结。
 
 ## 请求迁移
 
@@ -8,13 +20,13 @@
 |---|---|
 | `market --date-range 30d` | `market`，省略日期取最新 |
 | `market --date-range YYYY-MM` | `market --date YYYY-MM-DD`，取不晚于截止日的最近共同快照 |
-| `filters.avgProductPrice30d={min:10,max:30}` | `filters.avgProductPrice30dMin=10`、`avgProductPrice30dMax=30` |
+| `filters.avgProductPrice30d={min:10,max:30}` | `filters.avgPriceMin=10`、`avgPriceMax=30` |
 | 192 个响应指标均可筛选 | 仅公开的 28 对 Min/Max 可筛选；192 个排序字段独立维护 |
 | `market-listing-launch-trend --date ...` | 可选 `--date-from ... --date-to ...`，过滤首次上架日期 |
 | detail/history 的 `--category-scope direct` | `--no-include-descendant-category-products` |
 | `market-structure-profile` | 对应的独立分布或集中度命令 |
 
-CLI 保留 `--avg-product-price30d 10:30` 这样的范围写法，构造请求时展开为平铺 Min/Max。`MIN:MAX`、`MIN:`、`:MAX` 分别为双边、仅下限、仅上限，有限值且下限不得超过上限。金额为 USD，比例为小数；不支持的筛选标志在发请求前拒绝，不能因为字段可以排序就把它用作筛选。
+CLI 保留 `--avg-price 10:30` 这样的范围写法，构造请求时展开为平铺 Min/Max。`MIN:MAX`、`MIN:`、`:MAX` 分别为双边、仅下限、仅上限，有限值且下限不得超过上限。金额为 USD，比例为小数；不支持的筛选标志在发请求前拒绝，不能因为字段可以排序就把它用作筛选。
 
 所有市场命令使用顶层 includeDescendantCategoryProducts 布尔值。详情、历史与上架组成支持 `--category-ids ID1,ID2`。商品范围与市场行选择独立；父类目和子类目统计可能重叠。
 
@@ -23,10 +35,10 @@ CLI 保留 `--avg-product-price30d 10:30` 这样的范围写法，构造请求�
 - search 的 `--date` 是截止日，历史数据从 2026-02 的月末快照起，截止日无需月末；实际采用日期看 `resolvedDate`。最新结果是近 30 天画像。
 - profile、七种分布和三种集中度的 `--date` 是精确快照日，未发布该日则为空；省略取最新，响应使用 resolvedDate。
 - history 必须传 `--date-from/--date-to`。边界无需月末，但只返回范围内已发布的月末快照，按日期升序。读取 `data[].points[].date`，不是 `data.points[]` 或 `history[]`。当前不完整月份不用于已完成月份趋势，也不补齐缺失月份。
-- history 每点的 marketSize 是全市场总量，sampleProfile 是样本总量及 avgProductPrice30d、avgProductMonthlySaleCnt/Amt、avgProductRatingAmt/Cnt。没有新品、分布历史或 min/max 价格评分字段。
-- launch 的范围筛选首次上架日期，样本始终来自最新快照，先过滤再按 month/year 分组。读取 `data[].points[]` 中的 date/productCnt；响应没有快照日期，不补造 resolvedDate 或 snapshotDate。上架组成不是历史需求曲线。
-- profile 的样本统计位于 sampleProfile；分布和集中度在根层返回 sampleProductCnt、sampleMonthlySaleCnt/Amt 和 sampleAvgProductPrice30d、sampleAvgProductMonthlySaleCnt/Amt、sampleAvgProductRatingAmt/Cnt，桶或排名组使用自己的均值。
-- 分布桶使用 bucketProductCnt/Rate、monthlySaleCntRate/monthlySaleAmtRate；集中度实体明细使用 saleCntRate/saleAmtRate。Top N 新品份额的分母是排名组对应的销量或销售额。分布桶不提供新品或品牌集中度子画像。
+- history 每点的 marketSize 是全市场总量，sampleProfile 是样本总量及 avgPrice、avgMonthlySales、avgMonthlyRevenue、avgRating、avgRatingCount。没有新品、分布历史或 min/max 价格评分字段。
+- launch 的范围筛选首次上架日期，样本始终来自最新快照，先过滤再按 month/year 分组。读取 `data[].points[]` 中的 date/productCount；响应没有快照日期，不补造 resolvedDate 或 snapshotDate。上架组成不是历史需求曲线。
+- profile 的样本统计位于 sampleProfile；分布和集中度在根层返回 sampleProductCount、sampleMonthlySales、sampleMonthlyRevenue 和 sampleAvgPrice、sampleAvgMonthlySales、sampleAvgMonthlyRevenue、sampleAvgRating、sampleAvgRatingCount，桶或排名组使用自己的均值。
+- 分布桶使用 bucketProductCount、bucketProductRate、monthlySalesRate/monthlyRevenueRate；实体明细的份额字段现统一为 monthlySalesRate/monthlyRevenueRate。三个集中度接口均用 topnMetrics，实体数组分别为 topProductList/topBrandList/topSellerList。profile 内 concentrationProfile 的 topnBrandMetrics 保持原名。Top N 新品份额的分母是排名组对应的销量或销售额。分布桶不提供新品或品牌集中度子画像。
 
 保留 null、真实 0、空数组和缺失字段的区别；公开小数保持两位，不能从四舍五入后的零份额推断精确零。旧 SKU 基线不能与新口径混用。
 

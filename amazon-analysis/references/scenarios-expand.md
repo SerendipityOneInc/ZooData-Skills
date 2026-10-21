@@ -60,7 +60,7 @@ Product growth rates (`salesGrowthRate`, `bsrGrowthRate`) reflect recent changes
 | Sales decline | `salesGrowthRate` | Negative growth rate (current snapshot) |
 | High competition | `sellerCount` | Currently > 10 sellers |
 | BSR worsening | `bsrGrowthRate` | Negative BSR growth (rank number increasing) |
-| Weak market | `avgProductMonthlySaleCnt` | Sample per-product average below the seller's viable threshold |
+| Weak market | `avgMonthlySales` | Sample per-product average below the seller's viable threshold |
 
 **Note:** `salesGrowthRate` and `bsrGrowthRate` come from `products`/`competitors`; `realtime/product` does not provide them. Use the corresponding history command when the requested historical dimension is available.
 

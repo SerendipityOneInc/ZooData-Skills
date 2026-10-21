@@ -18,7 +18,7 @@ metadata:
 ---
 
 > **📋 Live API Reference**: Field names and parameters may change. For MCP calls, refresh and
-> inspect the current ZooData MCP `inputSchema`; for direct HTTP calls, also consult the OpenAPI
+> inspect the current ZooData MCP `inputSchema` and `outputSchema`; for direct HTTP calls, also consult the OpenAPI
 > spec at https://zoodata.ai/api/v1/openapi-spec.
 > Keyword compatibility field: all eleven current keyword and product-traffic request schemas
 > retain `granularity`, but the only supported value is `week`. The bundled CLI always sends

@@ -365,12 +365,12 @@ class TestEndpointRouting(unittest.TestCase):
         r = run_cli("market", "--category-name", "Health & Household",
                     "--no-include-descendant-category-products", "--sample-type", "revenueTop100",
                     "--new-product-period", "12", "--top-n", "5",
-                    "--avg-product-monthly-sale-amt", "100000:",
+                    "--avg-monthly-revenue", "100000:",
                     "--sample-fbm-product-rate", ":0.5",
-                    "--avg-product-package-volume-in3", "0:5000",
-                    "--top-n-brand-monthly-sale-cnt-rate", ":0.6",
+                    "--avg-package-volume-in3", "0:5000",
+                    "--top-n-brand-monthly-sales-rate", ":0.6",
                     "--seller-country-codes", "US", "CN",
-                    "--sort", "avgProductMonthlySaleCnt", "--date", "2026-09-15")
+                    "--sort", "avgMonthlySales", "--date", "2026-09-15")
         self.assertEqual(r["params"]["category"], {
             "name": "Health & Household"})
         self.assertFalse(r["params"]["includeDescendantCategoryProducts"])
@@ -379,22 +379,22 @@ class TestEndpointRouting(unittest.TestCase):
         self.assertEqual(r["params"]["topN"], "5")
         self.assertEqual(r["params"]["date"], "2026-09-15")
         self.assertEqual(r["params"]["filters"], {
-            "avgProductMonthlySaleAmtMin": 100000,
+            "avgMonthlyRevenueMin": 100000,
             "sampleFbmProductRateMax": 0.5,
-            "avgProductPackageVolumeIn3Min": 0, "avgProductPackageVolumeIn3Max": 5000,
-            "topNBrandMonthlySaleCntRateMax": 0.6,
+            "avgPackageVolumeIn3Min": 0, "avgPackageVolumeIn3Max": 5000,
+            "topNBrandMonthlySalesRateMax": 0.6,
             "sellerCountryCodes": ["US", "CN"],
         })
-        self.assertEqual(r["params"]["sortBy"], "avgProductMonthlySaleCnt")
+        self.assertEqual(r["params"]["sortBy"], "avgMonthlySales")
         self.assertEqual(len(zoodata.MARKET_FILTER_FIELDS), 28)
         self.assertEqual(len(zoodata.MARKET_SORT_FIELDS), 192)
 
     def test_market_batch_ids_and_path(self):
         r = run_cli("market", "--category-ids", "15342811, 3760941",
-                    "--sort", "totalMonthlySaleCnt", "--page-size", "100")
+                    "--sort", "totalMonthlySales", "--page-size", "100")
         self.assertEqual(r["params"]["category"]["ids"], ["15342811", "3760941"])
         self.assertEqual(r["params"]["pageSize"], 100)
-        self.assertEqual(r["params"]["sortBy"], "totalMonthlySaleCnt")
+        self.assertEqual(r["params"]["sortBy"], "totalMonthlySales")
         r = run_cli("market", "--category-path", "Health & Household > Health Care")
         self.assertEqual(r["params"]["category"]["path"],
                          ["Health & Household", "Health Care"])
@@ -474,7 +474,10 @@ class TestEndpointRouting(unittest.TestCase):
     def test_market_invalid_spu_inputs_make_no_request(self):
         cases = [
             ("market", "--date", "2026-02-30"),
-            ("market", "--total-monthly-sale-amt", "1:2"),
+            ("market", "--avg-product-price30d", "10:20"),
+            ("market", "--sort", "totalProductCnt"),
+            ("market", "--sort", "avgProductPrice30d"),
+            ("market", "--total-monthly-revenue", "1:2"),
             ("market-listing-launch-trend", "--category-id", "1", "--date", "2026-10-01"),
             ("market-listing-launch-trend", "--category-id", "1", "--date-from", "2026-10-01", "--date-to", "2026-09-30"),
             ("market", "--category-scope", "direct"),
@@ -495,7 +498,7 @@ class TestEndpointRouting(unittest.TestCase):
             ("market-history", "--category-id", "1", "--date-from", "bad",
              "--date-to", "2026-09-30"),
         ]
-        cases.extend(("market", "--avg-product-price30d", value)
+        cases.extend(("market", "--avg-price", value)
                      for value in ("nan:2", "1:inf", "2:1", ":", "1:2:3", "abc:2"))
         for argv in cases:
             with self.subTest(argv=argv), patch.object(zoodata, "api_call") as api, \
@@ -512,11 +515,11 @@ class TestEndpointRouting(unittest.TestCase):
                 "includeDescendantCategoryProducts": False, "sampleType": "revenueTop100",
                 "currency": "USD", "points": [
                     {"date": "2026-07-31",
-                     "marketSize": {"productCnt": 1000, "monthlySaleCnt": 0, "monthlySaleAmt": None},
-                     "sampleProfile": {"productCnt": 100, "monthlySaleAmt": 0,
-                                       "avgProductRatingCnt": None}},
+                     "marketSize": {"productCount": 1000, "monthlySales": 0, "monthlyRevenue": None},
+                     "sampleProfile": {"productCount": 100, "monthlyRevenue": 0,
+                                       "avgRatingCount": None}},
                     {"date": "2026-09-30", "marketSize": None,
-                     "sampleProfile": {"monthlySaleAmt": 2.67}},
+                     "sampleProfile": {"monthlyRevenue": 2.67}},
                 ],
             })
         payload = {"success": True, "data": groups, "meta": {"creditsConsumed": 1}}
@@ -1771,8 +1774,8 @@ class TestMarketCategoryResolution(unittest.TestCase):
                 return {"success": True, "data": [{"categoryId": "3760901",
                     "categoryPath": ["Health & Household"]}]}
             return {"success": True, "data": [{"categoryId": "3760901",
-                    "totalProductCnt": 100, "sampleProductCnt": 50,
-                    "sampleMonthlySaleCnt": 50000}]}
+                    "totalProductCount": 100, "sampleProductCount": 50,
+                    "sampleMonthlySales": 50000}]}
         results = {}
         response = zoodata._market_snapshot_for_category(
             caller, ["Health & Household"], results=results)
@@ -1784,9 +1787,9 @@ class TestMarketCategoryResolution(unittest.TestCase):
         self.assertTrue(calls[1][1]["includeDescendantCategoryProducts"])
         self.assertEqual(calls[1][1]["sampleType"], "unitSalesTop100")
         self.assertEqual(calls[1][1]["pageSize"], 1)
-        self.assertEqual(response["data"]["totalProductCnt"], 100)
-        self.assertEqual(response["data"]["sampleProductCnt"], 50)
-        self.assertEqual(response["data"]["sampleMonthlySaleCnt"], 50000)
+        self.assertEqual(response["data"]["totalProductCount"], 100)
+        self.assertEqual(response["data"]["sampleProductCount"], 50)
+        self.assertEqual(response["data"]["sampleMonthlySales"], 50000)
         self.assertEqual(results["meta"]["resolved_category_id"], "3760901")
 
     def test_search_snapshot_rejects_wrong_category_row(self):

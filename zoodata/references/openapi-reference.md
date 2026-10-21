@@ -27,9 +27,9 @@ CLI `categories --parent` requires a nonempty JSON string array. Other category-
 
 ## 2. markets/search
 
-The market contract follows the current MCP descriptions and inputSchema. Inspect the connected service's tools/list before live MCP use; cached tool definitions and another deployment's documentation may describe a different version. Use the configured service for verification.
+The market contract follows the current MCP descriptions, inputSchema and outputSchema. Inspect the connected service's tools/list before live MCP use; cached tool definitions and another deployment's documentation may describe a different version. Use the configured service for verification.
 
-All 14 market endpoints use SPU (parent-product / Amazon Listing) grain: variants of the same product are merged. Only US is supported. Money is already USD; rates are fractions. Public floating metrics are rounded to two decimals, midpoint away from zero; integers and null remain unchanged. Filtering and sorting use these same rounded values. A returned zero is a value, not missingness. `avgProductReviewCnt` is unavailable; rating count is not written-review count.
+All 14 market endpoints use SPU (parent-product / Amazon Listing) grain: variants of the same product are merged. Only US is supported. Money is already USD; rates are fractions. Public floating metrics are rounded to two decimals, midpoint away from zero; integers and null remain unchanged. Filtering and sorting use these same rounded values. A returned zero is a value, not missingness. `avgReviewCount` is unavailable; rating count is not written-review count.
 
 ### Search request and response
 
@@ -39,19 +39,19 @@ Search uses optional `date` as a cutoff: omit for the latest common published sn
 
 `sampleType=unitSalesTop100|revenueTop100` selects up to 100 Listings. `topN=3|5|10|20` (default 10) and `newProductPeriod=1|3|6|12` (default 3) select dynamic metric aliases; fixed cutoffs/windows remain returned. Page starts at 1, pageSize is 1–100 (default 20). Filters and ordering apply before pagination; meta.total counts matching markets, not products.
 
-`filters` has 28 numeric Min/Max pairs, expressed as flat fields, for example `{"avgProductPrice30dMin":10,"avgProductPrice30dMax":50}`. Bounds are inclusive and finite, either side may be omitted, and min must not exceed max. Nested `{min,max}` metric objects are not the canonical public schema. `sellerCountryCodes` is a list of 1–100 codes (OR); other conditions combine with AND. Sort supports 192 numeric response metrics, independently of the smaller filter set; default avgProductMonthlySaleAmt descending. A sortable metric is not necessarily filterable.
+`filters` has 28 numeric Min/Max pairs, expressed as flat fields, for example `{"avgPriceMin":10,"avgPriceMax":50}`. Bounds are inclusive and finite, either side may be omitted, and min must not exceed max. Nested `{min,max}` metric objects are not the canonical public schema. `sellerCountryCodes` is a list of 1–100 codes (OR); other conditions combine with AND. Sort supports 192 numeric response metrics, independently of the smaller filter set; default avgMonthlyRevenue descending. A sortable metric is not necessarily filterable.
 
-Response `data[]` contains flat fields: `totalProductCnt`, `totalMonthlySaleCnt`, `totalMonthlySaleAmt` for the full market; `sampleProductCnt`, `sampleMonthlySaleCnt`, `sampleMonthlySaleAmt` for the sample; `avgProductMonthlySaleCnt/Amt`, prices, ratings and seller/content metrics. Fixed `top3/5/10/20*`, `totalMonth1/3/6/12NewProduct*`, `sampleMonth1/3/6/12NewProduct*` and selected dynamic aliases remain distinct. Identity is categoryId/name/path, categoryIdPath, includeDescendantCategoryProducts, sampleType, site, currency and `resolvedDate`. Preserve missing paths. No productGrain response field is required.
+Response `data[]` contains flat fields: `totalProductCount`, `totalMonthlySales`, `totalMonthlyRevenue` for the full market; `sampleProductCount`, `sampleMonthlySales`, `sampleMonthlyRevenue` for the sample; `avgMonthlySales`, `avgMonthlyRevenue`, prices, ratings and seller/content metrics. Fixed `top3/5/10/20*`, `totalMonth1/3/6/12NewProduct*`, `sampleMonth1/3/6/12NewProduct*` and selected dynamic aliases remain distinct. Identity is categoryId/name/path, categoryIdPath, includeDescendantCategoryProducts, sampleType, site, currency and `resolvedDate`. Preserve missing paths. No productGrain response field is required.
 
 ### Profile, distributions and concentration
 
 The eleven profile/distribution/concentration routes accept categoryIds (1–100), includeDescendantCategoryProducts (strict boolean, default true), sampleType (default unitSalesTop100), marketplace=US and optional `date`. Omit date for the latest common publication; an explicit date requires an exact common snapshot, with empty data on an unpublished date. There is no yesterday fallback. Each ID selects an independent market in data[]. Category IDs are nonempty and at most 128 characters; the service deduplicates them. Detail/history/launch inputSchema has no categoryScope or nested scope. Search alone normalizes legacy inputs; such compatibility does not add CLI options or restore old responses. Use current MCP inputSchema when constructing MCP arguments.
 
-`profile` returns `marketSize` (full-market productCnt, monthlySaleCnt/Amt and newProductProfile) and `sampleProfile` (sample productCnt, monthlySaleCnt/Amt, avgProductMonthlySaleCnt/Amt, price, rating, seller/content measures, newProductProfile and concentrationProfile). Profile has no top-level sample totals. Windows use windowMonths; concentrationProfile arrays are topnProductMetrics, topnBrandMetrics, topnSellerMetrics and topnSellerCountryMetrics, with topN identities.
+`profile` returns `marketSize` (full-market productCount, monthlySales, monthlyRevenue and newProductProfile) and `sampleProfile` (sample productCount, monthlySales, monthlyRevenue, avgMonthlySales, avgMonthlyRevenue, price, rating, seller/content measures, newProductProfile and concentrationProfile). Profile has no top-level sample totals. Windows use windowMonths; concentrationProfile arrays are topnProductMetrics, topnBrandMetrics, topnSellerMetrics and topnSellerCountryMetrics, with topN identities.
 
-The seven distributions use `priceDistribution`, `ratingDistribution`, `ratingCountDistribution`, `listingAgeDistribution`, `fulfillmentDistribution`, `sellerCountryDistribution` or `contentDistribution`. Each market also returns sampleProductCnt, sampleMonthlySaleCnt/Amt and `sampleAvgProductPrice30d`, `sampleAvgProductMonthlySaleCnt/Amt`, `sampleAvgProductRatingAmt/Cnt` at the root. Bucket fields are `bucketProductCnt`, `bucketProductRate`, `monthlySaleCnt`, `monthlySaleCntRate`, `monthlySaleAmt`, `monthlySaleAmtRate`, `avgProductPrice30d`, `avgProductMonthlySaleCnt/Amt`, `avgProductRatingAmt/Cnt`. Dimensions have different identifiers/bounds; do not expect a universal buckets object. No bucket new-product or brand-concentration block is provided. Content and seller-country memberships overlap; fulfillment uses the representative bucket with unknowns retained in its denominator.
+The seven distributions use `priceDistribution`, `ratingDistribution`, `ratingCountDistribution`, `listingAgeDistribution`, `fulfillmentDistribution`, `sellerCountryDistribution` or `contentDistribution`. Each market also returns sampleProductCount, sampleMonthlySales, sampleMonthlyRevenue and `sampleAvgPrice`, `sampleAvgMonthlySales`, `sampleAvgMonthlyRevenue`, `sampleAvgRating`, `sampleAvgRatingCount` at the root. Bucket fields are `bucketProductCount`, `bucketProductRate`, `monthlySales`, `monthlySalesRate`, `monthlyRevenue`, `monthlyRevenueRate`, `avgPrice`, `avgMonthlySales`, `avgMonthlyRevenue`, `avgRating`, `avgRatingCount`. Dimensions have different identifiers/bounds; do not expect a universal buckets object. No bucket new-product or brand-concentration block is provided. Content and seller-country memberships overlap; fulfillment uses the representative bucket with unknowns retained in its denominator.
 
-`top-product-concentrations` and `seller-concentrations` use `topnMetrics`; brand uses `topnBrandMetrics`. Entity arrays are topProducts, sellerList and topnBrandList, at most 20 leading entities. Root sample totals and means use the same sample-prefixed fields as distributions. Top N rows contain productCnt, concentrationRate, monthlySaleCnt/Amt, per-product price/sales/rating means and newProductProfile. All four cutoffs return both sales totals. New-product windows have windowMonths, productCnt, monthlySaleCnt/Amt, monthlySaleCntRate/monthlySaleAmtRate and per-product means. Entity shares retain `saleCntRate/saleAmtRate`; they are not distribution field names. concentrationRate follows the sample's ranking metric.
+`top-product-concentrations` and `seller-concentrations` use `topnMetrics`; brand also uses `topnMetrics`. Entity arrays are topProductList, topSellerList and topBrandList, at most 20 leading entities. Root sample totals and means use the same sample-prefixed fields as distributions. Top N rows contain productCount, concentrationRate, monthlySales, monthlyRevenue, per-product price/sales/rating means and newProductProfile. All four cutoffs return both sales totals. New-product windows have windowMonths, productCount, monthlySales, monthlyRevenue, monthlySalesRate/monthlyRevenueRate and per-product means. Entity shares use monthlySalesRate/monthlyRevenueRate, named consistently with distribution shares; retain the entity or bucket population when interpreting them. Entity rank follows sampleType; seller-country distributionRank is display order, not a sales rank. concentrationRate follows the sample's ranking metric.
 
 Root and nested warehouse fields are optional and nullable. A nested array can be null; an empty data array, a null metric and a real zero are distinct results.
 
@@ -59,7 +59,7 @@ Root and nested warehouse fields are optional and nullable. A nested array can b
 
 `listing-launch-trend` accepts the common market identity and `granularity=month|year` (default month), plus optional `dateFrom` and `dateTo`. These inclusive bounds filter first-launch dates before grouping, not sample snapshot dates; if both are provided, dateFrom must not exceed dateTo. The sample always comes from the latest available snapshot. The request has no `date` property, even date=null is rejected.
 
-Response data[] contains site, categoryId, categoryPath/idPath, includeDescendantCategoryProducts, sampleType, granularity and `points[]`. Each point has `date` (YYYY-MM or YYYY) and productCnt. There is no returned resolvedDate, snapshotDate or currency. Missing periods are not filled. These are current-sample launch cohorts, not historical market growth or all products launched in those months.
+Response data[] contains site, categoryId, categoryPath/idPath, includeDescendantCategoryProducts, sampleType, granularity and `points[]`. Each point has `date` (YYYY-MM or YYYY) and productCount. There is no returned resolvedDate, snapshotDate or currency. Missing periods are not filled. These are current-sample launch cohorts, not historical market growth or all products launched in those months.
 
 `markets/structure-profile` is retired: HTTP 410 with migration guidance, no charge and absent from active discovery. There is no bundled market-structure-profile command. `markets/overview` is absent.
 
@@ -69,7 +69,7 @@ Response data[] contains site, categoryId, categoryPath/idPath, includeDescendan
 
 Response `data[]` contains series: site, category={id,path,idPath}, includeDescendantCategoryProducts, sampleType, currency and `points[]`. Each point has `date`, `marketSize` and `sampleProfile`. Series are separated by site, category ID and paths, scope, sample type and currency; a path change can yield multiple series for one ID. Empty results return data=[].
 
-Both nested blocks contain productCnt, monthlySaleCnt and monthlySaleAmt for the full market and sample respectively. The sample additionally returns avgProductPrice30d, avgProductMonthlySaleCnt/Amt and avgProductRatingAmt/Cnt. No min/max price/rating fields, new-product history, distribution history or server MoM/YoY are returned. There is no top-level data.points envelope or history[] field, and no resolvedDateFrom/To; retain requested bounds locally and read actual bounds from each nonempty series' points[].date. Missing months remain absent; old SKU history is never substituted.
+Both nested blocks contain productCount, monthlySales and monthlyRevenue for the full market and sample respectively. The sample additionally returns avgPrice, avgMonthlySales, avgMonthlyRevenue and avgRating, avgRatingCount. No min/max price/rating fields, new-product history, distribution history or server MoM/YoY are returned. There is no top-level data.points envelope or history[] field, and no resolvedDateFrom/To; retain requested bounds locally and read actual bounds from each nonempty series' points[].date. Missing months remain absent; old SKU history is never substituted.
 
 ### Credits
 
@@ -77,86 +77,83 @@ Search costs 1 credit per call, including empty data. Other market reads cost 1 
 
 #### Numeric filter names
 
-`avgProductMonthlySaleCnt`, `avgProductMonthlySaleAmt`, `avgProductRatingCnt`,
-`avgProductBigBsr30d`, `avgProductPrice30d`, `avgProductRatingAmt`, `avgProductPackageWeightOz`,
-`avgProductPackageVolumeIn3`, `totalProductCnt`, `topNProductBigCategoryAvgBsr`,
-`topNProductAvgMonthlySaleCnt`, `topNProductAvgMonthlySaleAmt`, `sampleBrandCnt`,
-`observedSellerCnt`, `avgProductSellerCnt`, `topNProductMonthlySaleCntRate`,
-`topNBrandMonthlySaleCntRate`, `aPlusProductRate`, `sampleFbaProductRate`, `sampleFbmProductRate`,
-`sampleAmzProductRate`, `sampleNewProductCnt`, `sampleNewProductRate`,
-`sampleNewProductAvgPrice30d`, `sampleNewProductAvgRatingCnt`, `sampleNewProductAvgRatingAmt`,
-`sampleNewProductAvgMonthlySaleCnt`, `sampleNewProductAvgMonthlySaleAmt`
+`avgMonthlySales`, `avgMonthlyRevenue`, `avgRatingCount`, `avgBigBsr30d`, `avgPrice`, `avgRating`,
+`avgPackageWeightOz`, `avgPackageVolumeIn3`, `totalProductCount`, `topNProductBigCategoryAvgBsr`,
+`topNProductAvgMonthlySales`, `topNProductAvgMonthlyRevenue`, `sampleBrandCount`, `sellerCount`,
+`avgSellerCount`, `topNProductMonthlySalesRate`, `topNBrandMonthlySalesRate`, `aPlusProductRate`,
+`sampleFbaProductRate`, `sampleFbmProductRate`, `sampleAmzProductRate`, `sampleNewProductCount`,
+`sampleNewProductRate`, `sampleNewProductAvgPrice`, `sampleNewProductAvgRatingCount`,
+`sampleNewProductAvgRating`, `sampleNewProductAvgMonthlySales`, `sampleNewProductAvgMonthlyRevenue`
 
 #### Numeric sort names
 
-`totalProductCnt`, `sampleProductCnt`, `sampleMonthlySaleCnt`, `sampleMonthlySaleAmt`,
-`avgProductMonthlySaleCnt`, `avgProductMonthlySaleAmt`, `avgProductPrice30d`, `avgProductBigBsr30d`,
-`avgProductRatingAmt`, `avgProductRatingCnt`, `avgProductPackageWeightOz`,
-`avgProductPackageVolumeIn3`, `sampleBrandCnt`, `observedSellerCnt`, `avgProductSellerCnt`,
+`totalProductCount`, `sampleProductCount`, `sampleMonthlySales`, `sampleMonthlyRevenue`,
+`avgMonthlySales`, `avgMonthlyRevenue`, `avgPrice`, `avgBigBsr30d`, `avgRating`, `avgRatingCount`,
+`avgPackageWeightOz`, `avgPackageVolumeIn3`, `sampleBrandCount`, `sellerCount`, `avgSellerCount`,
 `aPlusProductRate`, `sampleFbaProductRate`, `sampleFbmProductRate`, `sampleAmzProductRate`,
-`topNProductAvgMonthlySaleCnt`, `topNProductAvgMonthlySaleAmt`, `topNProductBigCategoryAvgBsr`,
-`topNProductMonthlySaleCntRate`, `topNProductMonthlySaleAmtRate`, `topNBrandMonthlySaleCntRate`,
-`topNSellerConcentrationRate`, `sampleNewProductCnt`, `sampleNewProductRate`,
-`sampleNewProductAvgPrice30d`, `sampleNewProductAvgRatingAmt`, `sampleNewProductAvgRatingCnt`,
-`sampleNewProductAvgMonthlySaleCnt`, `sampleNewProductAvgMonthlySaleAmt`,
-`totalMonth1NewProductCnt`, `totalMonth1NewProductRate`, `totalMonth1NewProductMonthlySaleCnt`,
-`totalMonth1NewProductMonthlySaleAmt`, `totalMonth3NewProductCnt`, `totalMonth3NewProductRate`,
-`totalMonth3NewProductMonthlySaleCnt`, `totalMonth3NewProductMonthlySaleAmt`,
-`totalMonth6NewProductCnt`, `totalMonth6NewProductRate`, `totalMonth6NewProductMonthlySaleCnt`,
-`totalMonth6NewProductMonthlySaleAmt`, `totalMonth12NewProductCnt`, `totalMonth12NewProductRate`,
-`totalMonth12NewProductMonthlySaleCnt`, `totalMonth12NewProductMonthlySaleAmt`,
-`totalMonthlySaleCnt`, `totalMonthlySaleAmt`, `minPrice30d`, `maxPrice30d`, `medianProductPrice30d`,
-`avgProductMonthlyNewRatingCnt`, `avgProductGrossMarginRate`, `aPlusProductCnt`, `videoProductCnt`,
-`videoProductRate`, `sampleMonth1NewProductCnt`, `sampleMonth1NewProductRate`,
-`sampleMonth1NewProductMonthlySaleCnt`, `sampleMonth1NewProductMonthlySaleCntRate`,
-`sampleMonth1NewProductMonthlySaleAmt`, `sampleMonth1NewProductMonthlySaleAmtRate`,
-`sampleMonth1NewProductAvgPrice30d`, `sampleMonth1NewProductAvgRatingAmt`,
-`sampleMonth1NewProductAvgRatingCnt`, `sampleMonth3NewProductCnt`, `sampleMonth3NewProductRate`,
-`sampleMonth3NewProductMonthlySaleCnt`, `sampleMonth3NewProductMonthlySaleCntRate`,
-`sampleMonth3NewProductMonthlySaleAmt`, `sampleMonth3NewProductMonthlySaleAmtRate`,
-`sampleMonth3NewProductAvgPrice30d`, `sampleMonth3NewProductAvgRatingAmt`,
-`sampleMonth3NewProductAvgRatingCnt`, `sampleMonth6NewProductCnt`, `sampleMonth6NewProductRate`,
-`sampleMonth6NewProductMonthlySaleCnt`, `sampleMonth6NewProductMonthlySaleCntRate`,
-`sampleMonth6NewProductMonthlySaleAmt`, `sampleMonth6NewProductMonthlySaleAmtRate`,
-`sampleMonth6NewProductAvgPrice30d`, `sampleMonth6NewProductAvgRatingAmt`,
-`sampleMonth6NewProductAvgRatingCnt`, `sampleMonth6NewProductMinRatingAmt`,
-`sampleMonth6NewProductMaxRatingAmt`, `sampleMonth12NewProductCnt`, `sampleMonth12NewProductRate`,
-`sampleMonth12NewProductMonthlySaleCnt`, `sampleMonth12NewProductMonthlySaleCntRate`,
-`sampleMonth12NewProductMonthlySaleAmt`, `sampleMonth12NewProductMonthlySaleAmtRate`,
-`sampleMonth12NewProductAvgPrice30d`, `sampleMonth12NewProductAvgRatingAmt`,
-`sampleMonth12NewProductAvgRatingCnt`, `top3ProductConcentrationRate`, `top3ProductProductCnt`,
-`top3ProductBrandCnt`, `top3ProductMonthlySaleCnt`, `top3ProductMonthlySaleAmt`,
+`topNProductAvgMonthlySales`, `topNProductAvgMonthlyRevenue`, `topNProductBigCategoryAvgBsr`,
+`topNProductMonthlySalesRate`, `topNProductMonthlyRevenueRate`, `topNBrandMonthlySalesRate`,
+`topNSellerConcentrationRate`, `sampleNewProductCount`, `sampleNewProductRate`,
+`sampleNewProductAvgPrice`, `sampleNewProductAvgRating`, `sampleNewProductAvgRatingCount`,
+`sampleNewProductAvgMonthlySales`, `sampleNewProductAvgMonthlyRevenue`,
+`totalMonth1NewProductCount`, `totalMonth1NewProductRate`, `totalMonth1NewProductMonthlySales`,
+`totalMonth1NewProductMonthlyRevenue`, `totalMonth3NewProductCount`, `totalMonth3NewProductRate`,
+`totalMonth3NewProductMonthlySales`, `totalMonth3NewProductMonthlyRevenue`,
+`totalMonth6NewProductCount`, `totalMonth6NewProductRate`, `totalMonth6NewProductMonthlySales`,
+`totalMonth6NewProductMonthlyRevenue`, `totalMonth12NewProductCount`, `totalMonth12NewProductRate`,
+`totalMonth12NewProductMonthlySales`, `totalMonth12NewProductMonthlyRevenue`, `totalMonthlySales`,
+`totalMonthlyRevenue`, `minPrice`, `maxPrice`, `medianProductPrice`, `avgMonthlyNewRatingCount`,
+`avgGrossMarginRate`, `aPlusProductCount`, `videoProductCount`, `videoProductRate`,
+`sampleMonth1NewProductCount`, `sampleMonth1NewProductRate`, `sampleMonth1NewProductMonthlySales`,
+`sampleMonth1NewProductMonthlySalesRate`, `sampleMonth1NewProductMonthlyRevenue`,
+`sampleMonth1NewProductMonthlyRevenueRate`, `sampleMonth1NewProductAvgPrice`,
+`sampleMonth1NewProductAvgRating`, `sampleMonth1NewProductAvgRatingCount`,
+`sampleMonth3NewProductCount`, `sampleMonth3NewProductRate`, `sampleMonth3NewProductMonthlySales`,
+`sampleMonth3NewProductMonthlySalesRate`, `sampleMonth3NewProductMonthlyRevenue`,
+`sampleMonth3NewProductMonthlyRevenueRate`, `sampleMonth3NewProductAvgPrice`,
+`sampleMonth3NewProductAvgRating`, `sampleMonth3NewProductAvgRatingCount`,
+`sampleMonth6NewProductCount`, `sampleMonth6NewProductRate`, `sampleMonth6NewProductMonthlySales`,
+`sampleMonth6NewProductMonthlySalesRate`, `sampleMonth6NewProductMonthlyRevenue`,
+`sampleMonth6NewProductMonthlyRevenueRate`, `sampleMonth6NewProductAvgPrice`,
+`sampleMonth6NewProductAvgRating`, `sampleMonth6NewProductAvgRatingCount`,
+`sampleMonth6NewProductMinRating`, `sampleMonth6NewProductMaxRating`,
+`sampleMonth12NewProductCount`, `sampleMonth12NewProductRate`,
+`sampleMonth12NewProductMonthlySales`, `sampleMonth12NewProductMonthlySalesRate`,
+`sampleMonth12NewProductMonthlyRevenue`, `sampleMonth12NewProductMonthlyRevenueRate`,
+`sampleMonth12NewProductAvgPrice`, `sampleMonth12NewProductAvgRating`,
+`sampleMonth12NewProductAvgRatingCount`, `top3ProductConcentrationRate`, `top3ProductProductCount`,
+`top3ProductBrandCount`, `top3ProductMonthlySales`, `top3ProductMonthlyRevenue`,
 `top3ProductBigCategoryAvgBsr`, `top3ProductSmallCategoryAvgBsr`, `top5ProductConcentrationRate`,
-`top5ProductProductCnt`, `top5ProductBrandCnt`, `top5ProductMonthlySaleCnt`,
-`top5ProductMonthlySaleAmt`, `top5ProductBigCategoryAvgBsr`, `top5ProductSmallCategoryAvgBsr`,
-`top10ProductConcentrationRate`, `top10ProductProductCnt`, `top10ProductBrandCnt`,
-`top10ProductMonthlySaleCnt`, `top10ProductMonthlySaleAmt`, `top10ProductBigCategoryAvgBsr`,
-`top10ProductSmallCategoryAvgBsr`, `top20ProductConcentrationRate`, `top20ProductProductCnt`,
-`top20ProductBrandCnt`, `top20ProductMonthlySaleCnt`, `top20ProductMonthlySaleAmt`,
+`top5ProductProductCount`, `top5ProductBrandCount`, `top5ProductMonthlySales`,
+`top5ProductMonthlyRevenue`, `top5ProductBigCategoryAvgBsr`, `top5ProductSmallCategoryAvgBsr`,
+`top10ProductConcentrationRate`, `top10ProductProductCount`, `top10ProductBrandCount`,
+`top10ProductMonthlySales`, `top10ProductMonthlyRevenue`, `top10ProductBigCategoryAvgBsr`,
+`top10ProductSmallCategoryAvgBsr`, `top20ProductConcentrationRate`, `top20ProductProductCount`,
+`top20ProductBrandCount`, `top20ProductMonthlySales`, `top20ProductMonthlyRevenue`,
 `top20ProductBigCategoryAvgBsr`, `top20ProductSmallCategoryAvgBsr`, `top3BrandConcentrationRate`,
-`top3BrandBrandCnt`, `top3BrandMonthlySaleCnt`, `top3BrandMonthlySaleAmt`, `top3BrandProductCnt`,
-`top3BrandBigCategoryAvgBsr`, `top5BrandConcentrationRate`, `top5BrandBrandCnt`,
-`top5BrandMonthlySaleCnt`, `top5BrandMonthlySaleAmt`, `top5BrandProductCnt`,
-`top5BrandBigCategoryAvgBsr`, `top10BrandConcentrationRate`, `top10BrandBrandCnt`,
-`top10BrandMonthlySaleCnt`, `top10BrandMonthlySaleAmt`, `top10BrandProductCnt`,
-`top10BrandBigCategoryAvgBsr`, `top20BrandConcentrationRate`, `top20BrandBrandCnt`,
-`top20BrandMonthlySaleCnt`, `top20BrandMonthlySaleAmt`, `top20BrandProductCnt`,
+`top3BrandBrandCount`, `top3BrandMonthlySales`, `top3BrandMonthlyRevenue`, `top3BrandProductCount`,
+`top3BrandBigCategoryAvgBsr`, `top5BrandConcentrationRate`, `top5BrandBrandCount`,
+`top5BrandMonthlySales`, `top5BrandMonthlyRevenue`, `top5BrandProductCount`,
+`top5BrandBigCategoryAvgBsr`, `top10BrandConcentrationRate`, `top10BrandBrandCount`,
+`top10BrandMonthlySales`, `top10BrandMonthlyRevenue`, `top10BrandProductCount`,
+`top10BrandBigCategoryAvgBsr`, `top20BrandConcentrationRate`, `top20BrandBrandCount`,
+`top20BrandMonthlySales`, `top20BrandMonthlyRevenue`, `top20BrandProductCount`,
 `top20BrandBigCategoryAvgBsr`, `top3SellerConcentrationRate`, `top5SellerConcentrationRate`,
 `top10SellerConcentrationRate`, `top20SellerConcentrationRate`,
 `top3SellerCountryConcentrationRate`, `top5SellerCountryConcentrationRate`,
 `top10SellerCountryConcentrationRate`, `top20SellerCountryConcentrationRate`,
-`top3ProductMonthlySaleCntRate`, `top3ProductAvgMonthlySaleCnt`, `top3ProductMonthlySaleAmtRate`,
-`top3ProductAvgMonthlySaleAmt`, `top5ProductMonthlySaleCntRate`, `top5ProductAvgMonthlySaleCnt`,
-`top5ProductMonthlySaleAmtRate`, `top5ProductAvgMonthlySaleAmt`, `top10ProductMonthlySaleCntRate`,
-`top10ProductAvgMonthlySaleCnt`, `top10ProductMonthlySaleAmtRate`, `top10ProductAvgMonthlySaleAmt`,
-`top20ProductMonthlySaleCntRate`, `top20ProductAvgMonthlySaleCnt`, `top20ProductMonthlySaleAmtRate`,
-`top20ProductAvgMonthlySaleAmt`, `top3BrandMonthlySaleCntRate`, `top3BrandAvgMonthlySaleCnt`,
-`top3BrandMonthlySaleAmtRate`, `top3BrandAvgMonthlySaleAmt`, `top5BrandMonthlySaleCntRate`,
-`top5BrandAvgMonthlySaleCnt`, `top5BrandMonthlySaleAmtRate`, `top5BrandAvgMonthlySaleAmt`,
-`top10BrandMonthlySaleCntRate`, `top10BrandAvgMonthlySaleCnt`, `top10BrandMonthlySaleAmtRate`,
-`top10BrandAvgMonthlySaleAmt`, `top20BrandMonthlySaleCntRate`, `top20BrandAvgMonthlySaleCnt`,
-`top20BrandMonthlySaleAmtRate`, `top20BrandAvgMonthlySaleAmt`, `topNBrandAvgMonthlySaleCnt`,
-`topNBrandAvgMonthlySaleAmt`, `topNBrandMonthlySaleAmtRate`
+`top3ProductMonthlySalesRate`, `top3ProductAvgMonthlySales`, `top3ProductMonthlyRevenueRate`,
+`top3ProductAvgMonthlyRevenue`, `top5ProductMonthlySalesRate`, `top5ProductAvgMonthlySales`,
+`top5ProductMonthlyRevenueRate`, `top5ProductAvgMonthlyRevenue`, `top10ProductMonthlySalesRate`,
+`top10ProductAvgMonthlySales`, `top10ProductMonthlyRevenueRate`, `top10ProductAvgMonthlyRevenue`,
+`top20ProductMonthlySalesRate`, `top20ProductAvgMonthlySales`, `top20ProductMonthlyRevenueRate`,
+`top20ProductAvgMonthlyRevenue`, `top3BrandMonthlySalesRate`, `top3BrandAvgMonthlySales`,
+`top3BrandMonthlyRevenueRate`, `top3BrandAvgMonthlyRevenue`, `top5BrandMonthlySalesRate`,
+`top5BrandAvgMonthlySales`, `top5BrandMonthlyRevenueRate`, `top5BrandAvgMonthlyRevenue`,
+`top10BrandMonthlySalesRate`, `top10BrandAvgMonthlySales`, `top10BrandMonthlyRevenueRate`,
+`top10BrandAvgMonthlyRevenue`, `top20BrandMonthlySalesRate`, `top20BrandAvgMonthlySales`,
+`top20BrandMonthlyRevenueRate`, `top20BrandAvgMonthlyRevenue`, `topNBrandAvgMonthlySales`,
+`topNBrandAvgMonthlyRevenue`, `topNBrandMonthlyRevenueRate`
 
 ## 2a. Market detail routes
 
