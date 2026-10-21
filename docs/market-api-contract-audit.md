@@ -70,20 +70,46 @@ CLI 仍只生成标准请求，不因此新增旧参数别名。REST 的模型�
 
 MarketHistoryFact 的 marketSize 字段注释仍提到“available new-product windows”，sampleProfile 注释仍提到“per-SPU averages / available sample subprofiles”。实际 MarketHistorySales 与 MarketHistorySampleProfile Schema 不包含新品窗口或 avgProductMonthlySaleCnt/Amt。本仓库按实际字段解释，已明确排除这些不存在的能力；这些上游注释需要另外修正。
 
-## 线上与发布边界
+## 实际 MCP 核对（2026-10-21）
 
-2026-10-21 按用户要求使用 MCP 直接请求，公开文档不能作为实际部署状态的依据。进程环境中的 `ZOODATA_BASE_URL` 为 `http://localhost:8080/openapi/v2`；尚未独立验证 MCP 连接器是否采用该进程变量，不能据此断言 MCP 的请求目标就是 localhost。
+直接向本机 MCP 配置中的 `http://localhost:8080/mcp` 完成 initialize 和 tools/list，取得 14 个市场工具的新描述及 inputSchema。没有使用公开 OpenAPI 文档判断部署状态。以下现场请求/响应与文前指定提交的静态模型是两份不同证据。
 
-`openapi_v2_markets_search` 实测成功，请求为：
+本会话注入的原生工具定义仍为旧版，与 localhost 当前 tools/list 不同；不能据此说服务端描述错误，也不能仅凭配置文件确认原生工具历史请求实际连接了哪个实例。dev 的当前状态由用户提供，本轮没有独立请求 dev。
 
-```json
-{"category":{"ids":["679399011"]},"marketplace":"US","sampleType":"unitSalesTop100","dateRange":"30d","page":1,"pageSize":1}
-```
+当前 localhost 的公开请求契约：
+- search 使用可选截止日期 `date`，省略取最新；指定日期取不晚于它的最近共同快照，实际日期看 `resolvedDate`。inputSchema 没有 dateRange。filters 使用平铺的 Min/Max，目前为 28 对数值边界加 sellerCountryCodes；排序仍有 192 个指标，筛选与排序字段集合不再相同。
+- profile、七种分布、三种集中度使用 categoryIds、商品范围布尔值、sampleType 和可选精确 date；未发布的明确日期返回空结果。
+- history 明确为月度历史，dateFrom/dateTo 必填，边界不必月末；只返回范围内已发布月末并升序排列。包含全市场总量及样本销量、销售额、价格、评分、单品月均销量/销售额；无新品和分布历史。
+- launch-trend 使用可选 dateFrom/dateTo 过滤首次上架日期，先过滤再按月/年分组；样本始终取最新快照。没有请求 date，不能把上架范围当作样本快照范围。
+- search 按次收费，空结果也收费；其他市场接口按实际返回的去重市场数收费，空结果不收费，查询前会按请求去重市场数检查余额而不预扣。这是当前工具描述，尚未实测多市场计费。
 
-返回 `success=true`、1 条记录，`resolvedDate=2026-10-19`，消耗 1 credit；请求标识为 `req_d6d713d597c54eea`。实际 202 个顶层字段与冻结的 MarketSearchFact 字段集合比较，唯一差异是实际返回 `resolvedDate`，没有源码模型中的 `snapshotDate`。这表明源码冻结契约尚未完成实际服务验收；不能将该日期差异推定到其他 13 个接口，也不能据此宣称所有字段类型和参数组合已通过实测。
+通过本会话原生 MCP 工具，14 个接口均已取得有数据的 success=true 结果；这是单类目、销量 Top 100 的逐接口抽样，不能宣称全部参数或字段类型穷举通过。每个最终有数据请求消耗 1 credit。
 
-profile、history、price-distributions、rating-distributions 的 MCP 请求均在工具层被拒绝，原因为 `MCP tool call requires approval, but approval policy is never`，没有取得服务响应。其余 9 个接口尚未实测。当前 MCP 工具声明仍包含旧 `categoryScope`，未暴露标准 `includeDescendantCategoryProducts`；工具声明、源码模型和实际响应必须分别核对，不能混为一层契约。
+| 接口 | 市场记录数 | 实际根字段数 | requestId |
+|---|---:|---:|---|
+| profile | 1 | 11 | req_bb69ae20eb654802 |
+| history | 1 | 6 | req_ce2f539f35ca4022 |
+| price-distributions | 1 | 18 | req_e2353bc638df4ad0 |
+| rating-distributions | 1 | 18 | req_c988927a55ac4de1 |
+| rating-count-distributions | 1 | 18 | req_2e9187c81d6242e4 |
+| listing-age-distributions | 1 | 18 | req_6b0a0bb3a7824175 |
+| fulfillment-distributions | 1 | 18 | req_e33bfa902229412a |
+| seller-country-distributions | 1 | 18 | req_472a761b54214d1b |
+| content-distributions | 1 | 18 | req_4ea42d21876c4eb0 |
+| top-product-concentrations | 1 | 19 | req_bc604da55e7f4e9f |
+| brand-concentrations | 1 | 20 | req_14a2b347167046c2 |
+| seller-concentrations | 1 | 19 | req_014d446a950a4837 |
+| listing-launch-trend | 1 | 8 | req_0d609b1ae6054410 |
+| search | 1 | 202 | req_62586dcebb65414e |
 
-未验证其余市场接口的实际数据、已安装技能，也未部署服务或发布技能。源码模型校验和模拟序列化通过不能替代这些验收。
+实测差异：
+- search 的 202 个根字段中，resolvedDate 替代静态模型中的 snapshotDate；profile、七种分布与三种集中度也返回 resolvedDate。
+- 分布与集中度在根层返回 sampleProductCnt、sampleMonthlySaleCnt/Amt，以及 sampleAvgProductPrice30d、sampleAvgProductMonthlySaleCnt/Amt、sampleAvgProductRatingAmt/Cnt。
+- history 返回 data[].points[].date，包含 marketSize 与 sampleProfile；样本块实际含 avgProductMonthlySaleCnt/Amt。本次 2026-06-01 至 09-30 返回四个点：06-30、07-31、08-31、09-30。初始 10-01 至 10-19 请求不含已发布月末，返回空结果且计费 0，是日期选择问题。
+- launch 传 date 会得到 extra input 错误；省略后成功，返回市场身份、granularity 和 points[]，每点为 date/productCnt。本次无范围请求返回 55 个点，响应没有快照日期，不能补造它。
 
-仓库验证：`python -m pytest -q --tb=short` 为 310 passed、2 skipped（可选 live 测试）；`bash scripts/sync-scripts.sh --check` 为 8 个技能、0 个差异；`git diff --check` 通过。
+补充直接通过 localhost MCP tools/call 验证新版参数：
+- search 使用 `date=2026-09-15` 和 `filters={avgProductPrice30dMin:10,avgProductPrice30dMax:50}` 成功，实际 resolvedDate 为 2026-08-31，确认截止日期不要求月末，且不是精确日匹配。requestId 为 req_4410ef3bc214420b，消耗 1 credit。
+- launch 使用 `dateFrom=2026-07-01,dateTo=2026-09-30,granularity=month` 成功，仅返回 2026-07/08/09 三个首次上架批次，productCnt 分别为 5/5/1。requestId 为 req_36177510b3604227，消耗 1 credit。
+
+**当前 PR 尚未完成上述新契约的运行时适配。** 前文源码冻结 fixture、248 组请求和 28 组模拟响应只能证明对指定旧提交的兼容，不能证明兼容当前 localhost。不得将抽样返回字段推定为完整 Schema 的必填项或全部可空类型。没有部署服务、发布技能或验收已安装技能。

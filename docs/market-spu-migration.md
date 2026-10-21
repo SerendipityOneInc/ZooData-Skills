@@ -4,7 +4,7 @@
 <!-- markdown-link-check-disable-next-line -->
 本次适配依据 [hermes-workspace #616](https://github.com/SerendipityOneInc/hermes-workspace/pull/616) 的 `4284967a4b6a02290a9b50a35e33c79c727d4560`。该提交定义 14 个市场接口；保留 search/history 的 HTTP 路径，更换请求和响应契约，退役 structure-profile。
 
-实际 MCP 验收尚未完成：2026-10-21 search 返回 `resolvedDate`，与下文源码契约的 `snapshotDate` 不同；另四个接口被 MCP 执行权限阻止，其余未实测。详细证据见[市场接口审计](market-api-contract-audit.md#线上与发布边界)。下文描述的是指定源码版本，不能视为所有接口已通过实际服务核对。
+2026-10-21 已直接从 localhost MCP tools/list 取得新契约，全部 14 个原生 MCP 工具取得有数据响应。当前服务与下文指定源码版本仍有日期、筛选、history 和 launch 请求/响应差异，运行时适配尚未完成，不能视为当前 PR 已兼容实际服务。详细证据见[市场接口审计](market-api-contract-audit.md#实际-mcp-核对2026-10-21)。
 
 ## 命令迁移
 
