@@ -233,6 +233,47 @@ class TestMarketSkillOwnership(unittest.TestCase):
         self.assertNotIn("## Interface Data Differences", guide)
         self.assertNotIn("## Output Spec", skill)
 
+    def test_market_concentration_and_rank_meanings_have_one_local_owner(self):
+        skill = (MARKET / "SKILL.md").read_text()
+        self.assertIn("`references/market-metric-semantics.md` owns the meaning, denominator", skill)
+        self.assertIn("`references/reference.md` owns only production API facts", skill)
+        semantics = (MARKET / "references/market-metric-semantics.md").read_text()
+        reference = (MARKET / "references/reference.md").read_text()
+        self.assertIn("market-metric-semantics.md#structure-entry-and-concentration", reference)
+        # API field inventories may name these fields; assigning their meaning
+        # or denominator belongs only to the declared semantic owner.
+        definitions = (
+            r"`?concentrationRate`?\s+follows\s+the sample",
+            r"Entity\s+`?rank`?\s+follows\s+(?:sampleType|the sample)",
+            r"`?distributionRank`?\s+(?:is|are)\s+display order",
+            r"Content and seller-country memberships\s+(?:can\s+)?overlap",
+            r"unknown fulfillment\s+stays in the denominator",
+        )
+        for pattern in definitions:
+            self.assertRegex(semantics, pattern)
+            for path in (MARKET / "references").glob("*.md"):
+                if path.name != "market-metric-semantics.md":
+                    with self.subTest(pattern=pattern, module=path.name):
+                        self.assertNotRegex(path.read_text(), pattern)
+
+    def test_general_market_response_rules_stay_out_of_execution_guide(self):
+        root = ROOT / "amazon-analysis"
+        skill = (root / "SKILL.md").read_text()
+        self.assertIn("`references/reference.md` owns endpoint availability, request and response fields", skill)
+        reference = (root / "references/reference.md").read_text()
+        guide = (root / "references/execution-guide.md").read_text()
+        self.assertIn("reference.md#profile-distributions-and-concentration", guide)
+        definitions = (
+            r"Distribution bucket shares use .* denominator",
+            r"Top N new-product monthlySalesRate/monthlyRevenueRate use .* denominators",
+            r"(?:Price bands|Price buckets) use inclusive lower.*exclusive upper",
+            r"(?:No bucket new-product or brand-concentration block is provided|distribution buckets do not provide new-product profiles)",
+        )
+        for pattern in definitions:
+            with self.subTest(pattern=pattern):
+                self.assertRegex(reference, pattern)
+                self.assertNotRegex(guide, pattern)
+
     def test_focused_market_discovery_routes_away_from_general_skill(self):
         general = (ROOT / "amazon-analysis" / "SKILL.md").read_text()
         general_description = general.split("description: >", 1)[1].split("metadata:", 1)[0]
@@ -257,9 +298,12 @@ class TestMarketSkillOwnership(unittest.TestCase):
                 for required in ("SPU", "includeDescendantCategoryProducts", "categoryIds", "dateRange",
                                  "sampleMonthlySales", "avgMonthlySales",
                                  "totalMonthlyRevenue", "sellerCountryCodes",
-                                 "HTTP 410", "exact common snapshot", "two decimals",
-                                 "Content and seller-country memberships overlap"):
+                                 "HTTP 410", "exact common snapshot", "two decimals"):
                     self.assertIn(required.lower(), text.lower())
+                # This skill routes metric meanings to its semantic owner;
+                # the other standalone skills keep them in their API reference.
+                if path != MARKET / "references/reference.md":
+                    self.assertIn("Content and seller-country memberships overlap", text)
                 self.assertNotIn("Response `data.points[]`", text)
                 self.assertNotIn("Required: `categoryId`, `dimension`", text)
                 self.assertNotIn("sampleAvgMonthlySalesMin", text)

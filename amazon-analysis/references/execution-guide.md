@@ -243,7 +243,7 @@ Use `totalMonthlyRevenue` from `markets/search` for full-category revenue and `s
 
 These remaining bands are exploratory heuristics, not calibrated entry verdicts. Read `top10ProductMonthlySalesRate` and `top10BrandMonthlySalesRate` as separate selected Top 100 monthly-sales concentration measures. Read the sample new-product rate from an explicitly identified window as the new-product share within that sample. Do not classify these three rates from former fixed cutoffs; compare compatible peers or prior snapshots and state the observed denominator and window.
 
-Distribution bucket shares use the selected sample as denominator. Top N new-product monthlySalesRate/monthlyRevenueRate use their ranked group sales/revenue denominators; distribution buckets do not provide new-product profiles. Price bands use inclusive lower and exclusive upper bounds; compare actual bounds because band codes can change across markets or dates. Use documented bucket-code rules for other dimensions.
+Before comparing distribution or concentration evidence, read [the market response contract](reference.md#profile-distributions-and-concentration) for supported fields, denominators and bucket boundaries.
 
 ## Cross-endpoint evidence use
 

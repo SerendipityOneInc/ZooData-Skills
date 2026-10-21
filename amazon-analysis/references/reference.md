@@ -75,6 +75,8 @@ The seven distributions use `priceDistribution`, `ratingDistribution`, `ratingCo
 
 `top-product-concentrations` and `seller-concentrations` use `topnMetrics`; brand also uses `topnMetrics`. Entity arrays are topProductList, topSellerList and topBrandList, at most 20 leading entities. Root sample totals and means use the same sample-prefixed fields as distributions. Top N rows contain productCount, concentrationRate, monthlySales, monthlyRevenue, per-product price/sales/rating means and newProductProfile. All four cutoffs return both sales totals. New-product windows have windowMonths, productCount, monthlySales, monthlyRevenue, monthlySalesRate/monthlyRevenueRate and per-product means. Entity shares use monthlySalesRate/monthlyRevenueRate, named consistently with distribution shares; retain the entity or bucket population when interpreting them. Entity rank follows sampleType; seller-country distributionRank is display order, not a sales rank. concentrationRate follows the sample's ranking metric.
 
+Distribution bucket shares use the selected sample as denominator. Top N new-product monthlySalesRate/monthlyRevenueRate use their ranked group sales/revenue denominators. Price bands use inclusive lower and exclusive upper bounds; compare actual bounds because band codes can change across markets or dates. Use documented bucket-code rules for other dimensions.
+
 Root and nested warehouse fields are optional and nullable. A nested array can be null; an empty data array, a null metric and a real zero are distinct results.
 
 ### Listing launch composition
