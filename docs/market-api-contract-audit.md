@@ -1,6 +1,8 @@
 # 市场接口 Request / Response 审计
 
-核对日期：2026-10-20。基准为 [hermes-workspace #616](https://github.com/SerendipityOneInc/hermes-workspace/pull/616) 的 `4284967a4b6a02290a9b50a35e33c79c727d4560`，不代表服务已部署。
+<!-- 上游为组织内部仓库，匿名链接检查无法访问。 -->
+<!-- markdown-link-check-disable-next-line -->
+源码核对日期：2026-10-20。基准为 [hermes-workspace #616](https://github.com/SerendipityOneInc/hermes-workspace/pull/616) 的 `4284967a4b6a02290a9b50a35e33c79c727d4560`，不代表服务已部署。下列表格是源码模型核对，实际 MCP 验证另见文末。
 
 ## 核对方法与结果
 
@@ -70,8 +72,18 @@ MarketHistoryFact 的 marketSize 字段注释仍提到“available new-product w
 
 ## 线上与发布边界
 
-只读获取 `https://zoodata.ai/api/v1/openapi-spec?format=json` 后，实际 Schema 位于外层 spec。2026-10-20 仍只有 search、structure-profile、history 三个旧市场接口，与上述 14 接口源码契约不一致。
+2026-10-21 按用户要求使用 MCP 直接请求，公开文档不能作为实际部署状态的依据。进程环境中的 `ZOODATA_BASE_URL` 为 `http://localhost:8080/openapi/v2`；尚未独立验证 MCP 连接器是否采用该进程变量，不能据此断言 MCP 的请求目标就是 localhost。
 
-本轮未调用付费市场数据接口，未验证 BigQuery 数据、鉴权、线上 MCP 调用或已安装技能，也未部署服务或发布技能。源码模型校验和模拟序列化通过不能替代这些验收。
+`openapi_v2_markets_search` 实测成功，请求为：
+
+```json
+{"category":{"ids":["679399011"]},"marketplace":"US","sampleType":"unitSalesTop100","dateRange":"30d","page":1,"pageSize":1}
+```
+
+返回 `success=true`、1 条记录，`resolvedDate=2026-10-19`，消耗 1 credit；请求标识为 `req_d6d713d597c54eea`。实际 202 个顶层字段与冻结的 MarketSearchFact 字段集合比较，唯一差异是实际返回 `resolvedDate`，没有源码模型中的 `snapshotDate`。这表明源码冻结契约尚未完成实际服务验收；不能将该日期差异推定到其他 13 个接口，也不能据此宣称所有字段类型和参数组合已通过实测。
+
+profile、history、price-distributions、rating-distributions 的 MCP 请求均在工具层被拒绝，原因为 `MCP tool call requires approval, but approval policy is never`，没有取得服务响应。其余 9 个接口尚未实测。当前 MCP 工具声明仍包含旧 `categoryScope`，未暴露标准 `includeDescendantCategoryProducts`；工具声明、源码模型和实际响应必须分别核对，不能混为一层契约。
+
+未验证其余市场接口的实际数据、已安装技能，也未部署服务或发布技能。源码模型校验和模拟序列化通过不能替代这些验收。
 
 仓库验证：`python -m pytest -q --tb=short` 为 310 passed、2 skipped（可选 live 测试）；`bash scripts/sync-scripts.sh --check` 为 8 个技能、0 个差异；`git diff --check` 通过。
