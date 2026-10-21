@@ -238,7 +238,7 @@ Use `totalMonthlyRevenue` from `markets/search` for full-category revenue and `s
 | Indicator | Good | Caution | Warning |
 |-----------|------|---------|---------|
 | Monthly demand per sampled product (`avgMonthlySales`) | >1,500 units 🔍 | 500-1,500 🔍 | <500 🔍 |
-| Avg review count (`avgRatingCount`) | <500 🔍 | 500-5,000 🔍 | >5,000 🔍 |
+| Average rating count (`avgRatingCount`, 平均评分数) | <500 🔍 | 500-5,000 🔍 | >5,000 🔍 |
 | FBM rate (`sampleFbmProductRate`) | <40% 🔍 | 40-60% 🔍 | >60% 🔍 |
 
 These remaining bands are exploratory heuristics, not calibrated entry verdicts. Read `top10ProductMonthlySalesRate` and `top10BrandMonthlySalesRate` as separate selected Top 100 monthly-sales concentration measures. Read the sample new-product rate from an explicitly identified window as the new-product share within that sample. Do not classify these three rates from former fixed cutoffs; compare compatible peers or prior snapshots and state the observed denominator and window.

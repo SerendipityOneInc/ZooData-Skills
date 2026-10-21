@@ -13,13 +13,20 @@ Market measures count SPUs (parent products), merging same-product variants. The
 | `avgMonthlySales`, `avgMonthlyRevenue` | Per-SPU monthly averages within the selected sample | Observed average product scale | Confuse with the sample totals or infer seller revenue |
 | `avgPrice`, `medianProductPrice` | Different price aggregations in the selected sample | Observed price positioning | Infer profit or the price of every product |
 | `avgGrossMarginRate` | Service-estimated average sample gross margin | Describe the returned estimate | Treat as seller contribution margin |
-| `avgRating`, `avgRatingCount` | Sample average star rating and rating count | Observed rating and review barrier | Treat rating count as a separate unavailable review-count metric |
+| `avgRating`, `avgRatingCount` | Sample average star rating and rating count | Observed rating barrier | Treat rating count as written-review count |
+| `avgBigBsr30d` | Selected sample's average BSR | Observed sample ranking level | Treat as an individual product's `bsr` |
 
 `marketSize` in profile carries full-category measures; `sampleProfile` alone carries the selected sample. Preserve their scope when mapping profile evidence to search fields. Revenue is returned USD, not price × sales, and must not be converted from cents again.
 
-Monthly sales and revenue cover the trailing 30 days at the snapshot, not cumulative sales across a requested history or new-product window. Price and rating means exclude null values independently, include real zeros, and return null with no valid values; denominators can differ by metric. Do not reconstruct a returned mean as a total divided by product count unless that denominator is explicitly documented.
+Monthly sales and revenue cover the trailing 30 days at the data's business date, not cumulative sales across a requested history or new-product window. Price and rating means exclude null values independently, include real zeros, and return null with no valid values; denominators can differ by metric. Do not reconstruct a returned mean as a total divided by product count unless that denominator is explicitly documented.
 
-The sample selector determines the population. Every claim retains the actual snapshot date and product inclusion scope. Product grain comes from the endpoint contract, not a returned productGrain field. Parent subtree and descendant rows can overlap; they are not additive independent markets.
+The sample selector determines the population. Every claim retains its endpoint-specific business-time identity and product inclusion scope. Product grain comes from the endpoint contract, not a returned productGrain field. Parent subtree and descendant rows can overlap; they are not additive independent markets.
+
+## Business-time identity
+
+- For search, profile, distribution and concentration observations, `resolvedDate` is the actual business date of the returned data. It is not a production timestamp. The request's `date` is a selection input and may differ from the returned business date under the endpoint's date-selection contract; use the returned date to interpret and compare the data.
+- For history, each point's `date` is the business date of that monthly observation. Requested bounds select the range; they do not replace returned point dates.
+- For launch composition, each point's `date` identifies a first-launch month or year. These business periods and the requested first-launch bounds provide the time identity for the composition question. The current-sample composition is valid without a separate sample business date. Do not reinterpret a launch period as the business date of the sample, or require an unreturned date before answering.
 
 ## Structure, entry, and concentration
 

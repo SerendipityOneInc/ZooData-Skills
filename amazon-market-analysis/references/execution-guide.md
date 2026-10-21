@@ -48,7 +48,7 @@ Each full-mode scenario stage defines exactly `Stage`, `Entry input`, `Evidence`
 |---:|---|---|
 | 1 | Stage Entry Gate | Select one stage whose required subject and requested conclusion are present. |
 | 2 | Interface Failure Stop Gate | Stop on the shared CLI contract's terminal interface classification. |
-| 3 | Field Identity Gate | Verify endpoint, subject, scope, sample, metric path, unit, denominator, and returned date. |
+| 3 | Field Identity Gate | Verify endpoint, subject, scope, sample, metric path, unit, denominator, and endpoint-specific business-time identity. |
 | 4 | Evidence Gate | Require the right evidence type and adequate coverage for each claim. |
 | 5 | Conclusion Authority Gate | Cap the judgment at the shared level and the stricter scenario stage. |
 | 6 | Handoff Gate | Derive evidence-supported continuation questions with clear entry inputs. |
@@ -65,7 +65,7 @@ Classify every CLI result through `cli-contract.md`. On a terminal interface fai
 
 ### Field Identity Gate
 
-Resolve `(source, category identity and paths, includeDescendantCategoryProducts, product grain, sampleType, marketplace, currency, metric path, unit, denominator, date or comparison periods)` before a claim. Do not move a Top 100 rate to the whole category, use `meta.total` as product count, or equate product history with market history. If identity is unresolved, state the unavailable field instead of guessing. For derived values, show the compatible inputs and formula.
+Resolve `(source, category identity and paths, includeDescendantCategoryProducts, product grain, sampleType, marketplace, currency, metric path, unit, denominator, endpoint-specific business-time identity)` before a claim. Apply `market-metric-semantics.md § Business-time identity` and the acquisition procedure in `evidence-protocols.md`; accept a valid endpoint time identity without requiring additional date fields. Do not move a Top 100 rate to the whole category, use `meta.total` as product count, or equate product history with market history. If required identity is unresolved, state the unavailable field instead of guessing. For derived values, show the compatible inputs and formula.
 
 ### Evidence Gate
 
@@ -96,7 +96,7 @@ At the next user turn, classify the actual reply through `SKILL.md`. A bare numb
 Apply `analysis-contract.md § 7. Final Response Gate` immediately before every user-facing send. This market module adds only the following rendering checks:
 
 1. Select one market output route and its complete permitted shape from `output-rules.md`; a normally completed full stage also uses the Stage-End Selection List Rule above.
-2. For quick mode, require source, scope, returned date, requested metric, limitations, and usage. For a normally completed full stage, require the canonical `Data Notes → Evidence → Analysis → Conclusion → API Usage → one final numbered selection list` order. A prose-only “next step”, missing final list, or missing fixed new-question/exit item fails.
+2. For quick mode, require source, scope, the endpoint-specific business-time rendering from `output-rules.md`, requested metric, material limitations, and usage. Do not reject a contract-conforming response for lacking a date field the endpoint does not provide. For a normally completed full stage, require the canonical `Data Notes → Evidence → Analysis → Conclusion → API Usage → one final numbered selection list` order. A prose-only “next step”, missing final list, or missing fixed new-question/exit item fails.
 3. Ensure every number maps to an observed field or labeled derivation, every verdict stays within market authority, and internal stage/Gate terms are absent from user-facing prose.
 4. Interface and credential failures use only their market failure rendering and do not render the normal report or list.
 

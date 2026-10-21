@@ -464,6 +464,56 @@ class TestMarketSkillOwnership(unittest.TestCase):
         self.assertNotIn("_credits.remaining", guide)
         self.assertNotIn("📊 **API Usage**", guide)
 
+    def test_business_time_identity_reaches_evidence_and_output_gates(self):
+        semantics = (MARKET / "references/market-metric-semantics.md").read_text()
+        self.assertIn("`resolvedDate` is the actual business date", semantics)
+        self.assertIn("may differ from the returned business date", semantics)
+        self.assertIn("each point's `date` is the business date", semantics)
+        self.assertIn("valid without a separate sample business date", semantics)
+        self.assertIn("Do not reinterpret a launch period", semantics)
+        self.assertNotRegex(semantics, r"Every claim retains.*snapshot date")
+        for module in ("evidence-protocols.md", "execution-guide.md", "output-rules.md"):
+            text = (MARKET / "references" / module).read_text()
+            with self.subTest(module=module):
+                self.assertIn("market-metric-semantics.md § Business-time identity", text)
+                self.assertNotRegex(text, r"require source, scope, returned date")
+                self.assertNotRegex(text, r"returned date (?:alongside every|with every market) field")
+        guide = (MARKET / "references/execution-guide.md").read_text()
+        self.assertIn("accept a valid endpoint time identity without requiring additional date fields", guide)
+        self.assertIn("Do not reject a contract-conforming response", guide)
+        output = (MARKET / "references/output-rules.md").read_text()
+        self.assertIn("首次上架月份/年份", output)
+        self.assertIn("数据日期", output)
+        self.assertIn("Do not add a missing-snapshot warning", output)
+        evidence = (MARKET / "references/evidence-protocols.md").read_text()
+        self.assertIn("project every relevant `points[].date` and productCount", evidence)
+
+    def test_cross_endpoint_capabilities_distinguish_rating_counts_and_sample_bsr(self):
+        fixture = json.loads((ROOT / "tests/fixtures/market-spu-contract.json").read_text())
+        self.assertIn("avgBigBsr30d", fixture["responseFields"]["MarketSearchFact"])
+        self.assertIn("avgBigBsr30d", fixture["numericFilters"])
+        self.assertIn("avgBigBsr30d", fixture["sortBy"])
+        for root in (ROOT / "amazon-analysis", ROOT / "zoodata"):
+            text = (root / "references/reference.md").read_text()
+            section = text.split("## Cross-endpoint field identity" if root.name == "amazon-analysis"
+                                 else "## Field Differences Across Endpoints", 1)[1]
+            rows = [line.split("|")[1:-1] for line in section.splitlines()
+                    if line.startswith("|")]
+            bsr = next(row for row in rows if row[0].strip() == "BSR")
+            self.assertIn("avgBigBsr30d", bsr[1])
+            self.assertIn("sample average", bsr[1])
+            self.assertIn("individual product", bsr[2])
+            for row in rows:
+                if "avgRatingCount" in row[1] or "ratingCount" in row[2]:
+                    self.assertEqual(row[0].strip(), "Rating count")
+                    self.assertNotIn("reviewCount", row[4])
+                if "reviewCount" in row[4]:
+                    self.assertIn("Written-review", row[0])
+                    self.assertNotIn("avgRatingCount", row[1])
+        guide = (ROOT / "amazon-analysis/references/execution-guide.md").read_text()
+        self.assertIn("平均评分数", guide)
+        self.assertNotRegex(guide, r"(?i)avg review count.*avgRatingCount")
+
     def test_general_operations_routes_history_by_subject(self):
         ops = (ROOT / "amazon-analysis" / "references" /
                "scenarios-ops.md").read_text()

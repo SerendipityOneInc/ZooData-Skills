@@ -306,9 +306,10 @@ keyword-intelligence endpoints described by the package index.
 |------|---------|---------------------|----------|---------|---------|------------|-------|---------|
 | Sales | totalMonthlySales / sampleMonthlySales | monthlySalesFloor | ❌ | ❌ | ❌ | sampleSalesRate | sampleGroupMonthlySales | monthlySalesFloor[] |
 | Price | medianProductPrice | price | buyboxWinner.price | ❌ | ❌ | bandMin/MaxPrice | sampleAvgPrice | price[] |
-| BSR | ❌ | bsr (int) | bestsellersRank[] | ❌ | ❌ | ❌ | ❌ | bsr[] |
+| BSR | avgBigBsr30d (sample average; search filter/sort supported) | bsr (individual product, int) | bestsellersRank[] | ❌ | ❌ | ❌ | ❌ | bsr[] |
 | Rating | avgRating | rating | rating | avgRating | rating (per review) | sampleAvgRating | sampleAvgRating | rating[] |
-| Reviews | avgRatingCount | ratingCount | ratingCount | reviewCount | reviews[] (raw text, max 100) | ❌ | sampleAvgRatingCount | ratingCount[] |
+| Rating count | avgRatingCount (平均评分数) | ratingCount | ratingCount | ❌ | ❌ | ❌ | sampleAvgRatingCount | ratingCount[] |
+| Written-review data | ❌ | ❌ | ❌ | reviewCount | reviews[] (raw text, max 100) | ❌ | ❌ | ❌ |
 | Insights | ❌ | ❌ | ❌ | ✅ consumerInsights | ❌ (raw only — feeds Local Review Toolkit) | ❌ | ❌ | ❌ |
 | Concentration | top10BrandMonthlySalesRate | ❌ | ❌ | ❌ | ❌ | sampleTop3BrandSalesRate | CR10 | ❌ |
 | Opportunity | ❌ | ❌ | ❌ | ❌ | ❌ | sampleOpportunityIndex | ❌ | ❌ |

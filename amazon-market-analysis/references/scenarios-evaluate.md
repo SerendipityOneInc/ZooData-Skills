@@ -37,4 +37,4 @@ Apply `seller-input-semantics.md` to missing cost, fee, compliance, and IP input
 
 ## Section content requirements
 
-In `Evidence`, show the resolved market identity, returned snapshot/date, sample scope, and the seller inputs actually supplied. In `Analysis`, separate observed market barriers from seller-specific assumptions and explain conflicts. In `Conclusion`, state either the market screen or the supported conditional verdict, including any material evidence gap. An evidence-backed next question can be selected only through the guide-owned final list.
+In `Evidence`, show the resolved market identity, business-time identity through `output-rules.md`, sample scope, and the seller inputs actually supplied. In `Analysis`, separate observed market barriers from seller-specific assumptions and explain conflicts. In `Conclusion`, state either the market screen or the supported conditional verdict, including any material evidence gap. An evidence-backed next question can be selected only through the guide-owned final list.

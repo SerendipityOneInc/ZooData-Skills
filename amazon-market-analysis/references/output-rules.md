@@ -10,14 +10,14 @@ On a terminal interface failure selected by `execution-guide.md`, return one con
 
 ## Quick lookup
 
-Answer the requested metric or distribution directly. State its category, `direct`/`subtree` scope, selected Top 100 type when relevant, returned date or month-end period, source endpoint, and material limitation. Mark a direct API value 📊 and a calculated value 🔍. Include the API usage table below when a live call was made. Do not turn a one-field lookup into a multi-stage report.
+Answer the requested metric or distribution directly. State its category, `direct`/`subtree` scope, selected Top 100 type when relevant, endpoint-specific business time as rendered below, source endpoint, and material limitation. Mark a direct API value 📊 and a calculated value 🔍. Include the API usage table below when a live call was made. Do not turn a one-field lookup into a multi-stage report.
 
 ## Full report shape
 
 For one normally completed full stage, use this localized top-level order:
 
 1. Title naming the category or observed candidate set and the current business question;
-2. `Data Notes` — source, returned dates, scope, sample selector, pages/rows or history-point coverage;
+2. `Data Notes` — source, relevant business dates or periods, scope, sample selector, pages/rows or history-point coverage;
 3. `Evidence` — observed facts with units and source identity;
 4. `Analysis` — compatible comparisons, uncertainty, and labeled inference;
 5. `Conclusion` — only the active stage's authorized judgment;
@@ -44,7 +44,11 @@ A section, score, table header, or group label that contains mixed confidence mu
 
 ## Provenance and usage
 
-Within `Data Notes` or `Evidence`, identify the relevant endpoint and actual returned `_query.params` when available. For `markets/search`, distinguish a broad discovery page, a batch of `category.ids`, and an exact one-ID snapshot. State the page range, filter/sort, requested `includeDescendantCategoryProducts`, `sampleType`, and `topN` or `newProductPeriod` when they selected a filter or sort; identify the returned Top N cutoff or new-product window identity used in the claim. For profile/distribution/concentration, preserve the inclusion boolean and actual resolvedDate; for history, preserve series identity and actual point dates, stating requested and returned bounds when different. For launch composition, retain the first-launch filter bounds and the fact that the sample is current; do not invent a snapshot date absent from the response.
+### Business-time rendering
+
+Apply the meanings in `market-metric-semantics.md § Business-time identity`. Label resolvedDate as the data's business date (数据日期), and history dates as observation months/dates. When the actual business date differs from the request's date, identify the actual date and make the distinction clear where relevant. For launch composition, label periods as first-launch month/year (首次上架月份/年份) and show a requested first-launch range when relevant. Do not add a missing-snapshot warning, production timestamp, or date-verification step to a valid composition answer.
+
+Within `Data Notes` or `Evidence`, identify the relevant endpoint and actual returned `_query.params` when available. For `markets/search`, distinguish a broad discovery page, a batch of `category.ids`, and an exact one-ID observation. State the page range, filter/sort, requested `includeDescendantCategoryProducts`, `sampleType`, and `topN` or `newProductPeriod` when they selected a filter or sort; identify the returned Top N cutoff or new-product window identity used in the claim. Render the business-time identity above and preserve scope and series identity; state requested and returned history bounds when different.
 
 Use a localized API-usage table when live calls were made:
 

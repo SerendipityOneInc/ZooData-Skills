@@ -32,15 +32,18 @@ CLI 保留 `--avg-price 10:30` 这样的范围写法，构造请求时展开为�
 
 ## 日期与响应读取
 
-- search 的 `--date` 是截止日，历史数据从 2026-02 的月末快照起，截止日无需月末；实际采用日期看 `resolvedDate`。最新结果是近 30 天画像。
-- profile、七种分布和三种集中度的 `--date` 是精确快照日，未发布该日则为空；省略取最新，响应使用 resolvedDate。
+- `resolvedDate` 是返回数据的实际业务日期，不是生产时间。请求的 `date` 用于选择数据，可能与实际返回的业务日期不同；分析和比较使用实际业务日期。
+- search 的 `--date` 是截止日，历史数据从 2026-02 的月末业务观测起，截止日无需月末；实际采用日期看 `resolvedDate`。最新结果是近 30 天画像。
+- profile、七种分布和三种集中度的 `--date` 是精确业务日期，未发布该日则为空；省略取最新，响应使用 resolvedDate。
 - history 必须传 `--date-from/--date-to`。边界无需月末，但只返回范围内已发布的月末快照，按日期升序。读取 `data[].points[].date`，不是 `data.points[]` 或 `history[]`。当前不完整月份不用于已完成月份趋势，也不补齐缺失月份。
 - history 每点的 marketSize 是全市场总量，sampleProfile 是样本总量及 avgPrice、avgMonthlySales、avgMonthlyRevenue、avgRating、avgRatingCount。没有新品、分布历史或 min/max 价格评分字段。
-- launch 的范围筛选首次上架日期，样本始终来自最新快照，先过滤再按 month/year 分组。读取 `data[].points[]` 中的 date/productCount；响应没有快照日期，不补造 resolvedDate 或 snapshotDate。上架组成不是历史需求曲线。
+- launch 的范围筛选首次上架日期，使用最新样本，先过滤再按 month/year 分组。读取 `data[].points[]` 中的 date/productCount；其时间身份是首次上架月份或年份，有效回答不要求额外的数据日期，不补造 resolvedDate 或 snapshotDate，也不把上架月份当作样本的数据日期。上架组成不是历史需求曲线。
 - profile 的样本统计位于 sampleProfile；分布和集中度在根层返回 sampleProductCount、sampleMonthlySales、sampleMonthlyRevenue 和 sampleAvgPrice、sampleAvgMonthlySales、sampleAvgMonthlyRevenue、sampleAvgRating、sampleAvgRatingCount，桶或排名组使用自己的均值。
 - 分布桶使用 bucketProductCount、bucketProductRate、monthlySalesRate/monthlyRevenueRate；实体明细的份额字段现统一为 monthlySalesRate/monthlyRevenueRate。三个集中度接口均用 topnMetrics，实体数组分别为 topProductList/topBrandList/topSellerList。profile 内 concentrationProfile 的 topnBrandMetrics 保持原名。Top N 新品份额的分母是排名组对应的销量或销售额。分布桶不提供新品或品牌集中度子画像。
 
 保留 null、真实 0、空数组和缺失字段的区别；公开小数保持两位，不能从四舍五入后的零份额推断精确零。旧 SKU 基线不能与新口径混用。
+
+`avgRatingCount` 表示样本平均评分数，不等于文字评论数。市场搜索返回 `avgBigBsr30d`，并支持对应筛选和排序；它是样本平均 BSR，与单品 `bsr` 区分。
 
 ## 计费与发布
 

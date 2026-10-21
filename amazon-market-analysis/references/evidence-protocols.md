@@ -7,13 +7,13 @@ This module owns shared evidence acquisition, identity matching, comparison, cov
 1. Translate the current question into claim-sized needs and map each need to a documented endpoint and expected field.
 2. Acquire the smallest response that resolves those needs. Use `market --category-id ID --page-size 1` for one current category; use bounded `market` pages for discovery; request a structure dimension only if its distribution matters; request history only for a time question.
 3. After each result, apply the guide's Interface Failure Stop Gate before any next call. Separate retrieved facts from interpretations and recommendations.
-4. Record source, request parameters, resolved category ID, returned date, sample type, category scope, pages/rows covered, and credit metadata in an evidence ledger.
+4. Record source, request parameters, resolved category ID, endpoint-specific business-time identity from `market-metric-semantics.md § Business-time identity`, sample type, category scope, pages/rows covered, and credit metadata in an evidence ledger.
 
 Documentation is a contract, not an observed metric. Do not call a paid endpoint again merely to reformat a valid response.
 
 ## Market result projection
 
-Apply the default result-isolation and cleanup procedure in `cli-contract.md` to every live market evidence command. Select projection fields from the claims planned for the active stage; the user does not need to choose fields or manage the temporary file. Always retain response success/failure identity, `_query.params`, credit metadata, coverage counts, category ID/name/path, marketplace, category scope, product grain, sample type, and returned date alongside every projected metric.
+Apply the default result-isolation and cleanup procedure in `cli-contract.md` to every live market evidence command. Select projection fields from the claims planned for the active stage; the user does not need to choose fields or manage the temporary file. Always retain response success/failure identity, `_query.params`, credit metadata, coverage counts, category ID/name/path, marketplace, category scope, product grain, sample type, and endpoint-specific business-time identity alongside every projected metric.
 
 For a multi-category comparison, validate the requested ID set, returned row IDs, row count, and every ranking field against the complete raw payload before emitting the projection. Include full-category demand and only sample measures used by the current comparison. Select the exact flat rank/window fields for search, or the matching nested rank/window entries for profile. Preserve their scope and actual identity; use `reference.md` to locate each endpoint's fields. Apply the shared analysis contract's evidence-state model to every projected field.
 
@@ -21,11 +21,13 @@ For `markets/history`, project every returned `data[].points[]` point needed for
 
 The conversation-visible projection is not proof of raw-response completeness by itself. A collapsed `… +N lines` display is not truncation when the transcript or isolated result remains readable; inspect that complete result without another call. An actual token-truncation marker, omitted middle, fewer available category rows than the raw payload, a missing history point in the projection, or a missing required field cannot support a ranking or trend. `success=true` and `meta.total=N` establish neither row visibility nor field availability. Re-project the already acquired raw result locally, without another paid call. Do not present a local handling omission as "unconfirmed detail", "incomplete return", or missing source data, and do not offer another paid query as the normal remedy for the same acquired evidence. If the isolated raw result is unavailable, stop the affected report instead of rendering a partially populated comparison. Delete both raw and intermediate projection files through the shared cleanup path only after validation and the bounded projection have completed.
 
-## Category and snapshot identity
+For launch composition, project every relevant `points[].date` and productCount with the requested dateFrom/dateTo and granularity; validate the retained periods and values against the raw result. For observations that return resolvedDate, preserve it separately from the requested date. Locate fields through `reference.md` and interpret their time identity through `market-metric-semantics.md`.
+
+## Category and business-time identity
 
 - Resolve a human path through `categories` and preserve the returned `categoryId`. For a product keyword that has no direct category match, a product-search-derived path is only an inferred category; do not silently promote it to the user's intended market.
 - For an exact market query, require one `markets/search.data[]` row whose `categoryId` equals the requested ID. For an ID batch, compare returned IDs with the requested set before claiming complete coverage. A zero-row result is no market observation. Do not substitute the first unrelated discovery row.
-- Carry the request's and response's top-level `includeDescendantCategoryProducts` for all market routes, `sampleType`, relevant Top N rank cutoff and new-product window identity, marketplace, and returned date with every market field. Directly assigned products and descendant-inclusive products, or unit-sales-selected and revenue-selected Top 100, are different populations.
+- Carry the request's and response's top-level `includeDescendantCategoryProducts` for all market routes, `sampleType`, relevant Top N rank cutoff and new-product window identity, marketplace, and endpoint-specific business-time identity with every market field. Directly assigned products and descendant-inclusive products, or unit-sales-selected and revenue-selected Top 100, are different populations.
 - A composite's `market.data` is already a selected market object; a granular `market.data` is an array. Do not index either shape by assumption. Reuse compatible successful composite sections locally.
 
 ## Bounded discovery and candidate validation
