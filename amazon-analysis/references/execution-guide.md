@@ -243,7 +243,7 @@ Use `totalMonthlySaleAmt` from `markets/search` for full-category revenue and `s
 
 These remaining bands are exploratory heuristics, not calibrated entry verdicts. Read `top10ProductMonthlySaleCntRate` and `top10BrandMonthlySaleCntRate` as separate selected Top 100 monthly-sales concentration measures. Read the sample new-product rate from an explicitly identified window as the new-product share within that sample. Do not classify these three rates from former fixed cutoffs; compare compatible peers or prior snapshots and state the observed denominator and window.
 
-Distribution bucket shares use the selected sample as denominator; nested price/content new-product shares use the parent bucket, and Top N new-product saleRate uses the ranked group. Use the returned bucket code for interval inclusion rules rather than inferring them from nullable bounds.
+Distribution bucket shares use the selected sample as denominator. Top N new-product monthlySaleCntRate/monthlySaleAmtRate use their ranked group sales/revenue denominators; distribution buckets do not provide new-product profiles. Use the returned bucket code for interval inclusion rules rather than inferring them from nullable bounds.
 
 ## Cross-endpoint evidence use
 

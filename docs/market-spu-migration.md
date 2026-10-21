@@ -1,44 +1,41 @@
-# SPU 市场接口迁移
+# 市场接口技能迁移
 
-<!-- 上游为组织内部仓库，匿名链接检查无法访问。 -->
-<!-- markdown-link-check-disable-next-line -->
-本次适配依据 [hermes-workspace #616](https://github.com/SerendipityOneInc/hermes-workspace/pull/616) 的 `4284967a4b6a02290a9b50a35e33c79c727d4560`。该提交定义 14 个市场接口；保留 search/history 的 HTTP 路径，更换请求和响应契约，退役 structure-profile。
+本次以 2026-10-21 从 `http://localhost:8080/mcp` 直接取得的 tools/list、inputSchema 和实际 tools/call 响应为准。旧源码提交或会话缓存的工具定义不能代替当前服务契约。接口仍为 14 个，统计粒度为合并同父商品变体的 Listing/SPU，仅美国站。
 
-2026-10-21 已直接从 localhost MCP tools/list 取得新契约，全部 14 个原生 MCP 工具取得有数据响应。当前服务与下文指定源码版本仍有日期、筛选、history 和 launch 请求/响应差异，运行时适配尚未完成，不能视为当前 PR 已兼容实际服务。详细证据见[市场接口审计](market-api-contract-audit.md#实际-mcp-核对2026-10-21)。
+## 请求迁移
 
-## 命令迁移
-
-| 原调用 | 新调用 |
+| 原调用或构造 | 当前调用或构造 |
 |---|---|
-| `market --date YYYY-MM-DD` | `market --date-range 30d` 或 `--date-range YYYY-MM`；任意精确日快照使用 `market-profile --date YYYY-MM-DD` |
-| `market --sample-avg-price-min 10 --sample-avg-price-max 30` | `market --avg-product-price30d 10:30` |
-| `market --total-monthly-revenue-min 100000` | `market --total-monthly-sale-amt 100000:` |
-| `market --seller-country US` | `market --seller-country-codes US` |
-| `market --sort sampleAvgMonthlySales` | `market --sort avgProductMonthlySaleCnt` |
-| `market-structure-profile --category-id ID --dimension price` | `market-price-distributions --category-id ID` |
-| `market-structure-profile --category-id ID --dimension brand` | `market-brand-concentrations --category-id ID` |
-| detail/history 的 `--category-scope direct` | `--no-include-descendant-category-products`；所有市场命令统一使用布尔开关 |
+| `market --date-range 30d` | `market`，省略日期取最新 |
+| `market --date-range YYYY-MM` | `market --date YYYY-MM-DD`，取不晚于截止日的最近共同快照 |
+| `filters.avgProductPrice30d={min:10,max:30}` | `filters.avgProductPrice30dMin=10`、`avgProductPrice30dMax=30` |
+| 192 个响应指标均可筛选 | 仅公开的 28 对 Min/Max 可筛选；192 个排序字段独立维护 |
+| `market-listing-launch-trend --date ...` | 可选 `--date-from ... --date-to ...`，过滤首次上架日期 |
+| detail/history 的 `--category-scope direct` | `--no-include-descendant-category-products` |
+| `market-structure-profile` | 对应的独立分布或集中度命令 |
 
-数值筛选的 `MIN:MAX`、`MIN:`、`:MAX` 分别表示双边、仅下限、仅上限，边界包含在内。金额直接使用美元，比例使用小数。CLI 暴露完整 192 个数值筛选及排序字段，拒绝旧字段、无效范围和已退役结构命令。具体参数以各命令 `--help` 为准。
+CLI 保留 `--avg-product-price30d 10:30` 这样的范围写法，构造请求时展开为平铺 Min/Max。`MIN:MAX`、`MIN:`、`:MAX` 分别为双边、仅下限、仅上限，有限值且下限不得超过上限。金额为 USD，比例为小数；不支持的筛选标志在发请求前拒绝，不能因为字段可以排序就把它用作筛选。
 
-独立接口包括 profile、价格/评分/评分数/上架年龄/履约/卖家国家/内容七种分布、商品/品牌/卖家三种集中度、listing-launch-trend。命令均为 `market-<接口名>`，支持 `--category-ids ID1,ID2` 批量查询，默认 `includeDescendantCategoryProducts=true`。listingYear 使用 `market-listing-launch-trend --granularity year`；productFeature 对应内容分布。
+所有市场命令使用顶层 includeDescendantCategoryProducts 布尔值。详情、历史与上架组成支持 `--category-ids ID1,ID2`。商品范围与市场行选择独立；父类目和子类目统计可能重叠。
 
-## 数据解释
+## 日期与响应读取
 
-- 同款变体合并为 SPU。旧 SKU 数量、旧 SKU 历史及旧持久化基线不能直接用于新口径比较；已有监控须在用户授权范围内建立兼容 SPU 基线，首次运行不能声称发生变化。
-- search 返回扁平 Product 字段，使用 `snapshotDate`、`includeDescendantCategoryProducts`、`sampleType` 保留证据身份。`sampleMonthlySaleCnt/Amt` 是样本总量，`avgProductMonthlySaleCnt/Amt` 是单品均值；全市场销量/销售额分别为 `totalMonthlySaleCnt/Amt`。
-- profile 的全市场为 `marketSize`；样本数量、销量、销售额及单品均值全部位于 `sampleProfile`，不再放在顶层。分布和集中度各有自己的数组字段，不再读取通用 `data.buckets[]`。分布桶使用 `bucketProductCnt/Rate` 和 `monthlySaleCntRate/monthlySaleAmtRate`；集中度实体明细仍使用 `saleCntRate/saleAmtRate`。Top N 汇总返回销量、销售额两种总量。
-- history 的 `data[]` 按完整市场身份分组；组内 `history[]` 点使用 `snapshotDate`，并包含 `marketSize` 全市场总量和 `sampleProfile` 样本总量及价格、评分、评分数指标。同一类目路径变化时会产生多个系列，不能只按类目 ID 合并。没有 `data.points[]`、新品历史或 resolvedDateFrom/To。缺日期不补零、不拼接 SKU 历史。launch trend 是单期快照中的上架批次，不是历史需求趋势。
-- 浮点值在公开单位下保留两位小数；整数、null 和真实 0 保留。国家/内容成员集合允许重叠；集中度随样本选择使用销量或销售额口径。暂不提供 `avgProductReviewCnt`。
+- search 的 `--date` 是截止日，历史数据从 2026-02 的月末快照起，截止日无需月末；实际采用日期看 `resolvedDate`。最新结果是近 30 天画像。
+- profile、七种分布和三种集中度的 `--date` 是精确快照日，未发布该日则为空；省略取最新，响应使用 resolvedDate。
+- history 必须传 `--date-from/--date-to`。边界无需月末，但只返回范围内已发布的月末快照，按日期升序。读取 `data[].points[].date`，不是 `data.points[]` 或 `history[]`。当前不完整月份不用于已完成月份趋势，也不补齐缺失月份。
+- history 每点的 marketSize 是全市场总量，sampleProfile 是样本总量及 avgProductPrice30d、avgProductMonthlySaleCnt/Amt、avgProductRatingAmt/Cnt。没有新品、分布历史或 min/max 价格评分字段。
+- launch 的范围筛选首次上架日期，样本始终来自最新快照，先过滤再按 month/year 分组。读取 `data[].points[]` 中的 date/productCnt；响应没有快照日期，不补造 resolvedDate 或 snapshotDate。上架组成不是历史需求曲线。
+- profile 的样本统计位于 sampleProfile；分布和集中度在根层返回 sampleProductCnt、sampleMonthlySaleCnt/Amt 和 sampleAvgProductPrice30d、sampleAvgProductMonthlySaleCnt/Amt、sampleAvgProductRatingAmt/Cnt，桶或排名组使用自己的均值。
+- 分布桶使用 bucketProductCnt/Rate、monthlySaleCntRate/monthlySaleAmtRate；集中度实体明细使用 saleCntRate/saleAmtRate。Top N 新品份额的分母是排名组对应的销量或销售额。分布桶不提供新品或品牌集中度子画像。
 
-## 部署与发布
+保留 null、真实 0、空数组和缺失字段的区别；公开小数保持两位，不能从四舍五入后的零份额推断精确零。旧 SKU 基线不能与新口径混用。
 
-新请求范围字段统一位于顶层。detail/history 不接受 `categoryScope` 或嵌套范围；search 服务仍兼容已发布的旧类目、范围、日期、筛选和排序参数，并在冲突时拒绝请求。CLI 只发送标准参数；history 请求已完全移除 `date`，即使 `date=null` 也不接受。响应不再提供 `dt`、`snapshotDt` 或 `productGrain`，但统计口径仍是 SPU。样本类型统一返回 `unitSalesTop100/revenueTop100`。
+## 计费与发布
 
-本改动只更新仓库源文件，未部署上游服务，也未发布 ClawHub 技能或创建 GitHub Release。运行前确认服务的 OpenAPI/MCP 已切换到这套 SPU 契约；仍暴露旧三接口契约的部署不兼容，不能静默回退到 SKU 字段。
+search 按次收费，空结果也收费。其余市场接口按实际返回的去重市场数收费，空结果免费；查询前按请求去重市场数及单价检查余额，不预扣。批量不再按固定一次 1 credit 估算，实际账单读取 meta。
 
-服务与技能发布需要协调。共享 CLI 通过 `scripts/sync-scripts.sh` 分发到 8 个活跃技能；market-analysis 和 amazon-analysis 的白名单开放新市场命令，其余技能保持原命令范围。用户已有的本地安装需单独更新。ClawHub 由维护者手动执行 `clawhub sync`；合并本 PR 不代表发布完成。
+共享 CLI 仅修改 canonical 源，经同步脚本分发至 8 个活跃技能；各技能白名单范围保持原声明。API 事实留在参考模块，语义、证据投影、输出分别留在其责任模块。
 
-回滚时也需协调服务与技能版本：恢复兼容旧服务的技能发布，并重置不兼容的监控基线。不要将旧、新统计口径混合输出。
+本 PR 更新仓库源文件和测试，未部署服务、未发布 ClawHub 或创建 GitHub Release。既有安装需要单独更新，维护者按仓库发布流程手动执行 clawhub sync。回滚需匹配服务与技能契约，并处理不兼容基线。
 
-完整逐接口核对范围、请求/响应模型与验证限制见[市场接口审计](market-api-contract-audit.md)。
+逐接口结果和验证限制见[市场接口审计](market-api-contract-audit.md)。

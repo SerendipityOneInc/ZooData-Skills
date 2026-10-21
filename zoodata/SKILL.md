@@ -141,7 +141,7 @@ For every parsed HTTP response from `zoodata.py`, treat `_transport.status` as t
 | 22 | `/openapi/v2/keywords/product-traffic-trend` | ASIN-level weekly raw traffic across all keywords | `data.context + data.items[].series[]` with total/organic/ad traffic and term coverage |
 | 23 | `/openapi/v2/keywords/product-traffic-trend-profile` | Server-calculated four-week ASIN traffic conclusions | `data.context + data.items[].rows[].trafficTrendProfile` |
 | 24 | `markets/profile` | SPU profile; independent detail routes below | marketSize, sampleProfile |
-| 25 | `markets/history` | Published SPU snapshot history | market series with history[] |
+| 25 | `markets/history` | Monthly SPU history | market series with points[] |
 | 26 | `markets/price-distributions` | SPU price-distributions | `data[]` |
 | 27 | `markets/rating-distributions` | SPU rating-distributions | `data[]` |
 | 28 | `markets/rating-count-distributions` | SPU rating-count-distributions | `data[]` |

@@ -1,199 +1,38 @@
 {
-  "source": "SerendipityOneInc/hermes-workspace#616",
-  "sha": "4284967a4b6a02290a9b50a35e33c79c727d4560",
+  "source": {
+    "kind": "MCP tools/list with locally corroborated response models",
+    "target": "http://localhost:8080/mcp",
+    "checkedAt": "2026-10-21"
+  },
   "numericFilters": [
-    "totalProductCnt",
-    "sampleProductCnt",
-    "sampleMonthlySaleCnt",
-    "sampleMonthlySaleAmt",
     "avgProductMonthlySaleCnt",
     "avgProductMonthlySaleAmt",
-    "avgProductPrice30d",
-    "avgProductBigBsr30d",
-    "avgProductRatingAmt",
     "avgProductRatingCnt",
+    "avgProductBigBsr30d",
+    "avgProductPrice30d",
+    "avgProductRatingAmt",
     "avgProductPackageWeightOz",
     "avgProductPackageVolumeIn3",
+    "totalProductCnt",
+    "topNProductBigCategoryAvgBsr",
+    "topNProductAvgMonthlySaleCnt",
+    "topNProductAvgMonthlySaleAmt",
     "sampleBrandCnt",
     "observedSellerCnt",
     "avgProductSellerCnt",
+    "topNProductMonthlySaleCntRate",
+    "topNBrandMonthlySaleCntRate",
     "aPlusProductRate",
     "sampleFbaProductRate",
     "sampleFbmProductRate",
     "sampleAmzProductRate",
-    "topNProductAvgMonthlySaleCnt",
-    "topNProductAvgMonthlySaleAmt",
-    "topNProductBigCategoryAvgBsr",
-    "topNProductMonthlySaleCntRate",
-    "topNProductMonthlySaleAmtRate",
-    "topNBrandMonthlySaleCntRate",
-    "topNSellerConcentrationRate",
     "sampleNewProductCnt",
     "sampleNewProductRate",
     "sampleNewProductAvgPrice30d",
-    "sampleNewProductAvgRatingAmt",
     "sampleNewProductAvgRatingCnt",
+    "sampleNewProductAvgRatingAmt",
     "sampleNewProductAvgMonthlySaleCnt",
-    "sampleNewProductAvgMonthlySaleAmt",
-    "totalMonth1NewProductCnt",
-    "totalMonth1NewProductRate",
-    "totalMonth1NewProductMonthlySaleCnt",
-    "totalMonth1NewProductMonthlySaleAmt",
-    "totalMonth3NewProductCnt",
-    "totalMonth3NewProductRate",
-    "totalMonth3NewProductMonthlySaleCnt",
-    "totalMonth3NewProductMonthlySaleAmt",
-    "totalMonth6NewProductCnt",
-    "totalMonth6NewProductRate",
-    "totalMonth6NewProductMonthlySaleCnt",
-    "totalMonth6NewProductMonthlySaleAmt",
-    "totalMonth12NewProductCnt",
-    "totalMonth12NewProductRate",
-    "totalMonth12NewProductMonthlySaleCnt",
-    "totalMonth12NewProductMonthlySaleAmt",
-    "totalMonthlySaleCnt",
-    "totalMonthlySaleAmt",
-    "minPrice30d",
-    "maxPrice30d",
-    "medianProductPrice30d",
-    "avgProductMonthlyNewRatingCnt",
-    "avgProductGrossMarginRate",
-    "aPlusProductCnt",
-    "videoProductCnt",
-    "videoProductRate",
-    "sampleMonth1NewProductCnt",
-    "sampleMonth1NewProductRate",
-    "sampleMonth1NewProductMonthlySaleCnt",
-    "sampleMonth1NewProductMonthlySaleCntRate",
-    "sampleMonth1NewProductMonthlySaleAmt",
-    "sampleMonth1NewProductMonthlySaleAmtRate",
-    "sampleMonth1NewProductAvgPrice30d",
-    "sampleMonth1NewProductAvgRatingAmt",
-    "sampleMonth1NewProductAvgRatingCnt",
-    "sampleMonth3NewProductCnt",
-    "sampleMonth3NewProductRate",
-    "sampleMonth3NewProductMonthlySaleCnt",
-    "sampleMonth3NewProductMonthlySaleCntRate",
-    "sampleMonth3NewProductMonthlySaleAmt",
-    "sampleMonth3NewProductMonthlySaleAmtRate",
-    "sampleMonth3NewProductAvgPrice30d",
-    "sampleMonth3NewProductAvgRatingAmt",
-    "sampleMonth3NewProductAvgRatingCnt",
-    "sampleMonth6NewProductCnt",
-    "sampleMonth6NewProductRate",
-    "sampleMonth6NewProductMonthlySaleCnt",
-    "sampleMonth6NewProductMonthlySaleCntRate",
-    "sampleMonth6NewProductMonthlySaleAmt",
-    "sampleMonth6NewProductMonthlySaleAmtRate",
-    "sampleMonth6NewProductAvgPrice30d",
-    "sampleMonth6NewProductAvgRatingAmt",
-    "sampleMonth6NewProductAvgRatingCnt",
-    "sampleMonth6NewProductMinRatingAmt",
-    "sampleMonth6NewProductMaxRatingAmt",
-    "sampleMonth12NewProductCnt",
-    "sampleMonth12NewProductRate",
-    "sampleMonth12NewProductMonthlySaleCnt",
-    "sampleMonth12NewProductMonthlySaleCntRate",
-    "sampleMonth12NewProductMonthlySaleAmt",
-    "sampleMonth12NewProductMonthlySaleAmtRate",
-    "sampleMonth12NewProductAvgPrice30d",
-    "sampleMonth12NewProductAvgRatingAmt",
-    "sampleMonth12NewProductAvgRatingCnt",
-    "top3ProductConcentrationRate",
-    "top3ProductProductCnt",
-    "top3ProductBrandCnt",
-    "top3ProductMonthlySaleCnt",
-    "top3ProductMonthlySaleAmt",
-    "top3ProductBigCategoryAvgBsr",
-    "top3ProductSmallCategoryAvgBsr",
-    "top5ProductConcentrationRate",
-    "top5ProductProductCnt",
-    "top5ProductBrandCnt",
-    "top5ProductMonthlySaleCnt",
-    "top5ProductMonthlySaleAmt",
-    "top5ProductBigCategoryAvgBsr",
-    "top5ProductSmallCategoryAvgBsr",
-    "top10ProductConcentrationRate",
-    "top10ProductProductCnt",
-    "top10ProductBrandCnt",
-    "top10ProductMonthlySaleCnt",
-    "top10ProductMonthlySaleAmt",
-    "top10ProductBigCategoryAvgBsr",
-    "top10ProductSmallCategoryAvgBsr",
-    "top20ProductConcentrationRate",
-    "top20ProductProductCnt",
-    "top20ProductBrandCnt",
-    "top20ProductMonthlySaleCnt",
-    "top20ProductMonthlySaleAmt",
-    "top20ProductBigCategoryAvgBsr",
-    "top20ProductSmallCategoryAvgBsr",
-    "top3BrandConcentrationRate",
-    "top3BrandBrandCnt",
-    "top3BrandMonthlySaleCnt",
-    "top3BrandMonthlySaleAmt",
-    "top3BrandProductCnt",
-    "top3BrandBigCategoryAvgBsr",
-    "top5BrandConcentrationRate",
-    "top5BrandBrandCnt",
-    "top5BrandMonthlySaleCnt",
-    "top5BrandMonthlySaleAmt",
-    "top5BrandProductCnt",
-    "top5BrandBigCategoryAvgBsr",
-    "top10BrandConcentrationRate",
-    "top10BrandBrandCnt",
-    "top10BrandMonthlySaleCnt",
-    "top10BrandMonthlySaleAmt",
-    "top10BrandProductCnt",
-    "top10BrandBigCategoryAvgBsr",
-    "top20BrandConcentrationRate",
-    "top20BrandBrandCnt",
-    "top20BrandMonthlySaleCnt",
-    "top20BrandMonthlySaleAmt",
-    "top20BrandProductCnt",
-    "top20BrandBigCategoryAvgBsr",
-    "top3SellerConcentrationRate",
-    "top5SellerConcentrationRate",
-    "top10SellerConcentrationRate",
-    "top20SellerConcentrationRate",
-    "top3SellerCountryConcentrationRate",
-    "top5SellerCountryConcentrationRate",
-    "top10SellerCountryConcentrationRate",
-    "top20SellerCountryConcentrationRate",
-    "top3ProductMonthlySaleCntRate",
-    "top3ProductAvgMonthlySaleCnt",
-    "top3ProductMonthlySaleAmtRate",
-    "top3ProductAvgMonthlySaleAmt",
-    "top5ProductMonthlySaleCntRate",
-    "top5ProductAvgMonthlySaleCnt",
-    "top5ProductMonthlySaleAmtRate",
-    "top5ProductAvgMonthlySaleAmt",
-    "top10ProductMonthlySaleCntRate",
-    "top10ProductAvgMonthlySaleCnt",
-    "top10ProductMonthlySaleAmtRate",
-    "top10ProductAvgMonthlySaleAmt",
-    "top20ProductMonthlySaleCntRate",
-    "top20ProductAvgMonthlySaleCnt",
-    "top20ProductMonthlySaleAmtRate",
-    "top20ProductAvgMonthlySaleAmt",
-    "top3BrandMonthlySaleCntRate",
-    "top3BrandAvgMonthlySaleCnt",
-    "top3BrandMonthlySaleAmtRate",
-    "top3BrandAvgMonthlySaleAmt",
-    "top5BrandMonthlySaleCntRate",
-    "top5BrandAvgMonthlySaleCnt",
-    "top5BrandMonthlySaleAmtRate",
-    "top5BrandAvgMonthlySaleAmt",
-    "top10BrandMonthlySaleCntRate",
-    "top10BrandAvgMonthlySaleCnt",
-    "top10BrandMonthlySaleAmtRate",
-    "top10BrandAvgMonthlySaleAmt",
-    "top20BrandMonthlySaleCntRate",
-    "top20BrandAvgMonthlySaleCnt",
-    "top20BrandMonthlySaleAmtRate",
-    "top20BrandAvgMonthlySaleAmt",
-    "topNBrandAvgMonthlySaleCnt",
-    "topNBrandAvgMonthlySaleAmt",
-    "topNBrandMonthlySaleAmtRate"
+    "sampleNewProductAvgMonthlySaleAmt"
   ],
   "sortBy": [
     "totalProductCnt",
@@ -403,11 +242,10 @@
     "seller-concentrations",
     "listing-launch-trend"
   ],
-  "requestScope": "includeDescendantCategoryProducts",
-  "snapshotField": "snapshotDate",
+  "snapshotField": "resolvedDate",
   "responseFields": {
     "MarketSearchFact": {
-      "snapshotDate": "string(date)|null",
+      "resolvedDate": "string(date)|null",
       "site": "string|null",
       "categoryId": "string|null",
       "categoryName": "string|null",
@@ -610,6 +448,24 @@
       "top10SellerCountryConcentrationRate": "number|null",
       "top20SellerCountryConcentrationRate": "number|null"
     },
+    "MarketHistorySeries": {
+      "site": "string|null",
+      "category": "MarketHistoryCategory|null",
+      "includeDescendantCategoryProducts": "boolean|null",
+      "sampleType": "string|null",
+      "currency": "string|null",
+      "points": "array<MarketHistoryFact>|null"
+    },
+    "MarketHistoryCategory": {
+      "id": "string|null",
+      "path": "array<string>|null",
+      "idPath": "array<string>|null"
+    },
+    "MarketHistoryFact": {
+      "date": "string(date)|null",
+      "marketSize": "MarketHistorySales|null",
+      "sampleProfile": "MarketHistorySampleProfile|null"
+    },
     "MarketHistorySales": {
       "productCnt": "integer|null",
       "monthlySaleCnt": "integer|null",
@@ -619,33 +475,36 @@
       "productCnt": "integer|null",
       "monthlySaleCnt": "integer|null",
       "monthlySaleAmt": "number|null",
-      "minPrice30d": "number|null",
       "avgProductPrice30d": "number|null",
-      "maxPrice30d": "number|null",
-      "minProductRatingAmt": "number|null",
+      "avgProductMonthlySaleCnt": "number|null",
+      "avgProductMonthlySaleAmt": "number|null",
       "avgProductRatingAmt": "number|null",
-      "maxProductRatingAmt": "number|null",
-      "minProductRatingCnt": "integer|null",
-      "avgProductRatingCnt": "number|null",
-      "maxProductRatingCnt": "integer|null"
+      "avgProductRatingCnt": "number|null"
     },
-    "MarketHistoryFact": {
-      "snapshotDate": "string(date)|null",
-      "marketSize": "MarketHistorySales|null",
-      "sampleProfile": "MarketHistorySampleProfile|null"
-    },
-    "MarketHistoryCategory": {
-      "id": "string|null",
-      "path": "array<string>|null",
-      "idPath": "array<string>|null"
-    },
-    "MarketHistorySeries": {
+    "MarketProfile": {
+      "resolvedDate": "string(date)|null",
       "site": "string|null",
-      "category": "MarketHistoryCategory|null",
+      "categoryId": "string|null",
+      "categoryName": "string|null",
+      "categoryPath": "array<string>|null",
+      "categoryIdPath": "array<string>|null",
       "includeDescendantCategoryProducts": "boolean|null",
       "sampleType": "string|null",
       "currency": "string|null",
-      "history": "array<MarketHistoryFact>|null"
+      "marketSize": "MarketSize|null",
+      "sampleProfile": "SampleProfile|null"
+    },
+    "ConcentrationProfile": {
+      "topnProductMetrics": "array<TopNProductProfile>|null",
+      "topnBrandMetrics": "array<TopNBrandProfile>|null",
+      "topnSellerMetrics": "array<TopNSellerProfile>|null",
+      "topnSellerCountryMetrics": "array<TopNSellerProfile>|null"
+    },
+    "MarketSize": {
+      "productCnt": "integer|null",
+      "monthlySaleCnt": "integer|null",
+      "monthlySaleAmt": "number|null",
+      "newProductProfile": "array<MarketSizeNewProductWindow>|null"
     },
     "MarketSizeNewProductWindow": {
       "windowMonths": "integer|null",
@@ -653,12 +512,6 @@
       "productRate": "number|null",
       "monthlySaleCnt": "integer|null",
       "monthlySaleAmt": "number|null"
-    },
-    "MarketSize": {
-      "productCnt": "integer|null",
-      "monthlySaleCnt": "integer|null",
-      "monthlySaleAmt": "number|null",
-      "newProductProfile": "array<MarketSizeNewProductWindow>|null"
     },
     "SampleNewProductWindow": {
       "windowMonths": "integer|null",
@@ -668,56 +521,25 @@
       "monthlySaleCntRate": "number|null",
       "monthlySaleAmt": "number|null",
       "monthlySaleAmtRate": "number|null",
-      "avgPrice30d": "number|null",
-      "minRatingAmt": "number|null",
-      "avgRatingAmt": "number|null",
-      "maxRatingAmt": "number|null",
-      "avgRatingCnt": "number|null"
-    },
-    "TopNProductProfile": {
-      "topN": "integer|null",
-      "productCnt": "integer|null",
-      "brandCnt": "integer|null",
-      "concentrationRate": "number|null",
-      "monthlySaleCnt": "integer|null",
-      "monthlySaleAmt": "number|null",
-      "bigCategoryAvgBsr": "number|null",
-      "smallCategoryAvgBsr": "number|null"
-    },
-    "TopNBrandProfile": {
-      "topN": "integer|null",
-      "productCnt": "integer|null",
-      "brandCnt": "integer|null",
-      "concentrationRate": "number|null",
-      "monthlySaleCnt": "integer|null",
-      "monthlySaleAmt": "number|null",
-      "bigCategoryAvgBsr": "number|null"
-    },
-    "TopNSellerProfile": {
-      "topN": "integer|null",
-      "concentrationRate": "number|null"
-    },
-    "ConcentrationProfile": {
-      "topnProductMetrics": "array<TopNProductProfile>|null",
-      "topnBrandMetrics": "array<TopNBrandProfile>|null",
-      "topnSellerMetrics": "array<TopNSellerProfile>|null",
-      "topnSellerCountryMetrics": "array<TopNSellerProfile>|null"
+      "avgProductPrice30d": "number|null",
+      "avgProductMonthlySaleCnt": "number|null",
+      "avgProductMonthlySaleAmt": "number|null",
+      "avgProductRatingAmt": "number|null",
+      "avgProductRatingCnt": "number|null"
     },
     "SampleProfile": {
       "productCnt": "integer|null",
       "monthlySaleCnt": "integer|null",
       "monthlySaleAmt": "number|null",
+      "avgProductPrice30d": "number|null",
       "avgProductMonthlySaleCnt": "number|null",
       "avgProductMonthlySaleAmt": "number|null",
+      "avgProductRatingAmt": "number|null",
+      "avgProductRatingCnt": "number|null",
       "brandCnt": "integer|null",
       "sellerCnt": "integer|null",
       "avgProductSellerCnt": "number|null",
-      "minPrice30d": "number|null",
-      "avgProductPrice30d": "number|null",
       "medianProductPrice30d": "number|null",
-      "maxPrice30d": "number|null",
-      "avgProductRatingAmt": "number|null",
-      "avgProductRatingCnt": "number|null",
       "avgProductMonthlyNewRatingCnt": "number|null",
       "avgProductBigBsr30d": "number|null",
       "avgProductGrossMarginRate": "number|null",
@@ -730,49 +552,48 @@
       "newProductProfile": "array<SampleNewProductWindow>|null",
       "concentrationProfile": "ConcentrationProfile|null"
     },
-    "MarketProfile": {
-      "snapshotDate": "string(date)|null",
-      "site": "string|null",
-      "categoryId": "string|null",
-      "categoryName": "string|null",
-      "categoryPath": "array<string>|null",
-      "categoryIdPath": "array<string>|null",
-      "includeDescendantCategoryProducts": "boolean|null",
-      "sampleType": "string|null",
-      "currency": "string|null",
-      "marketSize": "MarketSize|null",
-      "sampleProfile": "SampleProfile|null"
-    },
-    "DistributionNewProductWindow": {
-      "windowMonths": "integer|null",
+    "TopNBrandProfile": {
+      "topN": "integer|null",
       "productCnt": "integer|null",
-      "productRate": "number|null",
-      "monthlySaleCnt": "integer|null",
-      "monthlySaleCntRate": "number|null",
-      "monthlySaleAmt": "number|null",
-      "monthlySaleAmtRate": "number|null"
-    },
-    "PriceBucket": {
-      "bucket": "string|null",
-      "bucketIndex": "integer|null",
-      "lowerBound": "number|null",
-      "upperBound": "number|null",
-      "avgProductPrice30d": "number|null",
-      "bucketProductCnt": "integer|null",
-      "bucketProductRate": "number|null",
-      "monthlySaleCnt": "integer|null",
-      "monthlySaleCntRate": "number|null",
-      "monthlySaleAmt": "number|null",
-      "monthlySaleAmtRate": "number|null",
       "brandCnt": "integer|null",
-      "top3BrandConcentrationRate": "number|null",
-      "top5BrandConcentrationRate": "number|null",
-      "top10BrandConcentrationRate": "number|null",
-      "top20BrandConcentrationRate": "number|null",
-      "newProductProfile": "array<DistributionNewProductWindow>|null"
+      "concentrationRate": "number|null",
+      "monthlySaleCnt": "integer|null",
+      "monthlySaleAmt": "number|null",
+      "avgProductPrice30d": "number|null",
+      "avgProductMonthlySaleCnt": "number|null",
+      "avgProductMonthlySaleAmt": "number|null",
+      "avgProductRatingAmt": "number|null",
+      "avgProductRatingCnt": "number|null",
+      "bigCategoryAvgBsr": "number|null"
+    },
+    "TopNProductProfile": {
+      "topN": "integer|null",
+      "productCnt": "integer|null",
+      "brandCnt": "integer|null",
+      "concentrationRate": "number|null",
+      "monthlySaleCnt": "integer|null",
+      "monthlySaleAmt": "number|null",
+      "avgProductPrice30d": "number|null",
+      "avgProductMonthlySaleCnt": "number|null",
+      "avgProductMonthlySaleAmt": "number|null",
+      "avgProductRatingAmt": "number|null",
+      "avgProductRatingCnt": "number|null",
+      "bigCategoryAvgBsr": "number|null",
+      "smallCategoryAvgBsr": "number|null"
+    },
+    "TopNSellerProfile": {
+      "topN": "integer|null",
+      "concentrationRate": "number|null",
+      "monthlySaleCnt": "integer|null",
+      "monthlySaleAmt": "number|null",
+      "avgProductPrice30d": "number|null",
+      "avgProductMonthlySaleCnt": "number|null",
+      "avgProductMonthlySaleAmt": "number|null",
+      "avgProductRatingAmt": "number|null",
+      "avgProductRatingCnt": "number|null"
     },
     "PriceDistribution": {
-      "snapshotDate": "string(date)|null",
+      "resolvedDate": "string(date)|null",
       "site": "string|null",
       "categoryId": "string|null",
       "categoryName": "string|null",
@@ -784,7 +605,49 @@
       "sampleProductCnt": "integer|null",
       "sampleMonthlySaleCnt": "integer|null",
       "sampleMonthlySaleAmt": "number|null",
+      "sampleAvgProductPrice30d": "number|null",
+      "sampleAvgProductMonthlySaleCnt": "number|null",
+      "sampleAvgProductMonthlySaleAmt": "number|null",
+      "sampleAvgProductRatingAmt": "number|null",
+      "sampleAvgProductRatingCnt": "number|null",
       "priceDistribution": "array<PriceBucket>|null"
+    },
+    "PriceBucket": {
+      "bucket": "string|null",
+      "bucketIndex": "integer|null",
+      "lowerBound": "number|null",
+      "upperBound": "number|null",
+      "bucketProductCnt": "integer|null",
+      "bucketProductRate": "number|null",
+      "monthlySaleCnt": "integer|null",
+      "monthlySaleCntRate": "number|null",
+      "monthlySaleAmt": "number|null",
+      "monthlySaleAmtRate": "number|null",
+      "avgProductPrice30d": "number|null",
+      "avgProductMonthlySaleCnt": "number|null",
+      "avgProductMonthlySaleAmt": "number|null",
+      "avgProductRatingAmt": "number|null",
+      "avgProductRatingCnt": "number|null"
+    },
+    "RatingDistribution": {
+      "resolvedDate": "string(date)|null",
+      "site": "string|null",
+      "categoryId": "string|null",
+      "categoryName": "string|null",
+      "categoryPath": "array<string>|null",
+      "categoryIdPath": "array<string>|null",
+      "includeDescendantCategoryProducts": "boolean|null",
+      "sampleType": "string|null",
+      "currency": "string|null",
+      "sampleProductCnt": "integer|null",
+      "sampleMonthlySaleCnt": "integer|null",
+      "sampleMonthlySaleAmt": "number|null",
+      "sampleAvgProductPrice30d": "number|null",
+      "sampleAvgProductMonthlySaleCnt": "number|null",
+      "sampleAvgProductMonthlySaleAmt": "number|null",
+      "sampleAvgProductRatingAmt": "number|null",
+      "sampleAvgProductRatingCnt": "number|null",
+      "ratingDistribution": "array<RatingBucket>|null"
     },
     "RatingBucket": {
       "bucket": "string|null",
@@ -797,10 +660,14 @@
       "monthlySaleCntRate": "number|null",
       "monthlySaleAmt": "number|null",
       "monthlySaleAmtRate": "number|null",
-      "avgProductRatingAmt": "number|null"
+      "avgProductPrice30d": "number|null",
+      "avgProductMonthlySaleCnt": "number|null",
+      "avgProductMonthlySaleAmt": "number|null",
+      "avgProductRatingAmt": "number|null",
+      "avgProductRatingCnt": "number|null"
     },
-    "RatingDistribution": {
-      "snapshotDate": "string(date)|null",
+    "RatingCountDistribution": {
+      "resolvedDate": "string(date)|null",
       "site": "string|null",
       "categoryId": "string|null",
       "categoryName": "string|null",
@@ -812,7 +679,12 @@
       "sampleProductCnt": "integer|null",
       "sampleMonthlySaleCnt": "integer|null",
       "sampleMonthlySaleAmt": "number|null",
-      "ratingDistribution": "array<RatingBucket>|null"
+      "sampleAvgProductPrice30d": "number|null",
+      "sampleAvgProductMonthlySaleCnt": "number|null",
+      "sampleAvgProductMonthlySaleAmt": "number|null",
+      "sampleAvgProductRatingAmt": "number|null",
+      "sampleAvgProductRatingCnt": "number|null",
+      "ratingCountDistribution": "array<RatingCountBucket>|null"
     },
     "RatingCountBucket": {
       "bucket": "string|null",
@@ -825,10 +697,14 @@
       "monthlySaleCntRate": "number|null",
       "monthlySaleAmt": "number|null",
       "monthlySaleAmtRate": "number|null",
+      "avgProductPrice30d": "number|null",
+      "avgProductMonthlySaleCnt": "number|null",
+      "avgProductMonthlySaleAmt": "number|null",
+      "avgProductRatingAmt": "number|null",
       "avgProductRatingCnt": "number|null"
     },
-    "RatingCountDistribution": {
-      "snapshotDate": "string(date)|null",
+    "ListingAgeDistribution": {
+      "resolvedDate": "string(date)|null",
       "site": "string|null",
       "categoryId": "string|null",
       "categoryName": "string|null",
@@ -840,7 +716,12 @@
       "sampleProductCnt": "integer|null",
       "sampleMonthlySaleCnt": "integer|null",
       "sampleMonthlySaleAmt": "number|null",
-      "ratingCountDistribution": "array<RatingCountBucket>|null"
+      "sampleAvgProductPrice30d": "number|null",
+      "sampleAvgProductMonthlySaleCnt": "number|null",
+      "sampleAvgProductMonthlySaleAmt": "number|null",
+      "sampleAvgProductRatingAmt": "number|null",
+      "sampleAvgProductRatingCnt": "number|null",
+      "listingAgeDistribution": "array<ListingAgeBucket>|null"
     },
     "ListingAgeBucket": {
       "bucket": "string|null",
@@ -852,10 +733,15 @@
       "monthlySaleCnt": "integer|null",
       "monthlySaleCntRate": "number|null",
       "monthlySaleAmt": "number|null",
-      "monthlySaleAmtRate": "number|null"
+      "monthlySaleAmtRate": "number|null",
+      "avgProductPrice30d": "number|null",
+      "avgProductMonthlySaleCnt": "number|null",
+      "avgProductMonthlySaleAmt": "number|null",
+      "avgProductRatingAmt": "number|null",
+      "avgProductRatingCnt": "number|null"
     },
-    "ListingAgeDistribution": {
-      "snapshotDate": "string(date)|null",
+    "FulfillmentDistribution": {
+      "resolvedDate": "string(date)|null",
       "site": "string|null",
       "categoryId": "string|null",
       "categoryName": "string|null",
@@ -867,7 +753,12 @@
       "sampleProductCnt": "integer|null",
       "sampleMonthlySaleCnt": "integer|null",
       "sampleMonthlySaleAmt": "number|null",
-      "listingAgeDistribution": "array<ListingAgeBucket>|null"
+      "sampleAvgProductPrice30d": "number|null",
+      "sampleAvgProductMonthlySaleCnt": "number|null",
+      "sampleAvgProductMonthlySaleAmt": "number|null",
+      "sampleAvgProductRatingAmt": "number|null",
+      "sampleAvgProductRatingCnt": "number|null",
+      "fulfillmentDistribution": "array<FulfillmentBucket>|null"
     },
     "FulfillmentBucket": {
       "bucket": "string|null",
@@ -879,11 +770,13 @@
       "monthlySaleAmt": "number|null",
       "monthlySaleAmtRate": "number|null",
       "avgProductPrice30d": "number|null",
+      "avgProductMonthlySaleCnt": "number|null",
+      "avgProductMonthlySaleAmt": "number|null",
       "avgProductRatingAmt": "number|null",
       "avgProductRatingCnt": "number|null"
     },
-    "FulfillmentDistribution": {
-      "snapshotDate": "string(date)|null",
+    "SellerCountryDistribution": {
+      "resolvedDate": "string(date)|null",
       "site": "string|null",
       "categoryId": "string|null",
       "categoryName": "string|null",
@@ -895,21 +788,30 @@
       "sampleProductCnt": "integer|null",
       "sampleMonthlySaleCnt": "integer|null",
       "sampleMonthlySaleAmt": "number|null",
-      "fulfillmentDistribution": "array<FulfillmentBucket>|null"
+      "sampleAvgProductPrice30d": "number|null",
+      "sampleAvgProductMonthlySaleCnt": "number|null",
+      "sampleAvgProductMonthlySaleAmt": "number|null",
+      "sampleAvgProductRatingAmt": "number|null",
+      "sampleAvgProductRatingCnt": "number|null",
+      "sellerCountryDistribution": "array<SellerCountryBucket>|null"
     },
     "SellerCountryBucket": {
       "sellerCountryCode": "string|null",
       "distributionRank": "integer|null",
       "bucketProductCnt": "integer|null",
       "bucketProductRate": "number|null",
-      "sellerCnt": "integer|null",
       "monthlySaleCnt": "integer|null",
       "monthlySaleCntRate": "number|null",
       "monthlySaleAmt": "number|null",
-      "monthlySaleAmtRate": "number|null"
+      "monthlySaleAmtRate": "number|null",
+      "avgProductPrice30d": "number|null",
+      "avgProductMonthlySaleCnt": "number|null",
+      "avgProductMonthlySaleAmt": "number|null",
+      "avgProductRatingAmt": "number|null",
+      "avgProductRatingCnt": "number|null"
     },
-    "SellerCountryDistribution": {
-      "snapshotDate": "string(date)|null",
+    "ContentDistribution": {
+      "resolvedDate": "string(date)|null",
       "site": "string|null",
       "categoryId": "string|null",
       "categoryName": "string|null",
@@ -921,7 +823,12 @@
       "sampleProductCnt": "integer|null",
       "sampleMonthlySaleCnt": "integer|null",
       "sampleMonthlySaleAmt": "number|null",
-      "sellerCountryDistribution": "array<SellerCountryBucket>|null"
+      "sampleAvgProductPrice30d": "number|null",
+      "sampleAvgProductMonthlySaleCnt": "number|null",
+      "sampleAvgProductMonthlySaleAmt": "number|null",
+      "sampleAvgProductRatingAmt": "number|null",
+      "sampleAvgProductRatingCnt": "number|null",
+      "contentDistribution": "array<ContentBucket>|null"
     },
     "ContentBucket": {
       "bucket": "string|null",
@@ -932,10 +839,14 @@
       "monthlySaleCntRate": "number|null",
       "monthlySaleAmt": "number|null",
       "monthlySaleAmtRate": "number|null",
-      "newProductProfile": "array<DistributionNewProductWindow>|null"
+      "avgProductPrice30d": "number|null",
+      "avgProductMonthlySaleCnt": "number|null",
+      "avgProductMonthlySaleAmt": "number|null",
+      "avgProductRatingAmt": "number|null",
+      "avgProductRatingCnt": "number|null"
     },
-    "ContentDistribution": {
-      "snapshotDate": "string(date)|null",
+    "TopProductConcentration": {
+      "resolvedDate": "string(date)|null",
       "site": "string|null",
       "categoryId": "string|null",
       "categoryName": "string|null",
@@ -947,17 +858,38 @@
       "sampleProductCnt": "integer|null",
       "sampleMonthlySaleCnt": "integer|null",
       "sampleMonthlySaleAmt": "number|null",
-      "contentDistribution": "array<ContentBucket>|null"
+      "sampleAvgProductPrice30d": "number|null",
+      "sampleAvgProductMonthlySaleCnt": "number|null",
+      "sampleAvgProductMonthlySaleAmt": "number|null",
+      "sampleAvgProductRatingAmt": "number|null",
+      "sampleAvgProductRatingCnt": "number|null",
+      "topnMetrics": "array<TopNConcentration>|null",
+      "topProducts": "array<TopProduct>|null"
     },
     "ConcentrationNewProductWindow": {
       "windowMonths": "integer|null",
-      "saleRate": "number|null"
+      "productCnt": "integer|null",
+      "monthlySaleCnt": "integer|null",
+      "monthlySaleCntRate": "number|null",
+      "monthlySaleAmt": "number|null",
+      "monthlySaleAmtRate": "number|null",
+      "avgProductPrice30d": "number|null",
+      "avgProductMonthlySaleCnt": "number|null",
+      "avgProductMonthlySaleAmt": "number|null",
+      "avgProductRatingAmt": "number|null",
+      "avgProductRatingCnt": "number|null"
     },
     "TopNConcentration": {
       "topN": "integer|null",
+      "productCnt": "integer|null",
       "concentrationRate": "number|null",
       "monthlySaleCnt": "integer|null",
       "monthlySaleAmt": "number|null",
+      "avgProductPrice30d": "number|null",
+      "avgProductMonthlySaleCnt": "number|null",
+      "avgProductMonthlySaleAmt": "number|null",
+      "avgProductRatingAmt": "number|null",
+      "avgProductRatingCnt": "number|null",
       "newProductProfile": "array<ConcentrationNewProductWindow>|null"
     },
     "TopProduct": {
@@ -976,8 +908,8 @@
       "hasAPlus": "boolean|null",
       "hasVideo": "boolean|null"
     },
-    "TopProductConcentration": {
-      "snapshotDate": "string(date)|null",
+    "BrandConcentration": {
+      "resolvedDate": "string(date)|null",
       "site": "string|null",
       "categoryId": "string|null",
       "categoryName": "string|null",
@@ -989,8 +921,14 @@
       "sampleProductCnt": "integer|null",
       "sampleMonthlySaleCnt": "integer|null",
       "sampleMonthlySaleAmt": "number|null",
-      "topnMetrics": "array<TopNConcentration>|null",
-      "topProducts": "array<TopProduct>|null"
+      "sampleAvgProductPrice30d": "number|null",
+      "sampleAvgProductMonthlySaleCnt": "number|null",
+      "sampleAvgProductMonthlySaleAmt": "number|null",
+      "sampleAvgProductRatingAmt": "number|null",
+      "sampleAvgProductRatingCnt": "number|null",
+      "sampleBrandCnt": "integer|null",
+      "topnBrandMetrics": "array<TopNConcentration>|null",
+      "topnBrandList": "array<TopBrand>|null"
     },
     "TopBrand": {
       "brandName": "string|null",
@@ -1000,10 +938,15 @@
       "saleCntRate": "number|null",
       "monthlySaleAmt": "number|null",
       "saleAmtRate": "number|null",
+      "avgProductPrice30d": "number|null",
+      "avgProductMonthlySaleCnt": "number|null",
+      "avgProductMonthlySaleAmt": "number|null",
+      "avgProductRatingAmt": "number|null",
+      "avgProductRatingCnt": "number|null",
       "exampleProducts": "array<string>|null"
     },
-    "BrandConcentration": {
-      "snapshotDate": "string(date)|null",
+    "SellerConcentration": {
+      "resolvedDate": "string(date)|null",
       "site": "string|null",
       "categoryId": "string|null",
       "categoryName": "string|null",
@@ -1015,9 +958,13 @@
       "sampleProductCnt": "integer|null",
       "sampleMonthlySaleCnt": "integer|null",
       "sampleMonthlySaleAmt": "number|null",
-      "sampleBrandCnt": "integer|null",
-      "topnBrandMetrics": "array<TopNConcentration>|null",
-      "topnBrandList": "array<TopBrand>|null"
+      "sampleAvgProductPrice30d": "number|null",
+      "sampleAvgProductMonthlySaleCnt": "number|null",
+      "sampleAvgProductMonthlySaleAmt": "number|null",
+      "sampleAvgProductRatingAmt": "number|null",
+      "sampleAvgProductRatingCnt": "number|null",
+      "topnMetrics": "array<TopNConcentration>|null",
+      "sellerList": "array<TopSeller>|null"
     },
     "TopSeller": {
       "sellerId": "string|null",
@@ -1028,172 +975,48 @@
       "saleCntRate": "number|null",
       "monthlySaleAmt": "number|null",
       "saleAmtRate": "number|null",
+      "avgProductPrice30d": "number|null",
+      "avgProductMonthlySaleCnt": "number|null",
+      "avgProductMonthlySaleAmt": "number|null",
+      "avgProductRatingAmt": "number|null",
+      "avgProductRatingCnt": "number|null",
       "exampleProducts": "array<string>|null"
     },
-    "SellerConcentration": {
-      "snapshotDate": "string(date)|null",
-      "site": "string|null",
-      "categoryId": "string|null",
-      "categoryName": "string|null",
-      "categoryPath": "array<string>|null",
-      "categoryIdPath": "array<string>|null",
-      "includeDescendantCategoryProducts": "boolean|null",
-      "sampleType": "string|null",
-      "currency": "string|null",
-      "sampleProductCnt": "integer|null",
-      "sampleMonthlySaleCnt": "integer|null",
-      "sampleMonthlySaleAmt": "number|null",
-      "topnMetrics": "array<TopNConcentration>|null",
-      "sellerList": "array<TopSeller>|null"
-    },
     "ListingLaunchTrend": {
-      "snapshotDate": "string(date)|null",
       "site": "string|null",
       "categoryId": "string|null",
       "categoryPath": "array<string>|null",
       "categoryIdPath": "array<string>|null",
       "includeDescendantCategoryProducts": "boolean|null",
       "sampleType": "string|null",
-      "currency": "string|null",
       "granularity": "string|null",
-      "listingPeriod": "string|null",
+      "points": "array<ListingLaunchPoint>|null"
+    },
+    "ListingLaunchPoint": {
+      "date": "string|null",
       "productCnt": "integer|null"
     }
   },
   "requestContracts": {
-    "MarketHistoryRequest": {
-      "required": [
-        "categoryIds",
-        "dateFrom",
-        "dateTo"
-      ],
-      "properties": {
-        "marketplace": {
-          "type": "'US'",
-          "default": "US",
-          "const": "US"
-        },
-        "categoryIds": {
-          "type": "array<string>",
-          "minItems": 1,
-          "maxItems": 100
-        },
-        "includeDescendantCategoryProducts": {
-          "type": "boolean",
-          "default": true
-        },
-        "sampleType": {
-          "type": "string",
-          "default": "unitSalesTop100",
-          "enum": [
-            "unitSalesTop100",
-            "revenueTop100"
-          ]
-        },
-        "dateFrom": {
-          "type": "string(date)"
-        },
-        "dateTo": {
-          "type": "string(date)"
-        }
-      }
-    },
-    "MarketIdentity": {
-      "required": [
-        "categoryIds"
-      ],
-      "properties": {
-        "marketplace": {
-          "type": "'US'",
-          "default": "US",
-          "const": "US"
-        },
-        "categoryIds": {
-          "type": "array<string>",
-          "minItems": 1,
-          "maxItems": 100
-        },
-        "includeDescendantCategoryProducts": {
-          "type": "boolean",
-          "default": true
-        },
-        "sampleType": {
-          "type": "string",
-          "default": "unitSalesTop100",
-          "enum": [
-            "unitSalesTop100",
-            "revenueTop100"
-          ]
-        },
-        "date": {
-          "type": "string(date)|null",
-          "default": null
-        }
-      }
-    },
-    "MarketLaunchRequest": {
-      "required": [
-        "categoryIds"
-      ],
-      "properties": {
-        "marketplace": {
-          "type": "'US'",
-          "default": "US",
-          "const": "US"
-        },
-        "categoryIds": {
-          "type": "array<string>",
-          "minItems": 1,
-          "maxItems": 100
-        },
-        "includeDescendantCategoryProducts": {
-          "type": "boolean",
-          "default": true
-        },
-        "sampleType": {
-          "type": "string",
-          "default": "unitSalesTop100",
-          "enum": [
-            "unitSalesTop100",
-            "revenueTop100"
-          ]
-        },
-        "date": {
-          "type": "string(date)|null",
-          "default": null
-        },
-        "granularity": {
-          "type": "string",
-          "default": "month",
-          "enum": [
-            "month",
-            "year"
-          ]
-        }
-      }
-    },
     "MarketSearchRequest": {
       "required": [],
       "properties": {
         "marketplace": {
-          "type": "'US'",
+          "type": "string",
           "default": "US",
           "const": "US"
         },
         "category": {
-          "type": "CategoryLocator"
+          "type": "object"
         },
         "categoryIds": {
-          "type": "array<string>|null",
-          "default": null
+          "type": "array<string>|null"
         },
         "categoryKeyword": {
-          "type": "string|null",
-          "default": null
+          "type": "string|null"
         },
         "includeDescendantCategoryProducts": {
-          "type": "boolean|null",
-          "default": null
+          "type": "boolean|null"
         },
         "sampleType": {
           "type": "string",
@@ -1203,14 +1026,11 @@
             "revenueTop100"
           ]
         },
-        "dateRange": {
-          "type": "string",
-          "default": "30d",
-          "pattern": "^(?:30d|[0-9]{4}-(?:0[1-9]|1[0-2]))$"
+        "date": {
+          "type": "string(date)|null"
         },
         "filters": {
-          "type": "MarketFilters|null",
-          "default": null
+          "type": "object|null"
         },
         "topN": {
           "type": "string",
@@ -1235,13 +1055,13 @@
         "page": {
           "type": "integer",
           "default": 1,
-          "minimum": 1
+          "minimum": 1.0
         },
         "pageSize": {
           "type": "integer",
           "default": 20,
-          "minimum": 1,
-          "maximum": 100
+          "minimum": 1.0,
+          "maximum": 100.0
         },
         "sortBy": {
           "type": "string",
@@ -1448,6 +1268,118 @@
             "asc",
             "desc"
           ]
+        }
+      }
+    },
+    "MarketHistoryRequest": {
+      "required": [
+        "categoryIds",
+        "dateFrom",
+        "dateTo"
+      ],
+      "properties": {
+        "marketplace": {
+          "type": "string",
+          "default": "US",
+          "const": "US"
+        },
+        "categoryIds": {
+          "type": "array<string>",
+          "minItems": 1,
+          "maxItems": 100
+        },
+        "includeDescendantCategoryProducts": {
+          "type": "boolean",
+          "default": true
+        },
+        "sampleType": {
+          "type": "string",
+          "default": "unitSalesTop100",
+          "enum": [
+            "unitSalesTop100",
+            "revenueTop100"
+          ]
+        },
+        "dateFrom": {
+          "type": "string(date)"
+        },
+        "dateTo": {
+          "type": "string(date)"
+        }
+      }
+    },
+    "MarketIdentity": {
+      "required": [
+        "categoryIds"
+      ],
+      "properties": {
+        "marketplace": {
+          "type": "string",
+          "default": "US",
+          "const": "US"
+        },
+        "categoryIds": {
+          "type": "array<string>",
+          "minItems": 1,
+          "maxItems": 100
+        },
+        "includeDescendantCategoryProducts": {
+          "type": "boolean",
+          "default": true
+        },
+        "sampleType": {
+          "type": "string",
+          "default": "unitSalesTop100",
+          "enum": [
+            "unitSalesTop100",
+            "revenueTop100"
+          ]
+        },
+        "date": {
+          "type": "string(date)|null"
+        }
+      }
+    },
+    "MarketLaunchRequest": {
+      "required": [
+        "categoryIds"
+      ],
+      "properties": {
+        "marketplace": {
+          "type": "string",
+          "default": "US",
+          "const": "US"
+        },
+        "categoryIds": {
+          "type": "array<string>",
+          "minItems": 1,
+          "maxItems": 100
+        },
+        "includeDescendantCategoryProducts": {
+          "type": "boolean",
+          "default": true
+        },
+        "sampleType": {
+          "type": "string",
+          "default": "unitSalesTop100",
+          "enum": [
+            "unitSalesTop100",
+            "revenueTop100"
+          ]
+        },
+        "granularity": {
+          "type": "string",
+          "default": "month",
+          "enum": [
+            "month",
+            "year"
+          ]
+        },
+        "dateFrom": {
+          "type": "string(date)|null"
+        },
+        "dateTo": {
+          "type": "string(date)|null"
         }
       }
     }

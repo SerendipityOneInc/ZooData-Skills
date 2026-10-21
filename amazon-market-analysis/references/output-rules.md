@@ -44,7 +44,7 @@ A section, score, table header, or group label that contains mixed confidence mu
 
 ## Provenance and usage
 
-Within `Data Notes` or `Evidence`, identify the relevant endpoint and actual returned `_query.params` when available. For `markets/search`, distinguish a broad discovery page, a batch of `category.ids`, and an exact one-ID snapshot. State the page range, filter/sort, requested `includeDescendantCategoryProducts`, `sampleType`, and `topN` or `newProductPeriod` when they selected a filter or sort; identify the returned Top N cutoff or new-product window identity used in the claim. For detail/history, preserve the inclusion boolean and actual snapshotDate; for history, preserve series identity and state requested and actual period bounds when different.
+Within `Data Notes` or `Evidence`, identify the relevant endpoint and actual returned `_query.params` when available. For `markets/search`, distinguish a broad discovery page, a batch of `category.ids`, and an exact one-ID snapshot. State the page range, filter/sort, requested `includeDescendantCategoryProducts`, `sampleType`, and `topN` or `newProductPeriod` when they selected a filter or sort; identify the returned Top N cutoff or new-product window identity used in the claim. For profile/distribution/concentration, preserve the inclusion boolean and actual resolvedDate; for history, preserve series identity and actual point dates, stating requested and returned bounds when different. For launch composition, retain the first-launch filter bounds and the fact that the sample is current; do not invent a snapshot date absent from the response.
 
 Use a localized API-usage table when live calls were made:
 

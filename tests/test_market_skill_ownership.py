@@ -21,13 +21,15 @@ class TestMarketSkillOwnership(unittest.TestCase):
         owner = (ROOT / "zoodata" / "references" /
                  "openapi-reference.md").read_text()
         fixture = json.loads((ROOT / "tests/fixtures/market-spu-contract.json").read_text())
-        metadata = owner.split("#### Numeric filter and sort names", 1)[1].split("## 2a.", 1)[0]
+        metadata = owner.split("#### Numeric filter names", 1)[1].split("#### Numeric sort names", 1)[0]
         documented = set(re.findall(r"`([^`]+)`", metadata))
         cli = runpy.run_path(str(ROOT / "zoodata/scripts/zoodata.py"))
         self.assertEqual(documented, set(fixture["numericFilters"]))
         self.assertEqual(set(cli["MARKET_FILTER_FIELDS"]), set(fixture["numericFilters"]))
         self.assertEqual(set(cli["MARKET_SORT_FIELDS"]), set(fixture["sortBy"]))
-        self.assertEqual(len(documented), 192)
+        self.assertEqual(len(documented), 28)
+        sort_doc = owner.split("#### Numeric sort names", 1)[1].split("## 2a.", 1)[0]
+        self.assertEqual(set(re.findall(r"`([^`]+)`", sort_doc)), set(fixture["sortBy"]))
         self.assertEqual(set(cli["MARKET_DETAIL_ENDPOINTS"]), set(fixture["detailEndpoints"]))
         self.assertEqual(len(cli["MARKET_DETAIL_ENDPOINTS"]), 12)
 
@@ -155,7 +157,7 @@ class TestMarketSkillOwnership(unittest.TestCase):
         self.assertIn("Render history rows and missing-period treatment only through `output-rules.md`", scenario)
         self.assertNotIn("placeholder row", scenario)
         self.assertNotIn("current incomplete month", scenario)
-        self.assertIn("project every returned `data[].history[]` point", evidence)
+        self.assertIn("project every returned `data[].points[]` point", evidence)
         self.assertIn("projected point count and dates equal", evidence)
         self.assertIn("is not an API coverage gap", evidence)
         self.assertIn("do not offer another paid query", evidence)
@@ -277,10 +279,10 @@ class TestMarketSkillOwnership(unittest.TestCase):
     def test_upgraded_response_shapes_and_field_identity_are_documented(self):
         fixture = json.loads((ROOT / "tests/fixtures/market-spu-contract.json").read_text())
         fields = fixture["responseFields"]
-        self.assertEqual(list(fields["MarketHistoryFact"]), ["snapshotDate", "marketSize", "sampleProfile"])
+        self.assertEqual(list(fields["MarketHistoryFact"]), ["date", "marketSize", "sampleProfile"])
         self.assertEqual(list(fields["MarketHistorySeries"]),
                          ["site", "category", "includeDescendantCategoryProducts",
-                          "sampleType", "currency", "history"])
+                          "sampleType", "currency", "points"])
         for name in ("PriceBucket", "RatingBucket", "RatingCountBucket", "ListingAgeBucket",
                      "FulfillmentBucket", "SellerCountryBucket", "ContentBucket"):
             with self.subTest(model=name):
@@ -288,8 +290,8 @@ class TestMarketSkillOwnership(unittest.TestCase):
                                  "monthlySaleCntRate", "monthlySaleAmtRate"} <= set(fields[name]))
                 self.assertFalse({"membershipProductCnt", "productMembershipRate",
                                   "saleCntRate", "saleAmtRate"} & set(fields[name]))
-        for model in ("MarketSearchFact", "MarketProfile", "ListingLaunchTrend"):
-            self.assertIn("snapshotDate", fields[model])
+        for model in ("MarketSearchFact", "MarketProfile"):
+            self.assertIn("resolvedDate", fields[model])
             self.assertNotIn("dt", fields[model])
             self.assertNotIn("productGrain", fields[model])
         self.assertNotIn("sampleProductCnt", fields["MarketProfile"])
@@ -298,16 +300,18 @@ class TestMarketSkillOwnership(unittest.TestCase):
         self.assertTrue({"monthlySaleCnt", "monthlySaleAmt"} <= set(fields["TopNConcentration"]))
         self.assertTrue({"productCnt", "monthlySaleCnt", "monthlySaleAmt"} <=
                         set(fields["MarketHistorySampleProfile"]))
-        self.assertNotIn("avgProductMonthlySaleCnt", fields["MarketHistorySampleProfile"])
+        self.assertIn("avgProductMonthlySaleCnt", fields["MarketHistorySampleProfile"])
+        self.assertNotIn("resolvedDate", fields["ListingLaunchTrend"])
+        self.assertIn("points", fields["ListingLaunchTrend"])
         evidence = (MARKET / "references/evidence-protocols.md").read_text()
-        self.assertIn("data[].history[]", evidence)
+        self.assertIn("data[].points[]", evidence)
         self.assertIn("complete identity", evidence)
         self.assertIn("Multiple series for one category ID", evidence)
         for path in [ROOT / "zoodata/references/openapi-reference.md",
                      *[p for p in ROOT.glob("amazon-*/references/reference.md")
                        if (p.parents[1] / "SKILL.md").exists() and "All 14 market endpoints" in p.read_text()]]:
             text = path.read_text()
-            for required in ("snapshotDate", "data[]", "history[]", "bucketProductCnt",
+            for required in ("resolvedDate", "data[]", "points[]", "bucketProductCnt",
                              "bucketProductRate", "monthlySaleCntRate", "monthlySaleAmtRate",
                              "no top-level sample totals", "Series are separated"):
                 self.assertIn(required, text, str(path))
@@ -325,7 +329,10 @@ class TestMarketSkillOwnership(unittest.TestCase):
                          ["categoryIds", "dateFrom", "dateTo"])
         for name in ("MarketIdentity", "MarketLaunchRequest"):
             self.assertEqual(requests[name]["required"], ["categoryIds"])
-            self.assertEqual(requests[name]["properties"]["date"]["type"], "string(date)|null")
+        self.assertEqual(requests["MarketIdentity"]["properties"]["date"]["type"], "string(date)|null")
+        self.assertNotIn("date", requests["MarketLaunchRequest"]["properties"])
+        for name in ("dateFrom", "dateTo"):
+            self.assertEqual(requests["MarketLaunchRequest"]["properties"][name]["type"], "string(date)|null")
         self.assertNotIn("date", requests["MarketHistoryRequest"]["properties"])
         self.assertEqual(requests["MarketIdentity"]["properties"]["includeDescendantCategoryProducts"],
                          {"type": "boolean", "default": True})
@@ -335,18 +342,19 @@ class TestMarketSkillOwnership(unittest.TestCase):
                     self.assertTrue(kind.endswith("|null"), kind)
         self.assertEqual(fixture["responseFields"]["PriceBucket"]["bucketProductCnt"], "integer|null")
         self.assertEqual(fixture["responseFields"]["PriceBucket"]["monthlySaleAmt"], "number|null")
-        self.assertEqual(fixture["responseFields"]["MarketHistorySeries"]["history"],
+        self.assertEqual(fixture["responseFields"]["MarketHistorySeries"]["points"],
                          "array<MarketHistoryFact>|null")
 
     def test_market_legacy_search_compatibility_stays_in_api_owner(self):
         for path in [ROOT / "zoodata/references/openapi-reference.md", MARKET / "references/reference.md"]:
             text = path.read_text()
             self.assertIn("Search alone normalizes legacy", text)
-            self.assertIn("conflicts fail validation", text)
+            self.assertIn("current MCP inputSchema", text)
             self.assertIn("even `date=null` is rejected", text)
             self.assertNotIn("Old flat Min/Max filters are not accepted", text)
         semantics = (MARKET / "references/market-metric-semantics.md").read_text()
-        self.assertIn("parent bucket counts", semantics)
+        self.assertIn("monthlySaleCntRate", semantics)
+        self.assertIn("monthlySaleAmtRate", semantics)
         self.assertIn("enclosing ranked group", semantics)
         self.assertIn("bucketIndex", semantics)
         self.assertNotIn("normalize_legacy_market_search", semantics)

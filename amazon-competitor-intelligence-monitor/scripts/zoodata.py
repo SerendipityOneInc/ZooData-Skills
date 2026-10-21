@@ -1341,56 +1341,68 @@ def cmd_categories(args):
     output(result, args.format)
 
 
-# SPU market contract: hermes-workspace#616, 4284967a4b6a (2026-10-20).
+# Market contract verified against localhost MCP tools/list (2026-10-21).
 MARKET_FILTER_FIELDS = tuple("""
-totalProductCnt sampleProductCnt sampleMonthlySaleCnt sampleMonthlySaleAmt avgProductMonthlySaleCnt
-avgProductMonthlySaleAmt avgProductPrice30d avgProductBigBsr30d avgProductRatingAmt
-avgProductRatingCnt avgProductPackageWeightOz avgProductPackageVolumeIn3 sampleBrandCnt
-observedSellerCnt avgProductSellerCnt aPlusProductRate sampleFbaProductRate sampleFbmProductRate
-sampleAmzProductRate topNProductAvgMonthlySaleCnt topNProductAvgMonthlySaleAmt
-topNProductBigCategoryAvgBsr topNProductMonthlySaleCntRate topNProductMonthlySaleAmtRate
-topNBrandMonthlySaleCntRate topNSellerConcentrationRate sampleNewProductCnt sampleNewProductRate
-sampleNewProductAvgPrice30d sampleNewProductAvgRatingAmt sampleNewProductAvgRatingCnt
-sampleNewProductAvgMonthlySaleCnt sampleNewProductAvgMonthlySaleAmt totalMonth1NewProductCnt
-totalMonth1NewProductRate totalMonth1NewProductMonthlySaleCnt totalMonth1NewProductMonthlySaleAmt
-totalMonth3NewProductCnt totalMonth3NewProductRate totalMonth3NewProductMonthlySaleCnt
-totalMonth3NewProductMonthlySaleAmt totalMonth6NewProductCnt totalMonth6NewProductRate
-totalMonth6NewProductMonthlySaleCnt totalMonth6NewProductMonthlySaleAmt totalMonth12NewProductCnt
-totalMonth12NewProductRate totalMonth12NewProductMonthlySaleCnt totalMonth12NewProductMonthlySaleAmt
-totalMonthlySaleCnt totalMonthlySaleAmt minPrice30d maxPrice30d medianProductPrice30d
-avgProductMonthlyNewRatingCnt avgProductGrossMarginRate aPlusProductCnt videoProductCnt
-videoProductRate sampleMonth1NewProductCnt sampleMonth1NewProductRate
-sampleMonth1NewProductMonthlySaleCnt sampleMonth1NewProductMonthlySaleCntRate
-sampleMonth1NewProductMonthlySaleAmt sampleMonth1NewProductMonthlySaleAmtRate
-sampleMonth1NewProductAvgPrice30d sampleMonth1NewProductAvgRatingAmt
-sampleMonth1NewProductAvgRatingCnt sampleMonth3NewProductCnt sampleMonth3NewProductRate
-sampleMonth3NewProductMonthlySaleCnt sampleMonth3NewProductMonthlySaleCntRate
-sampleMonth3NewProductMonthlySaleAmt sampleMonth3NewProductMonthlySaleAmtRate
-sampleMonth3NewProductAvgPrice30d sampleMonth3NewProductAvgRatingAmt
-sampleMonth3NewProductAvgRatingCnt sampleMonth6NewProductCnt sampleMonth6NewProductRate
-sampleMonth6NewProductMonthlySaleCnt sampleMonth6NewProductMonthlySaleCntRate
-sampleMonth6NewProductMonthlySaleAmt sampleMonth6NewProductMonthlySaleAmtRate
-sampleMonth6NewProductAvgPrice30d sampleMonth6NewProductAvgRatingAmt
-sampleMonth6NewProductAvgRatingCnt sampleMonth6NewProductMinRatingAmt
-sampleMonth6NewProductMaxRatingAmt sampleMonth12NewProductCnt sampleMonth12NewProductRate
-sampleMonth12NewProductMonthlySaleCnt sampleMonth12NewProductMonthlySaleCntRate
-sampleMonth12NewProductMonthlySaleAmt sampleMonth12NewProductMonthlySaleAmtRate
-sampleMonth12NewProductAvgPrice30d sampleMonth12NewProductAvgRatingAmt
-sampleMonth12NewProductAvgRatingCnt top3ProductConcentrationRate top3ProductProductCnt
-top3ProductBrandCnt top3ProductMonthlySaleCnt top3ProductMonthlySaleAmt top3ProductBigCategoryAvgBsr
-top3ProductSmallCategoryAvgBsr top5ProductConcentrationRate top5ProductProductCnt
-top5ProductBrandCnt top5ProductMonthlySaleCnt top5ProductMonthlySaleAmt top5ProductBigCategoryAvgBsr
-top5ProductSmallCategoryAvgBsr top10ProductConcentrationRate top10ProductProductCnt
-top10ProductBrandCnt top10ProductMonthlySaleCnt top10ProductMonthlySaleAmt
-top10ProductBigCategoryAvgBsr top10ProductSmallCategoryAvgBsr top20ProductConcentrationRate
-top20ProductProductCnt top20ProductBrandCnt top20ProductMonthlySaleCnt top20ProductMonthlySaleAmt
+avgProductMonthlySaleCnt avgProductMonthlySaleAmt avgProductRatingCnt avgProductBigBsr30d
+avgProductPrice30d avgProductRatingAmt avgProductPackageWeightOz avgProductPackageVolumeIn3
+totalProductCnt topNProductBigCategoryAvgBsr topNProductAvgMonthlySaleCnt
+topNProductAvgMonthlySaleAmt sampleBrandCnt observedSellerCnt avgProductSellerCnt
+topNProductMonthlySaleCntRate topNBrandMonthlySaleCntRate aPlusProductRate sampleFbaProductRate
+sampleFbmProductRate sampleAmzProductRate sampleNewProductCnt sampleNewProductRate
+sampleNewProductAvgPrice30d sampleNewProductAvgRatingCnt sampleNewProductAvgRatingAmt
+sampleNewProductAvgMonthlySaleCnt sampleNewProductAvgMonthlySaleAmt
+""".split())
+
+MARKET_SORT_FIELDS = tuple("""
+totalProductCnt sampleProductCnt sampleMonthlySaleCnt sampleMonthlySaleAmt
+avgProductMonthlySaleCnt avgProductMonthlySaleAmt avgProductPrice30d avgProductBigBsr30d
+avgProductRatingAmt avgProductRatingCnt avgProductPackageWeightOz avgProductPackageVolumeIn3
+sampleBrandCnt observedSellerCnt avgProductSellerCnt aPlusProductRate sampleFbaProductRate
+sampleFbmProductRate sampleAmzProductRate topNProductAvgMonthlySaleCnt
+topNProductAvgMonthlySaleAmt topNProductBigCategoryAvgBsr topNProductMonthlySaleCntRate
+topNProductMonthlySaleAmtRate topNBrandMonthlySaleCntRate topNSellerConcentrationRate
+sampleNewProductCnt sampleNewProductRate sampleNewProductAvgPrice30d sampleNewProductAvgRatingAmt
+sampleNewProductAvgRatingCnt sampleNewProductAvgMonthlySaleCnt sampleNewProductAvgMonthlySaleAmt
+totalMonth1NewProductCnt totalMonth1NewProductRate totalMonth1NewProductMonthlySaleCnt
+totalMonth1NewProductMonthlySaleAmt totalMonth3NewProductCnt totalMonth3NewProductRate
+totalMonth3NewProductMonthlySaleCnt totalMonth3NewProductMonthlySaleAmt totalMonth6NewProductCnt
+totalMonth6NewProductRate totalMonth6NewProductMonthlySaleCnt totalMonth6NewProductMonthlySaleAmt
+totalMonth12NewProductCnt totalMonth12NewProductRate totalMonth12NewProductMonthlySaleCnt
+totalMonth12NewProductMonthlySaleAmt totalMonthlySaleCnt totalMonthlySaleAmt minPrice30d
+maxPrice30d medianProductPrice30d avgProductMonthlyNewRatingCnt avgProductGrossMarginRate
+aPlusProductCnt videoProductCnt videoProductRate sampleMonth1NewProductCnt
+sampleMonth1NewProductRate sampleMonth1NewProductMonthlySaleCnt
+sampleMonth1NewProductMonthlySaleCntRate sampleMonth1NewProductMonthlySaleAmt
+sampleMonth1NewProductMonthlySaleAmtRate sampleMonth1NewProductAvgPrice30d
+sampleMonth1NewProductAvgRatingAmt sampleMonth1NewProductAvgRatingCnt sampleMonth3NewProductCnt
+sampleMonth3NewProductRate sampleMonth3NewProductMonthlySaleCnt
+sampleMonth3NewProductMonthlySaleCntRate sampleMonth3NewProductMonthlySaleAmt
+sampleMonth3NewProductMonthlySaleAmtRate sampleMonth3NewProductAvgPrice30d
+sampleMonth3NewProductAvgRatingAmt sampleMonth3NewProductAvgRatingCnt sampleMonth6NewProductCnt
+sampleMonth6NewProductRate sampleMonth6NewProductMonthlySaleCnt
+sampleMonth6NewProductMonthlySaleCntRate sampleMonth6NewProductMonthlySaleAmt
+sampleMonth6NewProductMonthlySaleAmtRate sampleMonth6NewProductAvgPrice30d
+sampleMonth6NewProductAvgRatingAmt sampleMonth6NewProductAvgRatingCnt
+sampleMonth6NewProductMinRatingAmt sampleMonth6NewProductMaxRatingAmt sampleMonth12NewProductCnt
+sampleMonth12NewProductRate sampleMonth12NewProductMonthlySaleCnt
+sampleMonth12NewProductMonthlySaleCntRate sampleMonth12NewProductMonthlySaleAmt
+sampleMonth12NewProductMonthlySaleAmtRate sampleMonth12NewProductAvgPrice30d
+sampleMonth12NewProductAvgRatingAmt sampleMonth12NewProductAvgRatingCnt
+top3ProductConcentrationRate top3ProductProductCnt top3ProductBrandCnt top3ProductMonthlySaleCnt
+top3ProductMonthlySaleAmt top3ProductBigCategoryAvgBsr top3ProductSmallCategoryAvgBsr
+top5ProductConcentrationRate top5ProductProductCnt top5ProductBrandCnt top5ProductMonthlySaleCnt
+top5ProductMonthlySaleAmt top5ProductBigCategoryAvgBsr top5ProductSmallCategoryAvgBsr
+top10ProductConcentrationRate top10ProductProductCnt top10ProductBrandCnt
+top10ProductMonthlySaleCnt top10ProductMonthlySaleAmt top10ProductBigCategoryAvgBsr
+top10ProductSmallCategoryAvgBsr top20ProductConcentrationRate top20ProductProductCnt
+top20ProductBrandCnt top20ProductMonthlySaleCnt top20ProductMonthlySaleAmt
 top20ProductBigCategoryAvgBsr top20ProductSmallCategoryAvgBsr top3BrandConcentrationRate
 top3BrandBrandCnt top3BrandMonthlySaleCnt top3BrandMonthlySaleAmt top3BrandProductCnt
 top3BrandBigCategoryAvgBsr top5BrandConcentrationRate top5BrandBrandCnt top5BrandMonthlySaleCnt
 top5BrandMonthlySaleAmt top5BrandProductCnt top5BrandBigCategoryAvgBsr top10BrandConcentrationRate
 top10BrandBrandCnt top10BrandMonthlySaleCnt top10BrandMonthlySaleAmt top10BrandProductCnt
-top10BrandBigCategoryAvgBsr top20BrandConcentrationRate top20BrandBrandCnt top20BrandMonthlySaleCnt
-top20BrandMonthlySaleAmt top20BrandProductCnt top20BrandBigCategoryAvgBsr
+top10BrandBigCategoryAvgBsr top20BrandConcentrationRate top20BrandBrandCnt
+top20BrandMonthlySaleCnt top20BrandMonthlySaleAmt top20BrandProductCnt top20BrandBigCategoryAvgBsr
 top3SellerConcentrationRate top5SellerConcentrationRate top10SellerConcentrationRate
 top20SellerConcentrationRate top3SellerCountryConcentrationRate top5SellerCountryConcentrationRate
 top10SellerCountryConcentrationRate top20SellerCountryConcentrationRate
@@ -1407,9 +1419,6 @@ top10BrandAvgMonthlySaleAmt top20BrandMonthlySaleCntRate top20BrandAvgMonthlySal
 top20BrandMonthlySaleAmtRate top20BrandAvgMonthlySaleAmt topNBrandAvgMonthlySaleCnt
 topNBrandAvgMonthlySaleAmt topNBrandMonthlySaleAmtRate
 """.split())
-
-# Every numeric filter is also an allowed sort field in this contract.
-MARKET_SORT_FIELDS = MARKET_FILTER_FIELDS
 
 MARKET_DETAIL_ENDPOINTS = (
     "profile",
@@ -1459,12 +1468,13 @@ def cmd_market(args):
                       if bound is not None}
             if len(bounds) == 2 and bounds["min"] > bounds["max"]:
                 raise SystemExit(f"{field}: min must not exceed max")
-            filters[field] = bounds
+            filters.update({field + key.title(): bound for key, bound in bounds.items()})
     if args.seller_country_codes:
         filters["sellerCountryCodes"] = args.seller_country_codes
     if filters:
         params["filters"] = filters
-    params["dateRange"] = args.date_range
+    if args.date:
+        params["date"] = args.date
     if args.category_keyword:
         params["categoryKeyword"] = args.category_keyword
     if args.sort:
@@ -1498,18 +1508,6 @@ def _market_range(value):
         raise argparse.ArgumentTypeError("expected MIN:MAX, MIN:, or :MAX with finite ordered bounds")
 
 
-def _market_date_range(value):
-    if value == "30d":
-        return value
-    try:
-        if not re.fullmatch(r"[0-9]{4}-(0[1-9]|1[0-2])", value):
-            raise ValueError
-        date.fromisoformat(value + "-01")
-        return value
-    except ValueError:
-        raise argparse.ArgumentTypeError("expected 30d or YYYY-MM")
-
-
 def _market_date(value):
     try:
         if not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", value):
@@ -1532,6 +1530,12 @@ def cmd_market_detail(args):
     params = _market_single_params(args)
     if args.market_endpoint == "listing-launch-trend":
         params["granularity"] = args.granularity
+        if args.date_from and args.date_to and args.date_from > args.date_to:
+            raise SystemExit("--date-from must not exceed --date-to")
+        if args.date_from:
+            params["dateFrom"] = args.date_from
+        if args.date_to:
+            params["dateTo"] = args.date_to
     output(api_call("markets/" + args.market_endpoint, params), args.format)
 
 
@@ -3775,8 +3779,8 @@ Examples:
                        help="Top N group used by Top N filters (default: 10); response includes all four groups")
     p_mkt.add_argument("--new-product-period", choices=["1", "3", "6", "12"], default="3",
                        help="New-product window used by filters and sorting (default: 3); response includes all four windows")
-    p_mkt.add_argument("--date-range", type=_market_date_range, default="30d",
-                       help="30d (latest published snapshot) or YYYY-MM (exact month end)")
+    p_mkt.add_argument("--date", type=_market_date,
+                       help="Snapshot cutoff YYYY-MM-DD; omitted selects latest, otherwise latest on/before date")
     p_mkt.add_argument("--category-keyword", help="Literal case-insensitive substring at any category path level")
     for field in MARKET_FILTER_FIELDS:
         p_mkt.add_argument(_camel_to_cli_flag(field), dest=field, type=_market_range,
@@ -3801,7 +3805,7 @@ Examples:
         ("brand-concentrations", sub.add_parser("market-brand-concentrations", help="SPU market brand-concentrations", allow_abbrev=False)),
         ("seller-concentrations", sub.add_parser("market-seller-concentrations", help="SPU market seller-concentrations", allow_abbrev=False)),
         ("listing-launch-trend", sub.add_parser("market-listing-launch-trend", help="SPU market listing-launch-trend", allow_abbrev=False)),
-        ("history", sub.add_parser("market-history", help="SPU market history", allow_abbrev=False)),
+        ("history", sub.add_parser("market-history", help="Monthly market history at published month ends", allow_abbrev=False)),
     ]
     for endpoint, p in market_parsers:
         ids = p.add_mutually_exclusive_group(required=True)
@@ -3814,10 +3818,12 @@ Examples:
         if endpoint == "history":
             p.add_argument("--date-from", type=_market_date, required=True)
             p.add_argument("--date-to", type=_market_date, required=True)
+        elif endpoint == "listing-launch-trend":
+            p.add_argument("--date-from", type=_market_date, help="Inclusive first-launch date lower bound")
+            p.add_argument("--date-to", type=_market_date, help="Inclusive first-launch date upper bound")
+            p.add_argument("--granularity", choices=["month", "year"], default="month")
         else:
             p.add_argument("--date", type=_market_date, help="Exact common published snapshot date (YYYY-MM-DD)")
-        if endpoint == "listing-launch-trend":
-            p.add_argument("--granularity", choices=["month", "year"], default="month")
         p.set_defaults(func=cmd_market_history if endpoint == "history" else cmd_market_detail,
                        market_endpoint=endpoint)
 
