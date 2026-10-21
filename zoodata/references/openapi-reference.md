@@ -423,7 +423,7 @@ TaggedReview vs RealtimeReview: `reviews/search` uses snapshot data with AI tags
 | subBsr | List\<Integer\> | Sub-category BSR |
 | monthlySalesFloor | List\<Integer\> | Monthly sales lower bound |
 | rating | List\<Float\> | Rating on each date |
-| ratingCount | List\<Integer\> | Review count on each date |
+| ratingCount | List\<Integer\> | Rating count on each date |
 | sellerCount | List\<Integer\> | Seller count |
 | title | List\<ChangeLog\> | Title changes `{date, value}` |
 | imageUrl | List\<ChangeLog\> | Main image changes `{date, value}` |

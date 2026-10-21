@@ -513,6 +513,16 @@ class TestMarketSkillOwnership(unittest.TestCase):
         guide = (ROOT / "amazon-analysis/references/execution-guide.md").read_text()
         self.assertIn("平均评分数", guide)
         self.assertNotRegex(guide, r"(?i)avg review count.*avgRatingCount")
+        # Check endpoint field inventories too, not just comparison-table labels.
+        references = [ROOT / "zoodata/references/reference.md",
+                      ROOT / "zoodata/references/openapi-reference.md",
+                      *[p.parent / "references/reference.md"
+                        for p in ROOT.glob("amazon-*/SKILL.md")]]
+        for path in references:
+            for row in path.read_text().splitlines():
+                if re.match(r"\|\s*`?ratingCount`?\s*\|", row):
+                    with self.subTest(reference=path, row=row):
+                        self.assertNotRegex(row, r"(?i)review count")
 
     def test_general_operations_routes_history_by_subject(self):
         ops = (ROOT / "amazon-analysis" / "references" /

@@ -122,7 +122,7 @@ Search costs 1 credit per call, including empty data. Other market reads cost 1 
 | `monthlySalesFloor` | int | Monthly sales (lower bound) |
 | `monthlyRevenueFloor` | float | Monthly revenue lower bound |
 | `rating` | float | Rating (0-5) |
-| `ratingCount` | int | Review count |
+| `ratingCount` | int | Rating count |
 | `bsr` | int | BSR (NOT `bestsellersRank`) |
 | `fbaFee` | float | FBA cost |
 | `sellerCount` | int | Sellers on listing |
@@ -153,7 +153,7 @@ Request params: `keyword`, `brand`, `asin`, `categoryPath`, `sortBy`, `pageSize`
 | `title` | string | Full title |
 | `brandName` | string | Brand |
 | `rating` | float | Current rating |
-| `ratingCount` | int | Current review count |
+| `ratingCount` | int | Current rating count |
 | `ratingBreakdown` | object | Star distribution {five_star: {percentage, count}, ...} |
 | `features` | list | Bullet points |
 | `description` | string | Product description |
