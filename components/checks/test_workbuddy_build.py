@@ -312,6 +312,10 @@ class TestWorkBuddyBuild(unittest.TestCase):
                 expert = packages["experts", name]
                 self.assertEqual(list(json.loads(expert[".mcp.json"])["mcpServers"]), [server])
                 self.assertIn(f"server `{server}`", workflow["SKILL.md"].decode())
+                first_lookup = f"`mcp__{server}__openapi_v2_categories`"
+                for entry in (workflow["SKILL.md"], expert[f"skills/{name}/SKILL.md"]):
+                    self.assertIn(first_lookup, entry.decode())
+                    self.assertIn("ToolSearch.tool_names", entry.decode())
                 shared = workflow["references/contracts-mcp.md"].decode()
                 self.assertIn("host explicitly reports that ZooData is disconnected", shared)
                 for key in manifest["workflows"]["product-selection"]["data_skills"]:

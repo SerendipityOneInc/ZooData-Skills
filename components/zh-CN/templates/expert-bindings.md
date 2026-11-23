@@ -1,5 +1,5 @@
 <!-- prompt-source: build_workbuddy.py 1fcfab4d47c499cb40f1c2a89cac05d2672ac2738b26ff5b15d4647f9e492455 -->
-<!-- prompt-source: targets.json bb67f79293c1d1d7424df31fde61d4cf435b858bf1fe762f04552137293f538e -->
+<!-- prompt-source: targets.json 18094da598c5a51ae2c52345764620041520ba3f79efc18e119c82d715e0b746 -->
 
 > 英文原文：[build_workbuddy.py](../../build_workbuddy.py)
 

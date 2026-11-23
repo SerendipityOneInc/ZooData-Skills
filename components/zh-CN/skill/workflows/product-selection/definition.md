@@ -1,4 +1,4 @@
-<!-- prompt-source: skill/workflows/product-selection/definition.md 317d40d503eab20ef82a00ea720efac3a93110d2cc4e5672c1cf914a40c92b2f -->
+<!-- prompt-source: skill/workflows/product-selection/definition.md fb4feb4ee67f20bc141416f38c49010edbc49f6d9090c45b99564a96af2b81cd -->
 
 > 英文原文：[原文](../../../../skill/workflows/product-selection/definition.md)
 
@@ -7,11 +7,11 @@
 ## 选择数据来源
 
 1. 卖家提供的数字或文件足以回答时，直接在本次会话分析并注明来源，跳过连接配置。卖家限定只用所给资料时，仅报告资料能支持的结果。
-2. 查询新的亚马逊美国站数据前，确保卖家已知须在 ZooData 连接器填写 API Key，查询消耗账户积分。成本和供应商报价仅用于会话内分析。
+2. 新的亚马逊美国站数据由已配置的 ZooData 连接器查询，付费查询使用 API Key 对应账户的积分。成本和供应商报价仅用于会话内分析。
 
 ## 调用所选数据工具
 
-使用数据方法中列出的完整工具名（服务名 `{{mcp_server}}`）。按[共享取数规则](../../../contract/query.md)调用业务工具，并处理连接状态和查询结果。
+查询指定类目的下级类目，先用 `openapi_v2_categories`。其他任务使用相应数据方法列出的业务工具（服务名 `{{mcp_server}}`）。工具需要按名加载时，将完整业务工具名传给 `ToolSearch.tool_names`，找到后按数据方法传参调用。开场的连接器列表未列出 ZooData，不能据此判断连接失败。按[共享取数规则](../../../contract/query.md)处理实际查找或调用结果。
 
 ## 按用户问题选择任务
 

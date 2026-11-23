@@ -3,11 +3,11 @@
 ## Choose the data source
 
 1. Start with the seller’s figures or files when they cover the question. Analyze those locally, label their source, and skip connector setup. If the seller limits the task to those figures, report only what they support.
-2. Fresh Amazon US data comes from ZooData. Before the first fresh read, make sure the seller knows a ZooData API Key is entered in the connector and queries use account credits. Keep private costs and supplier quotes in the session.
+2. Fresh Amazon US data comes from ZooData. The configured connector uses a ZooData API Key and charges account credits for paid reads. Keep private costs and supplier quotes in the session.
 
 ## Call the selected data tool
 
-Use the fully qualified business tool name printed in the data method (server `{{mcp_server}}`). Follow the [shared query rules](../../../contract/query.md) to invoke it and handle connection status and query results.
+For a named category whose children are needed, start with `openapi_v2_categories`. For other requests, use the business tool named in the selected data method (server `{{mcp_server}}`). If tools are deferred, pass that exact business tool name in `ToolSearch.tool_names`, then invoke the match with the method’s parameters. A connector missing from the introductory status list does not establish a connection failure. Apply the [shared query rules](../../../contract/query.md) to the actual lookup or call result.
 
 ## Select the task
 
