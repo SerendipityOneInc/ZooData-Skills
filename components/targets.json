@@ -400,7 +400,7 @@
       "export_name": "zoodata-product-selection",
       "entry": "skill/workflows/product-selection/definition.md",
       "bind_mcp_tools": true,
-      "version": "0.1.39",
+      "version": "0.1.40",
       "report_resources": {
         "tools/report/product-trends.md": "references/product-trends.md",
         "tools/report/scripts/rank_charts.py": "scripts/rank_charts.py"

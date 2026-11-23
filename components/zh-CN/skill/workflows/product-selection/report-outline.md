@@ -1,4 +1,4 @@
-<!-- prompt-source: skill/workflows/product-selection/report-outline.md ec11c87b1c202feef1a9826d6b6862a689bb04bc3912924a5db0d068e7077282 -->
+<!-- prompt-source: skill/workflows/product-selection/report-outline.md 1f2aac1e043b18357ca74cf17998da3f47140f7edb613d2bc723c60c41227433 -->
 
 > 英文原文：[原文](../../../../skill/workflows/product-selection/report-outline.md)
 
@@ -6,7 +6,7 @@
 
 | 任务 | 阅读顺序 |
 |---|---|
-| `screening` 商品筛选 | 说明有效筛选条件、范围、排序和结果覆盖。用户要整个范围的前 N 款时，用共享商品模板按总榜顺序展示，必要时在商品旁标注类目。用户要各类目的领先商品时，才按类目分别列榜。同值并列，共同数值只标注一次。 |
+| `screening` 商品筛选 | 说明有效筛选条件、范围、排序和结果覆盖。用户要整个范围的前 N 款时，用共享商品模板按总榜顺序展示，必要时在商品旁标注类目。同值并列，共同数值只标注一次。 |
 | `market-research` 市场研究 | 标明类目，用可比数据回答当前问题。查分布时展示对应分布；评估市场进入条件时列出市场指标和卖家设定的门槛。 |
 | `new-launches` 新品上榜 | 先展示类目排名，再展示前三款已识别新品。每个父体单独一节，节内注明父体和代表商品 ASIN，按[商品趋势模板](../../../tools/report/product-trends.md)展示月销量、每日价格、每周曝光、大类排名和小类排名。 |
 | `market-growth` 飙升市场 | 先回答哪些类目销量增长，列出所比较的两个月各自的月销量、增加件数和增幅，并结合较长历史说明增长是否延续。用户要求代表商品时，再用一组紧凑的商品条目展示各入选市场的代表商品，按类目标识。父体榜单使用父体模板，展示已识别的具体变体时使用子体模板。 |

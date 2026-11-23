@@ -2,7 +2,7 @@
 
 | Task | Reading order |
 |---|---|
-| `screening` | Give the effective filters, scope, selected ordering and result coverage once. For an overall Top N, present one ordered product list using the shared product template. Show category as an attribute when useful. For leaders requested per category, present a separate ordered group for each category. Show a shared value once and keep ties visible. |
+| `screening` | Give the effective filters, scope, selected ordering and result coverage once. For an overall Top N, present one ordered product list using the shared product template. Show category as an attribute when useful. Show a shared value once and keep ties visible. |
 | `market-research` | Identify the category and answer the requested market question. Show the relevant distribution for a focused question, or market indicators and the seller’s stated thresholds for an entry question. |
 | `new-launches` | Show the category comparison first, then a section per selected listing, identified by parent and representative ASIN. Apply the [product trend panels](../../../tools/report/product-trends.md) for monthly sales, daily price, weekly exposure and both daily ranks. |
 | `market-growth` | Lead with which markets grew, their monthly unit sales for the two months compared, absolute and percentage change. Use the longer history to describe persistence. When examples are requested, group the leading markets’ representative listings in a single compact product list. Use the parent template for parent-ranked listings and the child template for identified variants. |

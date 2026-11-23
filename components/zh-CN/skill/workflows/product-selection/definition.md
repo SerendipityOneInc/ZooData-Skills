@@ -1,4 +1,4 @@
-<!-- prompt-source: skill/workflows/product-selection/definition.md fb4feb4ee67f20bc141416f38c49010edbc49f6d9090c45b99564a96af2b81cd -->
+<!-- prompt-source: skill/workflows/product-selection/definition.md 21d0886e09c83df5ac571feb96f875b52298af802282faeb831640d025e5f5db -->
 
 > 英文原文：[原文](../../../../skill/workflows/product-selection/definition.md)
 
@@ -15,7 +15,7 @@
 
 ## 按用户问题选择任务
 
-比较各类目畅销榜中的新品时，先读[类目市场研究方法](market-research.md)，用市场接口批量查询已确定的类目。先确定每个类目的销量榜，再按上架日期识别榜内新品。
+按用户要比较的对象选择路径。选商品时，全部类目和经营条件共同限定一个筛选范围。选类目时，先读[类目市场研究方法](market-research.md)，用市场数据批量比较目标类目。统计上榜新品数用 `openapi_v2_markets_listing_launch_trend`；需要榜内商品示例时用 `openapi_v2_markets_top_product_concentrations`，沿用方法规定的榜单日期和上架窗口。若要逐个深入研究，先筛出市场，再一次研究一个选定类目。
 
 | 用户想做什么 | 分析入口 | 交付 |
 |---|---|---|

@@ -11,7 +11,7 @@ For a named category whose children are needed, start with `openapi_v2_categorie
 
 ## Select the task
 
-For new listings among category bestsellers, read the [category market method](market-research.md) before querying. Use the market tools with the confirmed category IDs in a batch. Establish each category’s sales-ranked sample before evaluating launch dates.
+Choose the route by what the seller wants to rank. For products, keep all category and business filters in one screening scope. For categories, read the [category market method](market-research.md) and compare the requested markets with batched market data. For new-listing counts use `openapi_v2_markets_listing_launch_trend`; for requested product examples use `openapi_v2_markets_top_product_concentrations`. Follow the method’s ranking date and launch window. If the seller wants individual market studies, shortlist the markets first and examine one selected category at a time.
 
 | Seller request | Route | Result |
 |---|---|---|
