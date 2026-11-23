@@ -8,6 +8,7 @@ from html import escape
 import json
 import math
 import re
+import runpy
 from pathlib import Path
 
 
@@ -187,35 +188,26 @@ def daily_history(block, base, missing, lang):
         if not isinstance(reason, str) or not reason.strip():
             raise ValueError("Supply the original history response or a reason it was unavailable")
         return "<p>" + text(reason) + "</p>"
-    record = json.loads((base / block["source"]).read_text(encoding="utf-8"))["data"]
-    context = record["context"]
-    if context.get("granularity") != "day" or record["asin"] != block["asin"]:
-        raise ValueError("Daily history must match the selected ASIN and have day granularity")
-    if (date.fromisoformat(context["requestedDateFrom"]) > start
-            or date.fromisoformat(context["requestedDateTo"]) < end):
-        raise ValueError("Daily history request does not cover the selected period")
-    dates, values = record["timestamps"], record[block["field"]]
-    if not isinstance(dates, list) or not isinstance(values, list) or len(dates) != len(values):
-        raise ValueError("History dates and values must be equal-length arrays")
-    observations = {}
-    for stamp, value in zip(dates, values):
-        day = date.fromisoformat(stamp)
-        if day in observations:
-            raise ValueError("Duplicate daily observation")
-        observations[day] = None if value is None else number(value)
-    days = [start + timedelta(days=i) for i in range((end - start).days + 1)]
-    points = [observations.get(day) for day in days]
-    valid = [(day, v) for day, v in zip(days, points) if v is not None]
+    # In an installed package the builder places the data module beside this script.
+    module = Path(__file__).with_name("summarize_changes.py")
+    if not module.is_file():
+        module = Path(__file__).resolve().parents[3] / "skill/datas/product-history/summarize_changes.py"
+    history = runpy.run_path(str(module))
+    response = json.loads((base / block["source"]).read_text(encoding="utf-8"))
+    record = history["history_record"](response, block["asin"], start, end)
+    _, valid = history["observations"](record, block["field"], start, end, numeric=True)
     if not valid:
         return "<p>" + text(block["title"]) + " · " + text(missing) + "</p>"
     unit = record["currency"] if block["field"] == "price" else block["unit"]
     if len(valid) == 1:
         day, value = valid[0]
         return "<p>" + text(f"{block['title']} · {day} · {value} {unit}") + "</p>"
-    moves = [(prev_day, day, v - prev) for (prev_day, prev), (day, v)
-             in zip(valid, valid[1:]) if v != prev]
-    up = sum(diff > 0 for _, _, diff in moves)
-    across = sum((day - prev_day).days > 1 for prev_day, day, _ in moves)
+    days = [start + timedelta(days=i) for i in range((end - start).days + 1)]
+    observations = dict(valid)
+    points = [observations.get(day) for day in days]
+    moves = history["changes_between"](valid)
+    up = sum(after > before for (_, before), (_, after) in moves)
+    across = sum((day - prev_day).days > 1 for (prev_day, _), (day, _) in moves)
     if lang.startswith("zh"):
         note = f"{len(valid)} 天有记录，观察到 {len(moves)} 次变化，上升 {up} 次、下降 {len(moves)-up} 次。"
         if across:

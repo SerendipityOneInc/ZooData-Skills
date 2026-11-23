@@ -1,4 +1,4 @@
-<!-- prompt-source: skill/datas/product-history/definition.md 09d5d4f43324fa379052efb5c88e219d7c4621e695d09842216b8e13c5987f47 -->
+<!-- prompt-source: skill/datas/product-history/definition.md f786d54ee1818fe180b554e415924359ed6bdeadbd4c2636e28a68ad9d1a4162 -->
 
 > 英文原文：[原文](../../../../skill/datas/product-history/definition.md)
 
@@ -37,6 +37,7 @@
 1. 标题 `title` 和主图 `imageUrl` 返回带 `date` 和 `value` 的事件。比较前后两个已知值并标明各自的观测日期。两次采样之间有空档时，具体生效日未知。只有一条记录时用作基准；主图地址变化时记录新旧地址，画面差异需查看两张图才能描述。
 2. 价格 `price`、BSR、购买量下限和评分等逐点数据按下标与 `timestamps` 对齐。用同一 ASIN 的有效价格计算价差，并用观测日期标注；两次观测之间有空档时保留日期范围。
 3. 保留返回的观测覆盖。区分类目排名及父子体口径；没有足够记录时写“缺少可比记录”，有可比记录且数值相同时写“观测期间未见变化”。
+4. 接口成功但数据为空时，所选期间没有可用观测。相同日期的相同价格只计一次；同日价格冲突时，该日价格无法确定。
 
 ## 交付结果
 

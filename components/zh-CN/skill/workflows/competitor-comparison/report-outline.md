@@ -1,4 +1,4 @@
-<!-- prompt-source: skill/workflows/competitor-comparison/report-outline.md 520f6b6efa895ecacb993e43b0d9352807e407aefea87a6005fc99e34da366f3 -->
+<!-- prompt-source: skill/workflows/competitor-comparison/report-outline.md 97c615b295449c7c49893f81ba98ab5a488332d3676c43c3469e6c625feca2f0 -->
 
 > 英文原文：[原文](../../../../skill/workflows/competitor-comparison/report-outline.md)
 
@@ -14,7 +14,7 @@
 | 比较指定方面 | 回答用户的问题，再展示支撑判断的可比数据。研究趋势时标明期间并展示走势。 |
 | 分析商品差异化依据 | 从买家需求或使用场景入手，把商品或页面差异与相关买家反馈放在一起，标明各项发现对应的商品。 |
 
-监控任务取得日级历史响应文件后，运行[变更汇总](../../../../skill/workflows/competitor-comparison/summarize_changes.py)，依次传入 `response.json ASIN startDate endDate` 和用户所问的字段（`title`、`imageUrl`、`price`）。直接用输出的日期、前后值和各字段覆盖范围填写监控表。原始响应包含 `data.asin`，并在 `data.context` 中提供 `granularity=day`、`requestedDateFrom`、`requestedDateTo`。对于用户提供的片段，直接比较其中带日期的记录。标题和主图可以用期间开始前最后一个已知值作基准，只展示期间内观察到的变更。变更次数为 null 表示可用记录不足以比较。
+监控任务取得日级历史响应文件后，运行[变更汇总](../../../../skill/datas/product-history/summarize_changes.py)，依次传入 `response.json ASIN startDate endDate` 和用户所问的字段（`title`、`imageUrl`、`price`）。直接用输出的日期、前后值和各字段覆盖范围填写监控表。原始响应包含 `data.asin`，并在 `data.context` 中提供 `granularity=day`、`requestedDateFrom`、`requestedDateTo`。对于用户提供的片段，直接比较其中带日期的记录。标题和主图可以用期间开始前最后一个已知值作基准，只展示期间内观察到的变更。变更次数为 null 表示可用记录不足以比较。
 
 1. 把影响比较的规格放在对应指标旁。仅保留本次涉及的章节；缺少指标影响判断时，指出具体哪部分尚无法回答。
 2. 综合竞品对比以“各款商品的优劣对比”收尾。用一个 `profiles` 内容块并排展示，每款商品一张卡，标明商品名和 ASIN。分列相对优势与劣势，每项用一句话给出决定判断的对比证据；证据只支持一面时，只写这一面。专项对比和单品拆解在最后一项相关发现处收尾。

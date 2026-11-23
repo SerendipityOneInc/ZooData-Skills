@@ -111,7 +111,8 @@ def validate_sources(manifest, platform):
     validate_skill_layout({"SKILL.md": b"", **dict.fromkeys(destinations, b"")})
     for path in [source_file(report["entry"]), *report_paths]:
         if not (path.is_relative_to(COMPONENTS / "tools/report")
-                or path == COMPONENTS / REPORTING_SOURCE):
+                or path == COMPONENTS / REPORTING_SOURCE
+                or path == COMPONENTS / "skill/datas/product-history/summarize_changes.py"):
             raise ValueError(f"Non-report resource in report Skill: {path}")
         if path.suffix != ".md":
             continue

@@ -1,4 +1,4 @@
-<!-- prompt-source: skill/workflows/product-selection/definition.md 36405a5e1737f888929b5a1840962c1916019e7892ffc947da6edc392b7d36fb -->
+<!-- prompt-source: skill/workflows/product-selection/definition.md 8ad5852a80099305c2bd0087655aea0b4220a436d7b43497b44b1b5aab978ccc -->
 
 > 英文原文：[原文](../../../../skill/workflows/product-selection/definition.md)
 
@@ -17,8 +17,6 @@
 3. 查询失败或结果为空时，使用[共享取数规则](../../../contract/query.md)。
 
 ## 按用户问题选择任务
-
-筛选上架时长时，每个月按 30 天计算。“近半年上架”统一取上架不超过 180 天的商品。直接按此条件筛选，在报告范围中说明一次，无需用户确认。
 
 比较各类目畅销榜中的新品时，先读[类目市场研究方法](market-research.md)，用市场接口批量查询已确定的类目。先确定每个类目的销量榜，再按上架日期识别榜内新品。
 

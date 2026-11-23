@@ -7,6 +7,13 @@ from pathlib import Path
 
 
 def rank_blocks(data, asin, lang="zh-CN", *, start_date=None, end_date=None):
+    zh = lang.startswith("zh")
+    levels = (("bsr", "大类排名" if zh else "Main category rank"),
+              ("subBsr", "小类排名" if zh else "Subcategory rank"))
+    if data is None:
+        return [{"type": "text", "measure": field,
+                 "paragraphs": [level + (" · 所选期间未获取排名" if zh else " · No rank for this period")]}
+                for field, level in levels]
     context = data["context"]
     if data["asin"] != asin or context["granularity"] != "day":
         raise ValueError("Expected daily product history for the selected ASIN")
@@ -20,10 +27,8 @@ def rank_blocks(data, asin, lang="zh-CN", *, start_date=None, end_date=None):
     if len(stamps) != len(set(stamps)):
         raise ValueError("Duplicate observation day")
 
-    zh = lang.startswith("zh")
     blocks = []
-    for field, level in (("bsr", "大类排名" if zh else "Main category rank"),
-                         ("subBsr", "小类排名" if zh else "Subcategory rank")):
+    for field, level in levels:
         ranks = data.get(field) or []
         if ranks and len(ranks) != len(stamps):
             raise ValueError(f"{field} must align with timestamps")
@@ -74,6 +79,9 @@ if __name__ == "__main__":
     parser.add_argument("--start-date", help="First report day (YYYY-MM-DD)")
     parser.add_argument("--end-date", help="Last report day (YYYY-MM-DD)")
     args = parser.parse_args()
-    record = json.loads(args.history.read_text(encoding="utf-8"))["data"]
+    response = json.loads(args.history.read_text(encoding="utf-8"))
+    record = response["data"]
+    if response.get("success") is False or (record is None and response.get("success") is not True):
+        parser.exit(1, "Expected a successful product history response\n")
     print(json.dumps(rank_blocks(record, args.asin, args.lang, start_date=args.start_date,
                                  end_date=args.end_date), ensure_ascii=False))

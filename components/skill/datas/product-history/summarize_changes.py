@@ -7,27 +7,27 @@ import math
 from pathlib import Path
 
 
-def observations(record, field, start, end):
+def observations(record, field, start, end, *, numeric):
     series = record.get(field)
     if series is None:
         return None, []
     if not isinstance(series, list):
         raise ValueError(f"Expected an array for {field}")
-    if field == "price":
+    if numeric:
         dates = record["timestamps"]
         if not isinstance(dates, list) or len(dates) != len(series):
-            raise ValueError("Price and timestamp arrays must be aligned")
+            raise ValueError(f"Expected aligned, equal-length arrays for timestamps and {field}")
         pairs = zip(dates, series)
     else:
         pairs = ((event["date"], event["value"]) for event in series)
     by_day = {}
     for stamp, value in pairs:
         day = date.fromisoformat(stamp)
-        if day > end or (field == "price" and day < start) or value is None or value == "":
+        if day > end or (numeric and day < start) or value is None or value == "":
             continue
-        if field == "price":
+        if numeric:
             if type(value) not in (int, float) or not math.isfinite(value):
-                raise ValueError("Expected a numeric price")
+                raise ValueError(f"Expected a finite number for {field}")
         elif not isinstance(value, str):
             raise ValueError(f"Expected text for {field}")
         if day in by_day and by_day[day] != value:
@@ -39,11 +39,15 @@ def observations(record, field, start, end):
     return baseline, in_window
 
 
-def summarize(response, asin, start, end, fields):
+def history_record(response, asin, start, end):
+    if end < start:
+        raise ValueError("Invalid history period")
     if not isinstance(response, dict):
         raise ValueError("Expected a saved products/history response object")
     if response.get("success") is False:
         raise ValueError("The history read failed")
+    if response.get("success") is True and "data" in response and response["data"] is None:
+        return {}
     record = response.get("data")
     if not isinstance(record, dict) or not isinstance(record.get("context"), dict):
         raise ValueError("Use the original response with data.asin and data.context "
@@ -55,22 +59,30 @@ def summarize(response, asin, start, end, fields):
     last = date.fromisoformat(context["requestedDateTo"])
     if not first <= start <= end <= last:
         raise ValueError("Requested dates are outside the saved response")
+    return record
+
+
+def changes_between(points):
+    return [(earlier, later) for earlier, later in zip(points, points[1:])
+            if earlier[1] != later[1]]
+
+
+def summarize(response, asin, start, end, fields):
+    record = history_record(response, asin, start, end)
     result = {"asin": asin, "startDate": start.isoformat(), "endDate": end.isoformat(),
               "fields": {}, "changes": []}
     for field in dict.fromkeys(fields):
-        baseline, points = observations(record, field, start, end)
+        baseline, points = observations(record, field, start, end, numeric=field == "price")
         comparable = [baseline, *points] if baseline else points
-        count = 0
-        for (before_date, before), (after_date, after) in zip(comparable, comparable[1:]):
-            if before != after:
-                result["changes"].append({"field": field, "beforeDate": before_date.isoformat(),
-                                          "before": before, "afterDate": after_date.isoformat(), "after": after})
-                count += 1
+        changes = changes_between(comparable)
+        for (before_date, before), (after_date, after) in changes:
+            result["changes"].append({"field": field, "beforeDate": before_date.isoformat(),
+                                      "before": before, "afterDate": after_date.isoformat(), "after": after})
         result["fields"][field] = {
             "observations": len(points),
             "firstObserved": points[0][0].isoformat() if points else None,
             "lastObserved": points[-1][0].isoformat() if points else None,
-            "observedChanges": count if len(comparable) >= 2 else None,
+            "observedChanges": len(changes) if len(comparable) >= 2 else None,
         }
         if field == "price":
             result["fields"][field]["currency"] = record.get("currency")

@@ -9,6 +9,7 @@ Generate an HTML research report from supplied analysis results. Use this Skill 
 | [Presentation rules](../../contract/report.md) | Business language, reading order, data labels and the output checks |
 | [Report components](layouts.md) | Supported content blocks and their input structure |
 | [Generator](scripts/render_report.py) | Validate component data, embed local images, render charts and fill the template |
+| [History observations](../../skill/datas/product-history/summarize_changes.py) | Supplies dated values and change counts from saved product history |
 | [Page template](assets/template.html) | Shared page structure, styles, responsive layout and print styles |
 
 ## Generate and deliver a report

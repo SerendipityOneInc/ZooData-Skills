@@ -57,10 +57,10 @@ def checked_period(value, today):
         return value
     if not isinstance(value, str) or not re.fullmatch(r"[0-9]{4}-(0[1-9]|1[0-2])", value):
         raise ValueError("dateRange requires 30d or a published YYYY-MM.")
-    # The prior month's catalog becomes available on the third of the month.
-    latest = (today - timedelta(days=2)).replace(day=1) - timedelta(days=1)
+    # MCP determines which completed months are already published.
+    latest = today.replace(day=1) - timedelta(days=1)
     if not "2026-02" <= value <= latest.strftime("%Y-%m"):
-        raise ValueError("dateRange is outside the published catalog months.")
+        raise ValueError("dateRange is outside the range of completed catalog months.")
     return value
 
 

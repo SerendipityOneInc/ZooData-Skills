@@ -1,4 +1,4 @@
-<!-- prompt-source: skill/datas/product-discovery/definition.md a91ff72efdfe90e66b2b440b57347c72f50e14964310ed6b6328a65eba02d0ed -->
+<!-- prompt-source: skill/datas/product-discovery/definition.md 8955e89330ccf2368959ae39581836239b045388f5b033f3f3d08e814c01ca58 -->
 
 > 英文原文：[原文](../../../../skill/datas/product-discovery/definition.md)
 
@@ -20,7 +20,7 @@
 
 | 参数 | 用法 |
 |---|---|
-| `dateRange` | 留空查询最新可用数据。查看历史月份时传 YYYY-MM，查询该月月末记录。 |
+| `dateRange` | 留空查询最新可用数据。查询已结束的月份时传 YYYY-MM。若该月尚未发布，保留指定月份并说明数据尚未提供。 |
 | `keyword` | 本次查询的搜索词。 |
 | `categoryPath` | 从根类目到目标类目的路径。 |
 | `keywordMatchType` | 仅在提供关键词时传入。 |

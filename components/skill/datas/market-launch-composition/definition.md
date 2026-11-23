@@ -20,7 +20,7 @@ Batch the category IDs in `categoryIds`. For sales rankings use `sampleType="uni
 
 ### Response handling
 
-Use the latest market search’s resolved ranking date as the reference. For each category sum its monthly `points[].productCount` values. Preserve explicit zeros. Treat absent categories or missing counts as unavailable.
+Point dates identify first-launch periods. This response does not identify the ranking date. For each category sum its monthly `points[].productCount` values. Preserve explicit zeros. Treat absent categories or missing counts as unavailable.
 
 ## Deliverable
 

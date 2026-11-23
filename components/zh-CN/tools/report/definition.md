@@ -1,4 +1,4 @@
-<!-- prompt-source: tools/report/definition.md abafbd8e33742b111f104799bdecc995c76792bbbe1f28fc5cde9452cd2ce8f5 -->
+<!-- prompt-source: tools/report/definition.md 17f187ff6c4564baea269fab9b22afcba75698ce6ef0ea5479151e7d3b5538af -->
 
 > 英文原文：[tools/report/definition.md](../../../tools/report/definition.md)
 
@@ -13,6 +13,7 @@
 | [呈现规则](../../contract/report.md) | 业务用语、阅读顺序、指标标识和输出检查 |
 | [报告组件](layouts.md) | 支持的内容块及其输入结构 |
 | [生成工具](../../../tools/report/scripts/render_report.py) | 校验组件数据、嵌入本地图片、绘制图表并填充模板 |
+| [商品历史观测](../../../skill/datas/product-history/summarize_changes.py) | 从已保存的商品历史中提取有效观测并统计变更次数 |
 | [页面模板](../../../tools/report/assets/template.html) | 公共页面框架、样式、自适应布局和打印样式 |
 
 ## 生成和交付报告

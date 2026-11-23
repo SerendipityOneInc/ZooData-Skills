@@ -1,5 +1,6 @@
 """Verify native submission artifacts, independent resources and install bindings."""
 
+from datetime import date
 import copy
 import hashlib
 import importlib.util
@@ -237,6 +238,11 @@ class TestWorkBuddyBuild(unittest.TestCase):
         for value in ("6w", 180, [], False):
             with self.subTest(age=value), self.assertRaisesRegex(ValueError, "180d"):
                 module.prepare(unrestricted | {"filters": {"listingAge": value}})
+        for day in (1, 2, 3):
+            for today, prior in ((date(2026, 11, day), "2026-10"), (date(2027, 1, day), "2026-12")):
+                self.assertEqual(module.checked_period(prior, today), prior)
+                with self.assertRaises(ValueError):
+                    module.checked_period(today.strftime("%Y-%m"), today)
         for period in ("30d", "2026-02", None):
             request = module.prepare(unrestricted | {"dateRange": period, "filters": {"fulfillments": ["FBA"]}})
             self.assertEqual(request.get("dateRange"), period)
@@ -520,6 +526,35 @@ class TestWorkBuddyBuild(unittest.TestCase):
             data["sections"][-1]["blocks"].pop()
             data["sections"][-1]["blocks"].pop()
             self.assertIn("sales", run().stderr)
+
+    def test_ranked_new_listings_link_directly_to_trend_measures_in_both_packages(self):
+        for root in (self.output / "skills/zoodata-product-selection",
+                     self.output / "experts/zoodata-product-selection/skills/zoodata-product-selection"):
+            market = next((root / "references").glob("*market-research.md"))
+            section = market.read_text().split("## Show how the newly ranked products developed")[1].split("## ")[0]
+            link = next(target for _, target in BUILDER.LINKS.findall(section) if "#" in target)
+            file, heading = link.split("#")
+            self.assertEqual(heading, "trace-how-each-product-grew")
+            method = (market.parent / file).read_text().split("## Trace how each product grew")[1].split("## ")[0]
+            self.assertNotIn("assessment_scope.py", method)
+            for field in ("Purchase volume", "Price", "Organic exposure", "Ad exposure", "BSR"):
+                self.assertIn(field, method)
+
+    def test_packaged_selection_rank_script_accepts_only_successful_empty_history(self):
+        script = self.output / "skills/zoodata-product-selection/scripts/rank_charts.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "history.json"
+            for success in (True, False, None):
+                path.write_text(json.dumps({"success": success, "data": None}))
+                result = subprocess.run([sys.executable, script, path, "B000000001"],
+                                        capture_output=True, text=True)
+                if success:
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    blocks = json.loads(result.stdout)
+                    self.assertEqual([b["measure"] for b in blocks], ["bsr", "subBsr"])
+                    self.assertTrue(all("未获取" in b["paragraphs"][0] for b in blocks))
+                else:
+                    self.assertNotEqual(result.returncode, 0)
 
     def test_selection_report_renders_same_html_from_both_shipped_entries(self):
         standalone = self.output / "skills/zoodata-product-selection"
@@ -945,6 +980,31 @@ class TestWorkBuddyBuild(unittest.TestCase):
             self.assertEqual(html.count("<circle"), 3)
             self.assertIn("2026-05-02", html)
             self.assertIn("上升 1 次、下降 1 次", html)
+            record["timestamps"].insert(0, record["timestamps"][0])
+            record["price"].insert(0, record["price"][0])
+            save()
+            self.assertEqual(run().returncode, 0)
+            self.assertEqual(output.read_text(), html)
+            command = [sys.executable, workflow / "scripts/summarize_changes.py", base / "history.json",
+                       daily["asin"], daily["startDate"], daily["endDate"], "price"]
+            summary = json.loads(subprocess.check_output(command, text=True))
+            self.assertEqual(summary["fields"]["price"]["observedChanges"], 2)
+            self.assertEqual(summary["fields"]["price"]["observations"], 3)
+            record["price"][0] += 1
+            save()
+            self.assertIn("Conflicting price", run().stderr)
+            draft["sections"].append({"title": "Sales", "blocks": [
+                {"type": "text", "paragraphs": ["Other available findings"]}]})
+            for payload in ({"success": False, "data": None}, {"data": None}, {"success": True}):
+                (base / "history.json").write_text(json.dumps(payload))
+                self.assertNotEqual(run().returncode, 0)
+            (base / "history.json").write_text(json.dumps({"success": True, "data": None}))
+            result = run()
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("Daily price · 未获取", output.read_text())
+            self.assertIn("Other available findings", output.read_text())
+            summary = json.loads(subprocess.check_output(command, text=True))
+            self.assertIsNone(summary["fields"]["price"]["observedChanges"])
             draft["task"] = "comparison"
             draft["sections"][0]["blocks"] = [{"type": "text", "paragraphs": ["Comparison"]}]
             self.assertEqual(run().returncode, 0)

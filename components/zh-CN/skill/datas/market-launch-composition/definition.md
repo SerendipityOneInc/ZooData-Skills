@@ -1,4 +1,4 @@
-<!-- prompt-source: skill/datas/market-launch-composition/definition.md 8703d312f0c70a9c8357270c2583303fa3630533e09b04278b63e988f4c866fe -->
+<!-- prompt-source: skill/datas/market-launch-composition/definition.md 21a8116ca0fe6f339cb340bb184626bcdd2e9572e5106487026300c505c9f896 -->
 
 > 英文原文：[原文](../../../../skill/datas/market-launch-composition/definition.md)
 
@@ -24,7 +24,7 @@
 
 ### 返回处理
 
-使用最新市场统计的实际榜单日期作为期间依据。逐类目累加各月的 `points[].productCount`。保留明确的零值；缺失的类目或计数标为未获取。
+返回的日期表示首次上架期间，响应中没有榜单日期。逐类目累加各月的 `points[].productCount`。保留明确的零值；缺失的类目或计数标为未获取。
 
 ## 交付结果
 

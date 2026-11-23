@@ -1,14 +1,16 @@
-<!-- prompt-source: skill/workflows/product-selection/methods.md 079ee19e920282c6a1a0c17e5f8760c20739c860a4f4c9dd596300db65a615ac -->
+<!-- prompt-source: skill/workflows/product-selection/methods.md 952268458746065978d6d57459d0545f144246b8a7172004ce72171bcc4d2cce -->
 
 > 英文原文：[原文](../../../../skill/workflows/product-selection/methods.md)
 
 # 评估指定候选
 
-## 确认候选和评估范围
+## 确认用户要求评估的候选商品
 
 1. 仅用卖家给定数据时，按其提供的名称或编号标识候选。需要查商品库或区分同名商品时才索取 ASIN。默认评估一个候选，只有用户明确选定时才比较，最多三个。对象不明确或超过三个时，取数前请用户选定。查库前执行[候选范围检查](../../../../skill/workflows/product-selection/assessment_scope.py)，传入选定的 ASIN；仅在明确比较时加 `--compare`。返回 `ready` 才按其清单评估。筛选清单仍按原范围展示。
 2. 综合评估以商品如何成长为主线，按下表取证。用户只问销量是否持续增长等具体问题时，在同一评估中只看相关指标。复用已有数据，遵守用户给定的费用上限。
 3. 沿用用户指定期间。综合评估未指定期间时，以最近六个完整月为共同观察期：销量按月，商品历史取同一期间，曝光取该期间的完整周。新品从首次可观察日期起算。某项数据覆盖较短时标出实际期间，只对照重合的时段。
+
+<a id="trace-how-each-product-grew"></a>
 
 ## 判断商品是怎样成长的
 

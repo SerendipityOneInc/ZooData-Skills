@@ -33,6 +33,7 @@ One product ASIN, measures and period.
 1. Title (`title`) and main-image (`imageUrl`) events have a `date` and `value`. Compare consecutive known values. Label the dates of the earlier and later observations. Across a sampling gap, the effective change date is unknown. A single observation establishes a baseline. Show changed image URLs; describe visual differences only after inspecting both images.
 2. Match prices (`price`), BSR, purchase lower bounds and ratings to `timestamps` by index. Calculate price differences from known prices of the same ASIN. Preserve the observed date range when there is a gap.
 3. Retain observed coverage and distinguish parent/child scopes and ranking categories. Report insufficient comparable observations separately from no observed change.
+4. A successful empty result means there are no available observations for this period. Count equal prices on the same day once. Conflicting prices on one day leave its price unresolved.
 
 ## Deliverable
 

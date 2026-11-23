@@ -14,8 +14,6 @@
 
 ## Select the task
 
-For listing age, one month means 30 days. Treat “launched in the past half year” and “within 180 days of launch” alike. Apply the cutoff directly and state it once in the report scope.
-
 For new listings among category bestsellers, read the [category market method](market-research.md) before querying. Use the market tools with the confirmed category IDs in a batch. Establish each category’s sales-ranked sample before evaluating launch dates.
 
 | Seller request | Route | Result |

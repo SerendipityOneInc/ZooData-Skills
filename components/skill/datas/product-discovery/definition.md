@@ -16,7 +16,7 @@ The confirmed search scope (all categories or one category), any product keyword
 
 | Parameter | Use |
 |---|---|
-| `dateRange` | Omit for the latest available catalog. For a historical month, pass YYYY-MM to select its month-end record. |
+| `dateRange` | Omit for the latest available catalog. For a completed month, pass YYYY-MM. If the service has not published that month, retain the requested month and report it as unavailable. |
 | `keyword` | The search term for this request. |
 | `categoryPath` | Path from the root to the target category. |
 | `keywordMatchType` | Include only with a nonblank keyword. |

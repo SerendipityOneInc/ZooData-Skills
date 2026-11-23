@@ -120,7 +120,8 @@ class TestComponentSources(unittest.TestCase):
         for path in [(COMPONENTS / report["entry"]).resolve(), *resources]:
             self.assertTrue(path.is_file())
             self.assertTrue(path.is_relative_to(COMPONENTS / "tools/report") or
-                            path == COMPONENTS / "contract/report.md")
+                            path == COMPONENTS / "contract/report.md" or
+                            path == COMPONENTS / "skill/datas/product-history/summarize_changes.py")
             for dependency in local_dependencies(path) if path.suffix == ".md" else ():
                 self.assertIn(dependency, resources)
         self.assertNotIn("capabilities", report)

@@ -1,6 +1,6 @@
 # Assess identified candidates
 
-## Confirm candidates and scope
+## Confirm candidates for a seller-requested assessment
 
 1. When working only from supplied figures, keep each candidate under its supplied name or identifier. Request an ASIN only for a catalog lookup or unresolved identity. Assess one candidate by default and compare at most three explicitly selected candidates. If the intended product is unclear or more than three are selected, ask which to assess before any candidate reads. Before looking up candidates, run the [scope check](assessment_scope.py) with the selected ASINs. Use `--compare` only for an explicit comparison. Assess the returned list only on `ready`. This limit applies to assessment, not screening.
 2. For a general assessment, trace the product’s development across the measures below. For a focused question, such as whether a sales increase persisted, use just the relevant measures in the same assessment. Reuse available observations and respect the agreed budget.
