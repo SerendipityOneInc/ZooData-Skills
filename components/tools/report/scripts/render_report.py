@@ -356,17 +356,22 @@ def validate_content_reuse(data):
     unknown = set(data) - {"title", "expert", "lang", "scope", "metrics", "sections", "footer", "missing_label", "task", "productCoverageNote"}
     if unknown:
         raise ValueError("Unsupported report fields: " + ", ".join(sorted(unknown)))
-    cards = [json.dumps({key: value for key, value in metric.items() if key != "note"},
-                        sort_keys=True, ensure_ascii=False, allow_nan=False)
+    cards = [json.dumps(metric, sort_keys=True, ensure_ascii=False, allow_nan=False)
              for metric in data.get("metrics", [])]
     if len(cards) != len(set(cards)):
         raise ValueError("Duplicate headline card: keep one presentation of this content")
     seen = set()
     for section in data["sections"]:
         for block in section["blocks"]:
-            content = {key: value for key, value in block.items() if key not in {"title", "note"}}
-            signature = (section.get("parentAsin"),
-                         json.dumps(content, sort_keys=True, ensure_ascii=False, allow_nan=False))
+            # Product lists carry their own identifiers and sales period. A
+            # renamed heading alone does not make a second copy a new result.
+            if block["type"] == "products":
+                scope = None
+                content = {key: value for key, value in block.items() if key != "title"}
+            else:
+                scope = (section.get("parentAsin"), section.get("title"))
+                content = block
+            signature = (scope, json.dumps(content, sort_keys=True, ensure_ascii=False, allow_nan=False))
             if signature in seen:
                 raise ValueError("Duplicate report block: keep one presentation of this content")
             seen.add(signature)

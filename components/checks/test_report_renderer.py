@@ -108,6 +108,18 @@ class TestReportRenderer(unittest.TestCase):
             {"type": "table", "columns": ["对象", "数量"], "rows": [["B", 100]]}]}]
         self.assertEqual(RENDERER.render(self.data).count("<table>"), 2)
 
+    def test_equal_values_in_separate_product_or_period_contexts_render(self):
+        labels = ["商品 A · 10 月", "商品 B · 10 月", "商品 A · 11 月"]
+        self.data["metrics"] = [{"label": "销量", "value": 10, "note": label} for label in labels]
+        self.data["sections"] = [
+            {"title": label, "blocks": [{"type": "text", "paragraphs": ["销量 10 件"]}]}
+            for label in labels
+        ]
+        self.assertEqual(RENDERER.render(self.data).count("销量 10 件"), 3)
+        self.data["sections"][0]["blocks"] *= 2
+        with self.assertRaisesRegex(ValueError, "Duplicate report block"):
+            RENDERER.render(self.data)
+
     def test_fixed_structure_rejects_extra_intro_and_duplicate_headline_cards(self):
         self.data["summary"] = ["重复总览"]
         with self.assertRaisesRegex(ValueError, "Unsupported report fields"):

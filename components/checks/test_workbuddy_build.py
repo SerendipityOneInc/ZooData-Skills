@@ -237,6 +237,19 @@ class TestWorkBuddyBuild(unittest.TestCase):
         for value in ("6w", 180, [], False):
             with self.subTest(age=value), self.assertRaisesRegex(ValueError, "180d"):
                 module.prepare(unrestricted | {"filters": {"listingAge": value}})
+        for period in ("30d", "2026-02", None):
+            request = module.prepare(unrestricted | {"dateRange": period, "filters": {"fulfillments": ["FBA"]}})
+            self.assertEqual(request.get("dateRange"), period)
+            self.assertEqual(request["fulfillments"], ["FBA"])
+        for change in ({"dateRange": "2026-13"}, {"dateRange": "2025-12"}, {"dateRange": 30},
+                       {"dateRange": "2999-01"}, {"dateRange": "bad-date"},
+                       {"filters": {"fulfillments": "FBA"}}, {"filters": {"fulfillments": ["unknown"]}},
+                       {"filters": {"onlyCategoryRank": "false"}}, {"filters": {"buyBoxSellerCountryCodes": ["USA"]}},
+                       {"filters": {"ratingMin": 6}}, {"filters": {"priceMin": -1}},
+                       {"filters": {"categoryScope": "exactOnly"}},
+                       {"filters": {"badges": ["video"], "excludeBadges": ["video"]}}):
+            with self.subTest(invalid=change), self.assertRaises(ValueError):
+                module.prepare(unrestricted | change)
         for change in ({"sortBy": "sales"}, {"filters": {"monthlySalesMin": 0.5}},
                        {"filters": {"priceMin": "NaN"}}, {"filters": {"unsupported": 0}}, {"scope": []}, {"mode": 2}, {"pageSize": 0}, {"sortOrder": "both"},
                        {"filters": {"priceMin": 70, "priceMax": 30}}, {"filters": {"sortBy": "price"}}):

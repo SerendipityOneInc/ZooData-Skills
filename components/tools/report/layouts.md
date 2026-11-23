@@ -12,7 +12,7 @@ The [generator](scripts/render_report.py) accepts structured JSON and fills the 
 | Optional details | `profiles` blocks inside a relevant analysis section |
 
 1. Map content to these positions using the selected task outline and the shared presentation rules. There is no separate introduction or closing-summary slot; place an explanation inside its relevant section.
-2. The generator always supplies one page header. It rejects identical headline cards and content blocks repeated across sections, even when their section titles differ. The presentation check in the shared rules handles repeated meaning expressed in different words.
+2. The generator always supplies one page header. It checks for identical headline cards and repeated blocks within the same product and section. Product lists identify their own subjects and sales period and are checked across sections. The presentation check in the shared rules handles repeated meaning expressed in different words.
 
 ## Report data
 

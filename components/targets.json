@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_version": "0.1.24",
+  "source_version": "0.1.25",
   "status": "exporter-implemented-not-platform-validated",
   "publication": {
     "source_directory_is_skill": false,
@@ -337,7 +337,7 @@
     "keyword-research": {
       "kind": "workflow",
       "export_name": "zoodata-keyword-research",
-      "version": "0.1.27",
+      "version": "0.1.28",
       "entry": "skill/workflows/keyword-research/definition.md",
       "bind_mcp_tools": true,
       "description": "Research Amazon US keywords. Expand a seed by relevance, compare demand and competition, analyze trends or study a specified ASIN’s search terms. Deliver an HTML report from supplied evidence or data obtained through ZooData.",
@@ -360,7 +360,7 @@
     },
     "competitor-comparison": {
       "kind": "workflow",
-      "version": "0.1.28",
+      "version": "0.1.29",
       "export_name": "zoodata-competitor-comparison",
       "report_example": "skill/workflows/competitor-comparison/example.json",
       "report_tasks": {
@@ -399,7 +399,7 @@
       "export_name": "zoodata-product-selection",
       "entry": "skill/workflows/product-selection/definition.md",
       "bind_mcp_tools": true,
-      "version": "0.1.33",
+      "version": "0.1.34",
       "report_resources": {
         "tools/report/product-trends.md": "references/product-trends.md",
         "tools/report/scripts/rank_charts.py": "scripts/rank_charts.py"

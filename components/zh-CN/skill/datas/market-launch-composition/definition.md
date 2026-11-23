@@ -1,4 +1,4 @@
-<!-- prompt-source: skill/datas/market-launch-composition/definition.md c0ae5f2d279ed74d1a650301417c0d5b8259696983170254f68c8f1ba1036e0a -->
+<!-- prompt-source: skill/datas/market-launch-composition/definition.md 8703d312f0c70a9c8357270c2583303fa3630533e09b04278b63e988f4c866fe -->
 
 > 英文原文：[原文](../../../../skill/datas/market-launch-composition/definition.md)
 
@@ -16,15 +16,15 @@
 
 ### 查询参数
 
-指定 categoryIds、sampleType、includeDescendantCategoryProducts 和 granularity（month 或 year）。dateFrom、dateTo 可限定首次上架日期。
+将同一范围的类目批量传入 `categoryIds`。销量榜用 `sampleType="unitSalesTop100"`，保持下级类目范围一致。用 `dateFrom` 和 `dateTo` 限定首次上架日期，含两端，再按 `granularity="month"` 分组。接口始终使用最新榜单。
 
 ```json
-{"categoryIds": ["679399011"], "granularity": "month"}
+{"categoryIds":["679399011"],"sampleType":"unitSalesTop100","includeDescendantCategoryProducts":true,"dateFrom":"2026-05-04","dateTo":"2026-10-31","granularity":"month"}
 ```
 
 ### 返回处理
 
-读取所选头部样本的 points[].date 和 productCount。判断新品成功率还需完整同期上架商品作分母。
+使用最新市场统计的实际榜单日期作为期间依据。逐类目累加各月的 `points[].productCount`。保留明确的零值；缺失的类目或计数标为未获取。
 
 ## 交付结果
 

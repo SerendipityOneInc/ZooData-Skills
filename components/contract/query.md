@@ -40,7 +40,7 @@
 
 ## Handle failed or empty results
 
-1. If the required tool or connection is unavailable, credentials are rejected or credits are exhausted, stop the affected read and state the reason.
+1. If the connection is unavailable, credentials are rejected or credits are exhausted, stop the affected read. State the reason and missing business result. Deliver findings supported by existing data and identify the smallest useful seller input if it can fill the gap. With no data, explain in chat. Do not estimate a top-up or guarantee completion.
 2. Correct invalid parameters only when the returned error and current schema determine the correction; otherwise stop and identify the missing request information.
 3. Retry rate limits or temporary failures only under explicit connector retry rules and host and cost limits. Stop if those rules are absent or a limit is reached; do not replay successful pages.
 4. Treat a valid empty result as no matches under the current query conditions, not as an error to retry.

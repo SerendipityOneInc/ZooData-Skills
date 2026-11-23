@@ -1,4 +1,4 @@
-<!-- prompt-source: skill/workflows/competitor-comparison/methods.md c2022aa2a61392f6d7e18dcd0e9b36bd55c3f5b1a190795628066452205110a6 -->
+<!-- prompt-source: skill/workflows/competitor-comparison/methods.md 2a5c022c7fe7c389b74e6347b4bedd242d0e419a778d180b09b8ad6d222e6069 -->
 
 > 英文原文：[原文](../../../../skill/workflows/competitor-comparison/methods.md)
 
@@ -6,7 +6,7 @@
 
 分析单款商品时，使用用户指定的自家商品或竞品 ASIN。用维度 1、2 说明商品卖点和售价，用维度 4 查看当前款式与整个 Listing 的月购买量走势。同一次月度查询取出两组购买量下限，按返回的父 ASIN 区分各月所属 Listing，用维度 3 说明自然与广告曝光来源，用维度 5 归纳买家反复提到的优点和问题。判断变化时，以该商品自己的历史表现为参照。
 
-单品拆解的日级价格趋势沿用月度购买量趋势的期间。先确定月度趋势的 `startMonth` 和 `endMonth`（用户指定的期间优先，通常为最近六个完整自然月）。把首月第一天和末月最后一天显式传给[商品历史](../../datas/product-history/definition.md)的 `startDate` 和 `endDate`；若用户要求包含当月，两图都截至同一截止日。此处跳过日趋势的默认窗口。价格使用同一 ASIN、币种和口径的日级 `price` 序列；已有序列不足时只补查所需区间，`aspects=["price"]`。
+单品拆解优先使用用户指定的日期范围，默认最近六个完整月。将研究起止日传给[商品历史](../../datas/product-history/definition.md)的 `startDate` 和 `endDate`，按日展示 `aspects=["price"]`；月购买量按覆盖的月份查询。月末值只用于截止日已到该月月末的报告。月中截止时，仅纳入能确认观测日不晚于截止日的当月临时值；其余情况展示到上一个完整月。分别标注两项数据的实际期间，只在重合期间进行比较。
 
 生成单品拆解 HTML 时，把日价原始响应交给[任务提纲](report-outline.md)指定的报告生成器。生成器根据带日期的价格计算变价次数，变价次数直接展示在图注中。用户指定其他格式时，按日期比较相邻两次有效观测，价差非零计一次。跨缺测日的变化只计一次。有效价格不足两次时，变价次数未知。价格和购买量同期变化不足以证明促销效果。
 

@@ -10,7 +10,7 @@
 1. Use the full WorkBuddy tool name printed in the selected data method. If deferred, load it with `ToolSearch.tool_names` and invoke only an exact match. Skip keyword searches and plugin inventories.
 2. If the exact name is missing, request the `{{mcp_server}}` MCP connection once. After connection succeeds, look up the same name once more. If it remains unavailable, stop that read. Keep this process internal unless the user needs to connect or authorize ZooData.
 
-3. If a read is blocked by connection, authorization or credits, give the specific reason and name the missing result. Deliver any supported part. If supplied figures would complete it, name the smallest useful input, such as monthly unit sales by category. When no data is available, explain the blocker in chat. With zero credits, give no top-up estimate or promise of completion. A successful search with zero matches is a valid result.
+3. For blocked or empty reads follow the [shared query rules](../../../contract/query.md).
 
 ## Select the task
 

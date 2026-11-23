@@ -1,4 +1,4 @@
-<!-- prompt-source: skill/workflows/product-selection/market-research.md e753aa002c2ceaf4f3dd24a6d1f4ee8fad1d68b69bcc8b835a863d881ad8e7f1 -->
+<!-- prompt-source: skill/workflows/product-selection/market-research.md 340b64c3999bb86c99cccb7c586f0ab9fe8cd69a9feae17991668351c409446d -->
 
 > 英文原文：[原文](../../../../skill/workflows/product-selection/market-research.md)
 
@@ -6,8 +6,14 @@
 
 1. 用[类目检索](../../datas/category-lookup/definition.md)确定类目。名称匹配到多个不同市场时，列出完整路径请用户选择。用户已要求在指定大类中找机会时，比较该范围内同层级的市场。
 2. 筛选类目用[类目市场筛选](../../datas/market-discovery/definition.md)；研究已知市场从[类目画像](../../datas/market-profile/definition.md)开始。分开解读全类目需求与头部样本指标。跨市场比较时对齐日期、类目层级和下级商品范围。
-3. 单项问题直接查看相应证据。价格看[价格带](../../datas/market-price-distribution/definition.md)，竞争集中度按问题选择[商品](../../datas/market-top-product-concentrations/definition.md)、[品牌](../../datas/market-brand-concentrations/definition.md)或[卖家](../../datas/market-seller-concentrations/definition.md)。其他类目分布按问题选取：[星级分布](../../datas/market-rating-distributions/definition.md)、[评分数分布](../../datas/market-rating-count-distributions/definition.md)、[上架时长分布](../../datas/market-listing-age-distributions/definition.md)、[配送方式分布](../../datas/market-fulfillment-distributions/definition.md)、[卖家国家分布](../../datas/market-seller-country-distributions/definition.md)、[内容配置分布](../../datas/market-content-distributions/definition.md)。趋势看[市场历史](../../datas/market-history/definition.md)。比较各类目畅销榜上的新品数量时，通过[类目市场筛选](../../datas/market-discovery/definition.md)批量传入已确定的类目 ID，分别读取各类目销量榜父体样本的新品数。商品搜索先筛新品再取前 100 得到的是新品畅销榜，不能用于统计整体畅销榜中有多少新品。以榜单数据日为准，父体首次上架距该日的天数从 0 到指定上限均计入。汇总数的起始日不一致时，按同一榜单的父体上架日期计数。覆盖完整榜单且能确定每款是否符合条件时，才按新品数排名，同值并列。只取得部分商品或上架日期缺失时，报告已确认的新品数和覆盖范围。用户问榜上商品分别在什么时候首次上架时，再看[上架构成](../../datas/market-launch-composition/definition.md)。计算新品成功率需要完整同期上新商品作分母。
+3. 单项问题直接查看相应证据。价格看[价格带](../../datas/market-price-distribution/definition.md)，竞争集中度按问题选择[商品](../../datas/market-top-product-concentrations/definition.md)、[品牌](../../datas/market-brand-concentrations/definition.md)或[卖家](../../datas/market-seller-concentrations/definition.md)。其他类目分布按问题选取：[星级分布](../../datas/market-rating-distributions/definition.md)、[评分数分布](../../datas/market-rating-count-distributions/definition.md)、[上架时长分布](../../datas/market-listing-age-distributions/definition.md)、[配送方式分布](../../datas/market-fulfillment-distributions/definition.md)、[卖家国家分布](../../datas/market-seller-country-distributions/definition.md)、[内容配置分布](../../datas/market-content-distributions/definition.md)。趋势看[市场历史](../../datas/market-history/definition.md)。
 4. 找未满足需求时，用[类目评价画像](../../datas/market-review-profile/definition.md)识别买家诉求，按需用已确定代表商品的评论原文佐证。评估进入条件时，列出市场需求、竞争情况及卖家给定的条件。用户询问特定售价的上榜新品时，按相同日期、类目范围和销量样本读取[榜单商品](../../datas/market-top-product-concentrations/definition.md)。按父体首次上架日期和代表售价筛选，列出匹配的父体和所在类目。只取得部分榜单时，未找到可比商品的类目保留为尚无法判断。
+
+## 统计销量榜中的新品
+
+1. 以销量前 100 个父体为样本。复用相同范围的榜单数据日 D；尚未取得时，通过[类目市场筛选](../../datas/market-discovery/definition.md)批量取得实际榜单日期。近半年包含首次上架日在 D 往前 180 天至 D 当天之间的父体。
+2. 最新榜单用[新品上架构成](../../datas/market-launch-composition/definition.md)，按上述日期筛选后汇总各类目数量。只有确认样本日期和覆盖范围一致的类目才参与排名，同值并列。需要商品示例或走势时，再查询榜单商品明细。
+3. 历史榜单使用指定数据日的市场统计。预统计的上架区间与所需区间完全一致时使用返回计数；否则只在有完整历史榜单和上架日期时逐款计数。仅取得部分明细时标明已确认数量和覆盖范围。
 
 ## 上榜新品的成长表现
 
