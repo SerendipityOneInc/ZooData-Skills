@@ -204,7 +204,7 @@ class TestWorkBuddyBuild(unittest.TestCase):
         for language in ("zh", "en"):
             examples = [item[language] for item in plugin["quickPrompts"]]
             skill_examples = entry[f"examples_{language}"]
-            self.assertTrue(set(skill_examples).isdisjoint(examples))
+            self.assertEqual(examples, skill_examples)
             self.assertEqual(examples, [q[language] for q in PLATFORM["experts"]["product-selection"]["quickPrompts"]])
             self.assertEqual(plugin["defaultInitPrompt"][language], examples[0])
             anchors = {
@@ -442,13 +442,12 @@ class TestWorkBuddyBuild(unittest.TestCase):
             fixture = COMPONENTS / "checks/fixtures" / folder
             dimensions = {d["key"] for d in BUILDER.read_json(fixture / "header.json")["profile"]["dimensions"]}
             cases = [json.loads(line) for line in (fixture / "cases.jsonl").read_text().splitlines()]
-            self.assertEqual([case["user_question"] for case in cases[:3]], questions)
+            self.assertEqual([case["user_question"] for case in cases], questions)
             for case in cases:
                 self.assertTrue(case["expected"])
                 self.assertEqual(set(case["checklist_by_dim"]), dimensions)
                 self.assertEqual(set(case["anchors_by_dim"]), dimensions)
-            if folder == "market-selection-eval":
-                self.assertGreater(len(cases), 3)
+            self.assertEqual(len(cases), 3)
 
     def test_monitoring_summary_preserves_gaps_zero_and_requested_scope(self):
         root = self.output / "skills/zoodata-competitor-comparison"

@@ -61,7 +61,7 @@ WORKBUDDY_RELEASE_DIR=components/targets python3 components/checks/test_workbudd
 
 审核依据见[开发者公约](https://open.workbuddy.cn/docs/developer-agreement)、[专家包规范](https://open.workbuddy.cn/docs/expert)、[技能包规范](https://open.workbuddy.cn/docs/skill)。批量评测的范围和评分方式见[评测工具](https://open.workbuddy.cn/docs/evaluation)。
 
-独立 Skill 的市场选品评测集由[评分设置](checks/fixtures/market-selection-eval/header.json)和[业务用例](checks/fixtures/market-selection-eval/cases.jsonl)组成，将两个文件一起压缩即可用于平台批量评测。前三题对应实际展示问题，需有权限的 ZooData 测试连接；第四题使用随题提供的销量。专家使用独立的[评分设置](checks/fixtures/market-expert-eval/header.json)和[三条经营决策用例](checks/fixtures/market-expert-eval/cases.jsonl)。第一题只用给出的销量、报价与预算，第二题验证缺少报价时如何处理，第三题验证新品价格和类目条件。两个入口分别评测。
+选品技能与专家的评测均按首页顺序使用三道原题：家电细分市场增长、厨房畅销商品、家居与厨房新品上榜及走势。使用已授权的 ZooData 测试连接，分别记录两个入口的结果。技能按[技能评分设置](checks/fixtures/market-selection-eval/header.json)和[技能用例](checks/fixtures/market-selection-eval/cases.jsonl)验收，专家按[专家评分设置](checks/fixtures/market-expert-eval/header.json)和[专家用例](checks/fixtures/market-expert-eval/cases.jsonl)同时核查业务解读。
 
 ### 会话用例
 

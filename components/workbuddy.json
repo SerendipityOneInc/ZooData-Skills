@@ -127,16 +127,16 @@
       ],
       "quickPrompts": [
         {
-          "zh": "美国站家电两个细分市场，月销量分别从100件涨到150件、从400件涨到480件。两边首单报价分别是2400和1800美元，我只有2000美元，先试哪个？",
-          "en": "Two Amazon US appliance markets grew from 100 to 150 and 400 to 480 units. First orders cost $2,400 and $1,800 respectively. Which can I test with $2,000?"
+          "zh": "亚马逊美国站家电类目中，哪些细分市场上个月的销量环比增长最快？列出这些市场的代表商品。",
+          "en": "Which Amazon US Appliances subcategories had the fastest month-over-month sales growth last month? Show representative products from those markets."
         },
         {
-          "zh": "我想从美国站30美元以内的厨房畅销品里选一款试卖。采购预算1500美元，怎么判断哪些货我备得起？",
-          "en": "I want to test a bestselling kitchen product priced at $30 or less on Amazon US. With a $1,500 buying budget, which first orders could I afford?"
+          "zh": "亚马逊美国站售价不超过 30 美元的厨房用品中，哪些是爆款？列出近 30 天购买量最高的 10 款商品。",
+          "en": "Which kitchen products priced at $30 or less were bestsellers on Amazon US? Show the 10 products with the highest purchase volumes over the past 30 days."
         },
         {
-          "zh": "我想在美国站卖18至22美元的家居新品。家居与厨房的哪些细分类目，销量前100名中已有这个价位、近半年上架的商品，可以作为入场参考？",
-          "en": "I want to launch an $18–$22 home product on Amazon US. Which Home & Kitchen subcategories have products in that price range launched in the past six months among their top 100 by unit sales? Where is there comparable evidence for entry?"
+          "zh": "亚马逊美国站家居与厨房的哪些细分类目，新品上榜最多？比较各类目销量前 100 名中近半年上架的商品数，再展示已识别上榜新品中月销量最高的 3 款商品的走势。",
+          "en": "Which Amazon US Home & Kitchen subcategories have the most new arrivals among their bestsellers? Compare the number of products launched in the past six months among each subcategory’s top 100 by unit sales, then show trends for the three identified new listings with the highest monthly unit sales."
         }
       ]
     },
