@@ -1,0 +1,543 @@
+{
+  "source": "WorkBuddy ToolSearch descriptions already present in local sessions; no data query",
+  "reviewed_on": "2026-11-19",
+  "contracts": {
+    "products/detail": {
+      "operation_id": "openapi_v2_products_detail",
+      "description": "Read products by ASIN or parent\n\n1. Function\n\nRead catalog facts for products you already know, in one of two mutually exclusive modes, both returning the shared Product model. asins mode takes 1 to 50 canonical ASINs and answers in request order; an ASIN missing from the snapshot comes back as status=empty with emptyReason=asin_not_found rather than being dropped. parentAsin mode pages through every product under one parent, ordered by monthlySalesFloor descending (nulls last) then asin. Omit dateRange for the latest daily snapshot or pass 'YYYY-MM' for a month-end snapshot; context.resolvedDate names the snapshot actually read, and is null when the serving index does not record it. No filters and no sort options — this is an exact read. Validation failures return 422 with a stable reason code in the message: asins_or_parent_asin_required, asins_and_parent_asin_exclusive, asin_must_be_normalized, duplicate_asins, asins_limit_exceeded, pagination_not_allowed_in_asins_mode, date_range_invalid. Billing: asins mode charges 1 credit per status=ok item, parentAsin mode 1 credit per request.\n\n2. Use cases\n\nUse detail to read a known ASIN list — competitors supplied by the user, a watchlist, ASINs returned by another tool — or to enumerate a parent's variants. Use /products/search to discover ASINs by condition, /openapi/v3/realtime/product for live page data instead of the daily snapshot, and /products/history or /products/sales-trend for how a product changed over time.",
+      "input_schema": {
+        "title": "openapi_v2_products_detailArguments",
+        "type": "object",
+        "required": [],
+        "properties": {
+          "asins": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "asins",
+            "description": "Exact-read mode: 1-50 canonical ASINs (^[A-Z0-9]{10}$), answered in request order. Mutually exclusive with parentAsin.",
+            "type": "array"
+          },
+          "parentAsin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "parentAsin",
+            "description": "Parent-member mode: every product whose parentAsin equals this value, paged, ordered by monthlySalesFloor desc (nulls last) then asin. Mutually exclusive with asins. A standalone ASIN is its own parent, so it returns itself.",
+            "type": "string"
+          },
+          "marketplace": {
+            "type": "string",
+            "const": "US",
+            "title": "marketplace",
+            "description": "Amazon marketplace code. Only 'US' is currently supported.",
+            "default": "US"
+          },
+          "dateRange": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "dateRange",
+            "description": "Omit or 'Nd' (e.g. '30d') for the latest daily snapshot; 'YYYY-MM' for that month's month-end snapshot (earliest 2026-02, latest the most recent completed month). Same rule as /products/search.",
+            "type": "string"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "page",
+            "description": "parentAsin mode only. Default 1.",
+            "type": "integer"
+          },
+          "pageSize": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 100,
+                "minimum": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "pageSize",
+            "description": "parentAsin mode only. Default 20, max 100.",
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "description": "Whether the request was successful",
+            "default": true
+          },
+          "data": {
+            "title": "Data",
+            "description": "Response data payload"
+          },
+          "error": {
+            "description": "Error details if request failed"
+          },
+          "meta": {
+            "description": "Metadata for API responses.\n\nCredit fields follow the ADR-0003 parallel-fields strategy (Option 3):\n- `credits_remaining` / `credits_consumed` (int): legacy fields, rounded\n  to whole credits, kept for zero-breaking-change to existing SDK clients.\n- `credits_remaining_exact` / `credits_consumed_exact` (float): new\n  precision-aware fields for clients that opt in to decimal credits.\n\nSee ADR-0003 decision 5 and the §8 deprecation timeline.\n\nTODO(2026-11, ADR-0003 §8 +6mo): mark `credits_remaining` /\n`credits_consumed` as `deprecated=True` in their Field() definitions\nand announce in customer changelog.\nTODO(2027-05, ADR-0003 §8 +12mo): remove the legacy int fields via a\nmajor-version bump of the OpenAPI surface.",
+            "properties": {
+              "requestId": {
+                "type": "string",
+                "title": "Requestid",
+                "description": "Unique request identifier"
+              },
+              "timestamp": {
+                "type": "string",
+                "title": "Timestamp",
+                "description": "Response timestamp in ISO 8601 format"
+              },
+              "total": {
+                "title": "Total",
+                "description": "Total number of records"
+              },
+              "page": {
+                "title": "Page",
+                "description": "Current page number"
+              },
+              "pageSize": {
+                "title": "Pagesize",
+                "description": "Number of records per page"
+              },
+              "totalPages": {
+                "title": "Totalpages",
+                "description": "Total number of pages"
+              },
+              "creditsRemaining": {
+                "title": "Creditsremaining",
+                "description": "Remaining API credits (rounded to whole credits; see creditsRemainingExact for precise value)"
+              },
+              "creditsConsumed": {
+                "title": "Creditsconsumed",
+                "description": "Credits consumed by this request (rounded; see creditsConsumedExact for precise value)"
+              },
+              "creditsRemainingExact": {
+                "title": "Creditsremainingexact",
+                "description": "Remaining API credits, precise to 1 decimal place"
+              },
+              "creditsConsumedExact": {
+                "title": "Creditsconsumedexact",
+                "description": "Credits consumed by this request, precise to 1 decimal place"
+              },
+              "tokensUsage": {
+                "description": "Provider token-usage block — populated on terminal video polls only, null on every non-video endpoint. See TokensUsage for its fields."
+              }
+            },
+            "type": "object",
+            "required": [
+              "requestId",
+              "timestamp"
+            ],
+            "title": "ResponseMeta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "meta"
+        ],
+        "title": "OpenApiResponse[Union[ProductDetailBatch, ProductDetailParentPage]]",
+        "examples": []
+      }
+    },
+    "products/sales-trend": {
+      "operation_id": "openapi_v2_products_sales_trend",
+      "description": "Get a product's monthly sales trend\n\n1. Function\n\nReturn monthly sales and revenue floors for one ASIN and its parent, one point per month, on the same catalog-snapshot basis as /products/search. A finished month (pointKind=monthEnd) comes from that month's last-day snapshot and no longer changes; the current month (monthToDate) follows the latest snapshot and updates daily. Every month in the window has a point, so the series never skips a month. inCatalog=false means the product is not in that month's snapshot and every metric is null; inCatalog=true with a null monthlySalesFloor means it is in the catalog without a sales figure — the two nulls mean different things. Money is USD. The four MoM growth rates compare adjacent month-ends and are computed by the server; they are null for monthToDate points and whenever the previous month is missing, null or not above zero. Data starts at 2026-02; the default window is the latest 12 months but never earlier than that, and a window spans at most 24 months. Billing: 1 credit per request, independent of window length.\n\n2. Use cases\n\nUse sales-trend to judge whether a product is selling better or worse month over month, and whether the move is the product's own or the whole parent's. Use /products/history for what the page showed on a given day, and /products/detail for the product's current facts.",
+      "input_schema": {
+        "title": "openapi_v2_products_sales_trendArguments",
+        "type": "object",
+        "required": [
+          "asin"
+        ],
+        "properties": {
+          "asin": {
+            "type": "string",
+            "title": "asin",
+            "description": "Single ASIN in canonical form: 10 uppercase letters/digits (^[A-Z0-9]{10}$). Lowercase, spaces or a site suffix are rejected with asin_must_be_normalized. No batch."
+          },
+          "marketplace": {
+            "type": "string",
+            "const": "US",
+            "title": "marketplace",
+            "description": "Amazon marketplace code. Only 'US' is currently supported.",
+            "default": "US"
+          },
+          "startMonth": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "startMonth",
+            "description": "First month, YYYY-MM (earliest 2026-02). Defaults to endMonth minus 11 months (12 points), but never earlier than 2026-02.",
+            "type": "string"
+          },
+          "endMonth": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "endMonth",
+            "description": "Last month, YYYY-MM. Defaults to the latest month: the month of today (UTC) minus 2 days, so the current month is served from the 3rd. Unlike dateRange on /products/search, the current month is accepted.",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "description": "Whether the request was successful",
+            "default": true
+          },
+          "data": {
+            "description": "Response data payload"
+          },
+          "error": {
+            "description": "Error details if request failed"
+          },
+          "meta": {
+            "description": "Metadata for API responses.\n\nCredit fields follow the ADR-0003 parallel-fields strategy (Option 3):\n- `credits_remaining` / `credits_consumed` (int): legacy fields, rounded\n  to whole credits, kept for zero-breaking-change to existing SDK clients.\n- `credits_remaining_exact` / `credits_consumed_exact` (float): new\n  precision-aware fields for clients that opt in to decimal credits.\n\nSee ADR-0003 decision 5 and the §8 deprecation timeline.\n\nTODO(2026-11, ADR-0003 §8 +6mo): mark `credits_remaining` /\n`credits_consumed` as `deprecated=True` in their Field() definitions\nand announce in customer changelog.\nTODO(2027-05, ADR-0003 §8 +12mo): remove the legacy int fields via a\nmajor-version bump of the OpenAPI surface.",
+            "properties": {
+              "requestId": {
+                "type": "string",
+                "title": "Requestid",
+                "description": "Unique request identifier"
+              },
+              "timestamp": {
+                "type": "string",
+                "title": "Timestamp",
+                "description": "Response timestamp in ISO 8601 format"
+              },
+              "total": {
+                "title": "Total",
+                "description": "Total number of records"
+              },
+              "page": {
+                "title": "Page",
+                "description": "Current page number"
+              },
+              "pageSize": {
+                "title": "Pagesize",
+                "description": "Number of records per page"
+              },
+              "totalPages": {
+                "title": "Totalpages",
+                "description": "Total number of pages"
+              },
+              "creditsRemaining": {
+                "title": "Creditsremaining",
+                "description": "Remaining API credits (rounded to whole credits; see creditsRemainingExact for precise value)"
+              },
+              "creditsConsumed": {
+                "title": "Creditsconsumed",
+                "description": "Credits consumed by this request (rounded; see creditsConsumedExact for precise value)"
+              },
+              "creditsRemainingExact": {
+                "title": "Creditsremainingexact",
+                "description": "Remaining API credits, precise to 1 decimal place"
+              },
+              "creditsConsumedExact": {
+                "title": "Creditsconsumedexact",
+                "description": "Credits consumed by this request, precise to 1 decimal place"
+              },
+              "tokensUsage": {
+                "description": "Provider token-usage block — populated on terminal video polls only, null on every non-video endpoint. See TokensUsage for its fields."
+              }
+            },
+            "type": "object",
+            "required": [
+              "requestId",
+              "timestamp"
+            ],
+            "title": "ResponseMeta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "meta"
+        ],
+        "title": "OpenApiResponse[ProductSalesTrend]",
+        "examples": []
+      }
+    },
+    "reviews/search": {
+      "operation_id": "openapi_v2_reviews_search",
+      "description": "Search a product's reviews\n\n1. Function\n\nReturn individual review texts with their AI-generated tags for one ASIN, page by page (default 10 per page, max 20). The reviews are those of the parent the ASIN belongs to, not only of that child ASIN. Filters: star rating range, verified purchase, Vine program, helpful vote count, review date range and mediaTypes; all filters combine with AND. mediaTypes=['image'] keeps reviews with at least one image — about 8% of stored reviews carry images and reviews added since 2026-08-30 currently carry none, so it mainly matches older reviews; video filtering is not offered, and on this endpoint videos[].url holds the video's cover image rather than a playable address. Tags are returned on each review but cannot be filtered on. Sort by recent, rating or helpfulVoteCount. At most 5000 reviews of a parent are read before filtering, so meta.total can be capped for very large parents. Reviewer identity is not returned. Billing: 1 credit per request.\n\n2. Use cases\n\nUse search to quote the reviews behind a finding — e.g. the low-star reviews of the month where /voc/trend shows a pain point rising. Use /voc/analysis for the aggregated demand profile and /voc/trend for how it changes over time; both return aggregates only. Use /realtime/reviews for the newest reviews currently shown on the product page.",
+      "input_schema": {
+        "title": "openapi_v2_reviews_searchArguments",
+        "type": "object",
+        "required": [
+          "asin"
+        ],
+        "properties": {
+          "asin": {
+            "type": "string",
+            "maxLength": 10,
+            "minLength": 10,
+            "pattern": "^[A-Za-z0-9]{10}$",
+            "title": "asin",
+            "description": "Amazon Standard Identification Number"
+          },
+          "ratingMin": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 5,
+                "minimum": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "ratingMin",
+            "description": "Minimum star rating (inclusive). Example: 1.",
+            "type": "number"
+          },
+          "ratingMax": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 5,
+                "minimum": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "ratingMax",
+            "description": "Maximum star rating (inclusive). Example: 3 for negative reviews.",
+            "type": "number"
+          },
+          "verifiedOnly": {
+            "type": "boolean",
+            "title": "verifiedOnly",
+            "description": "If true, only return verified purchase reviews.",
+            "default": false
+          },
+          "vineOnly": {
+            "type": "boolean",
+            "title": "vineOnly",
+            "description": "If true, only return Amazon Vine program reviews.",
+            "default": false
+          },
+          "helpfulVoteCountMin": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "helpfulVoteCountMin",
+            "description": "Minimum helpful vote count. Example: 5.",
+            "type": "integer"
+          },
+          "dateStart": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "dateStart",
+            "description": "Earliest review date (inclusive, YYYY-MM-DD). Example: '2025-01-01'.",
+            "type": "string"
+          },
+          "dateEnd": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "dateEnd",
+            "description": "Latest review date (inclusive, YYYY-MM-DD). Example: '2026-04-01'.",
+            "type": "string"
+          },
+          "mediaTypes": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "const": "image"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "mediaTypes",
+            "description": "Media filter. The only value is 'image': keep reviews with at least one image. Omitted or empty means no media filter. About 8% of stored reviews carry images, and reviews added since 2026-08-30 currently carry none, so this filter mainly matches older reviews. Video filtering is not offered.",
+            "type": "array"
+          },
+          "sortBy": {
+            "type": "string",
+            "enum": [
+              "recent",
+              "rating",
+              "helpfulVoteCount"
+            ],
+            "title": "sortBy",
+            "description": "Sort field: 'recent' (date), 'rating' (star rating), 'helpfulVoteCount' (vote count).",
+            "default": "recent"
+          },
+          "sortOrder": {
+            "type": "string",
+            "enum": [
+              "desc",
+              "asc"
+            ],
+            "title": "sortOrder",
+            "description": "Sort direction: 'desc' or 'asc'.",
+            "default": "desc"
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "title": "page",
+            "description": "Page number (1-indexed).",
+            "default": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "maximum": 20,
+            "minimum": 1,
+            "title": "pageSize",
+            "description": "Results per page.",
+            "default": 10
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "description": "Whether the request was successful",
+            "default": true
+          },
+          "data": {
+            "title": "Data",
+            "description": "Response data payload"
+          },
+          "error": {
+            "description": "Error details if request failed"
+          },
+          "meta": {
+            "description": "Metadata for API responses.\n\nCredit fields follow the ADR-0003 parallel-fields strategy (Option 3):\n- `credits_remaining` / `credits_consumed` (int): legacy fields, rounded\n  to whole credits, kept for zero-breaking-change to existing SDK clients.\n- `credits_remaining_exact` / `credits_consumed_exact` (float): new\n  precision-aware fields for clients that opt in to decimal credits.\n\nSee ADR-0003 decision 5 and the §8 deprecation timeline.\n\nTODO(2026-11, ADR-0003 §8 +6mo): mark `credits_remaining` /\n`credits_consumed` as `deprecated=True` in their Field() definitions\nand announce in customer changelog.\nTODO(2027-05, ADR-0003 §8 +12mo): remove the legacy int fields via a\nmajor-version bump of the OpenAPI surface.",
+            "properties": {
+              "requestId": {
+                "type": "string",
+                "title": "Requestid",
+                "description": "Unique request identifier"
+              },
+              "timestamp": {
+                "type": "string",
+                "title": "Timestamp",
+                "description": "Response timestamp in ISO 8601 format"
+              },
+              "total": {
+                "title": "Total",
+                "description": "Total number of records"
+              },
+              "page": {
+                "title": "Page",
+                "description": "Current page number"
+              },
+              "pageSize": {
+                "title": "Pagesize",
+                "description": "Number of records per page"
+              },
+              "totalPages": {
+                "title": "Totalpages",
+                "description": "Total number of pages"
+              },
+              "creditsRemaining": {
+                "title": "Creditsremaining",
+                "description": "Remaining API credits (rounded to whole credits; see creditsRemainingExact for precise value)"
+              },
+              "creditsConsumed": {
+                "title": "Creditsconsumed",
+                "description": "Credits consumed by this request (rounded; see creditsConsumedExact for precise value)"
+              },
+              "creditsRemainingExact": {
+                "title": "Creditsremainingexact",
+                "description": "Remaining API credits, precise to 1 decimal place"
+              },
+              "creditsConsumedExact": {
+                "title": "Creditsconsumedexact",
+                "description": "Credits consumed by this request, precise to 1 decimal place"
+              },
+              "tokensUsage": {
+                "description": "Provider token-usage block — populated on terminal video polls only, null on every non-video endpoint. See TokensUsage for its fields."
+              }
+            },
+            "type": "object",
+            "required": [
+              "requestId",
+              "timestamp"
+            ],
+            "title": "ResponseMeta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "meta"
+        ],
+        "title": "OpenApiResponse[list[TaggedReview]]",
+        "examples": []
+      }
+    }
+  }
+}

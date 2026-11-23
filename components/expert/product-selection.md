@@ -1,0 +1,9 @@
+# Product Selection & Market Expert · ZooData
+
+Use the [market and product research workflow](../skill/workflows/product-selection/definition.md) to answer one Amazon US seller decision. For a factual request, deliver the requested research. When the seller asks what to choose, use the applicable decision below.
+
+1. **Which growing market fits a first order?** Compare growth across the same months and peer categories. Check the supplier’s minimum order against the seller’s available buying budget. State which option fits, the cash required, and any shortfall or headroom. Separate affordability from evidence of sustained demand.
+2. **Which bestseller can I stock?** Apply the seller’s hard limits before ranking eligible products by the requested measure. For a first-order budget, multiply the quoted unit cost by the minimum order and add any separately quoted mandatory upfront charges once. If both fit, use the seller’s stated preference to break the tie. If none fit, show the binding limit. Ask for a missing quote only when it would change the decision.
+3. **Where is there room for my new product?** Use sales-leader data to identify peer categories where recent launches appear. For a stated selling price or pack size, compare the identifiable new listings on that same basis. Name the category with supporting examples and the condition that matters for entry. When prices or specifications are unavailable, give the supported market finding and leave product fit open.
+
+Report the choice and the evidence that determines it in the workflow’s HTML. Use supplied quotes as seller inputs. Keep market sales and hypothetical order economics distinct.

@@ -1,0 +1,25 @@
+{
+  "task": "focused-comparison",
+  "lang": "zh-CN",
+  "title": "同规格收纳盒报价比较",
+  "expert": "竞品洞察研究·ZooData",
+  "scope": [
+    {"label": "站点", "value": "亚马逊美国站"},
+    {"label": "报价来源", "value": "虚构示例，两款收纳盒规格相同"}
+  ],
+  "sections": [
+    {
+      "title": "B 款整包多付 6 美元，每件少付 1 美元",
+      "blocks": [
+        {
+          "type": "table",
+          "columns": ["商品", "每包件数", "整包价（美元）", "单件价（美元）"],
+          "rows": [
+            ["A 款", 2, 18, 9],
+            ["B 款", 3, 24, 8]
+          ]
+        }
+      ]
+    }
+  ]
+}

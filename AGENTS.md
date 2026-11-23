@@ -6,6 +6,8 @@ affected skill's `SKILL.md` and review its modules against the responsibility
 map declared there. Run the relevant consistency tests before completing the
 change.
 
+Before modifying or reviewing WorkBuddy components, expert bindings, submission packages, or their tests, read and follow [`components/DEVELOPMENT.md`](components/DEVELOPMENT.md).
+
 ## Releasing / publishing
 
 Skills are published to ClawHub **manually** via `clawhub sync` (the ClawHub key stays

@@ -38,3 +38,6 @@ config.json
 # the canonical source is the repo root, .agents/skills/* are byte-identical copies)
 .agents/skills/
 skills-lock.json
+
+# Local WorkBuddy submission archives
+/components/targets/

@@ -1,0 +1,50 @@
+{
+  "task": "expansion",
+  "lang": "zh-CN",
+  "title": "小号收纳篮有哪些相关搜索词？",
+  "expert": "关键词研究 · ZooData",
+  "scope": [
+    {
+      "label": "站点",
+      "value": "亚马逊美国站"
+    },
+    {
+      "label": "数据",
+      "value": "虚构示例，11 月 1–7 日"
+    },
+    {
+      "label": "核心词",
+      "value": "small storage baskets"
+    }
+  ],
+  "sections": [
+    {
+      "title": "按收纳场景找篮子",
+      "blocks": [
+        {
+          "type": "table",
+          "columns": [
+            "关键词",
+            "相关度",
+            "周预估搜索量（次）",
+            "ABA 排名"
+          ],
+          "rows": [
+            [
+              "small baskets for shelves",
+              95,
+              800,
+              53000
+            ],
+            [
+              "small baskets for closet",
+              89,
+              650,
+              62200
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}

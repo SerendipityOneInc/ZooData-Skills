@@ -1,0 +1,131 @@
+{
+  "task": "screening",
+  "title": "全类目销量最高的三款商品 · 版式示例",
+  "expert": "选品与市场专家·ZooData",
+  "lang": "zh-CN",
+  "scope": [
+    {
+      "label": "数据性质",
+      "value": "虚构演示数据，仅用于版式验证"
+    },
+    {
+      "label": "站点",
+      "value": "亚马逊美国站"
+    },
+    {
+      "kind": "period",
+      "label": "销量期间",
+      "value": "截至 2026 年 10 月 31 日的近 30 天"
+    },
+    {
+      "label": "品类范围",
+      "value": "全部类目"
+    },
+    {
+      "label": "排序方式",
+      "value": "月购买量下限，从高到低"
+    },
+    {
+      "label": "上架时间",
+      "value": "近 180 天"
+    },
+    {
+      "label": "月购买量下限",
+      "value": "不超过 500 件"
+    },
+    {
+      "label": "配送方式",
+      "value": "亚马逊配送或卖家自配送"
+    }
+  ],
+  "metrics": [
+    {
+      "label": "符合条件的商品",
+      "value": 120,
+      "unit": "个"
+    }
+  ],
+  "sections": [
+    {
+      "title": "按近 30 天购买量排列的前三款商品",
+      "blocks": [
+        {
+          "type": "products",
+          "currency": "USD",
+          "items": [
+            {
+              "scope": "product",
+              "title": "可叠放收纳篮",
+              "brand": "示例品牌",
+              "image": null,
+              "asin": "DEMO-A",
+              "parentAsin": "DEMO-PA",
+              "sales": "400+",
+              "parentSales": "900+",
+              "price": 19.99,
+              "rating": 4.6,
+              "ratingCount": 84,
+              "facts": [
+                {
+                  "label": "类目",
+                  "value": "厨房收纳"
+                },
+                {
+                  "label": "近 30 天新增评分（条）",
+                  "value": 8
+                }
+              ]
+            },
+            {
+              "scope": "product",
+              "title": "多功能清洁刷",
+              "brand": "示例品牌",
+              "image": null,
+              "asin": "DEMO-B",
+              "parentAsin": "DEMO-PB",
+              "sales": "300+",
+              "parentSales": "600+",
+              "price": 12.99,
+              "rating": 4.4,
+              "ratingCount": 46,
+              "facts": [
+                {
+                  "label": "类目",
+                  "value": "家居清洁"
+                },
+                {
+                  "label": "近 30 天新增评分（条）",
+                  "value": 3
+                }
+              ]
+            },
+            {
+              "scope": "product",
+              "title": "桌面整理盒",
+              "brand": "示例品牌",
+              "image": null,
+              "asin": "DEMO-C",
+              "parentAsin": "DEMO-PC",
+              "sales": "200+",
+              "parentSales": "350+",
+              "price": 16.99,
+              "rating": 4.8,
+              "ratingCount": 31,
+              "facts": [
+                {
+                  "label": "类目",
+                  "value": "桌面配件"
+                },
+                {
+                  "label": "近 30 天新增评分（条）",
+                  "value": 5
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "footer": "ZooData · 演示版式"
+}
