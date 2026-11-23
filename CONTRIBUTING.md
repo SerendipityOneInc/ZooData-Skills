@@ -122,6 +122,12 @@ and the absence of maintenance-language leakage.
 
 ## Skill Diagnosis and Repair
 
+For WorkBuddy component changes and reviews, also read
+[`components/DEVELOPMENT.md`](components/DEVELOPMENT.md). It defines the
+development responsibilities for experts, object Skills, shared Agent
+instructions, approved check scopes, packaging, and platform validation.
+The repository and component `AGENTS.md` files route agents to that document.
+
 Use this process when a skill produces the wrong behavior, stops prematurely,
 omits required evidence, or repeatedly needs user correction.
 

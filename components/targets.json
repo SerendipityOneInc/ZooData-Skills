@@ -1,0 +1,712 @@
+{
+  "schema_version": 1,
+  "source_version": "0.1.28",
+  "status": "exporter-implemented-not-platform-validated",
+  "publication": {
+    "source_directory_is_skill": false,
+    "forbidden_entrypoint_filenames": [
+      "SKILL.md",
+      "skill.md",
+      "skills.md"
+    ],
+    "workbuddy_export_location": "components/targets",
+    "default_export_format": "zip-only",
+    "unpacked_export_location": "outside-clawhub-discovery-roots",
+    "exporter_implemented": true,
+    "platform_publication_performed": false,
+    "clawhub_package_writes_enabled": false
+  },
+  "professional_contracts": [
+    "contract/evidence.md",
+    "contract/seller-evidence.md"
+  ],
+  "agent_sources": [
+    "expert/agent-core/interaction.md",
+    "expert/agent-core/delivery.md"
+  ],
+  "professionals": {
+    "market": {
+      "export_name": "amazon-market-analysis",
+      "primary_subject": "category market",
+      "entry": "skill/datas/market/definition.md",
+      "resources": [
+        "contract/evidence.md",
+        "contract/report.md",
+        "contract/query.md",
+        "contract/seller-evidence.md",
+        "skill/datas/market/definition.md",
+        "skill/datas/market/methods.md",
+        "skill/datas/market/semantics.md"
+      ],
+      "capabilities": [
+        "categories",
+        "markets/search",
+        "markets/profile",
+        "markets/price-distributions",
+        "markets/rating-distributions",
+        "markets/rating-count-distributions",
+        "markets/listing-age-distributions",
+        "markets/fulfillment-distributions",
+        "markets/seller-country-distributions",
+        "markets/content-distributions",
+        "markets/top-product-concentrations",
+        "markets/brand-concentrations",
+        "markets/seller-concentrations",
+        "markets/listing-launch-trend",
+        "markets/history"
+      ],
+      "provenance": [
+        "amazon-market-analysis/SKILL.md",
+        "amazon-market-analysis/references/scenarios-discover.md",
+        "amazon-market-analysis/references/scenarios-evaluate.md",
+        "amazon-market-analysis/references/market-metric-semantics.md"
+      ],
+      "description": "Amazon category-market data analysis covering category discovery, market size, price and rating distributions, competition, product launch dates and historical changes.",
+      "kind": "data"
+    },
+    "product": {
+      "export_name": "zoodata-amazon-product-research",
+      "primary_subject": "product or candidate set",
+      "entry": "skill/datas/product/definition.md",
+      "resources": [
+        "contract/evidence.md",
+        "contract/report.md",
+        "contract/query.md",
+        "contract/seller-evidence.md",
+        "skill/datas/product/definition.md",
+        "skill/datas/product/methods.md",
+        "skill/datas/product/semantics.md"
+      ],
+      "capabilities": [
+        "categories",
+        "products/search",
+        "products/competitors",
+        "realtime/product",
+        "products/history",
+        "products/price-band-overview",
+        "products/price-band-detail",
+        "products/brand-overview",
+        "products/brand-detail",
+        "products/detail",
+        "products/sales-trend"
+      ],
+      "provenance": [
+        "amazon-market-analysis/references/scenarios-discover.md",
+        "amazon-competitor-intelligence-monitor/SKILL.md",
+        "zoodata/references/openapi-reference.md",
+        "amazon-listing-audit-pro/SKILL.md"
+      ],
+      "description": "Amazon product data analysis covering product discovery, competitors, specifications and page content, historical changes, product comparisons, and price and brand statistics for matching product samples.",
+      "kind": "data"
+    },
+    "keyword": {
+      "export_name": "amazon-keyword-analysis",
+      "primary_subject": "keyword or query set",
+      "entry": "skill/datas/keyword/definition.md",
+      "resources": [
+        "contract/evidence.md",
+        "contract/report.md",
+        "contract/query.md",
+        "contract/seller-evidence.md",
+        "skill/datas/keyword/definition.md",
+        "skill/datas/keyword/methods.md",
+        "skill/datas/keyword/semantics.md"
+      ],
+      "capabilities": [
+        "keywords/extends",
+        "keywords/detail",
+        "keywords/market-profile",
+        "keywords/trend-profile",
+        "keywords/trend"
+      ],
+      "provenance": [
+        "amazon-keyword-traffic-analysis/SKILL.md",
+        "amazon-keyword-traffic-analysis/references/scenarios-expand.md",
+        "amazon-keyword-traffic-analysis/references/scenarios-keyword-analysis.md",
+        "amazon-keyword-traffic-analysis/references/metrics-market-profile.md",
+        "amazon-keyword-traffic-analysis/references/metrics-trend-profile.md"
+      ],
+      "description": "Amazon keyword data analysis covering related-keyword expansion and grouping, search volume and search-frequency rank, demand and competition, seasonality and search trends.",
+      "kind": "data"
+    },
+    "traffic": {
+      "export_name": "amazon-product-traffic-analysis",
+      "primary_subject": "ASIN traffic or ASIN by keyword movement",
+      "entry": "skill/datas/traffic/definition.md",
+      "resources": [
+        "contract/evidence.md",
+        "contract/report.md",
+        "contract/query.md",
+        "contract/seller-evidence.md",
+        "skill/datas/traffic/definition.md",
+        "skill/datas/traffic/methods.md",
+        "skill/datas/traffic/semantics.md",
+        "skill/datas/product/semantics.md",
+        "skill/datas/keyword/semantics.md"
+      ],
+      "capabilities": [
+        "keywords/product-traffic-structure-profile",
+        "keywords/product-traffic-terms",
+        "keywords/product-traffic-terms-trend",
+        "keywords/product-traffic-trend",
+        "keywords/product-traffic-trend-profile",
+        "keywords/detail",
+        "keywords/market-profile",
+        "keywords/trend-profile",
+        "keywords/trend",
+        "keywords/search-results",
+        "realtime/product"
+      ],
+      "provenance": [
+        "amazon-keyword-traffic-analysis/SKILL.md",
+        "amazon-keyword-traffic-analysis/references/scenarios-product-traffic-analysis.md",
+        "amazon-keyword-traffic-analysis/references/traffic-observation-semantics.md",
+        "amazon-keyword-traffic-analysis/references/diagnosis-action-protocols.md"
+      ],
+      "description": "Amazon product exposure and seller-performance analysis covering traffic sources, trends, traffic keywords, search placements and user-provided search or advertising reports.",
+      "kind": "data"
+    },
+    "review": {
+      "export_name": "amazon-review-intelligence-extractor",
+      "primary_subject": "review population",
+      "entry": "skill/datas/review/definition.md",
+      "resources": [
+        "contract/evidence.md",
+        "contract/report.md",
+        "contract/query.md",
+        "contract/seller-evidence.md",
+        "skill/datas/review/definition.md",
+        "skill/datas/review/methods.md",
+        "skill/datas/review/semantics.md"
+      ],
+      "capabilities": [
+        "reviews/analysis",
+        "realtime/reviews",
+        "realtime/product",
+        "categories",
+        "reviews/search"
+      ],
+      "provenance": [
+        "amazon-review-intelligence-extractor/SKILL.md",
+        "zoodata/references/openapi-reference.md"
+      ],
+      "description": "Amazon buyer-review analysis by category or specified product list, covering purchase reasons, use cases, praise, complaints, product-review text, star-rating distributions and feedback comparisons.",
+      "kind": "data"
+    }
+  },
+  "experts": {
+    "product-selection": {
+      "configuration": "expert/product-selection.md",
+      "role_first": true,
+      "release_phase": 2,
+      "workflow": "product-selection"
+    },
+    "keyword-research": {
+      "configuration": "expert/keyword-research.md",
+      "release_phase": 1,
+      "workflow": "keyword-research"
+    },
+    "traffic-diagnosis": {
+      "configuration": "expert/traffic-diagnosis.md",
+      "primary_professionals": [
+        "traffic"
+      ],
+      "optional_professionals": [
+        "keyword",
+        "product"
+      ],
+      "release_phase": 1,
+      "allowed_checks": {
+        "traffic": [
+          "Traffic structure",
+          "Traffic trend profile",
+          "Traffic weekly history",
+          "Traffic contributors",
+          "Named-term movement",
+          "Search-placement comparison",
+          "Seller search performance",
+          "Seller advertising performance"
+        ],
+        "keyword": [
+          "Keyword profile",
+          "Keyword trend profile"
+        ],
+        "product": [
+          "Product facts",
+          "Product history"
+        ]
+      }
+    },
+    "review-voc": {
+      "configuration": "expert/review-voc.md",
+      "primary_professionals": [
+        "review"
+      ],
+      "optional_professionals": [
+        "product"
+      ],
+      "release_phase": 1,
+      "allowed_checks": {
+        "review": [
+          "Consumer-theme profile",
+          "Theme evidence",
+          "Feedback comparison",
+          "Rating distribution"
+        ],
+        "product": [
+          "Product facts",
+          "Product comparison"
+        ]
+      }
+    },
+    "competitor-insight": {
+      "configuration": "expert/competitor-insight.md",
+      "release_phase": 2,
+      "workflow": "competitor-comparison"
+    },
+    "product-research": {
+      "configuration": "expert/product-research.md",
+      "primary_professionals": [
+        "product"
+      ],
+      "optional_professionals": [
+        "review",
+        "traffic"
+      ],
+      "release_phase": 2,
+      "allowed_checks": {
+        "product": [
+          "Product facts",
+          "Product content",
+          "Product comparison"
+        ],
+        "review": [
+          "Consumer-theme profile",
+          "Theme evidence",
+          "Feedback comparison"
+        ],
+        "traffic": [
+          "Traffic contributors",
+          "Seller search performance",
+          "Seller advertising performance"
+        ]
+      }
+    }
+  },
+  "workbuddy_binding": {
+    "transport": "MCP",
+    "binding_verified": false,
+    "resolve_callable_names_from": "connected tool descriptions and input/output schemas",
+    "endpoint_ids_are_callable_names": false
+  },
+  "export_rules": {
+    "professional_wrapper": "Generate native WorkBuddy SKILL.md metadata and @references loading instructions.",
+    "resource_layout": "Flatten analysis-Skill resources under references/. Map report-Skill resources to its declared references/, scripts/ and assets/ paths. Rewrite local links and enforce the two-directory-level Skill upload limit.",
+    "professional_excludes": [
+      "experts"
+    ],
+    "expert_instructions": "Compose shared Agent instructions and the expert role. Preload the bound workflow or primary data Skill together with the report tool. For directly bound data Skills, bundle optional Skills in the expert. A workflow bundles its own approved data methods.",
+    "legacy_workflow_imports": false
+  },
+  "protected_publication_roots": [
+    "amazon-analysis",
+    "amazon-competitor-intelligence-monitor",
+    "amazon-daily-market-radar",
+    "amazon-keyword-traffic-analysis",
+    "amazon-listing-audit-pro",
+    "amazon-market-analysis",
+    "amazon-pricing-command-center",
+    "amazon-review-intelligence-extractor",
+    "web-extract",
+    "zoodata"
+  ],
+  "development_reference": "zoodata/references/openapi-reference.md",
+  "report_skill": {
+    "export_name": "zoodata-report-generator",
+    "entry": "tools/report/definition.md",
+    "description": "Generate readable HTML research reports from supplied analysis results using shared components and a page template. Use after analysis or to present existing results; no data queries or new business analysis.",
+    "resources": {
+      "contract/report.md": "references/reporting.md",
+      "tools/report/layouts.md": "references/layouts.md",
+      "tools/report/example.json": "references/example.json",
+      "skill/datas/product-history/summarize_changes.py": "scripts/summarize_changes.py",
+      "tools/report/scripts/render_report.py": "scripts/render_report.py",
+      "tools/report/assets/template.html": "assets/template.html"
+    },
+    "kind": "tool"
+  },
+  "workflows": {
+    "keyword-research": {
+      "kind": "workflow",
+      "export_name": "zoodata-keyword-research",
+      "version": "0.1.31",
+      "entry": "skill/workflows/keyword-research/definition.md",
+      "bind_mcp_tools": true,
+      "description": "Research Amazon US keywords. Expand a seed by relevance, compare demand and competition, analyze trends or study a specified ASIN’s search terms. Deliver an HTML report from supplied evidence or data obtained through ZooData.",
+      "data_skills": [
+        "keyword-expansion",
+        "keyword-statistics",
+        "keyword-profile",
+        "keyword-trend-profile",
+        "query-weeks",
+        "traffic-terms",
+        "traffic-term-weeks"
+      ],
+      "report_tasks": {
+        "expansion": null,
+        "profile": null,
+        "trend": null,
+        "asin-terms": null
+      },
+      "report_example": "skill/workflows/keyword-research/example.json"
+    },
+    "competitor-comparison": {
+      "kind": "workflow",
+      "version": "0.1.32",
+      "export_name": "zoodata-competitor-comparison",
+      "report_example": "skill/workflows/competitor-comparison/example.json",
+      "report_tasks": {
+        "teardown": "price",
+        "comparison": null,
+        "monthly-purchases": null,
+        "monitoring": null,
+        "discovery": null,
+        "focused-comparison": null,
+        "differentiation": null
+      },
+      "entry": "skill/workflows/competitor-comparison/definition.md",
+      "description": "Analyze your own product or a competitor’s on Amazon US. Enter an ASIN to see its selling points, price and sales trends, sources of search exposure, and what buyers praise or criticize. Find comparable products, compare their strengths and weaknesses, or check when a title, main image or price changed.",
+      "data_skills": [
+        "product-detail",
+        "product-discovery",
+        "product-history",
+        "product-sales-trend",
+        "category-lookup",
+        "market-profile",
+        "market-price-distribution",
+        "traffic-structure",
+        "traffic-terms",
+        "traffic-trend",
+        "traffic-weeks",
+        "traffic-term-weeks",
+        "query-weeks",
+        "search-placements",
+        "product-review-profile",
+        "review-search",
+        "review-live"
+      ]
+    },
+    "product-selection": {
+      "kind": "workflow",
+      "export_name": "zoodata-product-selection",
+      "entry": "skill/workflows/product-selection/definition.md",
+      "bind_mcp_tools": true,
+      "version": "0.1.41",
+      "report_resources": {
+        "tools/report/product-trends.md": "references/product-trends.md",
+        "tools/report/scripts/rank_charts.py": "scripts/rank_charts.py"
+      },
+      "description": "Produce an Amazon US research report from supplied figures or ZooData. Compare category growth and new listings, rank products under confirmed filters, and report candidate performance against stated thresholds.",
+      "data_skills": [
+        "product-discovery",
+        "category-lookup",
+        "product-detail",
+        "product-sales-trend",
+        "product-history",
+        "market-profile",
+        "market-price-distribution",
+        "product-review-profile",
+        "review-search",
+        "traffic-structure",
+        "traffic-trend",
+        "traffic-weeks",
+        "traffic-terms",
+        "product-competitors",
+        "market-rating-distributions",
+        "market-rating-count-distributions",
+        "market-listing-age-distributions",
+        "market-fulfillment-distributions",
+        "market-seller-country-distributions",
+        "market-content-distributions",
+        "market-top-product-concentrations",
+        "market-brand-concentrations",
+        "market-seller-concentrations",
+        "market-history",
+        "market-discovery",
+        "market-launch-composition",
+        "market-review-profile",
+        "listing-members"
+      ],
+      "report_tasks": {
+        "screening": null,
+        "market-growth": null,
+        "assessment": null,
+        "market-research": null,
+        "new-launches": {"productTrends": 3}
+      }
+    }
+  },
+  "endpoint_skills": {
+    "keyword-expansion": {
+      "kind": "data",
+      "export_name": "zoodata-keyword-expansion",
+      "entry": "skill/datas/keyword-expansion/definition.md",
+      "endpoint": "keywords/extends",
+      "description": "Find related queries with relevance, search volume and ABA rank."
+    },
+    "keyword-statistics": {
+      "kind": "data",
+      "export_name": "zoodata-keyword-statistics",
+      "entry": "skill/datas/keyword-statistics/definition.md",
+      "endpoint": "keywords/detail",
+      "description": "Read the requested weekly baseline statistics for named search terms."
+    },
+    "keyword-profile": {
+      "kind": "data",
+      "export_name": "zoodata-keyword-profile",
+      "entry": "skill/datas/keyword-profile/definition.md",
+      "endpoint": "keywords/market-profile",
+      "description": "Compare keyword demand, competition, search structure and annual seasonality."
+    },
+    "keyword-trend-profile": {
+      "kind": "data",
+      "export_name": "zoodata-keyword-trend-profile",
+      "entry": "skill/datas/keyword-trend-profile/definition.md",
+      "endpoint": "keywords/trend-profile",
+      "description": "Read search demand and rank trends across selected weekly windows."
+    },
+    "product-sales-trend": {
+      "kind": "data",
+      "export_name": "zoodata-product-sales-trend",
+      "entry": "skill/datas/product-sales-trend/definition.md",
+      "endpoint": "products/sales-trend",
+      "description": "Use for monthly purchases, revenue or month-over-month change for one Amazon US ASIN or its parent. Returns monthly lower bounds for the requested period."
+    },
+    "product-detail": {
+      "kind": "data",
+      "export_name": "zoodata-product-detail",
+      "entry": "skill/datas/product-detail/definition.md",
+      "endpoint": "products/detail",
+      "description": "Look up Amazon US product details by ASIN, including the title, brand, category, listing date, price, Best Sellers Rank (BSR), monthly purchase lower bound and ratings.",
+      "fallback_endpoint": "realtime/product"
+    },
+    "review-search": {
+      "kind": "data",
+      "export_name": "zoodata-review-search",
+      "entry": "skill/datas/review-search/definition.md",
+      "endpoint": "reviews/search",
+      "description": "Retrieve individual stored buyer reviews and returned tags for a specified ASIN, with date, star and other supported filters."
+    },
+    "product-live": {
+      "kind": "data",
+      "export_name": "zoodata-product-live",
+      "entry": "skill/datas/product-live/definition.md",
+      "endpoint": "realtime/product",
+      "description": "Retrieve the current offer, specifications or selling-point text for a named ASIN."
+    },
+    "product-discovery": {
+      "kind": "data",
+      "export_name": "zoodata-product-discovery",
+      "entry": "skill/datas/product-discovery/definition.md",
+      "endpoint": "products/search",
+      "description": "Find products for a specified use, keyword or category under confirmed filters."
+    },
+    "product-history": {
+      "kind": "data",
+      "export_name": "zoodata-product-history",
+      "entry": "skill/datas/product-history/definition.md",
+      "endpoint": "products/history",
+      "description": "Track an ASIN’s observed prices, category ranks or page changes over a specified period."
+    },
+    "category-lookup": {
+      "kind": "data",
+      "export_name": "zoodata-category-lookup",
+      "entry": "skill/datas/category-lookup/definition.md",
+      "endpoint": "categories",
+      "description": "Resolve a category name or path to the appropriate category ID."
+    },
+    "market-profile": {
+      "kind": "data",
+      "export_name": "zoodata-market-profile",
+      "entry": "skill/datas/market-profile/definition.md",
+      "endpoint": "markets/profile",
+      "description": "Compare category-wide demand and the leading-product sample for a named market."
+    },
+    "market-price-distribution": {
+      "kind": "data",
+      "export_name": "zoodata-market-price-distribution",
+      "entry": "skill/datas/market-price-distribution/definition.md",
+      "endpoint": "markets/price-distributions",
+      "description": "Compare the distribution of products and sales across a category’s price bands."
+    },
+    "review-live": {
+      "kind": "data",
+      "export_name": "zoodata-review-live",
+      "entry": "skill/datas/review-live/definition.md",
+      "endpoint": "realtime/reviews",
+      "description": "Read the latest reviews displayed on a named product page."
+    },
+    "traffic-structure": {
+      "kind": "data",
+      "export_name": "zoodata-traffic-structure",
+      "entry": "skill/datas/traffic-structure/definition.md",
+      "endpoint": "keywords/product-traffic-structure-profile",
+      "description": "Compare organic and sponsored exposure for the selected ASINs."
+    },
+    "traffic-trend": {
+      "kind": "data",
+      "export_name": "zoodata-traffic-trend",
+      "entry": "skill/datas/traffic-trend/definition.md",
+      "endpoint": "keywords/product-traffic-trend-profile",
+      "description": "Inspect exposure direction and volatility over the requested windows."
+    },
+    "traffic-weeks": {
+      "kind": "data",
+      "export_name": "zoodata-traffic-weeks",
+      "entry": "skill/datas/traffic-weeks/definition.md",
+      "endpoint": "keywords/product-traffic-trend",
+      "description": "Read weekly exposure and placement measures for selected ASINs."
+    },
+    "traffic-terms": {
+      "kind": "data",
+      "export_name": "zoodata-traffic-terms",
+      "entry": "skill/datas/traffic-terms/definition.md",
+      "endpoint": "keywords/product-traffic-terms",
+      "description": "Identify the queries contributing exposure to an ASIN for the selected period."
+    },
+    "traffic-term-weeks": {
+      "kind": "data",
+      "export_name": "zoodata-traffic-term-weeks",
+      "entry": "skill/datas/traffic-term-weeks/definition.md",
+      "endpoint": "keywords/product-traffic-terms-trend",
+      "description": "Compare one ASIN’s weekly exposure and position with demand for the named queries."
+    },
+    "query-weeks": {
+      "kind": "data",
+      "export_name": "zoodata-query-weeks",
+      "entry": "skill/datas/query-weeks/definition.md",
+      "endpoint": "keywords/trend",
+      "description": "Read weekly search volume or ABA rank for specified queries."
+    },
+    "search-placements": {
+      "kind": "data",
+      "export_name": "zoodata-search-placements",
+      "entry": "skill/datas/search-placements/definition.md",
+      "endpoint": "keywords/search-results",
+      "description": "Locate named products in the observed search positions for a specified query."
+    },
+    "product-review-profile": {
+      "kind": "data",
+      "export_name": "zoodata-product-review-profile",
+      "entry": "skill/datas/product-review-profile/definition.md",
+      "endpoint": "voc/analysis",
+      "description": "Retrieve an aggregate review profile for one or more Amazon US ASINs, including problems, praise, requested improvements and mention rates.",
+      "fallback_endpoint": "realtime/reviews"
+    },
+    "market-review-profile": {
+      "kind": "data",
+      "export_name": "zoodata-market-review-profile",
+      "entry": "skill/datas/market-review-profile/definition.md",
+      "endpoint": "voc/analysis",
+      "description": "Retrieve an Amazon US category review profile covering use cases, purchase drivers, buyer complaints and requested improvements."
+    },
+    "product-competitors": {
+      "kind": "data",
+      "export_name": "zoodata-product-competitors",
+      "entry": "skill/datas/product-competitors/definition.md",
+      "endpoint": "products/competitors",
+      "description": "Matching ASINs, their attributes and the observed comparison measures."
+    },
+    "market-rating-distributions": {
+      "kind": "data",
+      "export_name": "zoodata-market-rating-distributions",
+      "entry": "skill/datas/market-rating-distributions/definition.md",
+      "endpoint": "markets/rating-distributions",
+      "description": "Star-rating distribution for the specified category sample."
+    },
+    "market-rating-count-distributions": {
+      "kind": "data",
+      "export_name": "zoodata-market-rating-count-distributions",
+      "entry": "skill/datas/market-rating-count-distributions/definition.md",
+      "endpoint": "markets/rating-count-distributions",
+      "description": "Rating-count distribution for the specified category sample."
+    },
+    "market-listing-age-distributions": {
+      "kind": "data",
+      "export_name": "zoodata-market-listing-age-distributions",
+      "entry": "skill/datas/market-listing-age-distributions/definition.md",
+      "endpoint": "markets/listing-age-distributions",
+      "description": "Listing-age distribution for the specified category sample."
+    },
+    "market-fulfillment-distributions": {
+      "kind": "data",
+      "export_name": "zoodata-market-fulfillment-distributions",
+      "entry": "skill/datas/market-fulfillment-distributions/definition.md",
+      "endpoint": "markets/fulfillment-distributions",
+      "description": "Fulfillment distribution for the specified category sample."
+    },
+    "market-seller-country-distributions": {
+      "kind": "data",
+      "export_name": "zoodata-market-seller-country-distributions",
+      "entry": "skill/datas/market-seller-country-distributions/definition.md",
+      "endpoint": "markets/seller-country-distributions",
+      "description": "Seller-country distribution for the specified category sample."
+    },
+    "market-content-distributions": {
+      "kind": "data",
+      "export_name": "zoodata-market-content-distributions",
+      "entry": "skill/datas/market-content-distributions/definition.md",
+      "endpoint": "markets/content-distributions",
+      "description": "Content distribution for the specified category sample."
+    },
+    "market-top-product-concentrations": {
+      "kind": "data",
+      "export_name": "zoodata-market-top-product-concentrations",
+      "entry": "skill/datas/market-top-product-concentrations/definition.md",
+      "endpoint": "markets/top-product-concentrations",
+      "description": "Product concentration for the specified category sample."
+    },
+    "market-brand-concentrations": {
+      "kind": "data",
+      "export_name": "zoodata-market-brand-concentrations",
+      "entry": "skill/datas/market-brand-concentrations/definition.md",
+      "endpoint": "markets/brand-concentrations",
+      "description": "Brand concentration for the specified category sample."
+    },
+    "market-seller-concentrations": {
+      "kind": "data",
+      "export_name": "zoodata-market-seller-concentrations",
+      "entry": "skill/datas/market-seller-concentrations/definition.md",
+      "endpoint": "markets/seller-concentrations",
+      "description": "Seller concentration for the specified category sample."
+    },
+    "market-history": {
+      "kind": "data",
+      "export_name": "zoodata-market-history",
+      "entry": "skill/datas/market-history/definition.md",
+      "endpoint": "markets/history",
+      "description": "Market history for the specified category sample."
+    },
+    "market-discovery": {
+      "kind": "data",
+      "export_name": "zoodata-market-discovery",
+      "entry": "skill/datas/market-discovery/definition.md",
+      "endpoint": "markets/search",
+      "description": "Find Amazon US categories under confirmed market conditions."
+    },
+    "market-launch-composition": {
+      "kind": "data",
+      "export_name": "zoodata-market-launch-composition",
+      "entry": "skill/datas/market-launch-composition/definition.md",
+      "endpoint": "markets/listing-launch-trend",
+      "description": "Group a category’s leading listings by their first launch dates."
+    },
+    "listing-members": {
+      "kind": "data",
+      "export_name": "zoodata-listing-members",
+      "entry": "skill/datas/listing-members/definition.md",
+      "endpoint": "products/detail",
+      "description": "Read a representative variant of a known Amazon US parent listing for the selected month."
+    }
+  }
+}

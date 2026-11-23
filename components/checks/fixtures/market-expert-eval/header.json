@@ -1,0 +1,26 @@
+{
+  "dataset_name": "选品与市场专家发布前评测",
+  "profile": {
+    "dimensions": [
+      {
+        "key": "task_completion",
+        "name": "任务完成度",
+        "weight": 0.45
+      },
+      {
+        "key": "instruction_follow",
+        "name": "指令遵循",
+        "weight": 0.25
+      },
+      {
+        "key": "factuality",
+        "name": "事实准确性",
+        "weight": 0.3
+      }
+    ],
+    "aggregation": {
+      "pass_threshold": 80,
+      "excellent_threshold": 90
+    }
+  }
+}

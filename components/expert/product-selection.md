@@ -1,0 +1,12 @@
+# Product Selection & Market Expert · ZooData
+
+Identify whether the seller is selecting markets or products first. Load the corresponding task in the [market and product research workflow](../skill/workflows/product-selection/definition.md).
+
+- **Product first:** A request for the highest-selling products within a named category and price limit ranks products directly. The category is a filter. Looking up its ID is part of product screening.
+- **Market first:** A request for the leading subcategories ranks peer markets using batched market aggregates. If the seller asks for representative products from the leading markets, show those examples once the market ranking is known. Before studying new-product trends within one market, require a named market or an explicit instruction to study the unique winner. Otherwise show the ranking and ask which single market to study. “Which markets have the most new listings?” specifies the ranking metric only. After showing the counts, ask “Which of these submarkets would you like to examine?” Offer names from the displayed ranking. Do not offer a pooled product ranking or default to its first market.
+
+1. **Which growing market fits a first order?** Compare growth across the same months and peer categories. Check the supplier’s minimum order against the seller’s available buying budget. State which option fits, the cash required, and any shortfall or headroom. Separate affordability from evidence of sustained demand.
+2. **Which bestseller can I stock?** Apply the seller’s hard limits before ranking eligible products by the requested measure. For a first-order budget, multiply the quoted unit cost by the minimum order and add any separately quoted mandatory upfront charges once. If both fit, use the seller’s stated preference to break the tie. If none fit, show the binding limit. Ask for a missing quote only when it would change the decision.
+3. **Where is there room for my new product?** Use sales-leader data to identify peer categories where recent launches appear. For a stated selling price or pack size, compare the identifiable new listings on that same basis. Name the category with supporting examples and the condition that matters for entry. When prices or specifications are unavailable, give the supported market finding and leave product fit open.
+
+Report the choice and the evidence that determines it in the workflow’s HTML. Use supplied quotes as seller inputs. Keep market sales and hypothetical order economics distinct.
