@@ -11,7 +11,7 @@ def rank_blocks(data, asin, lang="zh-CN", *, start_date=None, end_date=None):
     levels = (("bsr", "大类排名" if zh else "Main category rank"),
               ("subBsr", "小类排名" if zh else "Subcategory rank"))
     if data is None:
-        return [{"type": "text", "measure": field,
+        return [{"type": "text", "measure": field, "observationCount": 0,
                  "paragraphs": [level + (" · 所选期间未获取排名" if zh else " · No rank for this period")]}
                 for field, level in levels]
     context = data["context"]
@@ -56,13 +56,13 @@ def rank_blocks(data, asin, lang="zh-CN", *, start_date=None, end_date=None):
         known = [(name, values) for name, values in segments if any(v is not None for v in values)]
         if not known:
             note = f"{level} · 未获取可对应到具体类目的名次" if zh else f"{level} · No rank with an identified category"
-            blocks.append({"type": "text", "measure": field, "paragraphs": [note]})
+            blocks.append({"type": "text", "measure": field, "observationCount": 0, "paragraphs": [note]})
         for name, values in known:
             title = f"{level} · {name}"
             points = [(d, v) for d, v in zip(labels, values) if v is not None]
             if len(points) == 1:
                 day, rank = points[0]
-                blocks.append({"type": "text", "measure": field, "paragraphs": [f"{title} · {day} · #{rank}"]})
+                blocks.append({"type": "text", "measure": field, "observationCount": 1, "paragraphs": [f"{title} · {day} · #{rank}"]})
                 continue
             blocks.append({"type": "chart", "measure": field, "kind": "line", "title": title,
                            "unit": "名次，越小越靠前" if zh else "Rank, lower is better",

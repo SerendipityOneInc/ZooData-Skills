@@ -1,4 +1,4 @@
-<!-- prompt-source: tools/report/product-trends.md 33d0b1523114115a5c3daacedcb973cd53e5c45a70a102f8580ccf1f2e856049 -->
+<!-- prompt-source: tools/report/product-trends.md 1e21b88c08290d627c51b4e9578b4c508e6c344b71ef68d4d3c7c4e1492cb77e -->
 
 > 英文原文：[原文](../../../tools/report/product-trends.md)
 
@@ -8,7 +8,7 @@
 
 | 图表 | 画法 |
 |---|---|
-| 月销量 | 用 `chart` 折线图，每月一个点，单位写“件，购买量下限”。商品 ASIN 和已确认的父体各画一条线，图例写对应 ASIN。父体变更时另起一条线。当月尚未结束时单独标明。 |
+| 月销量 | 用 `chart` 折线图，横轴按 YYYY-MM 连续列出所查月份，缺数月份也保留刻度，单位写“件，购买量下限”。商品 ASIN 和已确认的父体各画一条线，图例写对应 ASIN。父体变更时另起一条线。当月尚未结束时单独标明。 |
 | 每日价格 | 用 `daily-history`，指定 `field="price"`、商品 ASIN 和起止日期，`source` 指向保存的商品历史原始结果。币种取自该结果。 |
 | 每周预估曝光 | 用 `chart` 折线图，以完整周的结束日期标记横轴，单位为预估曝光点。分别标出该商品的自然曝光和广告曝光。用户询问总曝光时使用返回的总量。 |
 | 每日类目排名 | 用同一份商品历史交给[排名图生成脚本](../../../tools/report/scripts/rank_charts.py)，将本次报告期间传入 `--start-date` 和 `--end-date`，先画大类排名，再画小类排名。每张图使用独立刻度，标明具体类目名称和“名次越小越靠前”。 |

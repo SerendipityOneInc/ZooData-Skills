@@ -345,7 +345,8 @@ def findings_list(items):
 
 def validate_content_reuse(data):
     """Reject exact repeated blocks; business meaning still needs a content review."""
-    unknown = set(data) - {"title", "expert", "lang", "scope", "metrics", "sections", "footer", "missing_label", "task", "productCoverageNote"}
+    unknown = set(data) - {"title", "expert", "lang", "scope", "metrics", "sections", "footer", "missing_label", "task",
+                           "productCoverageNote", "monthlySalesPeriod"}
     if unknown:
         raise ValueError("Unsupported report fields: " + ", ".join(sorted(unknown)))
     cards = [json.dumps(metric, sort_keys=True, ensure_ascii=False, allow_nan=False)
@@ -369,6 +370,20 @@ def validate_content_reuse(data):
             seen.add(signature)
 
 
+def monthly_sales_window(labels, period):
+    if not labels or not all(isinstance(label, str) and re.fullmatch(r"[0-9]{4}-(0[1-9]|1[0-2])", label)
+                             for label in labels):
+        raise ValueError("Use YYYY-MM labels for monthly sales")
+    indexes = [int(label[:4]) * 12 + int(label[5:]) for label in labels]
+    if indexes != list(range(indexes[0], indexes[0] + len(labels))):
+        raise ValueError("Keep consecutive monthly sales labels, including missing months")
+    if period is None:
+        if len(labels) != 6:
+            raise ValueError("Monthly sales trends default to six complete months")
+    elif not isinstance(period, dict) or (period.get("startMonth"), period.get("endMonth")) != (labels[0], labels[-1]):
+        raise ValueError("Monthly sales labels must cover the requested period")
+
+
 def validate_product_trends(data, requested):
     sections = data["sections"]
     products = [section for section in sections if "parentAsin" in section]
@@ -379,6 +394,7 @@ def validate_product_trends(data, requested):
         raise ValueError("Show the ranked products or explain the coverage shortfall")
     if products and (not sections or "parentAsin" in sections[0]):
         raise ValueError("Present the category comparison before product trends")
+    sales_labels = None
     for section in products:
         asin = section["parentAsin"]
         if not re.fullmatch(r"[A-Z0-9]{10}", asin) or asin not in section["title"]:
@@ -389,12 +405,26 @@ def validate_product_trends(data, requested):
             if not measure:
                 continue
             kind = block["type"]
-            if kind == "text" and any(str(t).strip() for t in block.get("paragraphs", [])):
-                measures.add(measure)
-            elif measure == "price" and kind == "daily-history" and block.get("field") == "price":
-                measures.add(measure)
-            elif measure != "price" and kind == "chart" and block.get("kind") == "line":
-                measures.add(measure)
+            if kind == "text":
+                count = block.get("observationCount")
+                if type(count) is not int or count not in (0, 1) or not any(str(t).strip() for t in block.get("paragraphs", [])):
+                    raise ValueError("A trend note needs zero or one observed period and a description")
+            elif measure == "price":
+                if kind != "daily-history" or block.get("field") != "price":
+                    raise ValueError("Use daily price history for the price trend")
+            elif kind == "chart" and block.get("kind") == "line":
+                if not any(sum(value is not None for value in series["values"]) >= 2
+                           for series in block["series"]):
+                    raise ValueError("A trend line needs observations in at least two periods of one series")
+                if measure == "sales":
+                    labels = block["labels"]
+                    monthly_sales_window(labels, data.get("monthlySalesPeriod"))
+                    if sales_labels is not None and sales_labels != labels:
+                        raise ValueError("Use the same monthly sales window for all ranked listings")
+                    sales_labels = labels
+            else:
+                raise ValueError(f"Use a line chart for the {measure} trend")
+            measures.add(measure)
         missing = {"sales", "price", "exposure", "bsr", "subBsr"} - measures
         if missing:
             raise ValueError(f"{asin} lacks trend panels: {', '.join(sorted(missing))}")

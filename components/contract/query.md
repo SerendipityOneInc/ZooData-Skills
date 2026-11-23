@@ -16,7 +16,7 @@
 ## Select the trend period
 
 1. Honor the period, end date and granularity in the question. If only the period length is unspecified, request **6 months for monthly trends, 3 months for weekly trends, and 1 month for daily trends**. Use completed periods through the requested cutoff or latest available complete observation unless the user asks for a partial period.
-2. Pass the supported start/end or window explicitly when the API default differs. For weekly and daily series use observations in the corresponding calendar-month lookback. If only preset windows are supported, select the closest supported window and state its actual length. Respect source coverage and budget, and identify a shorter available period. These defaults apply to trend reads, not current snapshots.
+2. Pass the supported start/end or window explicitly when the API default differs. For weekly and daily series use observations in the corresponding calendar-month lookback. If only preset windows are supported, select the closest supported window and state its actual length. Respect source coverage and budget, and identify a shorter available period. On an authorized retry, keep the original trend period. Reuse partial results and request only the uncovered months within budget. If the period remains incomplete, label the coverage gap.
 
 ## Apply sorting and pagination
 

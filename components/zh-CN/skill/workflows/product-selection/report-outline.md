@@ -1,4 +1,4 @@
-<!-- prompt-source: skill/workflows/product-selection/report-outline.md b7532e55bc2543513bfba64ebbb3e03186d978ba8fc9820572b3b561774c8f51 -->
+<!-- prompt-source: skill/workflows/product-selection/report-outline.md ec11c87b1c202feef1a9826d6b6862a689bb04bc3912924a5db0d068e7077282 -->
 
 > 英文原文：[原文](../../../../skill/workflows/product-selection/report-outline.md)
 
@@ -12,7 +12,7 @@
 | `market-growth` 飙升市场 | 先回答哪些类目销量增长，列出所比较的两个月各自的月销量、增加件数和增幅，并结合较长历史说明增长是否延续。用户要求代表商品时，再用一组紧凑的商品条目展示各入选市场的代表商品，按类目标识。父体榜单使用父体模板，展示已识别的具体变体时使用子体模板。 |
 | `assessment` 候选评估 | 标明商品名、已知 ASIN 和观察期间。先用一句话回答商品在这段时间怎样成长，用[商品趋势模板](../../../tools/report/product-trends.md)展示支撑判断的变化。显著转折旁写出发生时间及变化后维持的时长。专项提问只展示对应维度。多候选在一份报告中按相同指标对照，列出各候选达到的门槛。在专家会话中，将专家的取舍判断与决定该判断的约束写入同一份报告。 |
 
-新品上榜报告 JSON：每个商品章节填写 `parentAsin`、标题中写出该标识，趋势块标注 `measure`（`sales`、`price`、`exposure`、`bsr`、`subBsr`）。有连续观测时使用图表，只有一个观测或整项缺失时用带相同标记的文字说明。少于三个商品时填写 `productCoverageNote`，用一句话说明实际覆盖范围或未取得商品的原因，生成器会在报告中展示。
+新品上榜报告 JSON：每个商品章节填写 `parentAsin`、标题中写出该标识，趋势块标注 `measure`（`sales`、`price`、`exposure`、`bsr`、`subBsr`）。有多期观测时画折线图。单期值或整项缺失用文字，填入 observationCount（分别为 1 或 0）。月销量默认用连续六个月的 YYYY-MM 刻度。仅当用户指定期间时，在报告层的 monthlySalesPeriod 中填写 startMonth 和 endMonth，各款商品沿用相同月份。少于三个商品时填写 `productCoverageNote`，用一句话说明实际覆盖范围或未取得商品的原因，生成器会在报告中展示。
 
 候选表展示累计评分数时，在相邻列列出比较期间的评分数净变化（条），标明增减方向。选品清单使用接口返回的近 30 天净变化。负值表示累计评分数下降；只有取得与该商品同期变化直接相关的证据时才解释原因。具体商品和数值只在表内展示。
 

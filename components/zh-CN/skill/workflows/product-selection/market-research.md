@@ -1,4 +1,4 @@
-<!-- prompt-source: skill/workflows/product-selection/market-research.md 33d2d8d80deea1f0889175d261438311ead1df2674cd2698852d7a1cd8958b90 -->
+<!-- prompt-source: skill/workflows/product-selection/market-research.md ced156bd593f74351f4d58f2068da760cb57b6040d9b31509e304deef2c3c4c8 -->
 
 > 英文原文：[原文](../../../../skill/workflows/product-selection/market-research.md)
 
@@ -20,7 +20,7 @@
 
 1. 开头说明类目、上架期间、统计日期和销量前 100 名的范围。各类目均取得相同范围的完整榜单计数时，按上榜新品数比较同级类目；默认各类目包含下级商品，复核已有报告时沿用原报告的范围。
 2. 对已确认有新品或新品总数未知的入选类目，用同一日期和统计范围批量取[销量领先商品](../../datas/market-top-product-concentrations/definition.md)。在各类目返回的最多 20 款中，用父体首次上架日期筛出符合本次上架期间的新品。跨类目按父体 ASIN 去重，按父体月销量降序选三款。销量缺失的商品不参与排序，同销量标为并列，取舍时以父体 ASIN 排序。写明“已识别上榜新品中月销量前三”，只有完整覆盖时才称全榜前三。可确认商品不足三款时展示实际数量，说明覆盖缺口。
-3. 按榜单中的父体 ASIN 查[该父体的变体](../../datas/listing-members/definition.md)，取已确认属于该父体的代表商品 ASIN。直接对这些已选商品使用[商品走势取数方法](methods.md#trace-how-each-product-grew)，取得月销量、每日价格、周曝光和每日大类与小类排名，按[商品趋势模板](../../../tools/report/product-trends.md)出图。图上区分父体销量与代表变体的表现。以榜单数据日为截止日，最多回看六个月；新品从首次上架起观察。月销量只比较完整月，当月有数据时标明“截至当日”。
+3. 按榜单中的父体 ASIN 查[该父体的变体](../../datas/listing-members/definition.md)，取已确认属于该父体的代表商品 ASIN。直接对这些已选商品使用[商品走势取数方法](methods.md#trace-how-each-product-grew)，取得月销量、每日价格、周曝光和每日大类与小类排名，按[商品趋势模板](../../../tools/report/product-trends.md)出图。图上区分父体销量与代表变体的表现。月销量默认查询截至榜单日最近六个完整月，用户指定期间时按指定期间查询。三款商品共用同一组月份，上架前和缺数月份留空。其他图按同一研究期间取数，最早从上架日起，最晚到榜单日。用户要求纳入未结束月份时，标明实际观测日。
 
 ## 比较增长市场
 

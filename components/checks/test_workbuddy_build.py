@@ -510,17 +510,35 @@ class TestWorkBuddyBuild(unittest.TestCase):
             self.assertIn(data.pop("productCoverageNote"), html.read_text())
             for index in range(3):
                 asin = f"B{index:09d}"
-                blocks = [{"type": "text", "measure": key, "paragraphs": [key + " unavailable"]}
+                blocks = [{"type": "text", "measure": key, "observationCount": 0, "paragraphs": [key + " unavailable"]}
                           for key in ["price", "bsr", "subBsr", "exposure"]]
                 blocks.append({"type": "chart", "kind": "line", "measure": "sales", "title": asin,
-                               "unit": "units", "labels": ["Sep", "Oct"],
-                               "series": [{"name": asin, "values": [40, 80]}]})
+                               "unit": "units", "labels": [f"2026-{month:02d}" for month in range(5, 11)],
+                               "series": [{"name": asin, "values": [None, None, 0, 20, 40, 80]}]})
                 data["sections"].append({"title": asin, "parentAsin": asin, "blocks": blocks})
             result = run()
             self.assertEqual(result.returncode, 0, result.stderr)
             expert_report = self.output / "experts/zoodata-product-selection/skills/zoodata-report-generator"
             result = run(expert_report)
             self.assertEqual(result.returncode, 0, result.stderr)
+            charts = [section["blocks"][-1] for section in data["sections"][1:]]
+            for chart in charts:
+                chart["labels"] = ["2026-10", "2026-11"]
+                chart["series"][0]["values"] = [40, 80]
+            self.assertIn("six complete months", run().stderr)
+            data["monthlySalesPeriod"] = {"startMonth": "2026-10", "endMonth": "2026-11"}
+            result = run()
+            self.assertEqual(result.returncode, 0, result.stderr)
+            charts[-1]["kind"] = "bar"
+            self.assertIn("line chart", run().stderr)
+            charts[-1]["kind"] = "line"
+            charts[-1]["labels"][0] = "2026-09"
+            self.assertIn("consecutive", run().stderr)
+            charts[-1]["labels"][0] = "2026-10"
+            note = data["sections"][-1]["blocks"][0]
+            note["observationCount"] = 2
+            self.assertIn("observed period", run().stderr)
+            note["observationCount"] = 0
             data["sections"][-1]["blocks"].append(data["sections"][-1]["blocks"][0])
             self.assertIn("Duplicate report block", run().stderr)
             data["sections"][-1]["blocks"].pop()

@@ -59,7 +59,7 @@ These rules cover reports and every user-facing message, including progress and 
 
 ## Use charts and files
 
-1. Use a chart only when it explains the point more clearly than prose or a narrow table. Use lines for changes, bars for comparisons and pies only for mutually exclusive parts of a known whole. Display time series with different units or markedly different scales in vertically stacked charts with matching time labels and independent, labeled value axes; do not use other chart types or dual axes.
+1. Show a requested trend as a line chart when the same series has observations in at least two periods. Mark missing periods as gaps. For a single observation show its date and value; for none state that the measure is unavailable. Use bars for comparisons across objects and pies for mutually exclusive parts of a known whole. Display time series with different units or markedly different scales in vertically stacked charts with matching time labels and independent, labeled value axes; do not use other chart types or dual axes.
 2. Identify plotted objects by business identifiers and explain series, colors and abbreviations visibly, without requiring hover. For ranks, state that lower numbers are ahead. Do not label chart row indexes as data ranks.
 3. Use source numeric values, leaving missing points as gaps. Use only returned or user-supplied product assets.
 4. Combine short text, compact tables and useful charts in the HTML report. Use a responsive layout, readable font sizes, visible headings and print styles; no scripts, external fonts or CDN dependencies. Embed PNG/JPEG image data and inline SVG charts so the file remains readable offline.
