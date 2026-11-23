@@ -1,4 +1,4 @@
-<!-- prompt-source: build_workbuddy.py 1fcfab4d47c499cb40f1c2a89cac05d2672ac2738b26ff5b15d4647f9e492455 -->
+<!-- prompt-source: build_workbuddy.py 9a73adf44782542c3d9c5545a61070bbc3f8a455e18e95ef13806b4fda8be293 -->
 
 > 英文原文：[build_workbuddy.py](../../build_workbuddy.py)
 

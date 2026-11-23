@@ -1,9 +1,11 @@
-<!-- prompt-source: build_workbuddy.py 1fcfab4d47c499cb40f1c2a89cac05d2672ac2738b26ff5b15d4647f9e492455 -->
-<!-- prompt-source: targets.json d2af9167fd932781ee7d14006e07c46b1f34e28e8852d363a5f75b1393f4903a -->
+<!-- prompt-source: build_workbuddy.py 9a73adf44782542c3d9c5545a61070bbc3f8a455e18e95ef13806b4fda8be293 -->
+<!-- prompt-source: targets.json 9d3e205c970bb99892c3969005f0d9b88276f65d1885a29272cbd5944fd0a45f -->
 
 > 英文原文：[build_workbuddy.py](../../build_workbuddy.py)
 
 # 专业 Skill 装配
+
+市场选品专家将角色与入口判断放在共享指令之前，确保启动时能先读到路由。
 
 ## 直接装配数据 Skill
 

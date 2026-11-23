@@ -303,6 +303,17 @@ class TestWorkBuddyBuild(unittest.TestCase):
         with self.assertRaises(ValueError):
             render({k: v for k, v in child.items() if k != "brand"})
 
+    def test_selection_routes_before_tool_loading_in_both_entry_points(self):
+        name = "zoodata-product-selection"
+        agent = (self.output / "experts" / name / "agents" / f"{name}.md").read_text()
+        self.assertLess(agent.index("Identify whether the seller is selecting"),
+                        agent.index("# Communicate with the user"))
+        for workflow in (self.output / "skills" / name,
+                         self.output / "experts" / name / "skills" / name):
+            body = (workflow / "SKILL.md").read_text()
+            headings = [line for line in body.splitlines() if line.startswith("## ")]
+            self.assertEqual(headings[0], "## Step 1: Identify what the seller is selecting first")
+
     def test_selection_uses_exact_names_in_published_and_dev_builds(self):
         for server in ("zoodata", "zoodata-amazon"):
             with self.subTest(server=server):

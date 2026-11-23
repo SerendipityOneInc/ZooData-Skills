@@ -538,7 +538,10 @@ def render_expert(expert_id, manifest, platform, skills, connector_id):
     combined.extend(path.read_text(encoding="utf-8").strip()
                     for path in agent_sources if path != delivery_source)
     combined.append("\n".join(binding_lines))
-    combined.append(business.strip())
+    if expert.get("role_first"):
+        combined.insert(0, business.strip())
+    else:
+        combined.append(business.strip())
     report_path = source_file(REPORTING_SOURCE)
     combined.append(report_path.read_text(encoding="utf-8").strip())
     combined.append(delivery_source.read_text(encoding="utf-8").strip())
