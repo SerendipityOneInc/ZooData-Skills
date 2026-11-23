@@ -7,10 +7,7 @@
 
 ## Call the selected data tool
 
-1. Use the full WorkBuddy tool name printed in the selected data method. If deferred, load it with `ToolSearch.tool_names` and invoke only an exact match. Skip keyword searches and plugin inventories.
-2. If the exact name is missing, request the `{{mcp_server}}` MCP connection once. After connection succeeds, look up the same name once more. If it remains unavailable, stop that read. Keep this process internal unless the user needs to connect or authorize ZooData.
-
-3. For blocked or empty reads follow the [shared query rules](../../../contract/query.md).
+Use the fully qualified business tool name printed in the data method (server `{{mcp_server}}`). Follow the [shared query rules](../../../contract/query.md) to invoke it and handle connection status and query results.
 
 ## Select the task
 

@@ -6,6 +6,8 @@
 2. Before first use, read the connected tool's description and schema. Reuse that definition within the session unless the tool changes or an error requires checking it again. Construct supported date, marketplace, batch, filter and paging inputs, including their types and defaults.
 3. Interpret returned fields using the current interface definition when domain notes differ. If a required definition is unavailable, preserve the returned value without guessing a conclusion that depends on its meaning.
 4. Before a dependent data query, check that each requested object is explicitly within the user's scope or uniquely resolved from the context. If a lookup leaves several possible subjects, confirm the intended subject before querying their data; a list of matches is not a user-selected comparison set.
+5. Start with the ZooData business tool needed for the question. For a deferred tool, look up its exact callable name in the session. When the host uses DeferExecuteTool, pass the business tool name and its query parameters. If the tool cannot be found, report that capability as unavailable.
+6. Request connection guidance once only when the host explicitly reports that ZooData is disconnected and needs setup. On resumption, use the original business tool directly. For a skipped or timed-out connection request, report that the query did not run. Attribute cancellation to the user only when the host explicitly records that decision.
 
 ## Choose the appropriate evidence level
 

@@ -1,4 +1,4 @@
-<!-- prompt-source: skill/workflows/product-selection/definition.md 8ad5852a80099305c2bd0087655aea0b4220a436d7b43497b44b1b5aab978ccc -->
+<!-- prompt-source: skill/workflows/product-selection/definition.md 317d40d503eab20ef82a00ea720efac3a93110d2cc4e5672c1cf914a40c92b2f -->
 
 > 英文原文：[原文](../../../../skill/workflows/product-selection/definition.md)
 
@@ -11,10 +11,7 @@
 
 ## 调用所选数据工具
 
-1. 直接使用数据方法中列出的完整工具名。工具尚未加载时，把完整名称传给 WorkBuddy 的 `ToolSearch.tool_names`，只调用完全同名的结果。跳过关键词搜索和插件清单。
-2. 找不到同名工具时，向 WorkBuddy 请求连接 `{{mcp_server}}` 一次。连接成功后再按原名查一次；仍不可用就停止该项查询。只有需要用户连接或授权 ZooData 时，才提示用户操作。
-
-3. 查询失败或结果为空时，使用[共享取数规则](../../../contract/query.md)。
+使用数据方法中列出的完整工具名（服务名 `{{mcp_server}}`）。按[共享取数规则](../../../contract/query.md)调用业务工具，并处理连接状态和查询结果。
 
 ## 按用户问题选择任务
 
